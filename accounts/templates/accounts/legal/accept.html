@@ -1,9 +1,6 @@
 {% extends base_template|default:"base.html" %}
 {% block content %}
-{# The consent modal is rendered globally by the base templates via
-   `accounts.context_processors.legal_modal_context` (see _modal.html).
-   This page is now just a fallback landing if someone hits /accept-legal/
-   directly — the modal will appear automatically over this content. #}
+{# The consent modal is rendered globally by the base templates via `accounts.context_processors.legal_modal_context` (see _modal.html). This page is now just a fallback landing if someone hits /accept-legal/ directly — the modal will appear automatically over this content. #}
 <div class="page-content">
   <div style="max-width:560px;margin:4rem auto;padding:1.25rem 1.5rem;border:1px solid var(--border,#e5e7eb);border-radius:14px;background:var(--paper,#fff);color:var(--ink,#0f172a);">
     <h2 style="margin:0 0 .35rem;font-size:1.25rem;font-weight:600;">Legal documents</h2>

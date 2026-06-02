@@ -393,11 +393,7 @@
         {% endif %}
 
         {% if is_office_embed %}
-          {# `data-settle-delay="2400"` keeps the skeleton visible for 2.4s
-             AFTER the iframe's load event fires. OneDrive's PPT viewer is
-             itself a SPA that needs another beat to render its first slide
-             — without this delay the skeleton fades into a blank frame and
-             looks frozen. #}
+          {# `data-settle-delay="2400"` keeps the skeleton visible for 2.4s AFTER the iframe's load event fires. OneDrive's PPT viewer is itself a SPA that needs another beat to render its first slide — without this delay the skeleton fades into a blank frame and looks frozen. #}
           <div class="embed-responsive embed-tall cm-media-shell" data-skeleton="doc" data-settle-delay="2400">
             {% include "module/_partials/_cm_skeleton_doc.html" %}
             <iframe src="{{ office_embed_url }}"
@@ -421,12 +417,7 @@
     </div>
   </div>
 
-  {# Media-skeleton wiring is handled globally by cl-media-skeleton.js
-     (loaded via _cm_scripts.html). The pdf.js block below still calls
-     pdfContainer._cmMarkLoaded() once the first page renders — that
-     callback is exposed by the global engine on every [data-skeleton]
-     shell, including this PDF container that has no auto-observable
-     media. #}
+  {# Media-skeleton wiring is handled globally by cl-media-skeleton.js (loaded via _cm_scripts.html). The pdf.js block below still calls pdfContainer._cmMarkLoaded() once the first page renders — that callback is exposed by the global engine on every [data-skeleton] shell, including this PDF container that has no auto-observable media. #}
   {% include "includes/_cm_scripts.html" %}
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
   {% if is_pdf and module.file %}

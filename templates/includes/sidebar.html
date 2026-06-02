@@ -357,9 +357,7 @@
               {% endif %}
             </ul>
 
-            {# [Classedge LMS] Standalone Schedule entry — surfaced for registrars
-               since the existing one lives inside the Teaching dropdown and is
-               easy to miss for that role. #}
+            {# [Classedge LMS] Standalone Schedule entry — surfaced for registrars since the existing one lives inside the Teaching dropdown and is easy to miss for that role. #}
             {% if user.profile.role.name|lower == 'registrar' or user.profile.role.name|lower == 'admin' or user.is_superuser or user.is_staff %}
               {% if user|has_perm:'subject.view_schedule' %}
                 <a class="nav-link" href="{% url 'schedule' %}" role="button">

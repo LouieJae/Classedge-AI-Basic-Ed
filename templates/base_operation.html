@@ -1897,7 +1897,7 @@
       <nav class="nav">
         <a href="{% url 'dashboard' %}"{% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'it_admin_dashboard' or request.resolver_match.url_name == 'registrar_dashboard' or request.resolver_match.url_name == 'academic_director_dashboard' or request.resolver_match.url_name == 'coil_admin_dashboard' or request.resolver_match.url_name == 'super_admin_dashboard' or request.resolver_match.url_name == 'program_head_dashboard' or request.resolver_match.url_name == 'time_keeper_dashboard' %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-house"></i></span> Dashboard</a>
         <a href="{% url 'calendars' %}"{% if '/calendars' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-calendar-alt"></i></span> Calendar</a>
-        
+
         {% if user|has_perm:'classroom.view_teacher_attendance' %}
           <a href="{% url 'teacher_timesheet_report' %}"{% if '/teacher/timesheet' in request.path or '/teacher_timesheet_report' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-clock"></i></span> Time Sheet</a>
         {% endif %}
@@ -2565,8 +2565,6 @@
 <script src="{% static 'js/cl-form-loading.js' %}" defer></script>
 <script src="{% static 'js/cl-form-validation.js' %}" defer></script>
 <script src="{% static 'js/cl-media-skeleton.js' %}" defer></script>
-{# Per-account tour-completion list — seeds cl-tour.js so finished/dismissed
-   walkthroughs never auto-show again for this user on any device. #}
 {% if request.user.is_authenticated %}{{ request.user.profile.seen_tours|json_script:"cl-tour-seen-data" }}{% endif %}
 <script>
   (function () {

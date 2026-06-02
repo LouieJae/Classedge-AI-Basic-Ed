@@ -33,11 +33,12 @@ Login credentials for the demo accounts (the login form expects EMAIL):
 Re-running the script is safe: every object is fetched-or-created; chat /
 post seeding is skipped if data already exists for that user.
 """
+
 from __future__ import annotations
 
 import os
-import sys
 import random
+import sys
 import traceback
 from datetime import date, datetime, time, timedelta
 
@@ -67,6 +68,7 @@ if connection.vendor == "sqlite":
 # no-ops just for this script.
 try:
     import logs.utils as _logs_utils  # noqa: E402
+
     _logs_utils.create_notification_for_teacher = lambda *a, **kw: None
     _logs_utils.create_notifications_for_subject_students = lambda *a, **kw: None
 except Exception:
@@ -86,7 +88,6 @@ from social_media.models import (  # noqa: E402
     Post,
 )
 
-
 # ---------------------------------------------------------------------------
 # Optional model imports — wrapped so a missing app doesn't kill the seeder.
 # Each block sets the names to None when the import fails.
@@ -99,9 +100,9 @@ except Exception:
 try:
     from course.models import (  # noqa: E402
         Semester,
-        Term,
-        SubjectEnrollment,
         StudentParticipationScore,
+        SubjectEnrollment,
+        Term,
     )
 except Exception:
     Semester = Term = SubjectEnrollment = StudentParticipationScore = None
@@ -109,11 +110,11 @@ except Exception:
 try:
     from activity.models import (  # noqa: E402
         Activity,
-        ActivityType,
-        StudentActivity,
         ActivityQuestion,
+        ActivityType,
         QuestionChoice,
         QuizType,
+        StudentActivity,
     )
 except Exception:
     Activity = ActivityType = StudentActivity = None
@@ -135,24 +136,26 @@ except Exception:
 
 try:
     from gradebookcomponent.models.gradebook_model import (  # noqa: E402
-        GradeBookComponents,
         ActivityTypePercentage,
+        GradeBookComponents,
     )
-    from gradebookcomponent.models.termbook_model import TermGradeBookComponents  # noqa: E402
+    from gradebookcomponent.models.termbook_model import (
+        TermGradeBookComponents,  # noqa: E402
+    )
 except Exception:
     GradeBookComponents = ActivityTypePercentage = TermGradeBookComponents = None
 
 try:
-    from calendars.models import Holiday, Event, Announcement  # noqa: E402
+    from calendars.models import Announcement, Event, Holiday  # noqa: E402
 except Exception:
     Holiday = Event = Announcement = None
 
 try:
     from gamification.models import (  # noqa: E402
-        StudentGamification,
-        XPTransaction,
         BadgeDefinition,
         StudentBadge,
+        StudentGamification,
+        XPTransaction,
     )
 except Exception:
     StudentGamification = XPTransaction = BadgeDefinition = StudentBadge = None
@@ -166,7 +169,7 @@ except Exception:
     SideActivity = SideActivityAttempt = None
 
 try:
-    from logs.models import StudentActivityLog, Notification  # noqa: E402
+    from logs.models import Notification, StudentActivityLog  # noqa: E402
 except Exception:
     StudentActivityLog = Notification = None
 
@@ -205,29 +208,29 @@ ROLE_NAMES = [
 
 STUDENTS = [
     # A single Grade 7 section ("Grade 7 - Rizal"). username, first, last, email
-    ("alex_cruz",      "Alex",     "Cruz",      "alex@basiced.dev"),
-    ("bea_santos",     "Bea",      "Santos",    "bea@basiced.dev"),
-    ("carlo_reyes",    "Carlo",    "Reyes",     "carlo@basiced.dev"),
-    ("diane_lim",      "Diane",    "Lim",       "diane@basiced.dev"),
-    ("ej_garcia",      "EJ",       "Garcia",    "ej@basiced.dev"),
-    ("faye_torres",    "Faye",     "Torres",    "faye@basiced.dev"),
-    ("gio_mendoza",    "Gio",      "Mendoza",   "gio@basiced.dev"),
-    ("hana_dela_cruz", "Hana",     "Dela Cruz", "hana@basiced.dev"),
-    ("ivan_chua",      "Ivan",     "Chua",      "ivan@basiced.dev"),
-    ("jen_villanueva", "Jen",      "Villanueva", "jen@basiced.dev"),
+    ("alex_cruz", "Alex", "Cruz", "alex@basiced.dev"),
+    ("bea_santos", "Bea", "Santos", "bea@basiced.dev"),
+    ("carlo_reyes", "Carlo", "Reyes", "carlo@basiced.dev"),
+    ("diane_lim", "Diane", "Lim", "diane@basiced.dev"),
+    ("ej_garcia", "EJ", "Garcia", "ej@basiced.dev"),
+    ("faye_torres", "Faye", "Torres", "faye@basiced.dev"),
+    ("gio_mendoza", "Gio", "Mendoza", "gio@basiced.dev"),
+    ("hana_dela_cruz", "Hana", "Dela Cruz", "hana@basiced.dev"),
+    ("ivan_chua", "Ivan", "Chua", "ivan@basiced.dev"),
+    ("jen_villanueva", "Jen", "Villanueva", "jen@basiced.dev"),
     # The two below are NOT auto-friended with demo_student — they will
     # appear in the Requests tab (pending) and Discover tab respectively.
-    ("kara_lopez",     "Kara",     "Lopez",     "kara@basiced.dev"),
-    ("leo_pineda",     "Leo",      "Pineda",    "leo@basiced.dev"),
-    ("mia_robles",     "Mia",      "Robles",    "mia@basiced.dev"),
-    ("nico_tan",       "Nico",     "Tan",       "nico@basiced.dev"),
+    ("kara_lopez", "Kara", "Lopez", "kara@basiced.dev"),
+    ("leo_pineda", "Leo", "Pineda", "leo@basiced.dev"),
+    ("mia_robles", "Mia", "Robles", "mia@basiced.dev"),
+    ("nico_tan", "Nico", "Tan", "nico@basiced.dev"),
 ]
 
 TEACHERS = [
-    ("teacher_navarro",  "Liza",  "Navarro",   "navarro@basiced.dev"),
-    ("teacher_aquino",   "Mario", "Aquino",    "aquino@basiced.dev"),
+    ("teacher_navarro", "Liza", "Navarro", "navarro@basiced.dev"),
+    ("teacher_aquino", "Mario", "Aquino", "aquino@basiced.dev"),
     ("teacher_delacruz", "Grace", "Dela Cruz", "gdelacruz@basiced.dev"),
-    ("teacher_ramos",    "Ben",   "Ramos",     "bramos@basiced.dev"),
+    ("teacher_ramos", "Ben", "Ramos", "bramos@basiced.dev"),
 ]
 
 DEMO_STUDENT = ("demo_student", "Demo", "Student", "demo@basiced.dev", "demo123")
@@ -238,11 +241,39 @@ DEMO_TEACHER = ("demo_teacher", "Demo", "Teacher", "teacher@basiced.dev", "teach
 # underlying functional role name is what the app gates on.
 # Tuple shape: (role_name, username, first, last, email, password)
 ROLE_DEMOS = [
-    ("Admin",             "demo_admin",      "Demo", "Admin",       "admin@basiced.dev",       "admin123"),
-    ("Registrar",         "demo_registrar",  "Demo", "Registrar",   "registrar@basiced.dev",   "registrar123"),
-    ("Academic Director", "demo_principal",  "Demo", "Principal",   "principal@basiced.dev",   "principal123"),
-    ("Program Head",      "demo_coordinator","Demo", "Coordinator", "coordinator@basiced.dev", "coordinator123"),
-    ("Time Keeper",       "demo_timekeeper", "Demo", "Keeper",      "timekeeper@basiced.dev",  "keeper123"),
+    ("Admin", "demo_admin", "Demo", "Admin", "admin@basiced.dev", "admin123"),
+    (
+        "Registrar",
+        "demo_registrar",
+        "Demo",
+        "Registrar",
+        "registrar@basiced.dev",
+        "registrar123",
+    ),
+    (
+        "Academic Director",
+        "demo_principal",
+        "Demo",
+        "Principal",
+        "principal@basiced.dev",
+        "principal123",
+    ),
+    (
+        "Program Head",
+        "demo_coordinator",
+        "Demo",
+        "Coordinator",
+        "coordinator@basiced.dev",
+        "coordinator123",
+    ),
+    (
+        "Time Keeper",
+        "demo_timekeeper",
+        "Demo",
+        "Keeper",
+        "timekeeper@basiced.dev",
+        "keeper123",
+    ),
 ]
 
 CHAT_SCRIPTS = [
@@ -336,10 +367,13 @@ CHAT_SCRIPTS = [
 ]
 
 POSTS = [
-    ("alex_cruz",      "Just passed my Math 7 seatwork 📚 finally free!"),
-    ("bea_santos",     "Library is packed today. Wish me luck sa quiz 😅"),
-    ("carlo_reyes",    "Group meeting for our Science project at 4pm — don't be late team!"),
-    ("demo_student",   "Hello classmates! Excited for our new online classroom 🎉"),
+    ("alex_cruz", "Just passed my Math 7 seatwork 📚 finally free!"),
+    ("bea_santos", "Library is packed today. Wish me luck sa quiz 😅"),
+    (
+        "carlo_reyes",
+        "Group meeting for our Science project at 4pm — don't be late team!",
+    ),
+    ("demo_student", "Hello classmates! Excited for our new online classroom 🎉"),
     ("hana_dela_cruz", "Anyone has notes for Science 7? Drop a comment 🙏"),
 ]
 
@@ -347,7 +381,13 @@ POSTS = [
 # Academic structure
 # ---------------------------------------------------------------------------
 # DepEd-style assessment components.
-ACTIVITY_TYPES = ["Written Work", "Performance Task", "Quarterly Assessment", "Recitation", "Project"]
+ACTIVITY_TYPES = [
+    "Written Work",
+    "Performance Task",
+    "Quarterly Assessment",
+    "Recitation",
+    "Project",
+]
 
 # Basic-Ed uses four grading quarters.
 TERM_NAMES = ["First Quarter", "Second Quarter", "Third Quarter", "Fourth Quarter"]
@@ -356,83 +396,232 @@ TERM_NAMES = ["First Quarter", "Second Quarter", "Third Quarter", "Fourth Quarte
 # (code, name, short, description, teacher_username, units)
 # demo_teacher handles English 7 + Mathematics 7 so the demo Faculty Dashboard has data.
 SUBJECTS = [
-    ("ENG7",   "English 7",                                "English", "Reading, grammar, and literature for Grade 7.",            "demo_teacher",      1),
-    ("FIL7",   "Filipino 7",                               "Filipino","Wika, panitikan, at gramatika para sa Baitang 7.",         "teacher_navarro",   1),
-    ("MATH7",  "Mathematics 7",                            "Math",    "Numbers, measurement, algebra, and geometry.",             "demo_teacher",      1),
-    ("SCI7",   "Science 7",                                "Science", "Matter, living things, force, motion, and energy.",        "teacher_aquino",    1),
-    ("AP7",    "Araling Panlipunan 7",                     "AP",      "Heograpiya at kasaysayan ng Asya.",                        "teacher_delacruz",  1),
-    ("ESP7",   "Edukasyon sa Pagpapakatao 7",              "ESP",     "Values formation at pagpapakatao para sa Baitang 7.",      "teacher_navarro",   1),
-    ("MAPEH7", "MAPEH 7",                                  "MAPEH",   "Music, Arts, Physical Education, and Health.",             "teacher_ramos",     1),
-    ("TLE7",   "Technology and Livelihood Education 7",    "TLE",     "ICT, home economics, and basic livelihood skills.",        "teacher_aquino",    1),
+    (
+        "ENG7",
+        "English 7",
+        "English",
+        "Reading, grammar, and literature for Grade 7.",
+        "demo_teacher",
+        1,
+    ),
+    (
+        "FIL7",
+        "Filipino 7",
+        "Filipino",
+        "Wika, panitikan, at gramatika para sa Baitang 7.",
+        "teacher_navarro",
+        1,
+    ),
+    (
+        "MATH7",
+        "Mathematics 7",
+        "Math",
+        "Numbers, measurement, algebra, and geometry.",
+        "demo_teacher",
+        1,
+    ),
+    (
+        "SCI7",
+        "Science 7",
+        "Science",
+        "Matter, living things, force, motion, and energy.",
+        "teacher_aquino",
+        1,
+    ),
+    (
+        "AP7",
+        "Araling Panlipunan 7",
+        "AP",
+        "Heograpiya at kasaysayan ng Asya.",
+        "teacher_delacruz",
+        1,
+    ),
+    (
+        "ESP7",
+        "Edukasyon sa Pagpapakatao 7",
+        "ESP",
+        "Values formation at pagpapakatao para sa Baitang 7.",
+        "teacher_navarro",
+        1,
+    ),
+    (
+        "MAPEH7",
+        "MAPEH 7",
+        "MAPEH",
+        "Music, Arts, Physical Education, and Health.",
+        "teacher_ramos",
+        1,
+    ),
+    (
+        "TLE7",
+        "Technology and Livelihood Education 7",
+        "TLE",
+        "ICT, home economics, and basic livelihood skills.",
+        "teacher_aquino",
+        1,
+    ),
 ]
 
 # Activities per subject — (name, type, days_relative_to_today, max_score)
 SUBJECT_ACTIVITIES = [
-    ("Written Work 1: Vocabulary & Concepts", "Written Work",         -20, 20),
-    ("Performance Task 1: Group Presentation","Performance Task",     -10, 50),
-    ("Quarterly Assessment",                  "Quarterly Assessment",   5, 50),
-    ("Project: Learning Portfolio",           "Project",               14, 100),
-    ("Recitation: Class Participation",       "Recitation",            -5, 20),
+    ("Written Work 1: Vocabulary & Concepts", "Written Work", -20, 20),
+    ("Performance Task 1: Group Presentation", "Performance Task", -10, 50),
+    ("Quarterly Assessment", "Quarterly Assessment", 5, 50),
+    ("Project: Learning Portfolio", "Project", 14, 100),
+    ("Recitation: Class Participation", "Recitation", -5, 20),
 ]
 
 # Philippine 2025 holidays (regular + special)
 HOLIDAYS = [
-    ("New Year's Day",        date(2025,  1,  1), "Regular Holiday",         "#E74C3C"),
-    ("Araw ng Kagitingan",    date(2025,  4,  9), "Regular Holiday",         "#E74C3C"),
-    ("Maundy Thursday",       date(2025,  4, 17), "Regular Holiday",         "#9B59B6"),
-    ("Good Friday",           date(2025,  4, 18), "Regular Holiday",         "#9B59B6"),
-    ("Labor Day",             date(2025,  5,  1), "Regular Holiday",         "#3498DB"),
-    ("Independence Day",      date(2025,  6, 12), "Regular Holiday",         "#E74C3C"),
-    ("Ninoy Aquino Day",      date(2025,  8, 21), "Special Holiday",         "#F39C12"),
-    ("National Heroes Day",   date(2025,  8, 25), "Regular Holiday",         "#E74C3C"),
-    ("All Saints' Day",       date(2025, 11,  1), "Special Holiday",         "#F39C12"),
-    ("Bonifacio Day",         date(2025, 11, 30), "Regular Holiday",         "#E74C3C"),
-    ("Christmas Day",         date(2025, 12, 25), "Regular Holiday",         "#27AE60"),
-    ("Rizal Day",             date(2025, 12, 30), "Regular Holiday",         "#E74C3C"),
+    ("New Year's Day", date(2025, 1, 1), "Regular Holiday", "#E74C3C"),
+    ("Araw ng Kagitingan", date(2025, 4, 9), "Regular Holiday", "#E74C3C"),
+    ("Maundy Thursday", date(2025, 4, 17), "Regular Holiday", "#9B59B6"),
+    ("Good Friday", date(2025, 4, 18), "Regular Holiday", "#9B59B6"),
+    ("Labor Day", date(2025, 5, 1), "Regular Holiday", "#3498DB"),
+    ("Independence Day", date(2025, 6, 12), "Regular Holiday", "#E74C3C"),
+    ("Ninoy Aquino Day", date(2025, 8, 21), "Special Holiday", "#F39C12"),
+    ("National Heroes Day", date(2025, 8, 25), "Regular Holiday", "#E74C3C"),
+    ("All Saints' Day", date(2025, 11, 1), "Special Holiday", "#F39C12"),
+    ("Bonifacio Day", date(2025, 11, 30), "Regular Holiday", "#E74C3C"),
+    ("Christmas Day", date(2025, 12, 25), "Regular Holiday", "#27AE60"),
+    ("Rizal Day", date(2025, 12, 30), "Regular Holiday", "#E74C3C"),
 ]
 
 # (title, description, day-offset-from-today, time-or-None, location)
 EVENTS = [
-    ("Opening of Classes",      "Welcome back, learners! First day of the school year.",        -28, time(7, 30), "Covered Court"),
-    ("Buwan ng Wika Program",   "Pagdiriwang ng Buwan ng Wikang Pambansa.",                      -7, time(13, 0), "School Gym"),
-    ("First Quarterly Exams",   "Bring your school IDs. Check the schedule on the portal.",        5, time(7, 30), "Classrooms"),
-    ("Science Fair",            "Class science investigatory project exhibits.",                  12, time(9, 0),  "Science Laboratory"),
-    ("Parent-Teacher Conference","Distribution of report cards and learner progress updates.",    18, time(8, 0),  "Advisory Rooms"),
-    ("Second Quarterly Exams",  "Second quarter assessment week — good luck!",                    35, time(7, 30), "Classrooms"),
-    ("Intramurals / Sports Fest","Inter-section sports competitions and cheering.",               45, time(8, 0),  "School Grounds"),
+    (
+        "Opening of Classes",
+        "Welcome back, learners! First day of the school year.",
+        -28,
+        time(7, 30),
+        "Covered Court",
+    ),
+    (
+        "Buwan ng Wika Program",
+        "Pagdiriwang ng Buwan ng Wikang Pambansa.",
+        -7,
+        time(13, 0),
+        "School Gym",
+    ),
+    (
+        "First Quarterly Exams",
+        "Bring your school IDs. Check the schedule on the portal.",
+        5,
+        time(7, 30),
+        "Classrooms",
+    ),
+    (
+        "Science Fair",
+        "Class science investigatory project exhibits.",
+        12,
+        time(9, 0),
+        "Science Laboratory",
+    ),
+    (
+        "Parent-Teacher Conference",
+        "Distribution of report cards and learner progress updates.",
+        18,
+        time(8, 0),
+        "Advisory Rooms",
+    ),
+    (
+        "Second Quarterly Exams",
+        "Second quarter assessment week — good luck!",
+        35,
+        time(7, 30),
+        "Classrooms",
+    ),
+    (
+        "Intramurals / Sports Fest",
+        "Inter-section sports competitions and cheering.",
+        45,
+        time(8, 0),
+        "School Grounds",
+    ),
 ]
 
 ANNOUNCEMENTS = [
-    ("Enrollment Reminder",   "Late enrollment deadline is approaching — please proceed to the Registrar's Office."),
-    ("System Maintenance",    "The portal will be down Saturday 11pm-1am for scheduled updates."),
-    ("Library Hours Update",  "The school library will be open until 5pm during exam weeks."),
-    ("Nutrition Month Menu",  "The canteen added healthier 'gulay' and fruit options starting Monday."),
-    ("Wear Your Complete Uniform", "Reminder: wear the complete prescribed uniform and ID daily."),
-    ("Faculty Meeting",       "All advisers are invited to a meeting on the new grading sheet."),
-    ("Brigada Eskwela",       "Volunteers are welcome for this week's school clean-up drive."),
-    ("Guidance Wellness Week","Free counseling sessions and homeroom wellness activities next week."),
+    (
+        "Enrollment Reminder",
+        "Late enrollment deadline is approaching — please proceed to the Registrar's Office.",
+    ),
+    (
+        "System Maintenance",
+        "The portal will be down Saturday 11pm-1am for scheduled updates.",
+    ),
+    (
+        "Library Hours Update",
+        "The school library will be open until 5pm during exam weeks.",
+    ),
+    (
+        "Nutrition Month Menu",
+        "The canteen added healthier 'gulay' and fruit options starting Monday.",
+    ),
+    (
+        "Wear Your Complete Uniform",
+        "Reminder: wear the complete prescribed uniform and ID daily.",
+    ),
+    (
+        "Faculty Meeting",
+        "All advisers are invited to a meeting on the new grading sheet.",
+    ),
+    (
+        "Brigada Eskwela",
+        "Volunteers are welcome for this week's school clean-up drive.",
+    ),
+    (
+        "Guidance Wellness Week",
+        "Free counseling sessions and homeroom wellness activities next week.",
+    ),
 ]
 
 # Institution-wide news (department=None) so they appear for every user
 # regardless of department assignment.
 INSTITUTION_ANNOUNCEMENTS = [
-    ("Academic Calendar Update",  "Reminder: First Quarter exam week starts soon. Check your class schedule."),
-    ("Supreme Pupil/Student Government Elections", "Filing of candidacy is open until next Friday."),
-    ("Holiday Reminder",          "Classes are suspended on the upcoming national holiday — see calendar."),
+    (
+        "Academic Calendar Update",
+        "Reminder: First Quarter exam week starts soon. Check your class schedule.",
+    ),
+    (
+        "Supreme Pupil/Student Government Elections",
+        "Filing of candidacy is open until next Friday.",
+    ),
+    (
+        "Holiday Reminder",
+        "Classes are suspended on the upcoming national holiday — see calendar.",
+    ),
 ]
 INSTITUTION_EVENTS = [
-    ("Flag Ceremony",        "Weekly Monday flag-raising for all learners and teachers.", -2, time(7, 15), "Quadrangle"),
-    ("Recognition Day",      "Awarding of honor learners and achievers, open to parents.", 22, time(8, 0),  "Covered Court"),
-    ("Foundation Day",       "Celebration of the school's founding anniversary.",          28, time(8, 30), "School Grounds"),
+    (
+        "Flag Ceremony",
+        "Weekly Monday flag-raising for all learners and teachers.",
+        -2,
+        time(7, 15),
+        "Quadrangle",
+    ),
+    (
+        "Recognition Day",
+        "Awarding of honor learners and achievers, open to parents.",
+        22,
+        time(8, 0),
+        "Covered Court",
+    ),
+    (
+        "Foundation Day",
+        "Celebration of the school's founding anniversary.",
+        28,
+        time(8, 30),
+        "School Grounds",
+    ),
 ]
 
 # Side activities (Quest Map). (sub_type, title, xp_reward, estimated_minutes)
 SIDE_ACTIVITIES = [
-    ("daily_challenge", "Daily Math Challenge",         15, 5),
-    ("flashcard",       "English Vocabulary Flashcards",10, 3),
-    ("daily_challenge", "Science Quick Quiz",           20, 7),
-    ("flashcard",       "Filipino Talasalitaan",        10, 4),
-    ("daily_challenge", "Mental Math Speed Round",      25, 10),
+    ("daily_challenge", "Daily Math Challenge", 15, 5),
+    ("flashcard", "English Vocabulary Flashcards", 10, 3),
+    ("daily_challenge", "Science Quick Quiz", 20, 7),
+    ("flashcard", "Filipino Talasalitaan", 10, 4),
+    ("daily_challenge", "Mental Math Speed Round", 25, 10),
 ]
 
 # Badges — `icon` is rendered as plain text (template uses {{ icon }} not <i>),
@@ -442,20 +631,108 @@ SIDE_ACTIVITIES = [
 # UI shows only the highest tier the student has earned plus progress toward
 # the next. `family_rank` orders tiers within a family (1=lowest).
 BADGES = [
-    ("first_steps",     "First Steps",       "Complete your first graded activity.",            "bronze",   "👣", {"type": "activity_score", "min_pct": 1,   "count": 1}, "", 0),
-    ("quick_learner",   "Quick Learner",     "Score 90% or higher on 3 activities.",            "silver",   "⚡", {"type": "activity_score", "min_pct": 90,  "count": 3}, "", 0),
-    ("perfectionist",   "Perfectionist",     "Score a perfect 100% on any activity.",           "gold",     "💯", {"type": "activity_score", "min_pct": 100, "count": 1}, "", 0),
-    ("top_of_class",    "Top of Class",      "Be the top scorer on 5 activities in one subject.", "platinum", "👑", {"type": "top_scorer", "threshold": 5}, "", 0),
-
+    (
+        "first_steps",
+        "First Steps",
+        "Complete your first graded activity.",
+        "bronze",
+        "👣",
+        {"type": "activity_score", "min_pct": 1, "count": 1},
+        "",
+        0,
+    ),
+    (
+        "quick_learner",
+        "Quick Learner",
+        "Score 90% or higher on 3 activities.",
+        "silver",
+        "⚡",
+        {"type": "activity_score", "min_pct": 90, "count": 3},
+        "",
+        0,
+    ),
+    (
+        "perfectionist",
+        "Perfectionist",
+        "Score a perfect 100% on any activity.",
+        "gold",
+        "💯",
+        {"type": "activity_score", "min_pct": 100, "count": 1},
+        "",
+        0,
+    ),
+    (
+        "top_of_class",
+        "Top of Class",
+        "Be the top scorer on 5 activities in one subject.",
+        "platinum",
+        "👑",
+        {"type": "top_scorer", "threshold": 5},
+        "",
+        0,
+    ),
     # Scholar family — score 75%+ on more and more activities
-    ("scholar_bronze",  "Scholar — Apprentice", "Score 75% or higher on 5 activities.",         "bronze",   "📖", {"type": "activity_score", "min_pct": 75, "count": 5},  "scholar", 1),
-    ("scholar_silver",  "Scholar — Adept",      "Score 75% or higher on 15 activities.",        "silver",   "📚", {"type": "activity_score", "min_pct": 75, "count": 15}, "scholar", 2),
-    ("scholar_gold",    "Scholar — Master",     "Score 75% or higher on 30 activities.",        "gold",     "🎓", {"type": "activity_score", "min_pct": 75, "count": 30}, "scholar", 3),
-
+    (
+        "scholar_bronze",
+        "Scholar — Apprentice",
+        "Score 75% or higher on 5 activities.",
+        "bronze",
+        "📖",
+        {"type": "activity_score", "min_pct": 75, "count": 5},
+        "scholar",
+        1,
+    ),
+    (
+        "scholar_silver",
+        "Scholar — Adept",
+        "Score 75% or higher on 15 activities.",
+        "silver",
+        "📚",
+        {"type": "activity_score", "min_pct": 75, "count": 15},
+        "scholar",
+        2,
+    ),
+    (
+        "scholar_gold",
+        "Scholar — Master",
+        "Score 75% or higher on 30 activities.",
+        "gold",
+        "🎓",
+        {"type": "activity_score", "min_pct": 75, "count": 30},
+        "scholar",
+        3,
+    ),
     # Streak family — login streak
-    ("streak_bronze",   "Streak — Spark",   "Maintain a 3-day login streak.",                   "bronze",   "🔥", {"type": "streak", "streak": "login", "threshold": 3},  "streak", 1),
-    ("streak_silver",   "Streak — Blaze",   "Maintain a 7-day login streak.",                   "silver",   "🌋", {"type": "streak", "streak": "login", "threshold": 7},  "streak", 2),
-    ("streak_gold",     "Streak — Inferno", "Maintain a 30-day login streak.",                  "gold",     "☄️", {"type": "streak", "streak": "login", "threshold": 30}, "streak", 3),
+    (
+        "streak_bronze",
+        "Streak — Spark",
+        "Maintain a 3-day login streak.",
+        "bronze",
+        "🔥",
+        {"type": "streak", "streak": "login", "threshold": 3},
+        "streak",
+        1,
+    ),
+    (
+        "streak_silver",
+        "Streak — Blaze",
+        "Maintain a 7-day login streak.",
+        "silver",
+        "🌋",
+        {"type": "streak", "streak": "login", "threshold": 7},
+        "streak",
+        2,
+    ),
+    (
+        "streak_gold",
+        "Streak — Inferno",
+        "Maintain a 30-day login streak.",
+        "gold",
+        "☄️",
+        {"type": "streak", "streak": "login", "threshold": 30},
+        "streak",
+        3,
+    ),
 ]
 
 # Staff (non-student, non-teacher) badges — Admin, Registrar, Academic Director,
@@ -465,17 +742,97 @@ BADGES = [
 # Program Head, Coil Admin, Time Keeper. Tenure family uses the same `family`
 # grouping pattern as student badges.
 STAFF_BADGES = [
-    ("staff_welcome",         "Welcome Aboard",      "Sign in to ClassEdge for the first time.",     "bronze",   "👋", {"type": "first_sign_in"}, "", 0),
-    ("staff_profile_complete","Profile Complete",    "Fill in your full name and email.",            "bronze",   "🪪", {"type": "profile_complete"}, "", 0),
-    ("staff_active_week",     "Currently Active",    "Signed in within the last 7 days.",            "bronze",   "🔆", {"type": "recently_active", "within_days": 7}, "", 0),
-    ("staff_active_month",    "Engaged",             "Signed in within the last 30 days.",           "silver",   "🌟", {"type": "recently_active", "within_days": 30}, "", 0),
-    ("staff_role_admin",      "System Operator",     "Hold administrator privileges.",               "gold",     "⚙️", {"type": "role_admin"}, "", 0),
-
+    (
+        "staff_welcome",
+        "Welcome Aboard",
+        "Sign in to ClassEdge for the first time.",
+        "bronze",
+        "👋",
+        {"type": "first_sign_in"},
+        "",
+        0,
+    ),
+    (
+        "staff_profile_complete",
+        "Profile Complete",
+        "Fill in your full name and email.",
+        "bronze",
+        "🪪",
+        {"type": "profile_complete"},
+        "",
+        0,
+    ),
+    (
+        "staff_active_week",
+        "Currently Active",
+        "Signed in within the last 7 days.",
+        "bronze",
+        "🔆",
+        {"type": "recently_active", "within_days": 7},
+        "",
+        0,
+    ),
+    (
+        "staff_active_month",
+        "Engaged",
+        "Signed in within the last 30 days.",
+        "silver",
+        "🌟",
+        {"type": "recently_active", "within_days": 30},
+        "",
+        0,
+    ),
+    (
+        "staff_role_admin",
+        "System Operator",
+        "Hold administrator privileges.",
+        "gold",
+        "⚙️",
+        {"type": "role_admin"},
+        "",
+        0,
+    ),
     # Tenure family
-    ("staff_tenured_30",      "Tenure — Month One",  "Account active for 30 days.",                  "bronze",   "📅", {"type": "tenure_days", "threshold": 30},  "staff_tenure", 1),
-    ("staff_tenured_90",      "Tenure — Quarter",    "Account active for 90 days.",                  "silver",   "📆", {"type": "tenure_days", "threshold": 90},  "staff_tenure", 2),
-    ("staff_tenured_180",     "Tenure — Half Year",  "Account active for 180 days.",                 "gold",     "🗓️", {"type": "tenure_days", "threshold": 180}, "staff_tenure", 3),
-    ("staff_tenured_365",     "Tenure — Anniversary","Account active for 365 days.",                 "platinum", "🏛️", {"type": "tenure_days", "threshold": 365}, "staff_tenure", 4),
+    (
+        "staff_tenured_30",
+        "Tenure — Month One",
+        "Account active for 30 days.",
+        "bronze",
+        "📅",
+        {"type": "tenure_days", "threshold": 30},
+        "staff_tenure",
+        1,
+    ),
+    (
+        "staff_tenured_90",
+        "Tenure — Quarter",
+        "Account active for 90 days.",
+        "silver",
+        "📆",
+        {"type": "tenure_days", "threshold": 90},
+        "staff_tenure",
+        2,
+    ),
+    (
+        "staff_tenured_180",
+        "Tenure — Half Year",
+        "Account active for 180 days.",
+        "gold",
+        "🗓️",
+        {"type": "tenure_days", "threshold": 180},
+        "staff_tenure",
+        3,
+    ),
+    (
+        "staff_tenured_365",
+        "Tenure — Anniversary",
+        "Account active for 365 days.",
+        "platinum",
+        "🏛️",
+        {"type": "tenure_days", "threshold": 365},
+        "staff_tenure",
+        4,
+    ),
 ]
 
 
@@ -507,7 +864,9 @@ def seed_department_course():
     return dept, course
 
 
-def _ensure_user(username, first, last, email, password, role, dept, course, year, is_staff=False):
+def _ensure_user(
+    username, first, last, email, password, role, dept, course, year, is_staff=False
+):
     user, created = User.objects.get_or_create(
         username=username,
         defaults={
@@ -562,28 +921,55 @@ def seed_users(roles, dept, course):
     # Demo accounts (well-known passwords)
     u_username, u_first, u_last, u_email, u_pw = DEMO_STUDENT
     users[u_username] = _ensure_user(
-        u_username, u_first, u_last, u_email, u_pw,
-        student_role, dept, course, "Grade 7",
+        u_username,
+        u_first,
+        u_last,
+        u_email,
+        u_pw,
+        student_role,
+        dept,
+        course,
+        "Grade 7",
     )
     t_username, t_first, t_last, t_email, t_pw = DEMO_TEACHER
     users[t_username] = _ensure_user(
-        t_username, t_first, t_last, t_email, t_pw,
-        teacher_role, dept, course, None,
+        t_username,
+        t_first,
+        t_last,
+        t_email,
+        t_pw,
+        teacher_role,
+        dept,
+        course,
+        None,
     )
 
     # Bulk students
     for username, first, last, email in STUDENTS:
         users[username] = _ensure_user(
-            username, first, last, email, DEFAULT_PASSWORD,
-            student_role, dept, course,
+            username,
+            first,
+            last,
+            email,
+            DEFAULT_PASSWORD,
+            student_role,
+            dept,
+            course,
             "Grade 7",
         )
 
     # Bulk teachers
     for username, first, last, email in TEACHERS:
         users[username] = _ensure_user(
-            username, first, last, email, DEFAULT_PASSWORD,
-            teacher_role, dept, course, None,
+            username,
+            first,
+            last,
+            email,
+            DEFAULT_PASSWORD,
+            teacher_role,
+            dept,
+            course,
+            None,
         )
 
     # One demo account per remaining role (Admin, Registrar, Academic Director,
@@ -595,8 +981,15 @@ def seed_users(roles, dept, course):
             log("user", f"⚠ skipping {username}: role '{role_name}' missing")
             continue
         users[username] = _ensure_user(
-            username, first, last, email, password,
-            role, dept, course, None,
+            username,
+            first,
+            last,
+            email,
+            password,
+            role,
+            dept,
+            course,
+            None,
             is_staff=(role_name == "Admin"),
         )
 
@@ -612,7 +1005,9 @@ def seed_friendships(users):
     for uname in auto_friend_unames:
         other = users[uname]
         friend, created = Friend.objects.get_or_create(
-            from_user=demo, to_user=other, defaults={"status": "accepted"},
+            from_user=demo,
+            to_user=other,
+            defaults={"status": "accepted"},
         )
         if not created and friend.status != "accepted":
             friend.status = "accepted"
@@ -621,27 +1016,37 @@ def seed_friendships(users):
 
     # A handful of cross-friendships among the bulk students.
     pairs = [
-        ("alex_cruz",   "bea_santos"),
-        ("alex_cruz",   "carlo_reyes"),
-        ("bea_santos",  "diane_lim"),
+        ("alex_cruz", "bea_santos"),
+        ("alex_cruz", "carlo_reyes"),
+        ("bea_santos", "diane_lim"),
         ("carlo_reyes", "ej_garcia"),
-        ("ej_garcia",   "faye_torres"),
+        ("ej_garcia", "faye_torres"),
         ("gio_mendoza", "hana_dela_cruz"),
-        ("ivan_chua",   "jen_villanueva"),
-        ("kara_lopez",  "alex_cruz"),
-        ("leo_pineda",  "bea_santos"),
+        ("ivan_chua", "jen_villanueva"),
+        ("kara_lopez", "alex_cruz"),
+        ("leo_pineda", "bea_santos"),
     ]
     for a, b in pairs:
         Friend.objects.get_or_create(
-            from_user=users[a], to_user=users[b], defaults={"status": "accepted"},
+            from_user=users[a],
+            to_user=users[b],
+            defaults={"status": "accepted"},
         )
 
     # Pending requests SENT TO demo_student → populates the Requests tab.
     for sender_name in ("kara_lopez", "leo_pineda"):
-        if not Friend.objects.filter(from_user=users[sender_name], to_user=demo).exists() \
-                and not Friend.objects.filter(from_user=demo, to_user=users[sender_name]).exists():
+        if (
+            not Friend.objects.filter(
+                from_user=users[sender_name], to_user=demo
+            ).exists()
+            and not Friend.objects.filter(
+                from_user=demo, to_user=users[sender_name]
+            ).exists()
+        ):
             Friend.objects.create(
-                from_user=users[sender_name], to_user=demo, status="pending",
+                from_user=users[sender_name],
+                to_user=demo,
+                status="pending",
             )
             log("friend", f"pending: {sender_name} → demo_student")
         else:
@@ -679,7 +1084,8 @@ def seed_group_chat(users):
     header("Group chat")
     name = "Grade 7 - Rizal Study Group"
     group, created = GroupChat.objects.get_or_create(
-        name=name, defaults={"created_by": users["demo_student"]},
+        name=name,
+        defaults={"created_by": users["demo_student"]},
     )
     if created:
         members = [
@@ -697,12 +1103,12 @@ def seed_group_chat(users):
     # Seed messages only if none exist yet.
     if not GroupMessage.objects.filter(group=group).exists():
         scripted = [
-            ("demo_student",  "Hey team! Welcome to our study group 👋"),
-            ("alex_cruz",     "Glad to be here! When are we meeting?"),
-            ("bea_santos",    "Let's do every Tuesday and Thursday after class."),
-            ("carlo_reyes",   "Works for me. I'll bring the past quizzes."),
-            ("diane_lim",     "I'll handle the slides 📊"),
-            ("demo_student",  "You guys rock 🚀"),
+            ("demo_student", "Hey team! Welcome to our study group 👋"),
+            ("alex_cruz", "Glad to be here! When are we meeting?"),
+            ("bea_santos", "Let's do every Tuesday and Thursday after class."),
+            ("carlo_reyes", "Works for me. I'll bring the past quizzes."),
+            ("diane_lim", "I'll handle the slides 📊"),
+            ("demo_student", "You guys rock 🚀"),
         ]
         now = timezone.now()
         for i, (uname, msg) in enumerate(scripted):
@@ -740,9 +1146,11 @@ def seed_posts(users):
             if commenter == uname:
                 continue
             Comment.objects.create(
-                post=post, user=users[commenter], content=random.choice(comments),
+                post=post,
+                user=users[commenter],
+                content=random.choice(comments),
             )
-        log("post", f"created post by {uname}: \"{content[:40]}...\"")
+        log("post", f'created post by {uname}: "{content[:40]}..."')
 
 
 # ---------------------------------------------------------------------------
@@ -790,7 +1198,7 @@ def seed_semester_terms(dept):
         department=dept,
         defaults={
             "start_date": today - timedelta(days=60),
-            "end_date":   today + timedelta(days=120),
+            "end_date": today + timedelta(days=120),
             "passing_grade": 75,
             "end_semester": False,
         },
@@ -824,14 +1232,14 @@ def seed_subjects(users):
         subj, created = Subject.objects.get_or_create(
             subject_code=code,
             defaults={
-                "subject_name":            name,
-                "subject_short_name":      short,
-                "subject_description":     desc,
+                "subject_name": name,
+                "subject_short_name": short,
+                "subject_description": desc,
                 "subject_descriptive_title": name,
-                "assign_teacher":          teacher,
-                "unit":                    units,
-                "status":                  "Ongoing",
-                "subject_type":            "Lec",
+                "assign_teacher": teacher,
+                "unit": units,
+                "status": "Ongoing",
+                "subject_type": "Lec",
             },
         )
         # Always sync the assigned teacher to what SUBJECTS declares so re-runs
@@ -840,7 +1248,10 @@ def seed_subjects(users):
             subj.assign_teacher = teacher
             subj.save(update_fields=["assign_teacher"])
         out[code] = subj
-        log("subject", f"{'created' if created else 'exists'}: {code} — {name} ({teacher_uname})")
+        log(
+            "subject",
+            f"{'created' if created else 'exists'}: {code} — {name} ({teacher_uname})",
+        )
     return out
 
 
@@ -868,10 +1279,10 @@ def seed_enrollments(users, subjects, semester):
                 subject=subj,
                 semester=semester,
                 defaults={
-                    "status":           "enrolled",
-                    "can_view_grade":   True,
+                    "status": "enrolled",
+                    "can_view_grade": True,
                     "is_active_semester": True,
-                    "student_name":     f"{student.first_name} {student.last_name}".strip(),
+                    "student_name": f"{student.first_name} {student.last_name}".strip(),
                 },
             )
             if created:
@@ -889,7 +1300,11 @@ def seed_assignments(subjects, activity_types, terms):
     # Use the term whose date range currently covers today (fallback: midterm).
     today = timezone.localdate()
     term = next(
-        (t for t in terms if t.start_date and t.end_date and t.start_date <= today <= t.end_date),
+        (
+            t
+            for t in terms
+            if t.start_date and t.end_date and t.start_date <= today <= t.end_date
+        ),
         terms[1] if len(terms) > 1 else terms[0],
     )
 
@@ -903,14 +1318,14 @@ def seed_assignments(subjects, activity_types, terms):
                 activity_name=f"{subj.subject_short_name or subj_code} — {name}",
                 subject=subj,
                 defaults={
-                    "activity_type":   atype,
-                    "term":            term,
-                    "start_time":      start,
-                    "end_time":        end,
-                    "max_score":       max_score,
-                    "passing_score":   60,
-                    "status":          True,
-                    "is_graded":       True,
+                    "activity_type": atype,
+                    "term": term,
+                    "start_time": start,
+                    "end_time": end,
+                    "max_score": max_score,
+                    "passing_score": 60,
+                    "status": True,
+                    "is_graded": True,
                     "activity_instruction": f"Auto-seeded {type_name.lower()} for {subj.subject_name}.",
                 },
             )
@@ -936,14 +1351,18 @@ def seed_grades(users, subjects, terms, activities, semester):
     # Only create grades for activities whose due date has passed
     now = timezone.now()
     past_activities = [a for a in activities if a.end_time and a.end_time <= now]
-    log("grade", f"considering {len(past_activities)} past activities for {len(students)} students")
+    log(
+        "grade",
+        f"considering {len(past_activities)} past activities for {len(students)} students",
+    )
 
     for student in students:
         # Find the subjects this student is enrolled in
         if SubjectEnrollment is not None:
             enrolled_ids = set(
-                SubjectEnrollment.objects.filter(student=student)
-                .values_list("subject_id", flat=True)
+                SubjectEnrollment.objects.filter(student=student).values_list(
+                    "subject_id", flat=True
+                )
             )
         else:
             enrolled_ids = {s.id for s in subjects.values()}
@@ -962,11 +1381,11 @@ def seed_grades(users, subjects, terms, activities, semester):
                 student=student,
                 activity=act,
                 defaults={
-                    "subject":     act.subject,
-                    "term":        act.term,
+                    "subject": act.subject,
+                    "term": act.term,
                     "total_score": score,
-                    "start_time":  act.start_time,
-                    "end_time":    act.end_time,
+                    "start_time": act.start_time,
+                    "end_time": act.end_time,
                     "is_editable": False,
                 },
             )
@@ -986,7 +1405,9 @@ def seed_grades(users, subjects, terms, activities, semester):
         cur_term = next((t for t in terms if t.term_name == "Second Quarter"), terms[0])
         for student in students:
             enrolled_subjects = (
-                SubjectEnrollment.objects.filter(student=student).values_list("subject", flat=True)
+                SubjectEnrollment.objects.filter(student=student).values_list(
+                    "subject", flat=True
+                )
                 if SubjectEnrollment is not None
                 else [s.id for s in subjects.values()]
             )
@@ -996,7 +1417,7 @@ def seed_grades(users, subjects, terms, activities, semester):
                     subject_id=subj_id,
                     term=cur_term,
                     defaults={
-                        "score":     rng.randint(70, 100),
+                        "score": rng.randint(70, 100),
                         "max_score": 100,
                     },
                 )
@@ -1006,7 +1427,11 @@ def seed_grades(users, subjects, terms, activities, semester):
 
 def seed_calendar(users, dept):
     header("Calendar — Holidays + Events + Announcements")
-    creator = users.get("demo_teacher") or users.get("teacher_navarro") or next(iter(users.values()))
+    creator = (
+        users.get("demo_teacher")
+        or users.get("teacher_navarro")
+        or next(iter(users.values()))
+    )
 
     if Holiday is not None:
         for title, d, htype, color in HOLIDAYS:
@@ -1029,11 +1454,11 @@ def seed_calendar(users, dept):
                 start_date=ev_date,
                 defaults={
                     "description": desc,
-                    "end_date":    ev_date,
-                    "time":        t,
-                    "location":    location,
-                    "created_by":  creator,
-                    "department":  dept,
+                    "end_date": ev_date,
+                    "time": t,
+                    "location": location,
+                    "created_by": creator,
+                    "department": dept,
                 },
             )
             if created:
@@ -1048,9 +1473,9 @@ def seed_calendar(users, dept):
                 title=title,
                 defaults={
                     "description": desc,
-                    "date":        today,
-                    "created_by":  creator,
-                    "department":  dept,
+                    "date": today,
+                    "created_by": creator,
+                    "department": dept,
                 },
             )
             if created:
@@ -1062,9 +1487,9 @@ def seed_calendar(users, dept):
                 title=title,
                 defaults={
                     "description": desc,
-                    "date":        today,
-                    "created_by":  creator,
-                    "department":  None,
+                    "date": today,
+                    "created_by": creator,
+                    "department": None,
                 },
             )
             if created:
@@ -1082,11 +1507,11 @@ def seed_calendar(users, dept):
                 start_date=ev_date,
                 defaults={
                     "description": desc,
-                    "end_date":    ev_date,
-                    "time":        t,
-                    "location":    location,
-                    "created_by":  creator,
-                    "department":  None,
+                    "end_date": ev_date,
+                    "time": t,
+                    "location": location,
+                    "created_by": creator,
+                    "department": None,
                 },
             )
             if created:
@@ -1117,13 +1542,13 @@ def seed_gamification(users, subjects):
         gam, created = StudentGamification.objects.get_or_create(
             student=student,
             defaults={
-                "total_xp":           xp,
-                "current_level":      level,
-                "login_streak":       login_streak,
-                "submission_streak":  sub_streak,
-                "accuracy_streak":    rng.randint(0, 6),
+                "total_xp": xp,
+                "current_level": level,
+                "login_streak": login_streak,
+                "submission_streak": sub_streak,
+                "accuracy_streak": rng.randint(0, 6),
                 "streak_freezes_available": 1,
-                "last_active_date":   today - timedelta(days=rng.randint(0, 2)),
+                "last_active_date": today - timedelta(days=rng.randint(0, 2)),
             },
         )
         # Refresh values on existing rows so re-running gives a fresh leaderboard
@@ -1136,13 +1561,18 @@ def seed_gamification(users, subjects):
             gam.save()
 
         # Add a few XP transactions so the audit trail isn't empty.
-        if XPTransaction is not None and not XPTransaction.objects.filter(student=student).exists():
-            for i, (amount, reason, src) in enumerate([
-                (50,  "Completed Daily Challenge", "side_activity"),
-                (120, "Submitted Assignment",      "activity"),
-                (75,  "Login Streak Bonus",        "streak"),
-                (200, "Top Quiz Score",            "activity"),
-            ]):
+        if (
+            XPTransaction is not None
+            and not XPTransaction.objects.filter(student=student).exists()
+        ):
+            for i, (amount, reason, src) in enumerate(
+                [
+                    (50, "Completed Daily Challenge", "side_activity"),
+                    (120, "Submitted Assignment", "activity"),
+                    (75, "Login Streak Bonus", "streak"),
+                    (200, "Top Quiz Score", "activity"),
+                ]
+            ):
                 XPTransaction.objects.create(
                     student=student,
                     amount=amount,
@@ -1158,20 +1588,32 @@ def seed_gamification(users, subjects):
         all_defs += [(*row, "staff") for row in STAFF_BADGES]
         active_codes = {row[0] for row in all_defs}
         # Drop legacy badges that have been removed/renamed.
-        BadgeDefinition.objects.filter(target_role__in=["student", "staff"]).exclude(code__in=active_codes).delete()
+        BadgeDefinition.objects.filter(target_role__in=["student", "staff"]).exclude(
+            code__in=active_codes
+        ).delete()
 
-        for code, name, desc, tier, icon, criteria, family, family_rank, target_role in all_defs:
+        for (
+            code,
+            name,
+            desc,
+            tier,
+            icon,
+            criteria,
+            family,
+            family_rank,
+            target_role,
+        ) in all_defs:
             obj, created = BadgeDefinition.objects.get_or_create(
                 code=code,
                 defaults={
-                    "name":          name,
-                    "description":   desc,
-                    "tier":          tier,
-                    "icon":          icon,
-                    "target_role":   target_role,
+                    "name": name,
+                    "description": desc,
+                    "tier": tier,
+                    "icon": icon,
+                    "target_role": target_role,
                     "criteria_json": criteria,
-                    "family":        family,
-                    "family_rank":   family_rank,
+                    "family": family,
+                    "family_rank": family_rank,
                 },
             )
             needs_update = not created and (
@@ -1193,10 +1635,18 @@ def seed_gamification(users, subjects):
                 obj.criteria_json = criteria
                 obj.family = family
                 obj.family_rank = family_rank
-                obj.save(update_fields=[
-                    "icon", "description", "tier", "name",
-                    "target_role", "criteria_json", "family", "family_rank",
-                ])
+                obj.save(
+                    update_fields=[
+                        "icon",
+                        "description",
+                        "tier",
+                        "name",
+                        "target_role",
+                        "criteria_json",
+                        "family",
+                        "family_rank",
+                    ]
+                )
             if created:
                 log("badge", f"+ definition: {name} ({tier}, {target_role})")
 
@@ -1231,12 +1681,12 @@ def seed_quest_map(users, subjects):
                 subject=subj,
                 title=f"{subj.subject_short_name or subj_code}: {title}",
                 defaults={
-                    "sub_type":          sub_type,
-                    "content_json":      {"questions": [], "seed": True},
+                    "sub_type": sub_type,
+                    "content_json": {"questions": [], "seed": True},
                     "estimated_minutes": mins,
-                    "xp_reward":         xp,
-                    "is_active":         True,
-                    "created_by":        creator,
+                    "xp_reward": xp,
+                    "is_active": True,
+                    "created_by": creator,
                 },
             )
             side_acts.append(obj)
@@ -1252,8 +1702,9 @@ def seed_quest_map(users, subjects):
         # Pick subjects the student is enrolled in, fall back to all
         if SubjectEnrollment is not None:
             enrolled_ids = set(
-                SubjectEnrollment.objects.filter(student=student)
-                .values_list("subject_id", flat=True)
+                SubjectEnrollment.objects.filter(student=student).values_list(
+                    "subject_id", flat=True
+                )
             )
             relevant = [a for a in side_acts if a.subject_id in enrolled_ids]
         else:
@@ -1265,11 +1716,11 @@ def seed_quest_map(users, subjects):
                 student=student,
                 side_activity=sa,
                 defaults={
-                    "completed_at":      timezone.now() - timedelta(days=rng.randint(0, 30)),
-                    "score":             rng.uniform(0.7, 1.0) * 100,
+                    "completed_at": timezone.now() - timedelta(days=rng.randint(0, 30)),
+                    "score": rng.uniform(0.7, 1.0) * 100,
                     "time_taken_seconds": sa.estimated_minutes * 60,
-                    "xp_awarded":        sa.xp_reward,
-                    "details_json":      {"seed": True},
+                    "xp_awarded": sa.xp_reward,
+                    "details_json": {"seed": True},
                 },
             )
 
@@ -1282,7 +1733,11 @@ def seed_attendance(users, subjects, semester):
     TeacherAttendancePoints (Present=1.0, Late=0.5, Absent=0.0, Excused=1.0).
     """
     header("Attendance — sessions + status records")
-    if Attendance is None or AttendanceStatus is None or TeacherAttendancePoints is None:
+    if (
+        Attendance is None
+        or AttendanceStatus is None
+        or TeacherAttendancePoints is None
+    ):
         log("attendance", "models not available — skipping")
         return
     if SubjectEnrollment is None:
@@ -1300,11 +1755,11 @@ def seed_attendance(users, subjects, semester):
 
     # 2. Per-teacher grading scale (used by Attendance.get_status_points)
     point_map = [
-        ("Present",        1.0),
+        ("Present", 1.0),
         ("Present_Online", 1.0),
-        ("Late",           0.5),
-        ("Absent",         0.0),
-        ("Excused",        1.0),
+        ("Late", 0.5),
+        ("Absent", 0.0),
+        ("Excused", 1.0),
     ]
     seen_teachers = set()
     for subj in subjects.values():
@@ -1334,8 +1789,8 @@ def seed_attendance(users, subjects, semester):
     # 4. Weighted choice distribution (sums to 1.0)
     distribution = [
         ("Present", 0.78),
-        ("Late",    0.10),
-        ("Absent",  0.07),
+        ("Late", 0.10),
+        ("Absent", 0.07),
         ("Excused", 0.05),
     ]
     rng = random.Random(57)
@@ -1354,7 +1809,9 @@ def seed_attendance(users, subjects, semester):
     for subj in subjects.values():
         teacher = subj.assign_teacher
         enrolled = SubjectEnrollment.objects.filter(
-            subject=subj, semester=semester, status="enrolled",
+            subject=subj,
+            semester=semester,
+            status="enrolled",
         ).select_related("student")
 
         for enr in enrolled:
@@ -1364,16 +1821,22 @@ def seed_attendance(users, subjects, semester):
                     subject=subj,
                     date=session_date,
                     defaults={
-                        "status":  statuses[pick_status()],
+                        "status": statuses[pick_status()],
                         "teacher": teacher,
-                        "graded":  True,
+                        "graded": True,
                     },
                 )
                 if created:
                     total += 1
-        log("attendance", f"+ {subj.subject_code}: {enrolled.count()} students × {len(sessions)} sessions")
+        log(
+            "attendance",
+            f"+ {subj.subject_code}: {enrolled.count()} students × {len(sessions)} sessions",
+        )
 
-    log("attendance", f"seeded {total} new attendance records across {len(sessions)} session days")
+    log(
+        "attendance",
+        f"seeded {total} new attendance records across {len(sessions)} session days",
+    )
 
 
 def seed_dashboard_notifications(users, activities):
@@ -1386,7 +1849,11 @@ def seed_dashboard_notifications(users, activities):
         return
 
     students = _student_users(users)
-    creator = users.get("demo_teacher") or users.get("teacher_navarro") or next(iter(users.values()))
+    creator = (
+        users.get("demo_teacher")
+        or users.get("teacher_navarro")
+        or next(iter(users.values()))
+    )
     upcoming = [a for a in activities if a.end_time and a.end_time > timezone.now()][:3]
     if not upcoming:
         return
@@ -1398,75 +1865,125 @@ def seed_dashboard_notifications(users, activities):
                 entity_id=act.id,
                 entity_type="activity",
                 defaults={
-                    "name":    act.activity_name,
+                    "name": act.activity_name,
                     "message": f"Upcoming: {act.activity_name} due {act.end_time.strftime('%b %d')}.",
-                    "due_at":  act.end_time,
+                    "due_at": act.end_time,
                     "is_read": False,
                     "created_by": creator,
                 },
             )
     log("notif", f"seeded reminders for {len(students)} students")
 
-
-# ---------------------------------------------------------------------------
+-------------------------------------------------------------
 # Lessons (Modules) per subject
 # ---------------------------------------------------------------------------
 LESSONS_BY_SUBJECT = {
     "ENG7": [
-        ("Lesson 1: Parts of Speech",        "https://www.britannica.com/dictionary/eb/3000-words"),
-        ("Lesson 2: Reading Comprehension",  "https://en.wikipedia.org/wiki/Reading_comprehension"),
-        ("Lesson 3: Subject-Verb Agreement", "https://en.wikipedia.org/wiki/Agreement_(linguistics)"),
-        ("Lesson 4: Short Story Elements",   "https://en.wikipedia.org/wiki/Plot_(narrative)"),
-        ("Lesson 5: Writing a Paragraph",    "https://en.wikipedia.org/wiki/Paragraph"),
+        (
+            "Lesson 1: Parts of Speech",
+            "https://www.britannica.com/dictionary/eb/3000-words",
+        ),
+        (
+            "Lesson 2: Reading Comprehension",
+            "https://en.wikipedia.org/wiki/Reading_comprehension",
+        ),
+        (
+            "Lesson 3: Subject-Verb Agreement",
+            "https://en.wikipedia.org/wiki/Agreement_(linguistics)",
+        ),
+        (
+            "Lesson 4: Short Story Elements",
+            "https://en.wikipedia.org/wiki/Plot_(narrative)",
+        ),
+        ("Lesson 5: Writing a Paragraph", "https://en.wikipedia.org/wiki/Paragraph"),
     ],
     "FIL7": [
-        ("Aralin 1: Mga Bahagi ng Pananalita", "https://tl.wikipedia.org/wiki/Bahagi_ng_pananalita"),
-        ("Aralin 2: Pang-uri at Pandiwa",      "https://tl.wikipedia.org/wiki/Pandiwa"),
-        ("Aralin 3: Maikling Kwento",          "https://tl.wikipedia.org/wiki/Maikling_kwento"),
-        ("Aralin 4: Tula at Bugtong",          "https://tl.wikipedia.org/wiki/Tula"),
-        ("Aralin 5: Pagsulat ng Talata",       "https://tl.wikipedia.org/wiki/Talata"),
+        (
+            "Aralin 1: Mga Bahagi ng Pananalita",
+            "https://tl.wikipedia.org/wiki/Bahagi_ng_pananalita",
+        ),
+        ("Aralin 2: Pang-uri at Pandiwa", "https://tl.wikipedia.org/wiki/Pandiwa"),
+        ("Aralin 3: Maikling Kwento", "https://tl.wikipedia.org/wiki/Maikling_kwento"),
+        ("Aralin 4: Tula at Bugtong", "https://tl.wikipedia.org/wiki/Tula"),
+        ("Aralin 5: Pagsulat ng Talata", "https://tl.wikipedia.org/wiki/Talata"),
     ],
     "MATH7": [
-        ("Lesson 1: Sets",                   "https://en.wikipedia.org/wiki/Set_(mathematics)"),
-        ("Lesson 2: Integers",               "https://en.wikipedia.org/wiki/Integer"),
-        ("Lesson 3: Fractions & Decimals",   "https://en.wikipedia.org/wiki/Fraction"),
-        ("Lesson 4: Algebraic Expressions",  "https://en.wikipedia.org/wiki/Algebraic_expression"),
-        ("Lesson 5: Basic Geometry",         "https://en.wikipedia.org/wiki/Geometry"),
+        ("Lesson 1: Sets", "https://en.wikipedia.org/wiki/Set_(mathematics)"),
+        ("Lesson 2: Integers", "https://en.wikipedia.org/wiki/Integer"),
+        ("Lesson 3: Fractions & Decimals", "https://en.wikipedia.org/wiki/Fraction"),
+        (
+            "Lesson 4: Algebraic Expressions",
+            "https://en.wikipedia.org/wiki/Algebraic_expression",
+        ),
+        ("Lesson 5: Basic Geometry", "https://en.wikipedia.org/wiki/Geometry"),
     ],
     "SCI7": [
-        ("Lesson 1: Scientific Method",      "https://en.wikipedia.org/wiki/Scientific_method"),
-        ("Lesson 2: Matter & Its Properties","https://en.wikipedia.org/wiki/Matter"),
-        ("Lesson 3: Living Things & Cells",  "https://en.wikipedia.org/wiki/Cell_(biology)"),
-        ("Lesson 4: Force and Motion",       "https://en.wikipedia.org/wiki/Motion"),
-        ("Lesson 5: Energy",                 "https://en.wikipedia.org/wiki/Energy"),
+        (
+            "Lesson 1: Scientific Method",
+            "https://en.wikipedia.org/wiki/Scientific_method",
+        ),
+        ("Lesson 2: Matter & Its Properties", "https://en.wikipedia.org/wiki/Matter"),
+        (
+            "Lesson 3: Living Things & Cells",
+            "https://en.wikipedia.org/wiki/Cell_(biology)",
+        ),
+        ("Lesson 4: Force and Motion", "https://en.wikipedia.org/wiki/Motion"),
+        ("Lesson 5: Energy", "https://en.wikipedia.org/wiki/Energy"),
     ],
     "AP7": [
-        ("Aralin 1: Heograpiya ng Asya",     "https://en.wikipedia.org/wiki/Asia"),
-        ("Aralin 2: Sinaunang Kabihasnan",   "https://en.wikipedia.org/wiki/Civilization"),
-        ("Aralin 3: Relihiyon sa Asya",      "https://en.wikipedia.org/wiki/Religion_in_Asia"),
-        ("Aralin 4: Kolonyalismo",           "https://en.wikipedia.org/wiki/Colonialism"),
-        ("Aralin 5: Kontemporaryong Isyu",   "https://en.wikipedia.org/wiki/Southeast_Asia"),
+        ("Aralin 1: Heograpiya ng Asya", "https://en.wikipedia.org/wiki/Asia"),
+        (
+            "Aralin 2: Sinaunang Kabihasnan",
+            "https://en.wikipedia.org/wiki/Civilization",
+        ),
+        (
+            "Aralin 3: Relihiyon sa Asya",
+            "https://en.wikipedia.org/wiki/Religion_in_Asia",
+        ),
+        ("Aralin 4: Kolonyalismo", "https://en.wikipedia.org/wiki/Colonialism"),
+        (
+            "Aralin 5: Kontemporaryong Isyu",
+            "https://en.wikipedia.org/wiki/Southeast_Asia",
+        ),
     ],
     "ESP7": [
-        ("Aralin 1: Pagpapahalaga sa Sarili","https://en.wikipedia.org/wiki/Self-esteem"),
-        ("Aralin 2: Pamilya at Tahanan",     "https://en.wikipedia.org/wiki/Family"),
-        ("Aralin 3: Pakikipagkapwa",         "https://en.wikipedia.org/wiki/Empathy"),
-        ("Aralin 4: Konsiyensya",            "https://en.wikipedia.org/wiki/Conscience"),
-        ("Aralin 5: Mabuting Mamamayan",     "https://en.wikipedia.org/wiki/Citizenship"),
+        (
+            "Aralin 1: Pagpapahalaga sa Sarili",
+            "https://en.wikipedia.org/wiki/Self-esteem",
+        ),
+        ("Aralin 2: Pamilya at Tahanan", "https://en.wikipedia.org/wiki/Family"),
+        ("Aralin 3: Pakikipagkapwa", "https://en.wikipedia.org/wiki/Empathy"),
+        ("Aralin 4: Konsiyensya", "https://en.wikipedia.org/wiki/Conscience"),
+        ("Aralin 5: Mabuting Mamamayan", "https://en.wikipedia.org/wiki/Citizenship"),
     ],
     "MAPEH7": [
-        ("Lesson 1: Music — Rhythm & Melody","https://en.wikipedia.org/wiki/Rhythm"),
-        ("Lesson 2: Arts — Elements of Art", "https://en.wikipedia.org/wiki/Elements_of_art"),
-        ("Lesson 3: PE — Physical Fitness",  "https://en.wikipedia.org/wiki/Physical_fitness"),
-        ("Lesson 4: Health — Nutrition",     "https://en.wikipedia.org/wiki/Nutrition"),
-        ("Lesson 5: Personal Hygiene",       "https://en.wikipedia.org/wiki/Hygiene"),
+        ("Lesson 1: Music — Rhythm & Melody", "https://en.wikipedia.org/wiki/Rhythm"),
+        (
+            "Lesson 2: Arts — Elements of Art",
+            "https://en.wikipedia.org/wiki/Elements_of_art",
+        ),
+        (
+            "Lesson 3: PE — Physical Fitness",
+            "https://en.wikipedia.org/wiki/Physical_fitness",
+        ),
+        ("Lesson 4: Health — Nutrition", "https://en.wikipedia.org/wiki/Nutrition"),
+        ("Lesson 5: Personal Hygiene", "https://en.wikipedia.org/wiki/Hygiene"),
     ],
     "TLE7": [
-        ("Lesson 1: Intro to ICT",           "https://en.wikipedia.org/wiki/Information_and_communications_technology"),
-        ("Lesson 2: Computer Basics",        "https://en.wikipedia.org/wiki/Computer"),
-        ("Lesson 3: Home Economics",         "https://en.wikipedia.org/wiki/Home_economics"),
-        ("Lesson 4: Basic Cooking & Safety", "https://en.wikipedia.org/wiki/Food_safety"),
-        ("Lesson 5: Simple Livelihood Skills","https://en.wikipedia.org/wiki/Entrepreneurship"),
+        (
+            "Lesson 1: Intro to ICT",
+            "https://en.wikipedia.org/wiki/Information_and_communications_technology",
+        ),
+        ("Lesson 2: Computer Basics", "https://en.wikipedia.org/wiki/Computer"),
+        ("Lesson 3: Home Economics", "https://en.wikipedia.org/wiki/Home_economics"),
+        (
+            "Lesson 4: Basic Cooking & Safety",
+            "https://en.wikipedia.org/wiki/Food_safety",
+        ),
+        (
+            "Lesson 5: Simple Livelihood Skills",
+            "https://en.wikipedia.org/wiki/Entrepreneurship",
+        ),
     ],
 }
 
@@ -1481,7 +1998,10 @@ def seed_lessons(subjects, terms):
         return
 
     # Tie lessons to the First Quarter so they appear in the active school year.
-    prelim = next((t for t in terms if t.term_name == "First Quarter"), terms[0] if terms else None)
+    prelim = next(
+        (t for t in terms if t.term_name == "First Quarter"),
+        terms[0] if terms else None,
+    )
 
     for code, subj in subjects.items():
         defs = LESSONS_BY_SUBJECT.get(code, [])
@@ -1490,11 +2010,11 @@ def seed_lessons(subjects, terms):
                 file_name=title,
                 subject=subj,
                 defaults={
-                    "url":         url,
-                    "term":        prelim,
+                    "url": url,
+                    "term": prelim,
                     "description": f"{title} — auto-seeded reference material.",
-                    "start_date":  timezone.now() - timedelta(days=14),
-                    "order":       order,
+                    "start_date": timezone.now() - timedelta(days=14),
+                    "order": order,
                     "allow_download": True,
                 },
             )
@@ -1510,34 +2030,43 @@ QUIZ_TYPE_NAMES = ["Multiple Choice", "Essay", "True/False", "Fill in the Blank"
 # (question, correct_answer, [choices])  -- choices are only used for MC.
 # Grade 7 general-knowledge items across the core subjects.
 SAMPLE_MC_QUESTIONS = [
-    ("What is the value of 7 × 8?",
-     "56",
-     ["54", "56", "63", "48"]),
-    ("Which planet is known as the Red Planet?",
-     "Mars",
-     ["Venus", "Mars", "Jupiter", "Saturn"]),
-    ("What is the past tense of the verb 'go'?",
-     "went",
-     ["goed", "gone", "went", "going"]),
-    ("Ano ang pambansang bayani ng Pilipinas?",
-     "Jose Rizal",
-     ["Andres Bonifacio", "Jose Rizal", "Emilio Aguinaldo", "Apolinario Mabini"]),
-    ("Which is the largest continent by land area?",
-     "Asia",
-     ["Africa", "Asia", "Europe", "North America"]),
+    ("What is the value of 7 × 8?", "56", ["54", "56", "63", "48"]),
+    (
+        "Which planet is known as the Red Planet?",
+        "Mars",
+        ["Venus", "Mars", "Jupiter", "Saturn"],
+    ),
+    (
+        "What is the past tense of the verb 'go'?",
+        "went",
+        ["goed", "gone", "went", "going"],
+    ),
+    (
+        "Ano ang pambansang bayani ng Pilipinas?",
+        "Jose Rizal",
+        ["Andres Bonifacio", "Jose Rizal", "Emilio Aguinaldo", "Apolinario Mabini"],
+    ),
+    (
+        "Which is the largest continent by land area?",
+        "Asia",
+        ["Africa", "Asia", "Europe", "North America"],
+    ),
 ]
 SAMPLE_TF_QUESTIONS = [
     ("Water boils at 100 degrees Celsius at sea level.", "True"),
-    ("A triangle has four sides.",                       "False"),
-    ("The Philippines is located in Asia.",              "True"),
+    ("A triangle has four sides.", "False"),
+    ("The Philippines is located in Asia.", "True"),
 ]
 SAMPLE_FILL_QUESTIONS = [
-    ("The process by which plants make their own food is called ____.", "photosynthesis"),
-    ("The sum of the angles in a triangle is ____ degrees.",            "180"),
+    (
+        "The process by which plants make their own food is called ____.",
+        "photosynthesis",
+    ),
+    ("The sum of the angles in a triangle is ____ degrees.", "180"),
 ]
 SAMPLE_ESSAY_QUESTIONS = [
     ("In your own words, explain why we should take care of the environment.", ""),
-    ("Describe one Filipino value that is important to your family.",          ""),
+    ("Describe one Filipino value that is important to your family.", ""),
 ]
 
 
@@ -1578,7 +2107,10 @@ def seed_question_bank(activities, quiz_types):
 
         # Build a small mixed bank: 3 MC, 1 TF, 1 fill-in for quiz/exam style;
         # essays for "Project" / "Recitation".
-        is_essay = act.activity_type and act.activity_type.name in ("Project", "Recitation")
+        is_essay = act.activity_type and act.activity_type.name in (
+            "Project",
+            "Recitation",
+        )
 
         if is_essay and essay_type is not None:
             for prompt, _ in SAMPLE_ESSAY_QUESTIONS:
@@ -1604,21 +2136,29 @@ def seed_question_bank(activities, quiz_types):
                 )
                 for choice in choices:
                     QuestionChoice.objects.create(
-                        subject=act.subject, question=q, choice_text=choice,
+                        subject=act.subject,
+                        question=q,
+                        choice_text=choice,
                     )
         if tf_type is not None:
             prompt, correct = rng.choice(SAMPLE_TF_QUESTIONS)
             ActivityQuestion.objects.create(
-                activity=act, subject=act.subject,
-                question_text=prompt, correct_answer=correct,
-                quiz_type=tf_type, score=per_q_score,
+                activity=act,
+                subject=act.subject,
+                question_text=prompt,
+                correct_answer=correct,
+                quiz_type=tf_type,
+                score=per_q_score,
             )
         if fill_type is not None:
             prompt, correct = rng.choice(SAMPLE_FILL_QUESTIONS)
             ActivityQuestion.objects.create(
-                activity=act, subject=act.subject,
-                question_text=prompt, correct_answer=correct,
-                quiz_type=fill_type, score=per_q_score,
+                activity=act,
+                subject=act.subject,
+                question_text=prompt,
+                correct_answer=correct,
+                quiz_type=fill_type,
+                score=per_q_score,
             )
         log("question", f"+ {act.activity_name} (5 questions)")
 
@@ -1629,17 +2169,17 @@ def seed_question_bank(activities, quiz_types):
 # Per-quarter overall weight: numbers must sum to 100. The four DepEd quarters
 # are weighted equally toward the final grade.
 TERM_WEIGHTS = {
-    "First Quarter":  25,
+    "First Quarter": 25,
     "Second Quarter": 25,
-    "Third Quarter":  25,
+    "Third Quarter": 25,
     "Fourth Quarter": 25,
 }
 
 # DepEd component weights within a quarter (general/typical). Sum must = 100.
 CATEGORY_WEIGHTS = [
-    ("Written Work",          30),
-    ("Performance Task",      50),
-    ("Quarterly Assessment",  20),
+    ("Written Work", 30),
+    ("Performance Task", 50),
+    ("Quarterly Assessment", 20),
 ]
 
 # Activity type → component + within-component weight (so the calc helper
@@ -1647,11 +2187,11 @@ CATEGORY_WEIGHTS = [
 # Within-component percentages must sum to the component's weight.
 ACTIVITY_TYPE_TO_CATEGORY = [
     # (activity_type_name, gradebook_category, percentage_of_quarter)
-    ("Written Work",         "Written Work",          20),
-    ("Recitation",           "Written Work",          10),
-    ("Performance Task",     "Performance Task",      35),
-    ("Project",              "Performance Task",      15),
-    ("Quarterly Assessment", "Quarterly Assessment",  20),
+    ("Written Work", "Written Work", 20),
+    ("Recitation", "Written Work", 10),
+    ("Performance Task", "Performance Task", 35),
+    ("Project", "Performance Task", 15),
+    ("Quarterly Assessment", "Quarterly Assessment", 20),
 ]
 
 
@@ -1684,9 +2224,9 @@ def seed_gradebook(subjects, terms, activity_types):
                     term=term,
                     gradebook_category=cat_name,
                     defaults={
-                        "teacher":        teacher,
+                        "teacher": teacher,
                         "gradebook_name": f"{cat_name} — {term.term_name}",
-                        "percentage":     cat_pct,
+                        "percentage": cat_pct,
                     },
                 )
                 cat_components[cat_name] = comp
@@ -1727,6 +2267,7 @@ def main():
             suppress_push_notifications,
             suppress_rag_indexing,
         )
+
         _push_guard = suppress_push_notifications()
         _push_guard.__enter__()
         _rag_guard = suppress_rag_indexing()
@@ -1751,8 +2292,11 @@ def main():
     subjects = {}
     activities = []
 
-    _safe("activity-type", "activity types",
-          lambda: activity_types.update(seed_activity_types()))
+    _safe(
+        "activity-type",
+        "activity types",
+        lambda: activity_types.update(seed_activity_types()),
+    )
 
     try:
         semester, terms = seed_semester_terms(dept)
@@ -1762,28 +2306,42 @@ def main():
     quiz_types = {}
 
     _safe("subject", "subjects", lambda: subjects.update(seed_subjects(users)))
-    _safe("enrollment", "enrollments",
-          lambda: seed_enrollments(users, subjects, semester))
-    _safe("lesson",     "lessons (modules)",
-          lambda: seed_lessons(subjects, terms))
-    _safe("gradebook",  "gradebook config",
-          lambda: seed_gradebook(subjects, terms, activity_types))
-    _safe("activity",   "assignments",
-          lambda: activities.extend(seed_assignments(subjects, activity_types, terms)))
-    _safe("quiz-type",  "quiz types",
-          lambda: quiz_types.update(seed_quiz_types()))
-    _safe("question",   "question bank",
-          lambda: seed_question_bank(activities, quiz_types))
-    _safe("grade",      "grades / participation",
-          lambda: seed_grades(users, subjects, terms, activities, semester))
-    _safe("attendance", "attendance",
-          lambda: seed_attendance(users, subjects, semester))
+    _safe(
+        "enrollment", "enrollments", lambda: seed_enrollments(users, subjects, semester)
+    )
+    _safe("lesson", "lessons (modules)", lambda: seed_lessons(subjects, terms))
+    _safe(
+        "gradebook",
+        "gradebook config",
+        lambda: seed_gradebook(subjects, terms, activity_types),
+    )
+    _safe(
+        "activity",
+        "assignments",
+        lambda: activities.extend(seed_assignments(subjects, activity_types, terms)),
+    )
+    _safe("quiz-type", "quiz types", lambda: quiz_types.update(seed_quiz_types()))
+    _safe(
+        "question", "question bank", lambda: seed_question_bank(activities, quiz_types)
+    )
+    _safe(
+        "grade",
+        "grades / participation",
+        lambda: seed_grades(users, subjects, terms, activities, semester),
+    )
+    _safe(
+        "attendance", "attendance", lambda: seed_attendance(users, subjects, semester)
+    )
 
     # ── Calendar / Gamification / Dashboard ─────────────────────────────────
-    _safe("calendar",   "calendar",       lambda: seed_calendar(users, dept))
+    _safe("calendar", "calendar", lambda: seed_calendar(users, dept))
     _safe("gamification", "gamification", lambda: seed_gamification(users, subjects))
-    _safe("quest",      "quest map",      lambda: seed_quest_map(users, subjects))
-    _safe("notif",      "notifications",  lambda: seed_dashboard_notifications(users, activities))
+    _safe("quest", "quest map", lambda: seed_quest_map(users, subjects))
+    _safe(
+        "notif",
+        "notifications",
+        lambda: seed_dashboard_notifications(users, activities),
+    )
 
     print("\n=== Done ===")
     print("Login uses EMAIL + password (not username).\n")
