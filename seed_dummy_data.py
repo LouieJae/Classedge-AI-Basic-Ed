@@ -8,19 +8,25 @@ Run from the project root with the virtualenv active:
 
     python seed_dummy_data.py
 
+This seeds a Philippine K-12 (DepEd) Grade 7 demo: one "Grade 7 - Rizal"
+section, the 8 core subjects, four grading quarters, and DepEd-style
+assessment components (Written Work / Performance Task / Quarterly Assessment).
+
 What it creates (or reuses if already present):
-  - Roles: Student, Teacher, Admin
-  - 1 Department + 1 Course
-  - 2 teacher users + 10 student users
+  - Roles: Student, Teacher, Admin, Registrar, Academic Director, Program Head, Time Keeper
+  - 1 Department (Junior High School) + 1 Course (Grade 7 - Rizal)
+  - 4 teacher users + 14 student users + 1 demo per staff role
   - Profile rows for each user
   - Friend relationships (a network among the students)
   - 1-on-1 Chat messages between several pairs
   - 1 Group chat with members + a few group messages
   - A handful of social-media Posts with likes/comments
+  - Subjects, enrollments, lessons, activities, grades, attendance,
+    calendar entries, gamification, and the Quest Map
 
 Login credentials for the demo accounts (the login form expects EMAIL):
-    demo@classedge.dev      / demo123
-    teacher@classedge.dev   / teacher123
+    demo@basiced.dev        / demo123        (Student)
+    teacher@basiced.dev     / teacher123     (Teacher)
     (all other seeded users use password: classedge123 — see the Users
      section below for the email of each account.)
 
@@ -187,49 +193,56 @@ ROLE_NAMES = [
     "Teacher",
     "Admin",
     "Registrar",
+    # NOTE: "Academic Director" and "Program Head" are kept because the app's
+    # role-gating logic (CustomUser.is_academic_director / is_program_head, and
+    # the views behind them) keys on these exact names. In a Basic-Ed context
+    # think of them as "Principal" and "Grade Level Coordinator" — you can
+    # relabel them in the admin once equivalent gating exists.
     "Academic Director",
     "Program Head",
-    "Coil Admin",
     "Time Keeper",
 ]
 
 STUDENTS = [
-    # username,        first,      last,        email
-    ("alex_cruz",      "Alex",     "Cruz",      "alex@classedge.dev"),
-    ("bea_santos",     "Bea",      "Santos",    "bea@classedge.dev"),
-    ("carlo_reyes",    "Carlo",    "Reyes",     "carlo@classedge.dev"),
-    ("diane_lim",      "Diane",    "Lim",       "diane@classedge.dev"),
-    ("ej_garcia",      "EJ",       "Garcia",    "ej@classedge.dev"),
-    ("faye_torres",    "Faye",     "Torres",    "faye@classedge.dev"),
-    ("gio_mendoza",    "Gio",      "Mendoza",   "gio@classedge.dev"),
-    ("hana_dela_cruz", "Hana",     "Dela Cruz", "hana@classedge.dev"),
-    ("ivan_chua",      "Ivan",     "Chua",      "ivan@classedge.dev"),
-    ("jen_villanueva", "Jen",      "Villanueva", "jen@classedge.dev"),
+    # A single Grade 7 section ("Grade 7 - Rizal"). username, first, last, email
+    ("alex_cruz",      "Alex",     "Cruz",      "alex@basiced.dev"),
+    ("bea_santos",     "Bea",      "Santos",    "bea@basiced.dev"),
+    ("carlo_reyes",    "Carlo",    "Reyes",     "carlo@basiced.dev"),
+    ("diane_lim",      "Diane",    "Lim",       "diane@basiced.dev"),
+    ("ej_garcia",      "EJ",       "Garcia",    "ej@basiced.dev"),
+    ("faye_torres",    "Faye",     "Torres",    "faye@basiced.dev"),
+    ("gio_mendoza",    "Gio",      "Mendoza",   "gio@basiced.dev"),
+    ("hana_dela_cruz", "Hana",     "Dela Cruz", "hana@basiced.dev"),
+    ("ivan_chua",      "Ivan",     "Chua",      "ivan@basiced.dev"),
+    ("jen_villanueva", "Jen",      "Villanueva", "jen@basiced.dev"),
     # The two below are NOT auto-friended with demo_student — they will
     # appear in the Requests tab (pending) and Discover tab respectively.
-    ("kara_lopez",     "Kara",     "Lopez",     "kara@classedge.dev"),
-    ("leo_pineda",     "Leo",      "Pineda",    "leo@classedge.dev"),
-    ("mia_robles",     "Mia",      "Robles",    "mia@classedge.dev"),
-    ("nico_tan",       "Nico",     "Tan",       "nico@classedge.dev"),
+    ("kara_lopez",     "Kara",     "Lopez",     "kara@basiced.dev"),
+    ("leo_pineda",     "Leo",      "Pineda",    "leo@basiced.dev"),
+    ("mia_robles",     "Mia",      "Robles",    "mia@basiced.dev"),
+    ("nico_tan",       "Nico",     "Tan",       "nico@basiced.dev"),
 ]
 
 TEACHERS = [
-    ("prof_navarro",  "Liza",  "Navarro",  "navarro@classedge.dev"),
-    ("prof_aquino",   "Mario", "Aquino",   "aquino@classedge.dev"),
+    ("teacher_navarro",  "Liza",  "Navarro",   "navarro@basiced.dev"),
+    ("teacher_aquino",   "Mario", "Aquino",    "aquino@basiced.dev"),
+    ("teacher_delacruz", "Grace", "Dela Cruz", "gdelacruz@basiced.dev"),
+    ("teacher_ramos",    "Ben",   "Ramos",     "bramos@basiced.dev"),
 ]
 
-DEMO_STUDENT = ("demo_student", "Demo", "Student", "demo@classedge.dev", "demo123")
-DEMO_TEACHER = ("demo_teacher", "Demo", "Teacher", "teacher@classedge.dev", "teacher123")
+DEMO_STUDENT = ("demo_student", "Demo", "Student", "demo@basiced.dev", "demo123")
+DEMO_TEACHER = ("demo_teacher", "Demo", "Teacher", "teacher@basiced.dev", "teacher123")
 
 # One demo account per non-student/non-teacher role. Login with email + password.
+# Person names use Basic-Ed labels (Principal / Coordinator) even though the
+# underlying functional role name is what the app gates on.
 # Tuple shape: (role_name, username, first, last, email, password)
 ROLE_DEMOS = [
-    ("Admin",             "demo_admin",     "Demo", "Admin",     "admin@classedge.dev",     "admin123"),
-    ("Registrar",         "demo_registrar", "Demo", "Registrar", "registrar@classedge.dev", "registrar123"),
-    ("Academic Director", "demo_director",  "Demo", "Director",  "director@classedge.dev",  "director123"),
-    ("Program Head",      "demo_head",      "Demo", "Head",      "head@classedge.dev",      "head123"),
-    ("Coil Admin",        "demo_coil",      "Demo", "Coil",      "coil@classedge.dev",      "coil123"),
-    ("Time Keeper",       "demo_timekeeper","Demo", "Keeper",    "timekeeper@classedge.dev","keeper123"),
+    ("Admin",             "demo_admin",      "Demo", "Admin",       "admin@basiced.dev",       "admin123"),
+    ("Registrar",         "demo_registrar",  "Demo", "Registrar",   "registrar@basiced.dev",   "registrar123"),
+    ("Academic Director", "demo_principal",  "Demo", "Principal",   "principal@basiced.dev",   "principal123"),
+    ("Program Head",      "demo_coordinator","Demo", "Coordinator", "coordinator@basiced.dev", "coordinator123"),
+    ("Time Keeper",       "demo_timekeeper", "Demo", "Keeper",      "timekeeper@basiced.dev",  "keeper123"),
 ]
 
 CHAT_SCRIPTS = [
@@ -237,10 +250,10 @@ CHAT_SCRIPTS = [
     (
         ("demo_student", "alex_cruz"),
         [
-            "Hey Alex! Did you finish the activity for today?",
-            "Almost done — just stuck on the last quiz item. You?",
-            "Same here haha. Want to compare answers later?",
-            "Sure, ping me after class.",
+            "Hey Alex! Did you finish our Math 7 seatwork?",
+            "Almost done — stuck on the last word problem. You?",
+            "Same here haha. Want to review together at recess?",
+            "Sure, see you at the canteen.",
             "Cool, see you!",
         ],
     ),
@@ -248,15 +261,15 @@ CHAT_SCRIPTS = [
         ("demo_student", "bea_santos"),
         [
             "Bea, are we still meeting at the library?",
-            "Yes! 4pm sharp. Bring the project draft.",
-            "Got it. I'll bring snacks too 😄",
+            "Yes! 4pm sharp. Bring the Science project draft.",
+            "Got it. I'll bring baon too 😄",
             "You're the best.",
         ],
     ),
     (
         ("demo_student", "carlo_reyes"),
         [
-            "Carlo, what's our group's submission status?",
+            "Carlo, did our group submit the Araling Panlipunan report?",
             "Just uploaded the file. Check the group chat.",
             "Awesome, thanks!",
         ],
@@ -264,7 +277,7 @@ CHAT_SCRIPTS = [
     (
         ("alex_cruz", "bea_santos"),
         [
-            "Bea, did you get notes from Prof. Navarro?",
+            "Bea, did you get the notes from Teacher Navarro?",
             "Yep, I'll send a copy later.",
             "Thanks 🙏",
         ],
@@ -272,26 +285,26 @@ CHAT_SCRIPTS = [
     (
         ("ej_garcia", "demo_student"),
         [
-            "Yo are you joining the study session tonight?",
+            "Are you joining the review session tonight?",
             "Yes, what time?",
-            "8pm, on Discord. I'll DM the link.",
+            "7pm, on Messenger. I'll send the link.",
         ],
     ),
     # ── demo_teacher conversations (so the demo Faculty inbox has data) ──
     (
         ("demo_teacher", "alex_cruz"),
         [
-            "Hi Alex — your Quiz 1 submission was strong. Keep it up!",
-            "Thank you, Sir! I worked hard on it.",
-            "If you have time, take a look at the bonus problem in Lesson 3.",
-            "On it. Will submit by Friday.",
+            "Hi Alex — your Written Work 1 was very neat. Keep it up!",
+            "Thank you, Sir! I studied hard for it.",
+            "If you have time, try the enrichment activity in Lesson 3.",
+            "Opo, Sir. Will submit by Friday.",
         ],
     ),
     (
         ("demo_teacher", "bea_santos"),
         [
-            "Bea, I noticed you missed today's session. Everything okay?",
-            "Yes Sir, I had a clinic appointment. I'll catch up tonight.",
+            "Bea, I noticed you were absent today. Everything okay?",
+            "Yes Sir, I had a check-up. I'll catch up tonight.",
             "Got it. Let me know if you need help with the recap activity.",
             "Thank you po, will message if I get stuck.",
         ],
@@ -299,17 +312,17 @@ CHAT_SCRIPTS = [
     (
         ("demo_teacher", "carlo_reyes"),
         [
-            "Carlo, please remember to update your Capstone Proposal by Monday.",
-            "Sure, Sir. I'll send the draft tomorrow.",
-            "Great. Make sure the timeline section is realistic this time.",
+            "Carlo, please pass your Performance Task portfolio by Monday.",
+            "Sure, Sir. I'll submit the draft tomorrow.",
+            "Great. Make sure to follow the rubric this time.",
         ],
     ),
     (
         ("demo_teacher", "diane_lim"),
         [
-            "Hi Diane — want to be a peer tutor for next week's lab?",
+            "Hi Diane — want to be a peer tutor for next week's Math drill?",
             "Yes, I'd love to!",
-            "Perfect. I'll add you to the helper list.",
+            "Perfect. I'll add you to the helpers list.",
         ],
     ),
     (
@@ -323,37 +336,43 @@ CHAT_SCRIPTS = [
 ]
 
 POSTS = [
-    ("alex_cruz",      "Just submitted my activity 📚 finally free!"),
-    ("bea_santos",     "Library is packed today. Wish me luck 😅"),
-    ("carlo_reyes",    "Group project meeting at 4pm — don't be late team!"),
-    ("demo_student",   "Hello everyone! Excited to be on the new ClassEdge UI 🎉"),
-    ("hana_dela_cruz", "Anyone has notes for Algorithms? Drop a comment 🙏"),
+    ("alex_cruz",      "Just passed my Math 7 seatwork 📚 finally free!"),
+    ("bea_santos",     "Library is packed today. Wish me luck sa quiz 😅"),
+    ("carlo_reyes",    "Group meeting for our Science project at 4pm — don't be late team!"),
+    ("demo_student",   "Hello classmates! Excited for our new online classroom 🎉"),
+    ("hana_dela_cruz", "Anyone has notes for Science 7? Drop a comment 🙏"),
 ]
 
 # ---------------------------------------------------------------------------
 # Academic structure
 # ---------------------------------------------------------------------------
-ACTIVITY_TYPES = ["Quiz", "Assignment", "Exam", "Project", "Recitation"]
+# DepEd-style assessment components.
+ACTIVITY_TYPES = ["Written Work", "Performance Task", "Quarterly Assessment", "Recitation", "Project"]
 
-TERM_NAMES = ["Prelim", "Midterm", "Pre-Final", "Final Term"]
+# Basic-Ed uses four grading quarters.
+TERM_NAMES = ["First Quarter", "Second Quarter", "Third Quarter", "Fourth Quarter"]
 
+# Grade 7 core subjects (Philippine K-12 / DepEd Junior High School curriculum).
 # (code, name, short, description, teacher_username, units)
-# demo_teacher owns CS101 + CS201 so the demo Faculty Dashboard has data to display.
+# demo_teacher handles English 7 + Mathematics 7 so the demo Faculty Dashboard has data.
 SUBJECTS = [
-    ("CS101", "Programming Fundamentals",      "Prog Fund",  "Intro to programming with Python.",     "demo_teacher", 3),
-    ("CS102", "Data Structures and Algorithms","DSA",        "Core CS data structures and algorithms.","prof_navarro", 3),
-    ("CS201", "Web Development",               "Web Dev",    "Modern full-stack web development.",     "demo_teacher", 3),
-    ("CS203", "Database Systems",              "DBMS",       "Relational and NoSQL databases.",        "prof_aquino",  3),
-    ("CS301", "Software Engineering",          "Soft Eng",   "SDLC, design patterns, best practices.", "prof_navarro", 3),
+    ("ENG7",   "English 7",                                "English", "Reading, grammar, and literature for Grade 7.",            "demo_teacher",      1),
+    ("FIL7",   "Filipino 7",                               "Filipino","Wika, panitikan, at gramatika para sa Baitang 7.",         "teacher_navarro",   1),
+    ("MATH7",  "Mathematics 7",                            "Math",    "Numbers, measurement, algebra, and geometry.",             "demo_teacher",      1),
+    ("SCI7",   "Science 7",                                "Science", "Matter, living things, force, motion, and energy.",        "teacher_aquino",    1),
+    ("AP7",    "Araling Panlipunan 7",                     "AP",      "Heograpiya at kasaysayan ng Asya.",                        "teacher_delacruz",  1),
+    ("ESP7",   "Edukasyon sa Pagpapakatao 7",              "ESP",     "Values formation at pagpapakatao para sa Baitang 7.",      "teacher_navarro",   1),
+    ("MAPEH7", "MAPEH 7",                                  "MAPEH",   "Music, Arts, Physical Education, and Health.",             "teacher_ramos",     1),
+    ("TLE7",   "Technology and Livelihood Education 7",    "TLE",     "ICT, home economics, and basic livelihood skills.",        "teacher_aquino",    1),
 ]
 
 # Activities per subject — (name, type, days_relative_to_today, max_score)
 SUBJECT_ACTIVITIES = [
-    ("Quiz 1: Variables & Loops",       "Quiz",       -20, 50),
-    ("Programming Assignment 1",        "Assignment", -10, 100),
-    ("Midterm Exam",                    "Exam",         5, 100),
-    ("Capstone Project Proposal",       "Project",     14, 100),
-    ("Recitation: Algorithm Walkthrough","Recitation", -5, 25),
+    ("Written Work 1: Vocabulary & Concepts", "Written Work",         -20, 20),
+    ("Performance Task 1: Group Presentation","Performance Task",     -10, 50),
+    ("Quarterly Assessment",                  "Quarterly Assessment",   5, 50),
+    ("Project: Learning Portfolio",           "Project",               14, 100),
+    ("Recitation: Class Participation",       "Recitation",            -5, 20),
 ]
 
 # Philippine 2025 holidays (regular + special)
@@ -374,46 +393,46 @@ HOLIDAYS = [
 
 # (title, description, day-offset-from-today, time-or-None, location)
 EVENTS = [
-    ("Orientation Week",      "Welcome new students with campus tours and program intros.", -28, time(9, 0),  "Main Auditorium"),
-    ("Tech Talk: AI in Edu",  "Guest speaker on the future of AI-assisted learning.",       -7,  time(13, 0), "Hall A"),
-    ("Midterm Exams Begin",   "Bring your school IDs. Check schedule on portal.",            5,  time(8, 0),  "Assigned Rooms"),
-    ("Project Presentation",  "Group capstone presentations to industry panel.",            12,  time(10, 0), "Innovation Lab"),
-    ("Career Fair 2025",      "Top tech companies hiring on campus.",                       18,  time(9, 30), "Gymnasium"),
-    ("Final Exams",           "Final examination week — good luck!",                        35,  time(8, 0),  "Assigned Rooms"),
-    ("Alumni Homecoming",     "Reunion with graduates and networking night.",               45,  time(18, 0), "Atrium"),
+    ("Opening of Classes",      "Welcome back, learners! First day of the school year.",        -28, time(7, 30), "Covered Court"),
+    ("Buwan ng Wika Program",   "Pagdiriwang ng Buwan ng Wikang Pambansa.",                      -7, time(13, 0), "School Gym"),
+    ("First Quarterly Exams",   "Bring your school IDs. Check the schedule on the portal.",        5, time(7, 30), "Classrooms"),
+    ("Science Fair",            "Class science investigatory project exhibits.",                  12, time(9, 0),  "Science Laboratory"),
+    ("Parent-Teacher Conference","Distribution of report cards and learner progress updates.",    18, time(8, 0),  "Advisory Rooms"),
+    ("Second Quarterly Exams",  "Second quarter assessment week — good luck!",                    35, time(7, 30), "Classrooms"),
+    ("Intramurals / Sports Fest","Inter-section sports competitions and cheering.",               45, time(8, 0),  "School Grounds"),
 ]
 
 ANNOUNCEMENTS = [
-    ("Enrollment Reminder",  "Late enrollment deadline is approaching — check the registrar's window."),
-    ("System Maintenance",   "ClassEdge will be down Saturday 11pm-1am for scheduled updates."),
-    ("Library Hours Update", "Library will be open until 10pm during exam weeks."),
-    ("New Cafeteria Menu",   "The campus cafeteria added vegetarian and halal options starting Monday."),
-    ("Wi-Fi Upgrade",        "Faster campus Wi-Fi rollout begins next week — expect brief downtime in dorm areas."),
-    ("Faculty Town Hall",    "All faculty are invited to a town hall meeting on the new grading policy."),
-    ("Scholarship Renewals", "Scholarship renewal forms are now available at the Registrar's Office."),
-    ("Wellness Week",        "Free counseling sessions and yoga classes are scheduled for next week."),
+    ("Enrollment Reminder",   "Late enrollment deadline is approaching — please proceed to the Registrar's Office."),
+    ("System Maintenance",    "The portal will be down Saturday 11pm-1am for scheduled updates."),
+    ("Library Hours Update",  "The school library will be open until 5pm during exam weeks."),
+    ("Nutrition Month Menu",  "The canteen added healthier 'gulay' and fruit options starting Monday."),
+    ("Wear Your Complete Uniform", "Reminder: wear the complete prescribed uniform and ID daily."),
+    ("Faculty Meeting",       "All advisers are invited to a meeting on the new grading sheet."),
+    ("Brigada Eskwela",       "Volunteers are welcome for this week's school clean-up drive."),
+    ("Guidance Wellness Week","Free counseling sessions and homeroom wellness activities next week."),
 ]
 
 # Institution-wide news (department=None) so they appear for every user
 # regardless of department assignment.
 INSTITUTION_ANNOUNCEMENTS = [
-    ("Academic Calendar Update", "Reminder: midterm exam week starts soon. Check your subject schedule."),
-    ("Student Council Elections", "Filing of candidacy is open until next Friday."),
-    ("Holiday Reminder",         "Classes are suspended on the upcoming national holiday — see calendar."),
+    ("Academic Calendar Update",  "Reminder: First Quarter exam week starts soon. Check your class schedule."),
+    ("Supreme Pupil/Student Government Elections", "Filing of candidacy is open until next Friday."),
+    ("Holiday Reminder",          "Classes are suspended on the upcoming national holiday — see calendar."),
 ]
 INSTITUTION_EVENTS = [
-    ("All-School Assembly", "Mandatory assembly for all students and faculty.", -2, time(9, 0),  "Main Auditorium"),
-    ("Innovation Showcase", "Department exhibits and demos open to the whole school.", 22, time(13, 0), "Atrium"),
-    ("Sports Fest Opening", "Opening ceremony for inter-college sports.",        28, time(8, 30), "Field A"),
+    ("Flag Ceremony",        "Weekly Monday flag-raising for all learners and teachers.", -2, time(7, 15), "Quadrangle"),
+    ("Recognition Day",      "Awarding of honor learners and achievers, open to parents.", 22, time(8, 0),  "Covered Court"),
+    ("Foundation Day",       "Celebration of the school's founding anniversary.",          28, time(8, 30), "School Grounds"),
 ]
 
 # Side activities (Quest Map). (sub_type, title, xp_reward, estimated_minutes)
 SIDE_ACTIVITIES = [
-    ("daily_challenge", "Daily Code Challenge",         15, 5),
-    ("flashcard",       "Vocab Flashcards",             10, 3),
-    ("daily_challenge", "Quick SQL Quiz",               20, 7),
-    ("flashcard",       "OOP Concepts Review",          10, 4),
-    ("daily_challenge", "Algorithm Speed Round",        25, 10),
+    ("daily_challenge", "Daily Math Challenge",         15, 5),
+    ("flashcard",       "English Vocabulary Flashcards",10, 3),
+    ("daily_challenge", "Science Quick Quiz",           20, 7),
+    ("flashcard",       "Filipino Talasalitaan",        10, 4),
+    ("daily_challenge", "Mental Math Speed Round",      25, 10),
 ]
 
 # Badges — `icon` is rendered as plain text (template uses {{ icon }} not <i>),
@@ -476,13 +495,13 @@ def seed_roles() -> dict:
 def seed_department_course():
     header("Department + Course")
     dept, created_d = Department.objects.get_or_create(
-        name="College of Computer Studies",
+        name="Junior High School",
     )
     log("dept", f"{'created' if created_d else 'exists'}: {dept.name}")
 
     course, created_c = Course.objects.get_or_create(
-        name="BS Information Technology",
-        defaults={"short_name": "BSIT"},
+        name="Grade 7 - Rizal",
+        defaults={"short_name": "G7-Rizal"},
     )
     log("course", f"{'created' if created_c else 'exists'}: {course.name}")
     return dept, course
@@ -544,7 +563,7 @@ def seed_users(roles, dept, course):
     u_username, u_first, u_last, u_email, u_pw = DEMO_STUDENT
     users[u_username] = _ensure_user(
         u_username, u_first, u_last, u_email, u_pw,
-        student_role, dept, course, "2nd Year College",
+        student_role, dept, course, "Grade 7",
     )
     t_username, t_first, t_last, t_email, t_pw = DEMO_TEACHER
     users[t_username] = _ensure_user(
@@ -557,7 +576,7 @@ def seed_users(roles, dept, course):
         users[username] = _ensure_user(
             username, first, last, email, DEFAULT_PASSWORD,
             student_role, dept, course,
-            random.choice(["1st Year College", "2nd Year College", "3rd Year College"]),
+            "Grade 7",
         )
 
     # Bulk teachers
@@ -658,7 +677,7 @@ def seed_chats(users):
 
 def seed_group_chat(users):
     header("Group chat")
-    name = "BSIT-2A Study Group"
+    name = "Grade 7 - Rizal Study Group"
     group, created = GroupChat.objects.get_or_create(
         name=name, defaults={"created_by": users["demo_student"]},
     )
@@ -767,7 +786,7 @@ def seed_semester_terms(dept):
 
     today = timezone.localdate()
     sem, created = Semester.objects.get_or_create(
-        semester_name="Second Semester",
+        semester_name="School Year 2025-2026",
         department=dept,
         defaults={
             "start_date": today - timedelta(days=60),
@@ -778,7 +797,7 @@ def seed_semester_terms(dept):
     )
     log("semester", f"{'created' if created else 'exists'}: {sem.semester_name}")
 
-    # Spread the four terms across the semester duration.
+    # Spread the four quarters across the school year duration.
     terms = []
     span = (sem.end_date - sem.start_date) // 4
     for idx, name in enumerate(TERM_NAMES):
@@ -839,11 +858,8 @@ def seed_enrollments(users, subjects, semester):
     rng = random.Random(7)
 
     for student in students:
-        # demo_student gets ALL subjects; everyone else gets a random 4 of 5.
-        if student.username == "demo_student":
-            picks = subject_codes
-        else:
-            picks = rng.sample(subject_codes, k=min(4, len(subject_codes)))
+        # A Grade 7 section takes ALL core subjects together.
+        picks = subject_codes
 
         for code in picks:
             subj = subjects[code]
@@ -967,7 +983,7 @@ def seed_grades(users, subjects, terms, activities, semester):
 
     # Participation scores per (student, subject, current term)
     if StudentParticipationScore is not None:
-        cur_term = next((t for t in terms if t.term_name == "Midterm"), terms[0])
+        cur_term = next((t for t in terms if t.term_name == "Second Quarter"), terms[0])
         for student in students:
             enrolled_subjects = (
                 SubjectEnrollment.objects.filter(student=student).values_list("subject", flat=True)
@@ -990,7 +1006,7 @@ def seed_grades(users, subjects, terms, activities, semester):
 
 def seed_calendar(users, dept):
     header("Calendar — Holidays + Events + Announcements")
-    creator = users.get("demo_teacher") or users.get("prof_navarro") or next(iter(users.values()))
+    creator = users.get("demo_teacher") or users.get("teacher_navarro") or next(iter(users.values()))
 
     if Holiday is not None:
         for title, d, htype, color in HOLIDAYS:
@@ -1205,7 +1221,7 @@ def seed_quest_map(users, subjects):
         log("quest", "no subjects available — skipping")
         return
 
-    creator = users.get("demo_teacher") or users.get("prof_navarro")
+    creator = users.get("demo_teacher") or users.get("teacher_navarro")
     rng = random.Random(31)
     side_acts = []
 
@@ -1370,7 +1386,7 @@ def seed_dashboard_notifications(users, activities):
         return
 
     students = _student_users(users)
-    creator = users.get("demo_teacher") or users.get("prof_navarro") or next(iter(users.values()))
+    creator = users.get("demo_teacher") or users.get("teacher_navarro") or next(iter(users.values()))
     upcoming = [a for a in activities if a.end_time and a.end_time > timezone.now()][:3]
     if not upcoming:
         return
@@ -1396,40 +1412,61 @@ def seed_dashboard_notifications(users, activities):
 # Lessons (Modules) per subject
 # ---------------------------------------------------------------------------
 LESSONS_BY_SUBJECT = {
-    "CS101": [
-        ("Lesson 1: Welcome to Python",   "https://www.python.org/about/gettingstarted/"),
-        ("Lesson 2: Variables & Types",   "https://docs.python.org/3/tutorial/introduction.html"),
-        ("Lesson 3: Control Flow",        "https://docs.python.org/3/tutorial/controlflow.html"),
-        ("Lesson 4: Functions",           "https://docs.python.org/3/tutorial/controlflow.html#defining-functions"),
-        ("Lesson 5: Lists & Tuples",      "https://docs.python.org/3/tutorial/datastructures.html"),
+    "ENG7": [
+        ("Lesson 1: Parts of Speech",        "https://www.britannica.com/dictionary/eb/3000-words"),
+        ("Lesson 2: Reading Comprehension",  "https://en.wikipedia.org/wiki/Reading_comprehension"),
+        ("Lesson 3: Subject-Verb Agreement", "https://en.wikipedia.org/wiki/Agreement_(linguistics)"),
+        ("Lesson 4: Short Story Elements",   "https://en.wikipedia.org/wiki/Plot_(narrative)"),
+        ("Lesson 5: Writing a Paragraph",    "https://en.wikipedia.org/wiki/Paragraph"),
     ],
-    "CS102": [
-        ("Lesson 1: Big-O Notation",      "https://en.wikipedia.org/wiki/Big_O_notation"),
-        ("Lesson 2: Arrays vs Linked Lists", "https://en.wikipedia.org/wiki/Linked_list"),
-        ("Lesson 3: Stacks & Queues",     "https://en.wikipedia.org/wiki/Stack_(abstract_data_type)"),
-        ("Lesson 4: Trees & Graphs",      "https://en.wikipedia.org/wiki/Tree_(data_structure)"),
-        ("Lesson 5: Sorting Algorithms",  "https://en.wikipedia.org/wiki/Sorting_algorithm"),
+    "FIL7": [
+        ("Aralin 1: Mga Bahagi ng Pananalita", "https://tl.wikipedia.org/wiki/Bahagi_ng_pananalita"),
+        ("Aralin 2: Pang-uri at Pandiwa",      "https://tl.wikipedia.org/wiki/Pandiwa"),
+        ("Aralin 3: Maikling Kwento",          "https://tl.wikipedia.org/wiki/Maikling_kwento"),
+        ("Aralin 4: Tula at Bugtong",          "https://tl.wikipedia.org/wiki/Tula"),
+        ("Aralin 5: Pagsulat ng Talata",       "https://tl.wikipedia.org/wiki/Talata"),
     ],
-    "CS201": [
-        ("Lesson 1: HTML Foundations",    "https://developer.mozilla.org/en-US/docs/Web/HTML"),
-        ("Lesson 2: CSS Layout",          "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Layout"),
-        ("Lesson 3: JavaScript Basics",   "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"),
-        ("Lesson 4: Fetch & APIs",        "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch"),
-        ("Lesson 5: Intro to Django",     "https://docs.djangoproject.com/en/4.2/intro/tutorial01/"),
+    "MATH7": [
+        ("Lesson 1: Sets",                   "https://en.wikipedia.org/wiki/Set_(mathematics)"),
+        ("Lesson 2: Integers",               "https://en.wikipedia.org/wiki/Integer"),
+        ("Lesson 3: Fractions & Decimals",   "https://en.wikipedia.org/wiki/Fraction"),
+        ("Lesson 4: Algebraic Expressions",  "https://en.wikipedia.org/wiki/Algebraic_expression"),
+        ("Lesson 5: Basic Geometry",         "https://en.wikipedia.org/wiki/Geometry"),
     ],
-    "CS203": [
-        ("Lesson 1: Relational Model",    "https://en.wikipedia.org/wiki/Relational_model"),
-        ("Lesson 2: SQL SELECT Queries",  "https://www.w3schools.com/sql/sql_select.asp"),
-        ("Lesson 3: Joins & Aggregations","https://www.w3schools.com/sql/sql_join.asp"),
-        ("Lesson 4: Normalization",       "https://en.wikipedia.org/wiki/Database_normalization"),
-        ("Lesson 5: Intro to NoSQL",      "https://en.wikipedia.org/wiki/NoSQL"),
+    "SCI7": [
+        ("Lesson 1: Scientific Method",      "https://en.wikipedia.org/wiki/Scientific_method"),
+        ("Lesson 2: Matter & Its Properties","https://en.wikipedia.org/wiki/Matter"),
+        ("Lesson 3: Living Things & Cells",  "https://en.wikipedia.org/wiki/Cell_(biology)"),
+        ("Lesson 4: Force and Motion",       "https://en.wikipedia.org/wiki/Motion"),
+        ("Lesson 5: Energy",                 "https://en.wikipedia.org/wiki/Energy"),
     ],
-    "CS301": [
-        ("Lesson 1: SDLC Overview",       "https://en.wikipedia.org/wiki/Systems_development_life_cycle"),
-        ("Lesson 2: Agile & Scrum",       "https://www.scrum.org/resources/what-is-scrum"),
-        ("Lesson 3: Design Patterns",     "https://refactoring.guru/design-patterns"),
-        ("Lesson 4: Testing Strategies",  "https://martinfowler.com/articles/practical-test-pyramid.html"),
-        ("Lesson 5: CI/CD Basics",        "https://en.wikipedia.org/wiki/CI/CD"),
+    "AP7": [
+        ("Aralin 1: Heograpiya ng Asya",     "https://en.wikipedia.org/wiki/Asia"),
+        ("Aralin 2: Sinaunang Kabihasnan",   "https://en.wikipedia.org/wiki/Civilization"),
+        ("Aralin 3: Relihiyon sa Asya",      "https://en.wikipedia.org/wiki/Religion_in_Asia"),
+        ("Aralin 4: Kolonyalismo",           "https://en.wikipedia.org/wiki/Colonialism"),
+        ("Aralin 5: Kontemporaryong Isyu",   "https://en.wikipedia.org/wiki/Southeast_Asia"),
+    ],
+    "ESP7": [
+        ("Aralin 1: Pagpapahalaga sa Sarili","https://en.wikipedia.org/wiki/Self-esteem"),
+        ("Aralin 2: Pamilya at Tahanan",     "https://en.wikipedia.org/wiki/Family"),
+        ("Aralin 3: Pakikipagkapwa",         "https://en.wikipedia.org/wiki/Empathy"),
+        ("Aralin 4: Konsiyensya",            "https://en.wikipedia.org/wiki/Conscience"),
+        ("Aralin 5: Mabuting Mamamayan",     "https://en.wikipedia.org/wiki/Citizenship"),
+    ],
+    "MAPEH7": [
+        ("Lesson 1: Music — Rhythm & Melody","https://en.wikipedia.org/wiki/Rhythm"),
+        ("Lesson 2: Arts — Elements of Art", "https://en.wikipedia.org/wiki/Elements_of_art"),
+        ("Lesson 3: PE — Physical Fitness",  "https://en.wikipedia.org/wiki/Physical_fitness"),
+        ("Lesson 4: Health — Nutrition",     "https://en.wikipedia.org/wiki/Nutrition"),
+        ("Lesson 5: Personal Hygiene",       "https://en.wikipedia.org/wiki/Hygiene"),
+    ],
+    "TLE7": [
+        ("Lesson 1: Intro to ICT",           "https://en.wikipedia.org/wiki/Information_and_communications_technology"),
+        ("Lesson 2: Computer Basics",        "https://en.wikipedia.org/wiki/Computer"),
+        ("Lesson 3: Home Economics",         "https://en.wikipedia.org/wiki/Home_economics"),
+        ("Lesson 4: Basic Cooking & Safety", "https://en.wikipedia.org/wiki/Food_safety"),
+        ("Lesson 5: Simple Livelihood Skills","https://en.wikipedia.org/wiki/Entrepreneurship"),
     ],
 }
 
@@ -1443,8 +1480,8 @@ def seed_lessons(subjects, terms):
         log("lesson", "no subjects — skipping")
         return
 
-    # Tie lessons to the Prelim term so they appear in the active semester.
-    prelim = next((t for t in terms if t.term_name == "Prelim"), terms[0] if terms else None)
+    # Tie lessons to the First Quarter so they appear in the active school year.
+    prelim = next((t for t in terms if t.term_name == "First Quarter"), terms[0] if terms else None)
 
     for code, subj in subjects.items():
         defs = LESSONS_BY_SUBJECT.get(code, [])
@@ -1471,35 +1508,36 @@ def seed_lessons(subjects, terms):
 QUIZ_TYPE_NAMES = ["Multiple Choice", "Essay", "True/False", "Fill in the Blank"]
 
 # (question, correct_answer, [choices])  -- choices are only used for MC.
+# Grade 7 general-knowledge items across the core subjects.
 SAMPLE_MC_QUESTIONS = [
-    ("Which keyword defines a function in Python?",
-     "def",
-     ["def", "function", "fun", "lambda"]),
-    ("What is the time complexity of binary search on a sorted array?",
-     "O(log n)",
-     ["O(n)", "O(n log n)", "O(log n)", "O(1)"]),
-    ("Which HTTP method is idempotent and safe?",
-     "GET",
-     ["POST", "GET", "PUT", "DELETE"]),
-    ("Which SQL clause filters rows after grouping?",
-     "HAVING",
-     ["WHERE", "ORDER BY", "HAVING", "GROUP BY"]),
-    ("Agile sprints typically last how long?",
-     "1–4 weeks",
-     ["1 day", "1–4 weeks", "3–6 months", "1 year"]),
+    ("What is the value of 7 × 8?",
+     "56",
+     ["54", "56", "63", "48"]),
+    ("Which planet is known as the Red Planet?",
+     "Mars",
+     ["Venus", "Mars", "Jupiter", "Saturn"]),
+    ("What is the past tense of the verb 'go'?",
+     "went",
+     ["goed", "gone", "went", "going"]),
+    ("Ano ang pambansang bayani ng Pilipinas?",
+     "Jose Rizal",
+     ["Andres Bonifacio", "Jose Rizal", "Emilio Aguinaldo", "Apolinario Mabini"]),
+    ("Which is the largest continent by land area?",
+     "Asia",
+     ["Africa", "Asia", "Europe", "North America"]),
 ]
 SAMPLE_TF_QUESTIONS = [
-    ("A linked list has O(1) random access.",          "False"),
-    ("HTTPS encrypts data in transit.",                "True"),
-    ("MongoDB is a relational database.",              "False"),
+    ("Water boils at 100 degrees Celsius at sea level.", "True"),
+    ("A triangle has four sides.",                       "False"),
+    ("The Philippines is located in Asia.",              "True"),
 ]
 SAMPLE_FILL_QUESTIONS = [
-    ("In Python, the ____ keyword is used to define a function.", "def"),
-    ("The SQL command to retrieve rows from a table is ____.",    "SELECT"),
+    ("The process by which plants make their own food is called ____.", "photosynthesis"),
+    ("The sum of the angles in a triangle is ____ degrees.",            "180"),
 ]
 SAMPLE_ESSAY_QUESTIONS = [
-    ("Explain the difference between a stack and a queue in your own words.", ""),
-    ("Describe the role of a foreign key in a relational database.",          ""),
+    ("In your own words, explain why we should take care of the environment.", ""),
+    ("Describe one Filipino value that is important to your family.",          ""),
 ]
 
 
@@ -1588,31 +1626,32 @@ def seed_question_bank(activities, quiz_types):
 # ---------------------------------------------------------------------------
 # Gradebook configuration  (drives the My Grades page percentages)
 # ---------------------------------------------------------------------------
-# Per-term overall weight: numbers must sum to 100.
+# Per-quarter overall weight: numbers must sum to 100. The four DepEd quarters
+# are weighted equally toward the final grade.
 TERM_WEIGHTS = {
-    "Prelim":     20,
-    "Midterm":    25,
-    "Pre-Final":  25,
-    "Final Term": 30,
+    "First Quarter":  25,
+    "Second Quarter": 25,
+    "Third Quarter":  25,
+    "Fourth Quarter": 25,
 }
 
-# Per-category weight (within a term). Sum must = 100.
+# DepEd component weights within a quarter (general/typical). Sum must = 100.
 CATEGORY_WEIGHTS = [
-    ("Exam",                     40),
-    ("Major Assessment",         40),
-    ("Participation/Attendance", 20),
+    ("Written Work",          30),
+    ("Performance Task",      50),
+    ("Quarterly Assessment",  20),
 ]
 
-# Activity type → category + within-category weight (so the calc helper
+# Activity type → component + within-component weight (so the calc helper
 # can derive (term, activity_type_name) → percentage from ATP rows).
-# Within-category percentages must sum to the category's weight.
+# Within-component percentages must sum to the component's weight.
 ACTIVITY_TYPE_TO_CATEGORY = [
-    # (activity_type_name, gradebook_category, percentage_of_term)
-    ("Exam",        "Exam",                     40),
-    ("Quiz",        "Major Assessment",         10),
-    ("Assignment",  "Major Assessment",         15),
-    ("Project",     "Major Assessment",         15),
-    ("Recitation",  "Participation/Attendance", 20),
+    # (activity_type_name, gradebook_category, percentage_of_quarter)
+    ("Written Work",         "Written Work",          20),
+    ("Recitation",           "Written Work",          10),
+    ("Performance Task",     "Performance Task",      35),
+    ("Project",              "Performance Task",      15),
+    ("Quarterly Assessment", "Quarterly Assessment",  20),
 ]
 
 
@@ -1672,8 +1711,31 @@ def seed_gradebook(subjects, terms, activity_types):
 def main():
     random.seed(42)  # deterministic likes/comments
 
-    print("ClassEdge-AI — dummy data seeder")
-    print("=================================")
+    # ── Speed + offline: suppress network side-effects for the whole run ──
+    # Creating activities / lessons / grades / badges cascades into Notification
+    # rows whose post_save fires a OneSignal push — a blocking ~1–2s HTTPS call
+    # dispatched on a thread that holds a SQLite connection. With no creds (and
+    # no reachable network) those calls hang and starve the writer, turning a
+    # ~10s seed into many minutes. The app already ships a thread-local
+    # suppressor (used by the data-migration writer); we reuse it so seeding is
+    # fast and fully offline. RAG embedding (OpenAI) on content save is
+    # suppressed for the same reason. The guards are entered for the lifetime of
+    # this single-threaded script — kept referenced so they aren't GC'd, and not
+    # exited because the process ends right after main() returns.
+    try:
+        from migration.side_effects import (
+            suppress_push_notifications,
+            suppress_rag_indexing,
+        )
+        _push_guard = suppress_push_notifications()
+        _push_guard.__enter__()
+        _rag_guard = suppress_rag_indexing()
+        _rag_guard.__enter__()
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"  [setup] could not enable side-effect suppression: {exc}")
+
+    print("ClassEdge Basic Ed — dummy data seeder (Grade 7 demo)")
+    print("=====================================================")
 
     roles = seed_roles()
     dept, course = seed_department_course()
@@ -1726,19 +1788,20 @@ def main():
     print("\n=== Done ===")
     print("Login uses EMAIL + password (not username).\n")
     print("Demo accounts (one per role):")
-    print(f"  Student            → demo@classedge.dev        / demo123")
-    print(f"  Teacher            → teacher@classedge.dev     / teacher123")
+    print(f"  Student            → demo@basiced.dev          / demo123")
+    print(f"  Teacher            → teacher@basiced.dev       / teacher123")
     for role_name, _u, _f, _l, email, password in ROLE_DEMOS:
         print(f"  {role_name:<18} → {email:<26}/ {password}")
     print()
     print(f"All other seeded users → password: {DEFAULT_PASSWORD}")
-    print("Their emails follow the pattern <firstname>@classedge.dev, e.g.:")
-    print("  alex@classedge.dev, bea@classedge.dev, carlo@classedge.dev,")
-    print("  diane@classedge.dev, ej@classedge.dev, faye@classedge.dev,")
-    print("  gio@classedge.dev, hana@classedge.dev, ivan@classedge.dev,")
-    print("  jen@classedge.dev, kara@classedge.dev, leo@classedge.dev,")
-    print("  mia@classedge.dev, nico@classedge.dev")
-    print("Teacher emails: navarro@classedge.dev, aquino@classedge.dev")
+    print("Student emails follow the pattern <firstname>@basiced.dev, e.g.:")
+    print("  alex@basiced.dev, bea@basiced.dev, carlo@basiced.dev,")
+    print("  diane@basiced.dev, ej@basiced.dev, faye@basiced.dev,")
+    print("  gio@basiced.dev, hana@basiced.dev, ivan@basiced.dev,")
+    print("  jen@basiced.dev, kara@basiced.dev, leo@basiced.dev,")
+    print("  mia@basiced.dev, nico@basiced.dev")
+    print("Teacher emails: navarro@basiced.dev, aquino@basiced.dev,")
+    print("  gdelacruz@basiced.dev, bramos@basiced.dev")
     print()
 
 
