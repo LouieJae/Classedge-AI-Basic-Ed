@@ -1,0 +1,259 @@
+{% comment %}
+Reusable AI Tutor chat bubble.
+
+Required context:
+  subject_id  — the subject the conversation is scoped to.
+
+Optional context:
+  subject_name — shown in the bubble header. Falls back to "AI Tutor".
+
+The include is self-contained (CSS + JS inline) so it can drop into any
+template — extending pages (student/material-list.html via student_base) or
+standalone HTML pages (student/pdf_viewer.html). It checks rag_tutor_available
+itself so callers don't have to.
+{% endcomment %}
+
+{% if rag_tutor_available and subject_id %}
+<div id="rag-tutor-root" data-subject-id="{{ subject_id }}"
+     data-ask-url="{% url 'rag_tutor_ask' subject_id %}"
+     data-history-url="{% url 'rag_tutor_history' subject_id %}"
+     data-subject-name="{{ subject_name|default:'this subject' }}">
+
+  <button type="button" id="rag-tutor-bubble" aria-label="Open AI Tutor" title="Ask the AI Tutor">
+    <i class="fas fa-robot"></i>
+  </button>
+
+  <div id="rag-tutor-panel" role="dialog" aria-label="AI Tutor chat" hidden>
+    <div class="rt-header">
+      <div class="rt-title">
+        <i class="fas fa-robot"></i>
+        <span>AI Tutor</span>
+      </div>
+      <button type="button" class="rt-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="rt-subtitle">Ask anything about {{ subject_name|default:"this subject" }}. Answers are based on your lessons.</div>
+    <div class="rt-messages" id="rag-tutor-messages">
+      <div class="rt-empty">No questions yet — ask one below.</div>
+    </div>
+    <form class="rt-input" id="rag-tutor-form" autocomplete="off">
+      <textarea id="rag-tutor-question" rows="1" placeholder="Ask a question…" maxlength="2000" required></textarea>
+      <button type="submit" id="rag-tutor-send" aria-label="Send">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </form>
+  </div>
+</div>
+
+<style>
+  #rag-tutor-bubble {
+    position: fixed; right: 20px; bottom: 20px; z-index: 9990;
+    width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+    font-size: 22px; display: flex; align-items: center; justify-content: center;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  #rag-tutor-bubble:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(99, 102, 241, 0.55); }
+  #rag-tutor-bubble.is-hidden { display: none; }
+
+  #rag-tutor-panel {
+    position: fixed; right: 20px; bottom: 88px; z-index: 9990;
+    width: 380px; max-width: calc(100vw - 24px);
+    height: 540px; max-height: calc(100vh - 120px);
+    background: #fff; color: #1f2937;
+    border-radius: 14px; border: 1px solid rgba(15,23,42,0.08);
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+    display: flex; flex-direction: column; overflow: hidden;
+    font-family: 'Inter Tight', system-ui, -apple-system, sans-serif;
+  }
+  #rag-tutor-panel[hidden] { display: none; }
+  .rt-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+  }
+  .rt-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+  .rt-close {
+    background: transparent; color: #fff; border: none; font-size: 22px; line-height: 1;
+    cursor: pointer; padding: 0 4px;
+  }
+  .rt-subtitle { padding: 10px 14px 6px; font-size: 12px; color: #6b7280; border-bottom: 1px solid #f1f5f9; }
+  .rt-messages {
+    flex: 1; overflow-y: auto; padding: 14px; background: #f8fafc;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .rt-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 24px 8px; }
+  .rt-msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.45; word-wrap: break-word; }
+  .rt-msg.q { align-self: flex-end; background: #6366f1; color: #fff; border-bottom-right-radius: 4px; }
+  .rt-msg.a { align-self: flex-start; background: #fff; color: #1f2937; border: 1px solid #e2e8f0; border-bottom-left-radius: 4px; }
+  .rt-msg.a .rt-sources { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e2e8f0; font-size: 11px; color: #6b7280; }
+  .rt-msg.a .rt-sources strong { color: #374151; }
+  .rt-msg.a.error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+  .rt-typing { align-self: flex-start; font-size: 12px; color: #94a3b8; padding: 4px 8px; }
+  .rt-input {
+    display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid #e2e8f0; background: #fff;
+  }
+  .rt-input textarea {
+    flex: 1; resize: none; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 8px 10px; font: inherit; font-size: 13.5px; outline: none;
+    max-height: 96px;
+  }
+  .rt-input textarea:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+  .rt-input button {
+    border: none; background: #6366f1; color: #fff; width: 38px; height: 38px;
+    border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .rt-input button:disabled { opacity: .5; cursor: not-allowed; }
+  @media (max-width: 480px) {
+    #rag-tutor-panel { right: 8px; left: 8px; width: auto; bottom: 80px; height: 70vh; }
+    #rag-tutor-bubble { right: 14px; bottom: 14px; }
+  }
+</style>
+
+<script>
+(function () {
+  var root = document.getElementById('rag-tutor-root');
+  if (!root) return;
+  var bubble = document.getElementById('rag-tutor-bubble');
+  var panel = document.getElementById('rag-tutor-panel');
+  var closeBtn = panel.querySelector('.rt-close');
+  var msgs = document.getElementById('rag-tutor-messages');
+  var form = document.getElementById('rag-tutor-form');
+  var input = document.getElementById('rag-tutor-question');
+  var sendBtn = document.getElementById('rag-tutor-send');
+  var askUrl = root.dataset.askUrl;
+  var historyUrl = root.dataset.historyUrl;
+
+  var historyLoaded = false;
+  var sending = false;
+
+  function getCsrf() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta) return meta.getAttribute('content');
+    var m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function renderMsg(kind, text, sources, isError) {
+    var div = document.createElement('div');
+    div.className = 'rt-msg ' + kind + (isError ? ' error' : '');
+    // Preserve paragraph breaks but keep it simple — no markdown parser here.
+    div.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
+    if (kind === 'a' && sources && sources.length) {
+      var titles = {};
+      sources.forEach(function (s) { if (s.title) titles[s.title] = true; });
+      var keys = Object.keys(titles);
+      if (keys.length) {
+        var src = document.createElement('div');
+        src.className = 'rt-sources';
+        src.innerHTML = '<strong>Sources:</strong> ' + keys.map(escapeHtml).join(', ');
+        div.appendChild(src);
+      }
+    }
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function clearEmpty() {
+    var empty = msgs.querySelector('.rt-empty');
+    if (empty) empty.remove();
+  }
+
+  function loadHistory() {
+    if (historyLoaded) return;
+    historyLoaded = true;
+    fetch(historyUrl, { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : { messages: [] }; })
+      .then(function (data) {
+        if (!data.messages || !data.messages.length) return;
+        clearEmpty();
+        data.messages.forEach(function (m) {
+          renderMsg('q', m.question);
+          renderMsg('a', m.answer, m.sources);
+        });
+      })
+      .catch(function () { /* keep empty state */ });
+  }
+
+  function openPanel() {
+    panel.hidden = false;
+    bubble.classList.add('is-hidden');
+    loadHistory();
+    setTimeout(function () { input.focus(); }, 50);
+  }
+  function closePanel() {
+    panel.hidden = true;
+    bubble.classList.remove('is-hidden');
+  }
+
+  bubble.addEventListener('click', openPanel);
+  closeBtn.addEventListener('click', closePanel);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !panel.hidden) closePanel();
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      form.requestSubmit();
+    }
+  });
+  input.addEventListener('input', function () {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 96) + 'px';
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (sending) return;
+    var q = input.value.trim();
+    if (!q) return;
+
+    clearEmpty();
+    renderMsg('q', q);
+    input.value = '';
+    input.style.height = 'auto';
+    sending = true;
+    sendBtn.disabled = true;
+
+    var typing = document.createElement('div');
+    typing.className = 'rt-typing';
+    typing.textContent = 'Tutor is thinking…';
+    msgs.appendChild(typing);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    fetch(askUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+      body: JSON.stringify({ question: q }),
+    })
+      .then(function (r) {
+        return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+      })
+      .then(function (res) {
+        typing.remove();
+        if (!res.ok || res.data.error) {
+          renderMsg('a', res.data.error || 'Something went wrong. Try again.', null, true);
+        } else {
+          renderMsg('a', res.data.answer, res.data.sources);
+        }
+      })
+      .catch(function () {
+        typing.remove();
+        renderMsg('a', 'Network error — please try again.', null, true);
+      })
+      .finally(function () {
+        sending = false;
+        sendBtn.disabled = false;
+        input.focus();
+      });
+  });
+})();
+</script>
+{% endif %}

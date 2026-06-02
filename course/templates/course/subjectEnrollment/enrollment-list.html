@@ -1,0 +1,729 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Enrolled students by subject{% endblock %}
+
+{% block content %}
+{% include "includes/_list_page_theme.html" %}
+<link rel="stylesheet" href="{% static 'course/subjectEnrollment/enrollment-list.css' %}" />
+
+<div class="enr-page">
+
+  <!-- Header -->
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Enrolled <em>students</em></h1>
+      <p class="page-sub">Browse student enrollment by subject for the active semester.</p>
+    </div>
+    <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="cl-tour-replay" data-cl-tour="enrollment-list">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      {% if selected_semester %}
+        <span class="enr-semester-pill">
+          <i class="fas fa-calendar-day"></i>
+          {{ selected_semester.semester_name }} · SY {{ selected_semester.get_academic_year }}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Filter card -->
+  <div class="enr-filters">
+    <div class="enr-filters-head">
+      <i class="fas fa-filter"></i> Filter <em>enrolled students</em>
+    </div>
+    <form method="get" class="enr-filters-grid">
+      <div class="enr-field">
+        <label for="semester">Semester</label>
+        <select id="semester" name="semester" onchange="this.form.submit()">
+          <option value="">All semesters</option>
+          {% for semester in semesters %}
+            <option value="{{ semester.id }}" {% if selected_semester and selected_semester.id == semester.id %}selected{% endif %}>
+              {% if semester.semester_name == "First Semester" %}1st Sem
+              {% elif semester.semester_name == "Second Semester" %}2nd Sem
+              {% elif semester.semester_name == "Third Semester" %}3rd Sem
+              {% elif semester.semester_name == "Fourth Semester" %}4th Sem
+              {% else %}{{ semester.semester_name }}{% endif %}
+              · SY {{ semester.get_academic_year }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="enr-field">
+        <label for="teacher">Teacher</label>
+        <select id="teacher" name="teacher" onchange="this.form.submit()">
+          <option value="">All teachers</option>
+          {% for teacher in available_teachers %}
+            <option value="{{ teacher.id }}" {% if selected_teacher and selected_teacher.id == teacher.id %}selected{% endif %}>
+              {{ teacher.get_full_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="enr-field">
+        <label for="subject">Subject</label>
+        <select id="subject" name="subject" onchange="this.form.submit()">
+          <option value="">All subjects</option>
+          {% for subject in available_subjects %}
+            <option value="{{ subject.id }}" {% if selected_subject and selected_subject.id == subject.id %}selected{% endif %}>
+              {{ subject.subject_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="enr-field">
+        <label for="per_page">Per page</label>
+        <select id="per_page" name="per_page" onchange="this.form.submit()">
+          <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+          <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+      </div>
+    </form>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="enr-toolbar">
+    <div class="enr-search">
+      <i class="fas fa-magnifying-glass"></i>
+      <input type="text" id="subjectSearch" placeholder="Search subjects by name…" autocomplete="off">
+    </div>
+    {% if user.profile.role.name.lower != 'teacher' and user.profile.role.name.lower != 'student' %}
+      {% if selected_semester.id == current_semester.id %}
+        <div class="enr-toolbar-actions">
+          <a href="{% url 'enroll-student' %}" class="enr-btn primary">
+            <i class="fas fa-user-plus"></i> Manual enrollment
+          </a>
+          <button type="button" class="enr-btn gold" id="openImportModalBtn">
+            <i class="fas fa-users"></i> Import
+          </button>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- Subject accordion -->
+  <div class="enr-accordion" id="subjectsAccordion">
+    {% for subject, enrollments in subjects.object_list %}
+      {% with idx=forloop.counter %}
+        <div class="enr-subject" data-subject-name="{{ subject.subject_name|lower }}" data-subject-id="{{ subject.id }}">
+          <div class="enr-subject-head-row">
+            <button class="enr-subject-head" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapse{{ idx }}"
+                    aria-expanded="false" aria-controls="collapse{{ idx }}">
+              <span class="enr-subj-icon">{{ subject.subject_name|slice:":1"|upper }}</span>
+              <span class="enr-subj-text">
+                <div class="enr-subj-name">{{ subject.subject_name }}</div>
+                <div class="enr-subj-teacher"><i class="fas fa-chalkboard-user"></i> {{ subject.assign_teacher|default:"Unassigned" }}</div>
+              </span>
+              <span class="enr-count-pill"><i class="fas fa-user-graduate"></i> {{ enrollments|length }} student{{ enrollments|length|pluralize }}</span>
+            </button>
+            <div class="enr-subj-tools">
+              {% if selected_semester.id == current_semester.id and user.profile.role.name.lower != 'teacher' and user.profile.role.name.lower != 'student' and selected_semester %}
+                <button type="button" class="enr-subj-drop-all"
+                        data-drop-all-url="{% url 'drop_all_in_subject' subject.id selected_semester.id %}"
+                        data-subject-name="{{ subject.subject_name|escape }}"
+                        title="Drop all students in this subject">
+                  <i class="fas fa-user-slash"></i> <span>Drop all</span>
+                </button>
+                <button type="button" class="enr-subj-drop-all"
+                        data-remove-all-url="{% url 'remove_all_in_subject' subject.id selected_semester.id %}"
+                        data-subject-name="{{ subject.subject_name|escape }}"
+                        title="Remove all students from this subject">
+                  <i class="fas fa-trash"></i> <span>Remove all</span>
+                </button>
+              {% endif %}
+              <button type="button" class="enr-chevron-btn"
+                      data-bs-toggle="collapse" data-bs-target="#collapse{{ idx }}"
+                      aria-expanded="false" aria-controls="collapse{{ idx }}"
+                      aria-label="Toggle {{ subject.subject_name }} students">
+                <i class="fas fa-chevron-down enr-chevron"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="collapse{{ idx }}" class="enr-collapse collapse" data-bs-parent="#subjectsAccordion">
+            <div class="enr-body">
+              {% if selected_semester.id == current_semester.id and user.profile.role.name.lower != 'student' and user.profile.role.name.lower != 'teacher' %}
+                <div class="enr-subj-bulkbar" data-bulkbar>
+                  <span class="enr-bulk-count"><i class="fas fa-square-check"></i> <span data-bulk-count>0</span> selected</span>
+                  <div class="enr-bulk-actions">
+                    <button type="button" class="enr-bulk-btn danger" data-bulk-drop>
+                      <i class="fas fa-user-slash"></i> Drop selected
+                    </button>
+                    <button type="button" class="enr-bulk-btn danger" data-bulk-remove>
+                      <i class="fas fa-trash"></i> Remove selected
+                    </button>
+                    <button type="button" class="enr-bulk-btn ghost" data-bulk-clear>
+                      <i class="fas fa-xmark"></i> Clear
+                    </button>
+                  </div>
+                </div>
+              {% endif %}
+              <div class="enr-table-toolbar" data-row-toolbar>
+                <div class="enr-table-search">
+                  <i class="fas fa-magnifying-glass"></i>
+                  <input type="text" data-row-search placeholder="Search students…" autocomplete="off">
+                </div>
+                <label class="enr-table-perpage">
+                  <span>Show</span>
+                  <select data-row-perpage>
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <span>per page</span>
+                </label>
+              </div>
+              <div class="enr-table-wrap">
+                <table class="cl-table enrollment-table">
+                  <thead>
+                    <tr>
+                      {% if selected_semester.id == current_semester.id and user.profile.role.name.lower != 'student' and user.profile.role.name.lower != 'teacher' %}
+                        <th style="width: 36px;">
+                          <input type="checkbox" class="enr-check enr-check-all" aria-label="Select all in {{ subject.subject_name }}">
+                        </th>
+                      {% endif %}
+                      <th style="width: 50px;">#</th>
+                      <th>Student</th>
+                      <th>Semester</th>
+                      <th>Enrolled</th>
+                      <th>Status</th>
+                      <th>Dropped</th>
+                      {% if selected_semester.id == current_semester.id and user.profile.role.name.lower != 'student' %}
+                        <th style="text-align:right; width: 60px;">Actions</th>
+                      {% endif %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for enrollment in enrollments %}
+                      {% with first=enrollment.student.first_name last=enrollment.student.last_name %}
+                        <tr data-enrollment-id="{{ enrollment.id }}" data-status="{{ enrollment.status }}" data-search-name="{{ first|lower }} {{ last|lower }}">
+                          {% if selected_semester.id == current_semester.id and user.profile.role.name.lower != 'student' and user.profile.role.name.lower != 'teacher' %}
+                            <td>
+                              {% if enrollment.status != 'dropped' and enrollment.student %}
+                                <input type="checkbox" class="enr-check enr-row-check"
+                                       value="{{ enrollment.id }}"
+                                       data-student-name="{{ enrollment.student.get_full_name|escape }}"
+                                       aria-label="Select {{ enrollment.student.get_full_name }}">
+                              {% endif %}
+                            </td>
+                          {% endif %}
+                          <td><span class="enr-idx">{{ forloop.counter }}</span></td>
+                          <td>
+                            <div class="cl-name-cell">
+                              <span class="cl-avatar">{{ first|slice:":1"|upper }}{{ last|slice:":1"|upper }}</span>
+                              <div class="cl-name-stack">
+                                <div class="cl-name">{{ first }} {{ last }}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td><span class="cl-row-meta">{{ enrollment.semester.semester_name }} · {{ enrollment.semester.get_academic_year }}</span></td>
+                          <td><span class="cl-row-meta">{{ enrollment.enrollment_date|date:"M d, Y" }}</span></td>
+                          <td>
+                            {% if enrollment.status == 'dropped' %}
+                              <span class="cl-status cl-status-danger">Dropped</span>
+                            {% elif enrollment.status == 'enrolled' %}
+                              <span class="cl-status cl-status-success">Enrolled</span>
+                            {% elif enrollment.status == 'completed' %}
+                              <span class="cl-status cl-status-warning">Completed</span>
+                            {% else %}
+                              <span class="cl-status cl-status-muted">—</span>
+                            {% endif %}
+                          </td>
+                          <td><span class="cl-row-meta">{% if enrollment.drop_date %}{{ enrollment.drop_date|date:"M d, Y" }}{% else %}—{% endif %}</span></td>
+                          {% if selected_semester.id == current_semester.id and user.profile.role.name.lower != 'student' %}
+                            <td style="text-align:right;">
+                              <div class="font-sans-serif position-static d-inline-block">
+                                <button class="cl-action-btn dropdown-toggle" type="button"
+                                        id="enr-row-action-{{ enrollment.id }}"
+                                        data-bs-toggle="dropdown" data-boundary="window"
+                                        aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"
+                                        aria-label="Open actions menu">
+                                  <i class="fas fa-ellipsis-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="enr-row-action-{{ enrollment.id }}">
+                                  {% if enrollment.status != 'dropped' and enrollment.student %}
+                                    <a href="javascript:void(0);" class="dropdown-item"
+                                       onclick="confirmDrop('{{ enrollment.student.get_full_name|escapejs }}', '{% url 'drop_student_from_subject' enrollment.id %}')">
+                                      <i class="fas fa-user-minus me-2"></i>Drop
+                                    </a>
+                                  {% endif %}
+                                  {% if enrollment.status == 'dropped' and enrollment.student %}
+                                    <a href="javascript:void(0);" class="dropdown-item"
+                                       onclick="confirmRestore('{{ enrollment.student.get_full_name|escapejs }}', '{% url 'restore_student_from_subject' enrollment.id %}')">
+                                      <i class="fas fa-user-check me-2"></i>Restore
+                                    </a>
+                                  {% endif %}
+                                  <a href="javascript:void(0);" class="dropdown-item text-danger"
+                                     onclick="confirmRemove('{% if enrollment.student %}{{ enrollment.student.get_full_name|escapejs }}{% else %}this record{% endif %}', '{% url 'delete_student_from_subject' enrollment.id %}')">
+                                    <i class="fas fa-trash me-2"></i>Remove
+                                  </a>
+                                </div>
+                              </div>
+                            </td>
+                          {% endif %}
+                        </tr>
+                      {% endwith %}
+                    {% empty %}
+                      <tr>
+                        <td colspan="9">
+                          <div class="cl-empty">
+                            <i class="fas fa-inbox"></i>
+                            <h6>No students enrolled</h6>
+                            <small>Students will appear here once enrolled in this subject.</small>
+                          </div>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+                <div class="enr-table-foot" data-row-foot hidden>
+                  <span class="enr-table-info" data-row-info></span>
+                  <div class="enr-table-pager">
+                    <button type="button" class="enr-pg-btn" data-row-prev aria-label="Previous"><i class="fas fa-angle-left"></i></button>
+                    <span class="enr-pg-current" data-row-page></span>
+                    <button type="button" class="enr-pg-btn" data-row-next aria-label="Next"><i class="fas fa-angle-right"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endwith %}
+    {% empty %}
+      <div class="enr-no-results"><i class="fas fa-inbox" style="font-size: 28px; display:block; margin-bottom: 8px; color: var(--brand-primary, #b7925a); opacity: .7;"></i> No subjects with enrollment data for the current filters.</div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if subjects.paginator.num_pages > 1 %}
+    <nav class="enr-pagination" aria-label="Page navigation">
+      <ul class="enr-pag-list">
+        {% if subjects.has_previous %}
+          <li><a href="?page=1{% if selected_semester %}&semester={{ selected_semester.id }}{% endif %}{% if selected_teacher %}&teacher={{ selected_teacher.id }}{% endif %}{% if selected_subject %}&subject={{ selected_subject.id }}{% endif %}&per_page={{ per_page }}" title="First"><i class="fas fa-angles-left"></i></a></li>
+          <li><a href="?page={{ subjects.previous_page_number }}{% if selected_semester %}&semester={{ selected_semester.id }}{% endif %}{% if selected_teacher %}&teacher={{ selected_teacher.id }}{% endif %}{% if selected_subject %}&subject={{ selected_subject.id }}{% endif %}&per_page={{ per_page }}" title="Previous"><i class="fas fa-angle-left"></i></a></li>
+        {% else %}
+          <li><span class="disabled"><i class="fas fa-angles-left"></i></span></li>
+          <li><span class="disabled"><i class="fas fa-angle-left"></i></span></li>
+        {% endif %}
+
+        {% for num in subjects.paginator.page_range %}
+          {% if num == 1 or num == subjects.paginator.num_pages or num >= subjects.number|add:"-2" and num <= subjects.number|add:"2" %}
+            {% if subjects.number == num %}
+              <li><span class="current">{{ num }}</span></li>
+            {% else %}
+              <li><a href="?page={{ num }}{% if selected_semester %}&semester={{ selected_semester.id }}{% endif %}{% if selected_subject %}&subject={{ selected_subject.id }}{% endif %}{% if selected_teacher %}&teacher={{ selected_teacher.id }}{% endif %}&per_page={{ per_page }}">{{ num }}</a></li>
+            {% endif %}
+          {% elif num == subjects.number|add:"-3" or num == subjects.number|add:"3" %}
+            <li><span class="disabled">…</span></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if subjects.has_next %}
+          <li><a href="?page={{ subjects.next_page_number }}{% if selected_semester %}&semester={{ selected_semester.id }}{% endif %}{% if selected_teacher %}&teacher={{ selected_teacher.id }}{% endif %}{% if selected_subject %}&subject={{ selected_subject.id }}{% endif %}&per_page={{ per_page }}" title="Next"><i class="fas fa-angle-right"></i></a></li>
+          <li><a href="?page={{ subjects.paginator.num_pages }}{% if selected_semester %}&semester={{ selected_semester.id }}{% endif %}{% if selected_teacher %}&teacher={{ selected_teacher.id }}{% endif %}{% if selected_subject %}&subject={{ selected_subject.id }}{% endif %}&per_page={{ per_page }}" title="Last"><i class="fas fa-angles-right"></i></a></li>
+        {% else %}
+          <li><span class="disabled"><i class="fas fa-angle-right"></i></span></li>
+          <li><span class="disabled"><i class="fas fa-angles-right"></i></span></li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+
+  <!-- Import Students Modal — design-token re-skin -->
+  
+
+</div>
+
+<!-- Modal kept OUTSIDE .enr-page so position:fixed anchors to viewport, not the animated wrapper -->
+<div id="importModal" class="enr-modal" role="dialog" aria-labelledby="enrImportTitle" aria-modal="true">
+  <div class="enr-modal-head">
+    <h5 id="enrImportTitle"><i class="fas fa-file-import"></i> Import <em>students</em></h5>
+    <button type="button" class="enr-modal-close" id="closeImportModalBtn" aria-label="Close">&times;</button>
+  </div>
+  <div class="enr-modal-body">
+    <form method="post" enctype="multipart/form-data" action="{% url 'import_students_and_enroll' %}">
+      {% csrf_token %}
+      <label class="enr-dropzone" for="importFile">
+        <i class="fas fa-cloud-arrow-up"></i>
+        <div class="enr-dropzone-title">Drop CSV file here, or <span style="color: var(--brand-primary, #b7925a);">browse</span></div>
+        <div class="enr-dropzone-sub">Use the import template for the correct column layout.</div>
+        <input type="file" name="import_file" id="importFile" accept=".csv" required>
+        <div class="enr-dropzone-name" id="importFileName"></div>
+      </label>
+      <div style="display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; justify-content: flex-end;">
+        <a href="{{ MEDIA_URL|add:'template/Import Enrolled Student Template.csv' }}" class="enr-btn" download>
+          <i class="fas fa-download"></i> Download template
+        </a>
+        <button type="submit" class="enr-btn primary"><i class="fas fa-upload"></i> Upload &amp; enroll</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="importModalBackdrop" class="enr-modal-backdrop"></div>
+
+<!-- SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
+<script>
+  // Import modal
+  const importModal = document.getElementById('importModal');
+  const importBackdrop = document.getElementById('importModalBackdrop');
+  // Reparent to <body> so position:fixed anchors to the viewport regardless
+  // of ancestor transform/filter creating a containing block.
+  if (importBackdrop) document.body.appendChild(importBackdrop);
+  if (importModal) document.body.appendChild(importModal);
+  function openImportModal() { importModal?.classList.add('show'); importBackdrop?.classList.add('show'); }
+  function closeImportModal() { importModal?.classList.remove('show'); importBackdrop?.classList.remove('show'); }
+  document.getElementById('openImportModalBtn')?.addEventListener('click', openImportModal);
+  document.getElementById('closeImportModalBtn')?.addEventListener('click', closeImportModal);
+  importBackdrop?.addEventListener('click', closeImportModal);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeImportModal(); });
+
+  // File-name preview in dropzone
+  const importFileInput = document.getElementById('importFile');
+  const importFileName = document.getElementById('importFileName');
+  importFileInput?.addEventListener('change', function() {
+    if (importFileName) importFileName.textContent = this.files[0]?.name || '';
+  });
+
+  // SweetAlert confirmations
+  function confirmDrop(studentName, url) {
+    const warnColor = (getComputedStyle(document.documentElement)
+      .getPropertyValue('--semantic-warning') || '').trim() || '#c47a00';
+    Swal.fire({
+      title: 'Drop this student?',
+      text: `You are about to drop ${studentName}.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: warnColor,
+      cancelButtonColor: '#a0a4b8',
+      confirmButtonText: 'Yes, drop',
+      cancelButtonText: 'Cancel'
+    }).then(r => { if (r.isConfirmed) window.location.href = url; });
+  }
+  function confirmRestore(studentName, url) {
+    Swal.fire({
+      title: 'Restore this student?',
+      text: `You are about to restore ${studentName}.`,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#1b4332',
+      cancelButtonColor: '#a0a4b8',
+      confirmButtonText: 'Yes, restore',
+      cancelButtonText: 'Cancel'
+    }).then(r => { if (r.isConfirmed) window.location.href = url; });
+  }
+  function confirmRemove(studentName, url) {
+    Swal.fire({
+      title: 'Remove this student?',
+      text: `You are about to remove ${studentName}.`,
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonColor: '#c08479',
+      cancelButtonColor: '#a0a4b8',
+      confirmButtonText: 'Yes, remove',
+      cancelButtonText: 'Cancel'
+    }).then(r => { if (r.isConfirmed) window.location.href = url; });
+  }
+
+  // Reflect aria-expanded on the parent row so we can color it without sibling selectors
+  document.querySelectorAll('.enr-collapse').forEach(panel => {
+    panel.addEventListener('show.bs.collapse', () => {
+      panel.closest('.enr-subject')?.querySelector('.enr-subject-head-row')?.classList.add('is-open');
+    });
+    panel.addEventListener('hide.bs.collapse', () => {
+      panel.closest('.enr-subject')?.querySelector('.enr-subject-head-row')?.classList.remove('is-open');
+    });
+  });
+
+  // ── Per-subject selection + bulk drop ─────────────────────────────
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+    || document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+  const BULK_DROP_URL = "{% url 'bulk_drop_enrollments' %}";
+  const BULK_REMOVE_URL = "{% url 'bulk_remove_enrollments' %}";
+
+  function postBulk(url, ids) {
+    const fd = new FormData();
+    ids.forEach(id => fd.append('enrollment_ids', id));
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken },
+      body: fd,
+      credentials: 'same-origin',
+    }).then(res => res.json().then(d => ({ ok: res.ok, data: d })));
+  }
+
+  function visibleRowChecks(subjectEl) {
+    return Array.from(subjectEl.querySelectorAll('tr[data-enrollment-id] .enr-row-check'))
+      .filter(c => c.closest('tr').style.display !== 'none');
+  }
+
+  function refreshSubject(subjectEl) {
+    if (!subjectEl) return;
+    const visible = visibleRowChecks(subjectEl);
+    const checkedAll = Array.from(subjectEl.querySelectorAll('.enr-row-check:checked'));
+    const checkedVisible = visible.filter(c => c.checked);
+    const headCheck = subjectEl.querySelector('.enr-check-all');
+    if (headCheck) {
+      if (!visible.length) {
+        headCheck.checked = false;
+        headCheck.indeterminate = false;
+      } else {
+        headCheck.checked = checkedVisible.length === visible.length;
+        headCheck.indeterminate = checkedVisible.length > 0 && checkedVisible.length < visible.length;
+      }
+    }
+    const bar = subjectEl.querySelector('[data-bulkbar]');
+    if (bar) {
+      bar.querySelector('[data-bulk-count]').textContent = checkedAll.length;
+      bar.classList.toggle('show', checkedAll.length > 0);
+    }
+  }
+
+  document.addEventListener('change', e => {
+    if (e.target.classList.contains('enr-check-all')) {
+      const subjectEl = e.target.closest('.enr-subject');
+      visibleRowChecks(subjectEl).forEach(c => { c.checked = e.target.checked; });
+      refreshSubject(subjectEl);
+    } else if (e.target.classList.contains('enr-row-check')) {
+      refreshSubject(e.target.closest('.enr-subject'));
+    }
+  });
+
+  function runBulk({ ids, url, verb, pastVerb, subjectName }) {
+    const count = ids.length;
+    Swal.fire({
+      title: subjectName
+        ? `${verb[0].toUpperCase() + verb.slice(1)} everyone in ${subjectName}?`
+        : `${verb[0].toUpperCase() + verb.slice(1)} ${count} student${count !== 1 ? 's' : ''}?`,
+      text: subjectName
+        ? `All currently enrolled students under this subject will be ${pastVerb}.`
+        : `This will ${verb} the selected enrollments.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#c08479',
+      cancelButtonColor: '#a0a4b8',
+      confirmButtonText: `Yes, ${verb}`,
+      cancelButtonText: 'Cancel'
+    }).then(r => {
+      if (!r.isConfirmed) return;
+      const req = subjectName
+        ? fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body: new FormData(), credentials: 'same-origin' })
+            .then(res => res.json().then(d => ({ ok: res.ok, data: d })))
+        : postBulk(url, ids);
+      req.then(({ ok, data }) => {
+        if (!ok || data.status !== 'success') {
+          Swal.fire('Error', data.message || `Could not ${verb} enrollments.`, 'error');
+          return;
+        }
+        const n = data.dropped ?? data.removed ?? count;
+        Swal.fire({
+          title: 'Done',
+          text: subjectName
+            ? `${pastVerb[0].toUpperCase() + pastVerb.slice(1)} ${n} student${n === 1 ? '' : 's'} from ${data.subject || subjectName}.`
+            : `${pastVerb[0].toUpperCase() + pastVerb.slice(1)} ${n} enrollment${n === 1 ? '' : 's'}.`,
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false,
+        }).then(() => window.location.reload());
+      })
+      .catch(() => Swal.fire('Error', 'Network error.', 'error'));
+    });
+  }
+
+  document.addEventListener('click', e => {
+    // Clear selection
+    const clearBtn = e.target.closest('[data-bulk-clear]');
+    if (clearBtn) {
+      const subjectEl = clearBtn.closest('.enr-subject');
+      subjectEl.querySelectorAll('.enr-row-check').forEach(c => { c.checked = false; });
+      refreshSubject(subjectEl);
+      return;
+    }
+    // Bulk drop selected
+    const dropBtn = e.target.closest('[data-bulk-drop]');
+    if (dropBtn) {
+      const subjectEl = dropBtn.closest('.enr-subject');
+      const ids = Array.from(subjectEl.querySelectorAll('.enr-row-check:checked')).map(c => c.value);
+      if (!ids.length) return;
+      runBulk({ ids, url: BULK_DROP_URL, verb: 'drop selected', pastVerb: 'dropped' });
+      return;
+    }
+    // Bulk remove selected
+    const removeBtn = e.target.closest('[data-bulk-remove]');
+    if (removeBtn) {
+      const subjectEl = removeBtn.closest('.enr-subject');
+      const ids = Array.from(subjectEl.querySelectorAll('.enr-row-check:checked')).map(c => c.value);
+      if (!ids.length) return;
+      runBulk({ ids, url: BULK_REMOVE_URL, verb: 'remove selected', pastVerb: 'removed' });
+      return;
+    }
+    // Drop all in subject
+    const dropAllBtn = e.target.closest('[data-drop-all-url]');
+    if (dropAllBtn) {
+      e.stopPropagation();
+      runBulk({
+        ids: [], url: dropAllBtn.dataset.dropAllUrl,
+        verb: 'drop all', pastVerb: 'dropped',
+        subjectName: dropAllBtn.dataset.subjectName,
+      });
+      return;
+    }
+    // Remove all in subject
+    const removeAllBtn = e.target.closest('[data-remove-all-url]');
+    if (removeAllBtn) {
+      e.stopPropagation();
+      runBulk({
+        ids: [], url: removeAllBtn.dataset.removeAllUrl,
+        verb: 'remove all', pastVerb: 'removed',
+        subjectName: removeAllBtn.dataset.subjectName,
+      });
+      return;
+    }
+  });
+
+  // ── Per-table search + pagination ─────────────────────────────────
+  function setupSubjectTable(subjectEl) {
+    const table = subjectEl.querySelector('.enrollment-table');
+    if (!table || table.dataset.rowControlsInit === '1') return;
+    table.dataset.rowControlsInit = '1';
+
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr[data-search-name]'));
+    if (!rows.length) return;
+
+    const searchInput = subjectEl.querySelector('[data-row-search]');
+    const perPageSel = subjectEl.querySelector('[data-row-perpage]');
+    const foot = subjectEl.querySelector('[data-row-foot]');
+    const infoEl = subjectEl.querySelector('[data-row-info]');
+    const pageEl = subjectEl.querySelector('[data-row-page]');
+    const prevBtn = subjectEl.querySelector('[data-row-prev]');
+    const nextBtn = subjectEl.querySelector('[data-row-next]');
+
+    let state = { search: '', perPage: parseInt(perPageSel.value, 10) || 10, page: 1 };
+    let emptyRow = null;
+
+    function ensureEmptyRow() {
+      if (emptyRow) return emptyRow;
+      emptyRow = document.createElement('tr');
+      emptyRow.dataset.rowEmpty = '1';
+      const colSpan = table.querySelectorAll('thead th').length || 9;
+      emptyRow.innerHTML = `<td colspan="${colSpan}"><div class="enr-no-rows">No students match your search.</div></td>`;
+      return emptyRow;
+    }
+
+    function render() {
+      const termRaw = state.search.trim();
+      const term = termRaw.toLowerCase();
+      const filtered = term
+        ? rows.filter(r => (r.dataset.searchName || '').includes(term))
+        : rows.slice();
+
+      const total = filtered.length;
+      const perPage = state.perPage;
+      const pages = Math.max(1, Math.ceil(total / perPage));
+      if (state.page > pages) state.page = pages;
+      const start = (state.page - 1) * perPage;
+      const end = start + perPage;
+      const visible = new Set(filtered.slice(start, end));
+
+      rows.forEach(r => {
+        const isVisible = visible.has(r);
+        r.style.display = isVisible ? '' : 'none';
+        if (isVisible && window.ClHighlight) window.ClHighlight.wrap(r, termRaw);
+        else if (window.ClHighlight) window.ClHighlight.clear(r);
+      });
+
+      // Empty-state row
+      if (emptyRow && emptyRow.parentNode) emptyRow.parentNode.removeChild(emptyRow);
+      if (total === 0) {
+        tbody.appendChild(ensureEmptyRow());
+      }
+
+      // Footer + info
+      if (total <= perPage && term === '') {
+        foot.hidden = true;
+      } else {
+        foot.hidden = false;
+        const fromIdx = total === 0 ? 0 : start + 1;
+        const toIdx = Math.min(end, total);
+        infoEl.textContent = `Showing ${fromIdx}–${toIdx} of ${total}`;
+        pageEl.textContent = `${state.page} / ${pages}`;
+        prevBtn.disabled = state.page <= 1;
+        nextBtn.disabled = state.page >= pages;
+      }
+
+      // Keep header checkbox state in sync with what's visible/checked
+      refreshSubject(subjectEl);
+    }
+
+    searchInput?.addEventListener('input', e => {
+      state.search = e.target.value;
+      state.page = 1;
+      render();
+    });
+    perPageSel?.addEventListener('change', e => {
+      state.perPage = parseInt(e.target.value, 10) || 10;
+      state.page = 1;
+      render();
+    });
+    prevBtn?.addEventListener('click', () => { if (state.page > 1) { state.page -= 1; render(); } });
+    nextBtn?.addEventListener('click', () => { state.page += 1; render(); });
+
+    render();
+  }
+
+  // Init when an accordion section opens (avoid layout work for never-opened sections)
+  document.querySelectorAll('.enr-collapse').forEach(panel => {
+    panel.addEventListener('shown.bs.collapse', () => {
+      const subjectEl = panel.closest('.enr-subject');
+      if (subjectEl) setupSubjectTable(subjectEl);
+    });
+  });
+  // Also init any section that is open on load (none by default, but safe)
+  document.querySelectorAll('.enr-collapse.show').forEach(panel => {
+    const subjectEl = panel.closest('.enr-subject');
+    if (subjectEl) setupSubjectTable(subjectEl);
+  });
+
+  // Subject search
+  const subjectSearch = document.getElementById('subjectSearch');
+  if (subjectSearch) {
+    subjectSearch.addEventListener('keyup', function () {
+      const term = this.value.toLowerCase();
+      const items = document.querySelectorAll('.enr-subject');
+      let visible = 0;
+      items.forEach(item => {
+        const name = item.dataset.subjectName || '';
+        const match = name.includes(term);
+        item.style.display = match ? '' : 'none';
+        if (match) visible++;
+      });
+
+      const accordion = document.getElementById('subjectsAccordion');
+      let banner = accordion.querySelector('.enr-no-results.search-empty');
+      if (visible === 0 && term !== '') {
+        if (!banner) {
+          banner = document.createElement('div');
+          banner.className = 'enr-no-results search-empty';
+          banner.innerHTML = '<i class="fas fa-magnifying-glass" style="font-size: 22px; display:block; margin-bottom: 8px; color: var(--brand-primary, #b7925a); opacity: .7;"></i> No subjects match your search.';
+          accordion.appendChild(banner);
+        }
+        banner.style.display = '';
+      } else if (banner) {
+        banner.style.display = 'none';
+      }
+    });
+  }
+</script>
+
+<script src="{% static 'js/tours/cl-tour-enrollment-list.js' %}" defer></script>
+
+{% endblock %}

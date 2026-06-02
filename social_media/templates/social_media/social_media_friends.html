@@ -1,0 +1,863 @@
+{% extends is_student_role|yesno:"student_base.html,base_operation.html" %}
+{% load static %}
+
+{% block title %}Friends{% endblock %}
+
+{% block extra_css %}
+  {% if is_student_role %}
+    {% include "student/_legacy_stack.html" %}
+  {% else %}
+    {% include "teacher/_legacy_stack.html" %}
+  {% endif %}
+<link rel="stylesheet" href="{% static 'social_media/social_media_friends.css' %}" />
+{% endblock %}
+
+{% block content %}
+<script>const currentUserId = {{ request.user.id }};</script>
+
+<div class="friends-page">
+
+  <!-- ─── Header ─────────────────────────────────────── -->
+  <div class="friends-toolbar">
+    <div>
+      <h1 class="page-title">Reconnect &amp; <em>discover</em></h1>
+      <p class="page-sub">People you may know · pending requests · your network</p>
+    </div>
+    <a href="{% url 'social_media_inbox' %}" class="friends-back">
+      <i class="fas fa-arrow-left"></i> Back to chat
+    </a>
+  </div>
+
+  <!-- ─── Stat tiles ─────────────────────────────────── -->
+  <div class="friends-stats">
+    <div class="friends-stat">
+      <div class="friends-stat-icon"><i class="fas fa-user-friends"></i></div>
+      <div class="friends-stat-body">
+        <div class="friends-stat-value" id="statFriends">—</div>
+        <div class="friends-stat-label">Friends in your network</div>
+      </div>
+    </div>
+    <div class="friends-stat tone-requests">
+      <div class="friends-stat-icon"><i class="fas fa-user-clock"></i></div>
+      <div class="friends-stat-body">
+        <div class="friends-stat-value" id="statRequests">—</div>
+        <div class="friends-stat-label">Requests pending action</div>
+      </div>
+    </div>
+    <div class="friends-stat tone-discover">
+      <div class="friends-stat-icon"><i class="fas fa-compass"></i></div>
+      <div class="friends-stat-body">
+        <div class="friends-stat-value" id="statSuggestions">—</div>
+        <div class="friends-stat-label">People you may know</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Pending requests (auto-hides when empty) ───── -->
+  <div class="section-block requests-section" id="requestsSection" style="display:none;">
+    <div class="section-head">
+      <h2>
+        <i class="fas fa-user-clock"></i>
+        Friend requests
+        <span class="head-pill" id="requestPill">0</span>
+      </h2>
+    </div>
+    <div id="requests-list"></div>
+  </div>
+
+  <!-- ─── Discover rail ──────────────────────────────── -->
+  <div class="section-block discover-section">
+    <div class="section-head">
+      <h2><i class="fas fa-compass"></i> People you may know</h2>
+      <a class="see-all" id="seeAllSuggestions">See all →</a>
+    </div>
+    <div class="discover-rail-wrap">
+      <button class="rail-arrow left" id="railLeft" type="button" aria-label="Scroll left">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="discover-rail" id="suggestions-list"></div>
+      <button class="rail-arrow right" id="railRight" type="button" aria-label="Scroll right">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── Your friends ───────────────────────────────── -->
+  <div class="section-block friends-section">
+    <div class="section-head">
+      <h2><i class="fas fa-user-friends"></i> Your friends</h2>
+      <span class="see-all" style="cursor:default; pointer-events:none;" id="friendsCountLabel">— total</span>
+    </div>
+    <div class="friends-search">
+      <i class="fas fa-search icon"></i>
+      <input type="text" id="globalSearch" placeholder="Search your friends or anyone in the school…" autocomplete="off" />
+    </div>
+    <div class="friends-grid-wrap" id="friendsGridWrap">
+      <div class="friend-tile-grid" id="friends-list"></div>
+    </div>
+    <div class="search-results-section" id="searchResultsSection">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="font-size:13px; color: var(--ink-dim, var(--text-dim));">
+          Showing results for <strong id="searchQueryEcho" style="color: var(--ink, var(--text));">…</strong>
+        </div>
+        <a class="see-all" id="clearSearch">← Back to friends</a>
+      </div>
+      <div class="friend-tile-grid" id="search-results-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── See-all full-screen modal ───────────────────── -->
+<div class="seeall-overlay" id="seeAllOverlay" role="dialog" aria-modal="true" aria-label="All people you may know">
+  <div class="seeall-modal">
+    <div class="seeall-head">
+      <h3 class="title">
+        <i class="fas fa-compass"></i>
+        People you may know
+        <span class="total" id="seeAllTotal"></span>
+      </h3>
+      <button type="button" class="seeall-close" id="seeAllClose" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="seeall-body">
+      <div class="seeall-search">
+        <i class="fas fa-search icon"></i>
+        <input type="text" id="seeAllSearch" placeholder="Filter by name…" autocomplete="off" />
+      </div>
+      <div class="seeall-grid" id="seeAllGrid"></div>
+    </div>
+    <div class="seeall-foot" id="seeAllFoot" style="display:none;">
+      <button class="empty-state retry" id="seeAllLoadMore" type="button"
+              style="display:inline-flex; margin:0; background:transparent; color: var(--ink); border:1px solid var(--brand-primary, #b7925a);">
+        <i class="fas fa-plus-circle"></i> Load more
+      </button>
+      <p class="pagination-info" id="seeAllInfo" style="color: var(--ink-muted, var(--text-muted)); font-size:12px; margin-top:10px;"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCSRFToken() {
+  return document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+
+// ── Skeleton helpers ──
+function skelTiles(n) {
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    html += `
+      <div class="skel-tile">
+        <div class="shimmer skel-circle"></div>
+        <div class="shimmer skel-line"></div>
+        <div class="shimmer skel-line short"></div>
+      </div>`;
+  }
+  return html;
+}
+function skelDiscoverRow(n) {
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    html += `
+      <div class="skel-discover-card">
+        <div class="shimmer skel-avatar"></div>
+        <div class="skel-body">
+          <div class="shimmer skel-line"></div>
+          <div class="shimmer skel-line short"></div>
+          <div class="shimmer skel-line"></div>
+        </div>
+      </div>`;
+  }
+  return html;
+}
+function skelRequests(n) {
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    html += `
+      <div class="skel-request-row">
+        <div class="shimmer skel-circle" style="width:48px;height:48px;margin:0;"></div>
+        <div class="skel-stack">
+          <div class="shimmer skel-line"></div>
+          <div class="shimmer skel-line short"></div>
+        </div>
+      </div>`;
+  }
+  return html;
+}
+function emptyState(icon, title, subtitle, retryFn) {
+  return `<div class="empty-state">
+    <i class="${icon}"></i>
+    <div>${title}</div>
+    ${subtitle ? `<small style="display:block; margin-top:6px; color: var(--ink-muted, var(--text-muted));">${subtitle}</small>` : ''}
+    ${retryFn ? `<button class="retry" onclick="${retryFn}">Try again</button>` : ''}
+  </div>`;
+}
+
+// ── Friend tile ──
+function friendTile(friend) {
+  const photo = friend.photo || '/static/assets/img/def_user.jpg';
+  const t = document.createElement('div');
+  t.className = 'friend-tile';
+  t.innerHTML = `
+    <img src="${photo}" class="avatar" alt="${friend.name}" loading="lazy">
+    <div class="name" title="${friend.name}">${friend.name}</div>
+    <div class="badge">Friend</div>
+    <button class="chat-btn" data-user-id="${friend.id}">
+      <i class="fas fa-paper-plane"></i> Chat
+    </button>`;
+  t.querySelector('.chat-btn').addEventListener('click', () => {
+    localStorage.setItem('activeChatId', friend.id);
+    localStorage.setItem('activeChatName', friend.name);
+    localStorage.setItem('activeChatPhoto', photo);
+    localStorage.setItem('activeIsGroup', 'false');
+    window.location.href = `{% url 'social_media_inbox' %}?chat_with=${friend.id}&chat_name=${encodeURIComponent(friend.name)}&chat_photo=${encodeURIComponent(photo)}`;
+  });
+  return t;
+}
+
+// ── Discover card ──
+function discoverCard(user, sentIds, pendingFromThem) {
+  const displayName = user.name || user.username || '';
+  const photo = user.photo || '/static/assets/img/def_user.jpg';
+  const role = user.role || '';
+  const mutual = user.mutual_friends_count || 0;
+
+  let btn;
+  if (sentIds.has(user.id)) {
+    btn = `<button class="add-btn cancel cancel-friend-btn" data-user-id="${user.id}">
+      <i class="fas fa-times"></i> Cancel request
+    </button>`;
+  } else if (pendingFromThem.has(user.id)) {
+    btn = `<button class="add-btn muted" disabled>
+      <i class="fas fa-clock"></i> Requested you
+    </button>`;
+  } else {
+    btn = `<button class="add-btn primary add-friend-btn" data-user-id="${user.id}">
+      <i class="fas fa-user-plus"></i> Add friend
+    </button>`;
+  }
+  const mutualPill = mutual > 0
+    ? `<span class="mutual-pill"><i class="fas fa-user-friends"></i> ${mutual} mutual</span>`
+    : '';
+
+  const c = document.createElement('div');
+  c.className = 'discover-card';
+  c.innerHTML = `
+    <div class="avatar-wrap">
+      <img src="${photo}" class="discover-avatar" alt="${displayName}" loading="lazy">
+      ${mutualPill}
+    </div>
+    <div class="body">
+      <p class="name" title="${displayName}">${displayName}</p>
+      ${role ? `<p class="role">${role}</p>` : ''}
+      ${btn}
+    </div>`;
+  return c;
+}
+
+function attachDiscoverButtons(container) {
+  container.querySelectorAll('.add-friend-btn').forEach(btn =>
+    btn.addEventListener('click', handleSendFriendRequest));
+  container.querySelectorAll('.cancel-friend-btn').forEach(btn =>
+    btn.addEventListener('click', handleCancelFriendRequest));
+}
+
+// Document-level delegated click — fires Add/Cancel handlers regardless of
+// when/where the card was rendered. Solves the case where the See-all
+// modal's grid is re-rendered (innerHTML cleared) but handlers don't get
+// re-attached in time. Per-button addEventListener above remains as a
+// belt-and-suspenders attach; handleSendFriendRequest's `btn.disabled`
+// guard dedupes if the click fires through both paths.
+document.addEventListener('click', function (e) {
+  var addBtn = e.target.closest && e.target.closest('.add-friend-btn');
+  if (addBtn && !addBtn.disabled) {
+    handleSendFriendRequest({ currentTarget: addBtn });
+    return;
+  }
+  var cancelBtn = e.target.closest && e.target.closest('.cancel-friend-btn');
+  if (cancelBtn && !cancelBtn.disabled) {
+    handleCancelFriendRequest({ currentTarget: cancelBtn });
+  }
+});
+
+// ── Loaders ─────────────────────────────────────────
+let _cachedFriends = null;
+let _cachedSent = null;
+let _cachedPending = null;
+
+function loadFriends() {
+  const list = document.getElementById('friends-list');
+  list.innerHTML = skelTiles(8);
+  return fetch('/social/friend/friends/')
+    .then(res => { if (!res.ok) throw 0; return res.json(); })
+    .then(friends => {
+      _cachedFriends = friends;
+      document.getElementById('statFriends').textContent = friends.length;
+      document.getElementById('friendsCountLabel').textContent = `${friends.length} total`;
+      list.innerHTML = '';
+      if (!friends.length) {
+        list.innerHTML = emptyState('fas fa-user-slash', 'No friends yet', 'Browse the suggestions above to start connecting');
+        return;
+      }
+      friends.forEach(f => list.appendChild(friendTile(f)));
+    })
+    .catch(() => {
+      list.innerHTML = emptyState('fas fa-exclamation-circle', "Couldn't load friends", '', 'loadFriends()');
+    });
+}
+
+function loadRequests() {
+  const list = document.getElementById('requests-list');
+  const section = document.getElementById('requestsSection');
+  const pill = document.getElementById('requestPill');
+  list.innerHTML = skelRequests(2);
+  section.style.display = '';
+  return fetch('/social/friend/pending-requests/')
+    .then(res => { if (!res.ok) throw 0; return res.json(); })
+    .then(reqs => {
+      _cachedPending = reqs;
+      document.getElementById('statRequests').textContent = reqs.length;
+      pill.textContent = reqs.length;
+      if (!reqs.length) {
+        section.style.display = 'none';
+        return;
+      }
+      list.innerHTML = '';
+      reqs.forEach(req => {
+        const name = req.fromUserName ?? req.from_user_name ?? '';
+        const photo = (req.fromUserPhoto ?? req.from_user_photo) || '/static/assets/img/def_user.jpg';
+        const row = document.createElement('div');
+        row.className = 'request-row';
+        row.innerHTML = `
+          <img src="${photo}" class="avatar" alt="${name}">
+          <div class="req-info">
+            <p class="req-name">${name}</p>
+            <p class="req-sub">Wants to connect</p>
+          </div>
+          <div class="req-actions">
+            <button class="pill-btn confirm accept-friend-btn" data-request-id="${req.id}">
+              <i class="fas fa-check"></i> Accept
+            </button>
+            <button class="pill-btn dismiss reject-friend-btn" data-request-id="${req.id}">
+              <i class="fas fa-times"></i> Decline
+            </button>
+          </div>`;
+        list.appendChild(row);
+      });
+    })
+    .catch(() => {
+      section.style.display = '';
+      list.innerHTML = emptyState('fas fa-exclamation-circle', "Couldn't load requests", '', 'loadRequests()');
+    });
+}
+
+function loadSuggestions() {
+  const list = document.getElementById('suggestions-list');
+  list.innerHTML = skelDiscoverRow(6);
+
+  const ac = new AbortController();
+  const tid = setTimeout(() => ac.abort(), 8000);
+  const opts = { signal: ac.signal };
+
+  Promise.allSettled([
+    fetch('/social/friend/suggestions/?page=1&page_size=20', opts).then(r => r.ok ? r.json() : Promise.reject()),
+    fetch('/social/friend/sent-requests/', opts).then(r => r.ok ? r.json() : Promise.reject()),
+    fetch('/social/friend/friends/', opts).then(r => r.ok ? r.json() : Promise.reject()),
+    fetch('/social/friend/pending-requests/', opts).then(r => r.ok ? r.json() : Promise.reject()),
+  ]).then(([sugRes, sentRes, friendsRes, pendingRes]) => {
+    clearTimeout(tid);
+    if (sugRes.status !== 'fulfilled') {
+      list.innerHTML = emptyState('fas fa-exclamation-circle', "Couldn't load suggestions", 'The server may be slow.', 'loadSuggestions()');
+      return;
+    }
+    const users = (sugRes.value && sugRes.value.results) || [];
+    const total = (sugRes.value && sugRes.value.total_count) || users.length;
+    document.getElementById('statSuggestions').textContent = total;
+
+    _cachedSent = sentRes.status === 'fulfilled' ? sentRes.value : [];
+    if (friendsRes.status === 'fulfilled' && !_cachedFriends) {
+      _cachedFriends = friendsRes.value;
+    }
+    if (pendingRes.status === 'fulfilled') _cachedPending = pendingRes.value;
+
+    const sentIds = new Set(_cachedSent || []);
+    const friendIds = new Set((friendsRes.status === 'fulfilled' ? friendsRes.value : []).map(f => f.id));
+    const pendingFromThem = new Set((pendingRes.status === 'fulfilled' ? pendingRes.value : []).map(p => p.fromUserId ?? p.from_user_id));
+
+    const filtered = users.filter(u => !friendIds.has(u.id) && u.id !== currentUserId);
+    if (!filtered.length) {
+      list.innerHTML = emptyState('fas fa-user-friends', 'No new suggestions yet', 'Check back later or invite people you know');
+      return;
+    }
+    list.innerHTML = '';
+    const picked = filtered
+      .map(u => ({ user: u, score: (u.mutual_friends_count || 0) * 1.5 + Math.random() * 2 }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 12)
+      .map(x => x.user);
+    picked.forEach(u => list.appendChild(discoverCard(u, sentIds, pendingFromThem)));
+    attachDiscoverButtons(list);
+  }).catch(() => {
+    clearTimeout(tid);
+    list.innerHTML = emptyState('fas fa-exclamation-circle', "Couldn't load suggestions", 'Network error.', 'loadSuggestions()');
+  });
+}
+
+// ── Undo toast (bottom-right, brand-aware, stacked) ──
+// Each call appends a new toast to the stack so multiple Add-friend
+// actions queue up cleanly. The stack container is created once on
+// first use; toasts manage their own 5s lifecycle + can be dismissed
+// independently.
+function getUndoToastStack() {
+  let stack = document.getElementById('cl-undo-toast-stack');
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.id = 'cl-undo-toast-stack';
+    stack.className = 'cl-undo-toast-stack';
+    // Inline positioning + z-index so the stack always sits above the
+    // See-all modal (which uses backdrop-filter — its own stacking
+    // context can outrank a CSS-only z-index in some browsers).
+    stack.style.position = 'fixed';
+    stack.style.bottom = '28px';
+    stack.style.left = '28px';
+    stack.style.zIndex = '2147483647';
+    document.body.appendChild(stack);
+  }
+  return stack;
+}
+
+function showUndoToast({ message, userName, actionLabel, onAction, duration = 5000 }) {
+  const stack = getUndoToastStack();
+
+  const toast = document.createElement('div');
+  toast.className = 'cl-undo-toast';
+  toast.innerHTML = `
+    <div class="cl-undo-toast__icon"><i class="fas fa-paper-plane"></i></div>
+    <div class="cl-undo-toast__body">
+      <div class="cl-undo-toast__msg"></div>
+      ${userName ? '<div class="cl-undo-toast__user"></div>' : ''}
+      <div class="cl-undo-toast__progress"></div>
+    </div>
+    <button class="cl-undo-toast__action" type="button"></button>
+    <button class="cl-undo-toast__close" type="button" aria-label="Dismiss">
+      <i class="fas fa-xmark"></i>
+    </button>`;
+  toast.querySelector('.cl-undo-toast__msg').textContent = message;
+  if (userName) {
+    toast.querySelector('.cl-undo-toast__user').textContent = userName;
+  }
+  toast.querySelector('.cl-undo-toast__action').textContent = actionLabel;
+  stack.appendChild(toast);
+
+  // Animate in
+  requestAnimationFrame(() => toast.classList.add('is-visible'));
+
+  // Drain the progress bar so the user can see how long they have to undo.
+  const progress = toast.querySelector('.cl-undo-toast__progress');
+  progress.style.transition = `transform ${duration}ms linear`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    progress.style.transform = 'scaleX(0)';
+  }));
+
+  let undone = false;
+  let dismissed = false;
+  const dismiss = () => {
+    if (dismissed) return;
+    dismissed = true;
+    toast.classList.remove('is-visible');
+    toast.classList.add('is-leaving');
+    setTimeout(() => {
+      toast.remove();
+      // Clean up the stack container when it's empty so DOM stays tidy.
+      if (stack && !stack.children.length) stack.remove();
+    }, 260);
+  };
+
+  toast.querySelector('.cl-undo-toast__action').addEventListener('click', () => {
+    if (undone) return;
+    undone = true;
+    try { onAction(); } finally { dismiss(); }
+  });
+  toast.querySelector('.cl-undo-toast__close').addEventListener('click', dismiss);
+
+  setTimeout(() => { if (!undone) dismiss(); }, duration);
+
+  // Caller may want to dismiss this specific toast (e.g., on a failed
+  // send) without affecting any other toasts already in the stack.
+  return { dismiss };
+}
+
+// ── Friend request actions ──
+function handleSendFriendRequest(event) {
+  const btn = event.currentTarget;
+  if (btn.disabled) return;
+  const userId = btn.dataset.userId;
+  const card = btn.closest('.discover-card');
+  if (!card) return;
+
+  // Pull the display name + photo off the card so the toast can show
+  // who was added (and so the stack of toasts is distinguishable).
+  const userName = (card.querySelector('.name')?.textContent || '').trim();
+
+  btn.disabled = true;
+
+  // Snapshot for undo + the original DOM anchor so we can re-insert
+  // the card in its previous position if the user changes their mind.
+  const snapshot = card.cloneNode(true);
+  const parent = card.parentElement;
+  const nextSibling = card.nextElementSibling;
+
+  // Decrement the "People you may know" stat optimistically.
+  const statEl = document.getElementById('statSuggestions');
+  const bumpStat = (delta) => {
+    if (!statEl) return;
+    const n = parseInt(statEl.textContent, 10);
+    if (!isNaN(n)) statEl.textContent = Math.max(0, n + delta);
+  };
+  bumpStat(-1);
+
+  // Animate the card out; remove from DOM when the transition ends.
+  card.classList.add('is-leaving');
+  const cleanup = () => { if (card.isConnected) card.remove(); };
+  card.addEventListener('transitionend', function onEnd(e) {
+    if (e.propertyName !== 'opacity') return;
+    card.removeEventListener('transitionend', onEnd);
+    cleanup();
+  });
+  setTimeout(cleanup, 400); // fallback if no transition fires
+
+  // Fire the request in the background.
+  const sendPromise = fetch('/social/friend/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+    body: JSON.stringify({ to_user: userId })
+  }).then(r => r.json().then(data => ({ status: r.status, data })));
+
+  // Helper to put the card back where it was (used by both Undo and error recovery).
+  const restoreCard = () => {
+    const restored = snapshot.cloneNode(true);
+    restored.classList.remove('is-leaving');
+    restored.classList.add('is-entering');
+    // offsetParent === null when the original parent (or any ancestor) is
+    // display:none — happens if the user clicked Add friend inside the
+    // See-all modal and then closed it. In that case fall back to the
+    // visible discover rail so the restored card is actually seen.
+    const isVisible = (el) => el && el.isConnected && el.offsetParent !== null;
+    const insertParent = isVisible(parent) ? parent : document.getElementById('suggestions-list');
+    if (!insertParent) return;
+    const anchor = (nextSibling && nextSibling.isConnected && nextSibling.parentElement === insertParent)
+      ? nextSibling
+      : null;
+    if (anchor) {
+      insertParent.insertBefore(restored, anchor);
+    } else {
+      insertParent.appendChild(restored);
+    }
+    attachDiscoverButtons(insertParent);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      restored.classList.remove('is-entering');
+    }));
+    bumpStat(+1);
+  };
+
+  const toastHandle = showUndoToast({
+    message: 'Friend request sent',
+    userName: userName,
+    actionLabel: 'Undo',
+    duration: 5000,
+    onAction: () => {
+      // Cancel the request on the server (don't wait — the user has
+      // already moved on from the action).
+      fetch('/social/friend/cancel-request/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+        body: JSON.stringify({ to_user: userId })
+      });
+      restoreCard();
+    },
+  });
+
+  // If the original send actually failed, put the card back, dismiss
+  // THIS specific toast (leaving other stacked toasts alone), and
+  // surface an error via SweetAlert.
+  sendPromise.then(({ status }) => {
+    if (status !== 201) {
+      restoreCard();
+      if (toastHandle) toastHandle.dismiss();
+      Swal.fire({
+        toast: true, position: 'top-end', icon: 'error',
+        title: "Couldn't send request", showConfirmButton: false, timer: 2400,
+      });
+    }
+  }).catch(() => {
+    restoreCard();
+    if (toastHandle) toastHandle.dismiss();
+    Swal.fire({
+      toast: true, position: 'top-end', icon: 'error',
+      title: 'Network error', showConfirmButton: false, timer: 2400,
+    });
+  });
+}
+function handleCancelFriendRequest(event) {
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  fetch('/social/friend/cancel-request/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+    body: JSON.stringify({ to_user: btn.dataset.userId })
+  }).then(() => loadSuggestions());
+}
+function handleRequestAction(event) {
+  const btn = event.target.closest('.accept-friend-btn') || event.target.closest('.reject-friend-btn');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  const id = btn.dataset.requestId;
+  const accept = btn.classList.contains('accept-friend-btn');
+  fetch(`/social/friend/${id}/${accept ? 'accept' : 'reject'}/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCSRFToken() }
+  }).then(res => {
+    if (res.ok) {
+      btn.closest('.request-row')?.remove();
+      Swal.fire({ toast:true, position:'top-end', icon:'success',
+        title: accept ? 'Friend request accepted' : 'Friend request declined',
+        showConfirmButton:false, timer:2400, timerProgressBar:true });
+      loadRequests();
+      if (accept) loadFriends();
+    } else {
+      btn.disabled = false;
+      Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Something went wrong', showConfirmButton:false, timer:2400 });
+    }
+  }).catch(() => {
+    btn.disabled = false;
+    Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Network error', showConfirmButton:false, timer:2400 });
+  });
+}
+
+// ── Search (replaces the friends grid with results from search endpoint) ──
+function searchFriendsAndPeople(q) {
+  const wrap = document.getElementById('friendsGridWrap');
+  const section = document.getElementById('searchResultsSection');
+  const list = document.getElementById('search-results-list');
+  const echo = document.getElementById('searchQueryEcho');
+
+  if (!q) {
+    wrap.classList.remove('hidden');
+    section.classList.remove('active');
+    return;
+  }
+  wrap.classList.add('hidden');
+  section.classList.add('active');
+  echo.textContent = q;
+  list.innerHTML = skelTiles(6);
+
+  fetch(`/social/friend/search/?q=${encodeURIComponent(q)}`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(users => {
+      list.innerHTML = '';
+      const friendIds = new Set((_cachedFriends || []).map(f => f.id));
+      const sentIds = new Set(_cachedSent || []);
+      const pendingFromThem = new Set((_cachedPending || []).map(p => p.fromUserId ?? p.from_user_id));
+      const filtered = users.filter(u => u.id !== currentUserId);
+      if (!filtered.length) {
+        list.innerHTML = emptyState('fas fa-search', 'No matches', 'Try a different name');
+        return;
+      }
+      filtered.forEach(u => {
+        if (friendIds.has(u.id)) {
+          list.appendChild(friendTile({ id: u.id, name: u.name || u.username, photo: u.photo }));
+        } else {
+          list.appendChild(discoverCard(u, sentIds, pendingFromThem));
+        }
+      });
+      attachDiscoverButtons(list);
+    })
+    .catch(() => {
+      list.innerHTML = emptyState('fas fa-exclamation-circle', "Couldn't search", '', `searchFriendsAndPeople(${JSON.stringify(q)})`);
+    });
+}
+
+function debounce(fn, delay) {
+  let t;
+  return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), delay); };
+}
+
+// ── See-all full-screen modal ─────────────────────────
+let seeAllPage = 1;
+let seeAllTotal = 0;
+let seeAllRendered = 0;
+let seeAllAllUsers = [];
+
+function fetchSeeAllPage(page) {
+  return fetch(`/social/friend/suggestions/?page=${page}&page_size=24`)
+    .then(r => { if (!r.ok) throw 0; return r.json(); });
+}
+
+function renderSeeAllGrid(filterQuery) {
+  const grid = document.getElementById('seeAllGrid');
+  const friendIds = new Set((_cachedFriends || []).map(f => f.id));
+  const sentIds = new Set(_cachedSent || []);
+  const pendingFromThem = new Set((_cachedPending || []).map(p => p.fromUserId ?? p.from_user_id));
+
+  let users = seeAllAllUsers.filter(u => !friendIds.has(u.id) && u.id !== currentUserId);
+  if (filterQuery) {
+    const q = filterQuery.toLowerCase();
+    users = users.filter(u => {
+      const name = `${u.name || ''} ${u.username || ''}`.toLowerCase();
+      return name.indexOf(q) !== -1;
+    });
+  }
+
+  grid.innerHTML = '';
+  if (!users.length) {
+    grid.innerHTML = emptyState(
+      filterQuery ? 'fas fa-search' : 'fas fa-user-friends',
+      filterQuery ? `No matches for "${filterQuery}"` : 'No suggestions yet',
+      filterQuery ? 'Try a different name' : 'Check back later'
+    );
+    return;
+  }
+  users.forEach(u => grid.appendChild(discoverCard(u, sentIds, pendingFromThem)));
+  attachDiscoverButtons(grid);
+}
+
+function loadSeeAll(append) {
+  const grid = document.getElementById('seeAllGrid');
+  const foot = document.getElementById('seeAllFoot');
+  const info = document.getElementById('seeAllInfo');
+  const loadMore = document.getElementById('seeAllLoadMore');
+  const totalLabel = document.getElementById('seeAllTotal');
+
+  if (!append) {
+    seeAllPage = 1;
+    seeAllAllUsers = [];
+    seeAllRendered = 0;
+    grid.innerHTML = `<div style="grid-column:1/-1; display:flex; gap:14px; flex-wrap:wrap;">${
+      '<div class="skel-discover-card"><div class="shimmer skel-avatar"></div><div class="skel-body"><div class="shimmer skel-line"></div><div class="shimmer skel-line short"></div><div class="shimmer skel-line"></div></div></div>'.repeat(8)
+    }</div>`;
+    foot.style.display = 'none';
+  } else {
+    loadMore.disabled = true;
+    loadMore.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading…';
+  }
+
+  fetchSeeAllPage(seeAllPage)
+    .then(resp => {
+      const users = resp.results || [];
+      seeAllTotal = resp.total_count || users.length;
+      const hasNext = !!resp.has_next;
+      seeAllAllUsers = seeAllAllUsers.concat(users);
+
+      const filterInput = document.getElementById('seeAllSearch');
+      renderSeeAllGrid(filterInput.value.trim());
+
+      const friendIds = new Set((_cachedFriends || []).map(f => f.id));
+      const visible = seeAllAllUsers.filter(u => !friendIds.has(u.id) && u.id !== currentUserId).length;
+      totalLabel.textContent = `· ${visible} of ${seeAllTotal}`;
+
+      if (hasNext) {
+        foot.style.display = '';
+        loadMore.disabled = false;
+        loadMore.innerHTML = '<i class="fas fa-plus-circle"></i> Load more';
+        info.textContent = `Showing ${visible} of ${seeAllTotal}`;
+      } else {
+        loadMore.style.display = 'none';
+        if (seeAllTotal > 24) {
+          foot.style.display = '';
+          info.textContent = `Showing all ${seeAllTotal} people`;
+        } else {
+          foot.style.display = 'none';
+        }
+      }
+    })
+    .catch(() => {
+      grid.innerHTML = emptyState('fas fa-exclamation-circle', "Couldn't load suggestions", '', 'loadSeeAll(false)');
+    });
+}
+
+function openSeeAll() {
+  const overlay = document.getElementById('seeAllOverlay');
+  document.getElementById('seeAllSearch').value = '';
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  loadSeeAll(false);
+}
+function closeSeeAll() {
+  const overlay = document.getElementById('seeAllOverlay');
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── Init ────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Move the see-all modal out of any transform/animation parent so
+  // position:fixed works against the viewport (the .page-content wrapper
+  // animates with translateY, which would otherwise contain the overlay).
+  const seeAllOverlayEl = document.getElementById('seeAllOverlay');
+  if (seeAllOverlayEl && seeAllOverlayEl.parentElement !== document.body) {
+    document.body.appendChild(seeAllOverlayEl);
+  }
+
+  loadFriends();
+  loadRequests();
+  loadSuggestions();
+
+  // Discover rail arrows
+  const rail = document.getElementById('suggestions-list');
+  const aL = document.getElementById('railLeft');
+  const aR = document.getElementById('railRight');
+  function updateArrows() {
+    if (!rail) return;
+    const { scrollLeft, scrollWidth, clientWidth } = rail;
+    aL.classList.toggle('visible', scrollLeft > 5);
+    aR.classList.toggle('visible', scrollLeft + clientWidth < scrollWidth - 5);
+  }
+  aL.addEventListener('click', () => rail.scrollBy({ left: -360, behavior: 'smooth' }));
+  aR.addEventListener('click', () => rail.scrollBy({ left: 360, behavior: 'smooth' }));
+  rail.addEventListener('scroll', updateArrows);
+  new MutationObserver(updateArrows).observe(rail, { childList: true });
+
+  // Global search
+  document.getElementById('globalSearch').addEventListener('input', debounce(e => {
+    searchFriendsAndPeople(e.target.value.trim());
+  }, 300));
+
+  // Clear search
+  document.getElementById('clearSearch').addEventListener('click', () => {
+    document.getElementById('globalSearch').value = '';
+    document.getElementById('friendsGridWrap').classList.remove('hidden');
+    document.getElementById('searchResultsSection').classList.remove('active');
+  });
+
+  // See all suggestions modal
+  document.getElementById('seeAllSuggestions').addEventListener('click', e => {
+    e.preventDefault();
+    openSeeAll();
+  });
+  document.getElementById('seeAllClose').addEventListener('click', closeSeeAll);
+  document.getElementById('seeAllOverlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeSeeAll();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('seeAllOverlay').classList.contains('open')) {
+      closeSeeAll();
+    }
+  });
+  document.getElementById('seeAllLoadMore').addEventListener('click', () => {
+    seeAllPage++;
+    loadSeeAll(true);
+  });
+  document.getElementById('seeAllSearch').addEventListener('input', debounce(e => {
+    renderSeeAllGrid(e.target.value.trim());
+  }, 200));
+
+  // Request actions (delegated)
+  document.getElementById('requests-list').addEventListener('click', e => {
+    if (e.target.closest('.accept-friend-btn') || e.target.closest('.reject-friend-btn')) {
+      handleRequestAction(e);
+    }
+  });
+});
+</script>
+{% endblock %}

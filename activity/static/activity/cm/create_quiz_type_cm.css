@@ -1,0 +1,110 @@
+/* Quiz type creator — Classroom Mode.
+ * Extracted from activity/templates/activity/question/create_quiz_type_CM.html.
+ * Cohesive doctrine: meta-pill icons, hover borders, and the
+ * "total" row accent track --brand-primary so the page repaints
+ * with the tenant brand. The previous --gold leak made every
+ * meta-pill icon flash gold regardless of saved brand.
+ */
+.qbcm-meta-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--cream-2); color: var(--ink-dim);
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-right: 6px;
+}
+.qbcm-meta-pill i { color: var(--brand-primary, #1b4332); font-size: 11px; }
+.qbcm-meta-pill.is-total {
+  background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332);
+}
+.qbcm-meta-pill.is-total i { color: var(--brand-primary, #1b4332); }
+
+.qbcm-empty {
+  padding: 40px 24px; text-align: center;
+  color: var(--ink-dim);
+  font-family: var(--display); font-style: italic;
+}
+.qbcm-empty .ico { font-size: 28px; opacity: 0.4; margin-bottom: 8px; color: var(--brand-primary, #1b4332); }
+.qbcm-empty .lead { color: var(--brand-primary, #1b4332); font-size: 15px; margin-bottom: 4px; }
+
+.qbcm-table { width: 100%; border-collapse: collapse; font-family: var(--body); }
+.qbcm-table thead th {
+  background: var(--cream-2); color: var(--brand-primary, #1b4332);
+  font-family: var(--display); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 11px 14px; border-bottom: 1px solid var(--border);
+  text-align: left; white-space: nowrap;
+}
+.qbcm-table thead th.center { text-align: center; }
+.qbcm-table tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink); font-size: 13.5px;
+  vertical-align: middle;
+}
+.qbcm-table tbody tr:last-child td { border-bottom: none; }
+.qbcm-table tbody tr:hover td { background: var(--cream); }
+.qbcm-table .center { text-align: center; }
+.qbcm-table .num { color: var(--ink-muted); font-family: var(--display); }
+.qbcm-cell-name {
+  font-family: var(--display); font-weight: 500;
+  color: var(--brand-primary, #1b4332); letter-spacing: -0.01em;
+}
+.qbcm-pill {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--cream-2);
+  color: var(--ink-dim);
+  font-family: var(--body); font-size: 11px; font-weight: 600;
+}
+.qbcm-row-actions {
+  display: inline-flex; gap: 6px;
+}
+.qbcm-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--paper);
+  color: var(--ink-dim);
+  cursor: pointer; text-decoration: none;
+  transition: all 0.15s;
+}
+.qbcm-icon-btn:hover { border-color: var(--brand-primary, #1b4332); color: var(--brand-primary, #1b4332); }
+.qbcm-icon-btn.danger { color: var(--rose); }
+.qbcm-icon-btn.danger:hover { background: var(--rose-soft); border-color: var(--rose); }
+
+.qbcm-total-row td {
+  background: var(--brand-primary-soft);
+  font-family: var(--display);
+  font-weight: 600; color: var(--brand-primary, #1b4332);
+}
+
+.qbcm-add { position: relative; }
+.qbcm-add-menu {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  min-width: 220px;
+  background: var(--paper);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-hover);
+  padding: 6px;
+  display: none;
+  z-index: 50;
+}
+.qbcm-add.is-open .qbcm-add-menu { display: block; }
+.qbcm-add-menu .qbcm-add-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 9px 12px;
+  background: none; border: none;
+  border-radius: 8px;
+  font-family: var(--body); font-size: 13px;
+  color: var(--ink); text-align: left;
+  cursor: pointer;
+}
+.qbcm-add-menu .qbcm-add-item:hover { background: var(--cream); color: var(--brand-primary, #1b4332); }
+.qbcm-add-menu .qbcm-add-item .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ink-muted); flex-shrink: 0;
+}

@@ -1,0 +1,281 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}User Audit Log · ClassEdge{% endblock %}
+
+{% block content %}
+  {% include "includes/_list_page_theme.html" %}
+
+  <style>
+    .ual-page { --gap-row: 18px; }
+    .ual-page .cl-card { margin-bottom: var(--gap-row); }
+
+    .ual-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .ual-header h1 { font-family: var(--display); font-size: 28px; color: var(--ink); margin: 0; letter-spacing: -0.01em; }
+    .ual-header p { color: var(--ink-dim); margin: 4px 0 0; font-size: 13.5px; }
+
+    .ual-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+    .ual-stat {
+      background: var(--paper); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 16px; min-width: 130px;
+    }
+    .ual-stat .num {
+      font-size: 22px; font-weight: 700; color: var(--ink);
+      display: block; font-variant-numeric: tabular-nums;
+    }
+    .ual-stat .lab {
+      font-size: 10.5px; color: var(--ink-muted);
+      letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;
+    }
+
+    .ual-filters {
+      background: var(--paper); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+      display: grid; grid-template-columns: 160px 200px 1fr 1fr auto;
+      gap: 12px; align-items: end; margin-bottom: var(--gap-row);
+    }
+    @media (max-width: 820px) { .ual-filters { grid-template-columns: 1fr 1fr; } .ual-filters .ual-submit { grid-column: 1 / -1; } }
+    .ual-field label {
+      display: block; font-size: 10.5px; color: var(--ink-muted);
+      text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; font-weight: 600;
+    }
+    .ual-field select, .ual-field input {
+      width: 100%; height: 38px;
+      border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+      padding: 0 12px; background: var(--paper); color: var(--ink);
+      font-size: 13px; outline: 0; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .ual-field select:focus, .ual-field input:focus {
+      border-color: var(--brand-primary, #1b4332); box-shadow: 0 0 0 3px var(--brand-primary-soft);
+    }
+    .ual-submit button {
+      height: 38px; padding: 0 18px; border: 0; border-radius: 100px;
+      background: var(--brand-primary, #1b4332); color: var(--cream); font-weight: 600;
+      cursor: pointer; font-size: 13px; letter-spacing: 0.02em;
+      transition: filter 0.15s;
+    }
+    .ual-submit button:hover { filter: brightness(1.08); }
+
+    .ual-table-wrap {
+      background: var(--paper); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); overflow: hidden;
+    }
+    .ual-table { width: 100%; border-collapse: collapse; }
+    .ual-table th, .ual-table td {
+      padding: 12px 16px; text-align: left; font-size: 13px;
+      border-bottom: 1px solid var(--border); vertical-align: top;
+    }
+    .ual-table tr:last-child td { border-bottom: 0; }
+    .ual-table th {
+      background: var(--cream-2); color: var(--ink-dim);
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em;
+      font-weight: 700;
+    }
+    .ual-table tbody tr:hover { background: var(--cream-2); }
+    .ual-table td.when { color: var(--ink-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .ual-table td.user { font-weight: 600; color: var(--ink); }
+    .ual-table td.target { color: var(--ink); word-break: break-word; }
+    .ual-table td.detail { color: var(--ink-dim); font-size: 12.5px; }
+
+    .ual-pill {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 100px; font-size: 11px;
+      font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .ual-pill.login {
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      border: 1px solid var(--brand-primary-soft);
+    }
+    .ual-pill.crud {
+      background: color-mix(in srgb, var(--brand-primary, #b7925a) 18%, transparent);
+      color: var(--brand-primary, #b7925a);
+      border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 28%, transparent);
+    }
+    .ual-pill.nav {
+      background: rgba(192, 132, 121, 0.16);
+      color: var(--rose, #c08479);
+      border: 1px solid rgba(192, 132, 121, 0.28);
+    }
+
+    .ual-empty { padding: 56px 24px; text-align: center; color: var(--ink-dim); }
+    .ual-empty i { font-size: 28px; color: var(--brand-primary, #b7925a); opacity: 0.6; display: block; margin-bottom: 12px; }
+    .ual-empty .lead { font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+    .ual-empty .sub { font-size: 12.5px; }
+
+    .ual-pagination-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; flex-wrap: wrap; padding: 16px 0 0;
+    }
+    .ual-pp { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-dim); font-size: 12.5px; }
+    .ual-pp label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted); font-weight: 600; }
+    .ual-pp select {
+      height: 32px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+      padding: 0 10px; background: var(--paper); color: var(--ink); font-size: 12.5px;
+    }
+    .ual-pp-meta { color: var(--ink-muted); }
+    .ual-pagination {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .ual-pagination a, .ual-pagination span {
+      padding: 7px 14px; border-radius: 100px;
+      border: 1px solid var(--border-strong); color: var(--ink);
+      text-decoration: none; font-size: 12.5px; font-weight: 600;
+      background: var(--paper); transition: background 0.15s, border-color 0.15s;
+    }
+    .ual-pagination a:hover { border-color: var(--brand-primary, #1b4332); color: var(--ink); }
+    .ual-pagination .current {
+      background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332);
+    }
+  </style>
+
+  <div class="cl-page ual-page">
+    <div class="ual-header">
+      <div>
+        <h1>User Audit Log</h1>
+        <p>Login events and model changes captured by the audit middleware.</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="cl-tour-replay" data-cl-tour="user-audit-log">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <div class="ual-stats">
+          <div class="ual-stat"><span class="num">{{ total_login }}</span><span class="lab">Login events</span></div>
+          <div class="ual-stat"><span class="num">{{ total_crud }}</span><span class="lab">CRUD events</span></div>
+          <div class="ual-stat"><span class="num">{{ total_nav }}</span><span class="lab">Navigation</span></div>
+        </div>
+      </div>
+    </div>
+
+    <form method="get" class="ual-filters">
+      <div class="ual-field">
+        <label for="ualType">Type</label>
+        <select id="ualType" name="type">
+          <option value="all"   {% if event_type == "all" %}selected{% endif %}>All</option>
+          <option value="login" {% if event_type == "login" %}selected{% endif %}>Login / Logout</option>
+          <option value="crud"  {% if event_type == "crud" %}selected{% endif %}>Model changes</option>
+          <option value="nav"   {% if event_type == "nav" %}selected{% endif %}>Navigation (page views)</option>
+        </select>
+      </div>
+      <div class="ual-field">
+        <label for="ualAction">Action</label>
+        <select id="ualAction" name="action">
+          <option value=""              {% if not action_filter %}selected{% endif %}>All actions</option>
+          <optgroup label="Login">
+            <option value="login"        {% if action_filter == "login" %}selected{% endif %}>Login</option>
+            <option value="logout"       {% if action_filter == "logout" %}selected{% endif %}>Logout</option>
+            <option value="failed_login" {% if action_filter == "failed_login" %}selected{% endif %}>Failed login</option>
+          </optgroup>
+          <optgroup label="Model changes">
+            <option value="create" {% if action_filter == "create" %}selected{% endif %}>Create</option>
+            <option value="update" {% if action_filter == "update" %}selected{% endif %}>Update</option>
+            <option value="delete" {% if action_filter == "delete" %}selected{% endif %}>Delete</option>
+          </optgroup>
+          <optgroup label="Navigation">
+            <option value="opened course"     {% if action_filter == "opened course" %}selected{% endif %}>Opened course</option>
+            <option value="browsed materials" {% if action_filter == "browsed materials" %}selected{% endif %}>Browsed materials</option>
+            <option value="viewed material"   {% if action_filter == "viewed material" %}selected{% endif %}>Viewed material / lesson</option>
+            <option value="opened assessment" {% if action_filter == "opened assessment" %}selected{% endif %}>Opened assessment / activity</option>
+            <option value="viewed gradebook"  {% if action_filter == "viewed gradebook" %}selected{% endif %}>Viewed gradebook</option>
+            <option value="viewed rubric"     {% if action_filter == "viewed rubric" %}selected{% endif %}>Viewed rubric</option>
+            <option value="viewed dashboard"  {% if action_filter == "viewed dashboard" %}selected{% endif %}>Viewed dashboard</option>
+            <option value="viewed profile"    {% if action_filter == "viewed profile" %}selected{% endif %}>Viewed profile</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="ual-field">
+        <label for="ualUser">User (username)</label>
+        <input id="ualUser" type="text" name="user" value="{{ actor }}" placeholder="e.g. juan.delacruz">
+      </div>
+      <div class="ual-field">
+        <label for="ualSearch">Search (object / model / IP)</label>
+        <input id="ualSearch" type="text" name="q" value="{{ search }}" placeholder="e.g. subject, 127.0.0.1">
+      </div>
+      <div class="ual-submit">
+        <button type="submit"><i class="fas fa-filter"></i> Apply</button>
+      </div>
+    </form>
+
+    <div class="ual-table-wrap">
+      <table class="ual-table">
+        <thead>
+          <tr>
+            <th style="width: 160px;">When</th>
+            <th style="width: 110px;">Type</th>
+            <th style="width: 170px;">User</th>
+            <th style="width: 170px;">Action</th>
+            <th>Target</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ev in events %}
+            <tr>
+              <td class="when">{{ ev.when|date:"M d, Y g:i A" }}</td>
+              <td><span class="ual-pill {{ ev.kind }}">{{ ev.kind }}</span></td>
+              <td class="user">{{ ev.user|default:"—" }}</td>
+              <td>{{ ev.action }}</td>
+              <td class="target">{{ ev.object }}</td>
+              <td class="detail">{{ ev.detail }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="ual-empty">
+                <i class="fas fa-clipboard-list"></i>
+                <div class="lead">No events match the current filters.</div>
+                <div class="sub">Try adjusting the type, username, or search query.</div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ual-pagination-bar">
+      <form method="get" class="ual-pp">
+        <input type="hidden" name="type" value="{{ event_type }}">
+        <input type="hidden" name="action" value="{{ action_filter }}">
+        <input type="hidden" name="user" value="{{ actor }}">
+        <input type="hidden" name="q" value="{{ search }}">
+        <label for="ualPerPage">Show</label>
+        <select id="ualPerPage" name="per_page" onchange="this.form.submit()">
+          {% for n in "5 10 25 50 100"|cut:" " %}{% endfor %}
+          <option value="5"   {% if per_page == 5 %}selected{% endif %}>5</option>
+          <option value="10"  {% if per_page == 10 %}selected{% endif %}>10</option>
+          <option value="25"  {% if per_page == 25 %}selected{% endif %}>25</option>
+          <option value="50"  {% if per_page == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+        <span class="ual-pp-meta">
+          per page · showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+        </span>
+      </form>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        {% with qs="type="|add:event_type|add:"&action="|add:action_filter|add:"&user="|add:actor|add:"&q="|add:search|add:"&per_page="|add:per_page|stringformat:"s" %}
+        <div class="ual-pagination">
+          {% if page_obj.has_previous %}
+            <a href="?{{ qs }}&page=1" aria-label="First">«</a>
+            <a href="?{{ qs }}&page={{ page_obj.previous_page_number }}">Prev</a>
+          {% endif %}
+
+          {% for n in page_obj.paginator.page_range %}
+            {% if n == page_obj.number %}
+              <span class="current">{{ n }}</span>
+            {% elif n >= page_obj.number|add:-2 and n <= page_obj.number|add:2 %}
+              <a href="?{{ qs }}&page={{ n }}">{{ n }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <a href="?{{ qs }}&page={{ page_obj.next_page_number }}">Next</a>
+            <a href="?{{ qs }}&page={{ page_obj.paginator.num_pages }}" aria-label="Last">»</a>
+          {% endif %}
+        </div>
+        {% endwith %}
+      {% endif %}
+    </div>
+  </div>
+
+  <script src="{% static 'js/tours/cl-tour-user-audit-log.js' %}" defer></script>
+{% endblock %}

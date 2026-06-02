@@ -1,0 +1,123 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}New Evaluation Assignment{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+  {% include "includes/_form_card.html" %}
+  {% include "subject/_evaluation_form_styles.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-clipboard-question me-2"></i>New Evaluation Assignment</h2>
+        <p>Create an evaluation that lets students score their assigned teacher for a subject. Pick the subject and the questions to ask; the teacher and current semester are filled in automatically.</p>
+      </div>
+      <div class="cl-actions">
+        <a href="{% url 'list_evaluation_assignments' %}" class="cl-btn">
+          <i class="fas fa-arrow-left"></i> Back to evaluations
+        </a>
+      </div>
+    </div>
+
+    <div class="cl-form-card">
+      <form method="post" action="{% url 'create_teacher_evaluation' %}" id="evfForm">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="cl-form-alert error">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
+
+        <div class="cl-form-section">
+          <h6><i class="fas fa-book"></i> Subject &amp; Visibility</h6>
+          <div class="cl-form-grid">
+            <div class="cl-field">
+              <label for="{{ form.subject.id_for_label }}">Subject <span class="req">*</span></label>
+              {{ form.subject }}
+              {% if form.subject.errors %}<div class="err">{{ form.subject.errors|striptags }}</div>{% endif %}
+              <div class="hint">The subject's assigned teacher is the one being evaluated.</div>
+            </div>
+            <div class="cl-field">
+              <label class="d-inline-flex align-items-center" style="gap:8px;">{{ form.is_visible }} {{ form.is_visible.label }}</label>
+              {% if form.is_visible.errors %}<div class="err">{{ form.is_visible.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="cl-form-section">
+          <h6><i class="fas fa-list-ul"></i> Questions</h6>
+          <div class="cl-form-grid">
+            <div class="cl-field full">
+              <label>Questions to Include <span class="req">*</span></label>
+
+              <!-- Checkbox-card question picker (search + select all + per-question card) -->
+              <div class="evf-q-picker">
+                <div class="evf-q-toolbar">
+                  <div class="evf-q-search">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input type="text" id="evfQSearch" placeholder="Search questions…" autocomplete="off">
+                  </div>
+                  <div class="evf-q-quickactions">
+                    <button type="button" class="evf-q-chip" id="evfQSelectAll">
+                      <i class="fas fa-check-double"></i> Select all
+                    </button>
+                    <button type="button" class="evf-q-chip" id="evfQClear">
+                      <i class="fas fa-xmark"></i> Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div class="evf-q-list" id="evfQList">
+                  {% for q in form.fields.questions.queryset %}
+                    <label class="evf-q-card" data-q-text="{{ q.question_text|lower }}">
+                      <input type="checkbox" class="evf-q-checkbox" data-q-id="{{ q.id }}">
+                      <span class="evf-q-num">Q{{ forloop.counter }}</span>
+                      <span class="evf-q-text">{{ q.question_text }}</span>
+                      <span class="evf-q-card-status">Active</span>
+                    </label>
+                  {% empty %}
+                    <div class="evf-q-empty">
+                      No active evaluation questions yet.
+                      <a href="{% url 'create_evaluation_question' %}" style="color: var(--ink); font-weight: 600;">Add a question →</a>
+                    </div>
+                  {% endfor %}
+                </div>
+
+                <div class="evf-q-summary">
+                  <span><strong id="evfQSelectedCount">0</strong> selected of {{ form.fields.questions.queryset|length }}</span>
+                  <span class="evf-q-error" id="evfQError" style="display:none;">Pick at least one question.</span>
+                </div>
+              </div>
+
+              <!-- Hidden source-of-truth <select> bound to the form's `questions` field.
+                   Rendered manually (not {{ form.questions }}) so third-party widget
+                   classes (.js-choice / select2) never interfere with the picker. -->
+              {% with selected_qids=form.questions.value %}
+                <select name="questions" id="id_questions_picker" multiple style="display:none;" tabindex="-1" aria-hidden="true">
+                  {% for q in form.fields.questions.queryset %}
+                    <option value="{{ q.id }}"
+                      {% if selected_qids %}{% for sid in selected_qids %}{% if q.id|stringformat:"s" == sid|stringformat:"s" %}selected{% endif %}{% endfor %}{% endif %}
+                    >{{ q.question_text }}</option>
+                  {% endfor %}
+                </select>
+              {% endwith %}
+
+              {% if form.questions.errors %}
+                <div class="err">{{ form.questions.errors|striptags }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="cl-form-actions">
+          <button type="submit" class="cl-btn cl-btn-primary"><i class="fas fa-save"></i> Create Assignment</button>
+          <a href="{% url 'list_evaluation_assignments' %}" class="cl-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% include "subject/_evaluation_question_picker_js.html" %}
+{% endblock %}

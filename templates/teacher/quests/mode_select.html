@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" style="max-width:720px;padding:24px;">
+  <h2>Add quests to {{ module.file_name }}</h2>
+  {% if has_quests %}
+    <p><a href="{% url 'quest_review' module.id %}">Manage existing quests →</a></p>
+  {% endif %}
+  <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;">
+    {% if settings.ai_mode_enabled %}
+    <form method="post" action="{% url 'quest_generate' module.id %}">{% csrf_token %}
+      <button type="submit" class="btn btn-primary">Generate with AI</button>
+    </form>{% endif %}
+    {% if settings.manual_mode_enabled %}
+    <form method="post" action="{% url 'quest_manual_init' module.id %}">{% csrf_token %}
+      <button type="submit" class="btn btn-secondary">Create manually</button>
+    </form>{% endif %}
+    {% if settings.upload_mode_enabled %}
+    <a class="btn btn-secondary" href="{% url 'quest_upload' module.id %}">Upload from file</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

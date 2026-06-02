@@ -1,0 +1,189 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Enroll students{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'course/subjectEnrollment/enroll-student.css' %}" />
+
+<div class="es-page">
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Enroll <em>students</em></h1>
+      <p class="page-sub">Pick a course and year level, then assign course for the active semester.</p>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="es-card">
+    <div class="es-card-head">
+      <h2 class="es-card-title"><i class="fas fa-user-plus"></i>Student enrollment <em>form</em></h2>
+    </div>
+
+    <form method="post" action="{% url 'enroll-student' %}" data-cl-loading data-cl-loading-label="Enrolling…">
+      {% csrf_token %}
+
+      <div class="es-card-body">
+
+        <!-- Filters section -->
+        <div class="es-section">
+          <h3 class="es-section-title"><i class="fas fa-filter"></i>Filter <em>students</em></h3>
+          <div class="es-grid">
+            <div class="es-field">
+              <div class="es-multi-toolbar">
+                <label for="course_select" style="margin-bottom:0;">Program</label>
+                <div class="es-multi-toolbar-actions">
+                  <span class="es-count-pill" data-status-for="#course_select">All programs</span>
+                  <button type="button" class="es-link-btn es-link-btn--danger" data-clear-single="#course_select">
+                    <i class="fas fa-xmark"></i> Clear
+                  </button>
+                </div>
+              </div>
+              <select id="course_select" class="form-control es-select2-single" data-placeholder="Select a program">
+                <option value=""></option>
+                {% for course, students in students_by_course.items %}
+                  <option value="{{ course }}">{{ course }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="es-field">
+              <div class="es-multi-toolbar">
+                <label for="year_level_select" style="margin-bottom:0;">Year level</label>
+                <div class="es-multi-toolbar-actions">
+                  <span class="es-count-pill" data-status-for="#year_level_select">All years</span>
+                  <button type="button" class="es-link-btn es-link-btn--danger" data-clear-single="#year_level_select">
+                    <i class="fas fa-xmark"></i> Clear
+                  </button>
+                </div>
+              </div>
+              <select id="year_level_select" class="form-control es-select2-single" data-placeholder="Select year level…">
+                <option value=""></option>
+                {% for year_level in year_levels %}
+                  <option value="{{ year_level }}">{{ year_level }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selection section -->
+        <div class="es-section">
+          <h3 class="es-section-title"><i class="fas fa-user-graduate"></i>Select <em>students</em> &amp; courses</h3>
+
+          <div class="es-field" style="margin-bottom: 18px;">
+            <div class="es-multi-toolbar">
+              <label for="student_profile" style="margin-bottom:0;">Students <span style="text-transform:none; letter-spacing:0; color: var(--ink-muted); font-weight: 400; font-style: italic; font-family: var(--display);">— optional</span></label>
+              <div class="es-multi-toolbar-actions">
+                <span class="es-count-pill" data-count-for="#student_profile">0 selected</span>
+                <button type="button" class="es-link-btn" data-select-all="#student_profile">
+                  <i class="fas fa-check-double"></i> Select all
+                </button>
+                <button type="button" class="es-link-btn es-link-btn--danger" data-clear-all="#student_profile">
+                  <i class="fas fa-xmark"></i> Clear
+                </button>
+              </div>
+            </div>
+            <select name="student_profile" id="student_profile" class="form-control es-select2-multi" multiple data-placeholder="Select students…">
+              {% for course, students in students_by_course.items %}
+                <optgroup label="{{ course }}">
+                  {% for student in students %}
+                    <option value="{{ student.id }}">{{ student.first_name }} {{ student.last_name }} · {{ student.email }}</option>
+                  {% endfor %}
+                </optgroup>
+              {% endfor %}
+            </select>
+            <div class="es-helper">
+              <i class="fas fa-circle-info"></i>
+              <span>Leave students empty to add course to the system for teacher access only — without enrolling anyone.</span>
+            </div>
+          </div>
+
+          <div class="es-grid">
+            <div class="es-field">
+              <div class="es-multi-toolbar">
+                <label for="subject_ids" style="margin-bottom:0;">Courses <span style="text-transform:none; color: var(--rose-deep); font-weight: 600; letter-spacing:0;">*</span></label>
+                <div class="es-multi-toolbar-actions">
+                  <span class="es-count-pill" data-count-for="#subject_ids">0 selected</span>
+                  <button type="button" class="es-link-btn" data-select-all="#subject_ids">
+                    <i class="fas fa-check-double"></i> Select all
+                  </button>
+                  <button type="button" class="es-link-btn es-link-btn--danger" data-clear-all="#subject_ids">
+                    <i class="fas fa-xmark"></i> Clear
+                  </button>
+                </div>
+              </div>
+              <select name="subject_ids" id="subject_ids" class="form-select es-select2-multi" multiple required data-placeholder="Select course..">
+                {% for subject in subjects %}
+                  <option value="{{ subject.id }}">{{ subject.subject_name }} · {{ subject.assign_teacher }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="es-field">
+              <div class="es-multi-toolbar">
+                <label for="semester_id" style="margin-bottom:0;">Semester <span style="text-transform:none; color: var(--rose-deep); font-weight: 600; letter-spacing:0;">*</span></label>
+                <div class="es-multi-toolbar-actions">
+                  <span class="es-count-pill" data-status-for="#semester_id">None selected</span>
+                  <button type="button" class="es-link-btn es-link-btn--danger" data-clear-single="#semester_id">
+                    <i class="fas fa-xmark"></i> Clear
+                  </button>
+                </div>
+              </div>
+              <select name="semester_id" id="semester_id" class="form-select es-select2-single" required data-placeholder="Select a semester…">
+                <option value=""></option>
+                {% for semester in semesters %}
+                  <option value="{{ semester.id }}">{{ semester.semester_name }} · SY {{ semester.get_academic_year }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="es-actions">
+        <button type="submit" class="es-btn primary">
+          <i class="fas fa-check"></i> Enroll
+        </button>
+        <a href="javascript:history.back()" class="es-btn">
+          <i class="fas fa-arrow-left"></i> Back
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Import students modal (this template includes it for parity with the import button on enrolled_student_list) -->
+<div id="importModal" class="es-modal" role="dialog" aria-labelledby="importModalTitle" aria-modal="true">
+  <div class="es-modal-head">
+    <h5 id="importModalTitle"><i class="fas fa-file-import"></i> Import <em>students</em></h5>
+    <button type="button" class="es-modal-close" id="closeImportModalBtn" aria-label="Close">&times;</button>
+  </div>
+  <div class="es-modal-body">
+    <form method="post" enctype="multipart/form-data" action="{% url 'import_students_and_enroll' %}"
+          data-cl-loading data-cl-loading-label="Importing…">
+      {% csrf_token %}
+      <label class="es-dropzone" for="importFile">
+        <i class="fas fa-cloud-arrow-up"></i>
+        <div class="es-dropzone-title">Drop CSV file here, or <span style="color: var(--brand-primary, #b7925a);">browse</span></div>
+        <div class="es-dropzone-sub">Use the import template for the correct column layout.</div>
+        <input type="file" name="import_file" id="importFile" accept=".csv" required>
+        <div class="es-dropzone-name" id="importFileName"></div>
+      </label>
+      <div style="display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; justify-content: flex-end;">
+        <a href="{{ MEDIA_URL|add:'template/Import Enrolled Student Template.csv' }}" class="es-btn" download>
+          <i class="fas fa-download"></i> Download template
+        </a>
+        <button type="submit" class="es-btn primary"><i class="fas fa-upload"></i> Upload &amp; enroll</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="importModalBackdrop" class="es-modal-backdrop"></div>
+
+{{ students_by_course|json_script:'students_by_course_json' }}
+
+<script src="{% static 'course/subjectEnrollment/enroll-student.js' %}"></script>
+{% endblock %}

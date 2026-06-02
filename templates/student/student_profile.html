@@ -1,0 +1,2144 @@
+{% extends is_student_role|yesno:'student_base.html,base_operation.html' %}
+{% load static %}
+{% load level_tier %}
+
+{% block title %}{{ profile.first_name }} {{ profile.last_name }}{% endblock %}
+{% block extra_css %}{% if not is_student_role %}{% include "teacher/_legacy_stack.html" %}{% endif %}{% endblock %}
+
+{% block content %}
+<style>
+  /* Theme vars — alias the teacher palette (base_operation.html) so non-students
+     see colors consistent with the teacher UI. :where() = zero specificity, so
+     student_theme.css still wins for student users. */
+  :where(body[data-theme]) {
+    --surface: var(--paper);
+    --surface-2: var(--cream-2);
+    --text: var(--ink);
+    --text-dim: var(--ink-dim);
+    --text-muted: var(--ink-muted);
+    --gold-glow: var(--gold-soft);
+    --coral: var(--rose);
+    --mint: var(--forest);
+    --violet: #9d8dff;
+  }
+
+  .profile-page { padding: 8px 0 32px; }
+
+  /* ── Hero ──────────────────────────────────────────────── */
+  .profile-hero {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 28px 28px 28px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .profile-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at top right, rgba(244, 183, 64, 0.08), transparent 50%),
+      radial-gradient(ellipse at bottom left, rgba(78, 205, 196, 0.06), transparent 50%);
+    pointer-events: none;
+  }
+  .profile-hero-row {
+    position: relative;
+    display: flex;
+    gap: 22px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .profile-photo {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    overflow: hidden;
+    border: 3px solid var(--brand-primary, #b7925a);
+    flex-shrink: 0;
+    display: grid; place-items: center;
+    color: var(--brand-primary, #b7925a);
+    font-size: 38px;
+    font-family: var(--display);
+    font-weight: 600;
+  }
+  .profile-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .profile-photo-wrap {
+    position: relative;
+    width: 130px;
+    height: 130px;
+    flex-shrink: 0;
+  }
+  .profile-photo-wrap .profile-photo {
+    position: absolute;
+    inset: 10px;
+    width: auto; height: auto;
+  }
+  .profile-photo.tier-none     { border-color: var(--border); box-shadow: none; }
+  .profile-photo.tier-bronze   { border-color: #cd7f32; box-shadow: 0 0 0 4px rgba(205,127,50,0.18); }
+  .profile-photo.tier-silver   { border-color: #c0c0c0; box-shadow: 0 0 0 4px rgba(192,192,192,0.20); }
+  .profile-photo.tier-gold     { border-color: var(--brand-primary, #b7925a); box-shadow: 0 0 0 4px var(--gold-glow); }
+  .profile-photo.tier-platinum { border-color: #e5e4e2; box-shadow: 0 0 0 4px rgba(229,228,226,0.22); }
+  .profile-photo.tier-diamond  { border-color: #b9f2ff; box-shadow: 0 0 0 4px rgba(185,242,255,0.28); }
+
+  .xp-ring {
+    position: absolute;
+    inset: 0;
+    width: 130px;
+    height: 130px;
+    transform: rotate(-90deg);
+    pointer-events: none;
+  }
+  .xp-ring .xp-ring-track {
+    fill: none;
+    stroke: rgba(255,255,255,0.06);
+    stroke-width: 4;
+  }
+  .xp-ring .xp-ring-arc {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.9s ease-out;
+  }
+  .xp-ring.tier-none     .xp-ring-arc { stroke: rgba(255,255,255,0.25); }
+  .xp-ring.tier-bronze   .xp-ring-arc { stroke: #cd7f32; }
+  .xp-ring.tier-silver   .xp-ring-arc { stroke: #c0c0c0; }
+  .xp-ring.tier-gold     .xp-ring-arc { stroke: var(--brand-primary, #b7925a); }
+  .xp-ring.tier-platinum .xp-ring-arc { stroke: #e5e4e2; }
+  .xp-ring.tier-diamond  .xp-ring-arc { stroke: #b9f2ff; }
+
+  .level-pill {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    padding: 3px 9px;
+    border-radius: 100px;
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #0a0f1f;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  }
+  .level-pill.tier-none     { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+  .level-pill.tier-bronze   { background: #cd7f32; }
+  .level-pill.tier-silver   { background: #c0c0c0; }
+  .level-pill.tier-gold     { background: var(--brand-primary, #b7925a); }
+  .level-pill.tier-platinum { background: #e5e4e2; }
+  .level-pill.tier-diamond  { background: #b9f2ff; }
+
+  .profile-meta { flex: 1; min-width: 220px; }
+  .profile-role-pill {
+    display: inline-block;
+    padding: 3px 11px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--brand-primary, #b7925a);
+    background: rgba(244, 183, 64, 0.12);
+    border: 1px solid rgba(244, 183, 64, 0.4);
+    margin-bottom: 8px;
+  }
+  .profile-name {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 4px;
+    letter-spacing: -0.02em;
+  }
+  .profile-school-info {
+    color: var(--text-dim);
+    font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .profile-school-info span { display: inline-flex; align-items: center; gap: 6px; }
+
+  .profile-actions {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .profile-action {
+    padding: 8px 16px;
+    border-radius: 100px;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .profile-action:hover { border-color: var(--brand-primary, #b7925a); color: var(--brand-primary, #b7925a); }
+  .profile-action.danger:hover { border-color: var(--coral); color: var(--coral); }
+  .profile-action.primary {
+    background: var(--brand-primary, #b7925a);
+    color: #0a0f1f;
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .profile-action.primary:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 0 0 4px var(--gold-glow);
+    color: #0a0f1f;
+  }
+
+  /* ── Stat strip ────────────────────────────────────────── */
+  .profile-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .stat-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+  }
+  .stat-tile-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .stat-tile-value {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .stat-tile-value .accent {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-left: 6px;
+    font-weight: 500;
+  }
+  .stat-tile.gold .stat-tile-value { color: var(--brand-primary, #b7925a); }
+  .stat-tile.mint .stat-tile-value { color: var(--mint); }
+  .stat-tile.coral .stat-tile-value { color: var(--coral); }
+
+  /* ── Section blocks ────────────────────────────────────── */
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 900px) {
+    .profile-grid { grid-template-columns: 1fr; }
+  }
+  .profile-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 22px;
+  }
+  .profile-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .profile-section-title {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .profile-section-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+
+  /* ── Badges ────────────────────────────────────────────── */
+  .badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+  }
+  .badge-tile {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 12px 14px;
+    text-align: center;
+    transition: transform 0.18s, border-color 0.18s;
+    position: relative;
+  }
+  .badge-tile:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .badge-tile.locked { opacity: 0.55; }
+  .badge-tile.locked .badge-icon { filter: grayscale(0.7); }
+  .badge-share-btn {
+    position: absolute; top: 6px; right: 6px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 10px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.18s, color 0.18s, background 0.18s;
+  }
+  .badge-tile:hover .badge-share-btn { opacity: 1; }
+  .badge-share-btn:hover { color: var(--brand-primary, #b7925a); background: rgba(244,183,64,0.15); border-color: var(--brand-primary, #b7925a); }
+
+  .share-modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 10499; display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .share-modal-backdrop.open { display: flex; animation: shareFade 0.18s ease; }
+  @keyframes shareFade { from { opacity: 0; } to { opacity: 1; } }
+  .share-modal {
+    background: #1f232b;
+    border: 1px solid var(--border);
+    border-radius: 16px; max-width: 440px; width: 100%;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    overflow: hidden;
+    animation: shareSlide 0.22s ease;
+  }
+  body[data-theme="light"] .share-modal,
+  body:not([data-theme]) .share-modal { background: #ffffff; }
+  @keyframes shareSlide { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .share-modal-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .share-modal-head h4 {
+    font-family: var(--display); font-size: 16px; font-weight: 600;
+    color: var(--text); margin: 0;
+  }
+  .share-modal-close {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-dim); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .share-modal-close:hover { color: var(--coral); border-color: var(--coral); }
+  .share-modal-preview {
+    background: linear-gradient(135deg, rgba(244,183,64,0.08), rgba(78,205,196,0.06));
+    border-bottom: 1px solid var(--border);
+    padding: 22px 20px;
+    text-align: center;
+  }
+  .share-preview-hint {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-muted); margin-bottom: 10px;
+  }
+  .share-preview-icon {
+    font-size: 56px; line-height: 1; margin-bottom: 8px; display: block;
+  }
+  .share-preview-avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    object-fit: cover; border: 3px solid var(--brand-primary, #b7925a);
+    margin: 0 auto 10px; display: block;
+    background: var(--surface-2);
+  }
+  .share-preview-title { font-family: var(--display); font-size: 18px; font-weight: 600; color: var(--text); margin: 0; letter-spacing: -0.01em; }
+  .share-preview-sub { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+  .share-preview-meta { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+  .share-preview-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 100px;
+    background: rgba(244,183,64,0.12); color: var(--brand-primary, #b7925a);
+    font-size: 11px; font-weight: 600;
+    border: 1px solid rgba(244,183,64,0.3);
+  }
+  .share-modal-body {
+    padding: 18px 20px;
+    text-align: center;
+  }
+  .share-modal-body-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-muted); margin-bottom: 12px; font-weight: 600;
+  }
+  .share-modal-opts {
+    display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+  }
+  .share-modal-opts .share-opt {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; text-decoration: none; border: none; cursor: pointer; font-size: 16px;
+    transition: transform 0.15s, filter 0.15s;
+  }
+  .share-modal-opts .share-opt:hover { transform: translateY(-2px); filter: brightness(1.1); }
+  .share-modal-opts .share-opt.fb { background: #1877F2; }
+  .share-modal-opts .share-opt.x { background: #000; }
+  .share-modal-opts .share-opt.li { background: #0A66C2; }
+  .share-modal-opts .share-opt.copy { background: #6c757d; }
+  .share-modal-foot {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text-muted); text-align: center;
+  }
+  .share-modal-foot a { color: var(--brand-primary, #b7925a); text-decoration: none; }
+  .share-modal-foot a:hover { text-decoration: underline; }
+
+  .badge-icon {
+    font-size: 30px;
+    margin-bottom: 8px;
+    line-height: 1;
+    display: block;
+  }
+  .badge-name {
+    font-family: var(--display);
+    font-weight: 600;
+    color: var(--text);
+    font-size: 12.5px;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: -0.005em;
+  }
+  /* Tier chips — render the actual metal colors with a subtle sheen
+     gradient so each tier is instantly recognizable on any background. */
+  .badge-tier {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 100px;
+    display: inline-block;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+      0 1px 2px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Tier gradients — built from the same warm/cool families as our
+     gold + forest + cream palette so the chips harmonize with the rest
+     of the page instead of looking like primary-colored metal. */
+
+  /* Bronze — warm earthy gradient (a deeper, redder gold relative).
+     Sits in the same warm family as --gold, just dialed darker. */
+  .badge-tier.bronze {
+    color: #fff8ee;
+    background: linear-gradient(135deg, #c98e57 0%, #a06738 55%, #7a4a26 100%);
+    border: 1px solid rgba(122, 74, 38, 0.55);
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+  }
+
+  /* Silver — cool neutral gradient sitting between our cream + ink
+     tokens. Uses the operations cream + ink-dim values with a soft fade. */
+  .badge-tier.silver {
+    color: #2d3142;
+    background: linear-gradient(135deg, #f1eee7 0%, #d7d1c4 55%, #aea798 100%);
+    border: 1px solid rgba(108, 112, 128, 0.32);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  }
+
+  /* Gold — uses our design-system gold token directly, gradient'd
+     between --gold-soft and --gold for a polished but on-brand finish. */
+  .badge-tier.gold {
+    color: #4a3000;
+    background: linear-gradient(135deg,
+      var(--gold-soft, #e8d5b0) 0%,
+      var(--brand-primary, #b7925a) 55%,
+      #8c6c3e 100%);
+    border: 1px solid var(--brand-primary, #b7925a);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.40);
+  }
+
+  /* Platinum — soft paper-cream-to-ink gradient. Cool, light, and
+     reads as the most prestigious neutral in our palette. */
+  .badge-tier.platinum {
+    color: #1b4332;
+    background: linear-gradient(135deg,
+      var(--paper, #ffffff) 0%,
+      var(--cream-2, #f3ede2) 50%,
+      #c0b9a7 100%);
+    border: 1px solid rgba(27, 67, 50, 0.20);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.70);
+  }
+
+  /* Diamond — forest accent gradient (the green-iest tier), pairing
+     forest-light → forest so it stands out from gold-family tiers
+     while still belonging to our palette. */
+  .badge-tier.diamond {
+    color: #faf7f2;
+    background: linear-gradient(135deg,
+      var(--brand-primary-soft) 0%,
+      #5d8a72 55%,
+      var(--brand-primary, #1b4332) 100%);
+    border: 1px solid var(--brand-primary, #1b4332);
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.30);
+  }
+
+  /* Seasonal / hidden keep their original cool tones (not metals) */
+  .badge-tier.seasonal { color: var(--mint);   background: rgba(78, 205, 196, 0.14); border: 1px solid rgba(78, 205, 196, 0.40); text-shadow: none; box-shadow: none; }
+  .badge-tier.hidden   { color: var(--violet); background: rgba(157, 141, 255, 0.14); border: 1px solid rgba(157, 141, 255, 0.40); text-shadow: none; box-shadow: none; }
+
+  .badges-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .badges-empty i { font-size: 28px; opacity: 0.4; display: block; margin-bottom: 8px; }
+
+  .featured-empty-slot {
+    background: var(--surface-2);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 16px 12px 14px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11.5px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    min-height: 110px;
+    transition: border-color 0.18s, color 0.18s;
+  }
+  .featured-empty-slot:hover {
+    border-color: var(--brand-primary, #b7925a);
+    color: var(--brand-primary, #b7925a);
+  }
+  .more-badges {
+    margin-top: 18px;
+  }
+  .more-badges-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: border-color 0.18s, color 0.18s;
+  }
+  .more-badges-toggle:hover {
+    border-color: var(--brand-primary, #b7925a);
+    color: var(--brand-primary, #b7925a);
+  }
+  .more-badges-grid { margin-top: 12px; }
+  .more-badges-grid[hidden] { display: none; }
+  .manage-featured-btn {
+    background: transparent;
+    border: 1px solid var(--brand-primary, #b7925a);
+    color: var(--brand-primary, #b7925a);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 6px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+  }
+  .manage-featured-btn:hover {
+    background: var(--brand-primary, #b7925a);
+    color: #0a0f1f;
+  }
+  .manage-featured-btn:disabled {
+    border-color: var(--border);
+    color: var(--text-muted);
+    background: transparent;
+    cursor: not-allowed;
+  }
+
+  .upcoming-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .upcoming-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    border: 1px dashed var(--border);
+  }
+  .upcoming-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    display: grid; place-items: center;
+    color: var(--text-muted);
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .upcoming-info { flex: 1; min-width: 0; }
+  .upcoming-name { font-weight: 600; font-size: 13px; color: var(--text); }
+  .upcoming-desc {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  /* ── SDG badges ────────────────────────────────────────── */
+  .sdg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    gap: 10px;
+  }
+  .sdg-tile {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    transition: transform 0.18s, border-color 0.18s;
+    display: block;
+  }
+  .sdg-tile:hover {
+    transform: translateY(-2px);
+    border-color: var(--mint);
+  }
+  .sdg-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ── Certificates ──────────────────────────────────────── */
+  .cert-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .cert-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.18s, border-color 0.18s;
+  }
+  .cert-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .cert-card-img {
+    width: 100%;
+    height: 130px;
+    background: #fff;
+    object-fit: cover;
+    display: block;
+  }
+  .cert-card-body { padding: 10px 12px; }
+  .cert-card-title {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 12.5px;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cert-card-date { font-size: 10.5px; color: var(--text-muted); }
+
+  .empty-block {
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .empty-block i { font-size: 26px; opacity: 0.4; display: block; margin-bottom: 8px; }
+
+  /* ── Cert preview overlay ──────────────────────────────── */
+  .cert-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 15, 31, 0.85);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 2000;
+  }
+  .cert-overlay.open { display: flex; }
+  .cert-overlay img {
+    max-width: 90vw;
+    max-height: 80vh;
+    border-radius: 10px;
+    box-shadow: 0 24px 64px -16px rgba(0,0,0,0.6);
+  }
+  .cert-overlay-close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--text);
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .cert-overlay-close:hover { border-color: var(--brand-primary, #b7925a); color: var(--brand-primary, #b7925a); }
+  .cert-overlay-title {
+    position: absolute;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--text);
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 500;
+    background: rgba(0,0,0,0.5);
+    padding: 8px 16px;
+    border-radius: 100px;
+  }
+
+  /* ── Info list ─────────────────────────────────────────── */
+  .info-list { display: flex; flex-direction: column; gap: 0; }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 11px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 13px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    flex-shrink: 0;
+    min-width: 120px;
+  }
+  .info-value {
+    color: var(--text);
+    text-align: right;
+    word-break: break-word;
+  }
+  .info-value.muted { color: var(--text-muted); font-style: italic; }
+
+  .featured-modal.modal { z-index: 10080 !important; }
+  .featured-modal .modal-dialog { z-index: 10081; pointer-events: none; }
+  .featured-modal .modal-content { pointer-events: auto; }
+  .custom-dim-layer {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 10070;
+    display: none;
+  }
+  .custom-dim-layer.show { display: block; }
+  .featured-modal .modal-content {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .featured-modal .modal-header,
+  .featured-modal .modal-footer {
+    border-color: var(--border);
+  }
+  .featured-modal .modal-title {
+    font-family: var(--display);
+    font-weight: 600;
+  }
+  .featured-modal .featured-counter {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .featured-modal .featured-counter.full { color: var(--brand-primary, #b7925a); }
+  .featured-modal .featured-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 4px;
+  }
+  .featured-modal .featured-tile {
+    position: relative;
+    background: var(--surface-2);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .featured-modal .featured-tile:hover { transform: translateY(-1px); }
+  .featured-modal .featured-tile.selected {
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+  .featured-modal .featured-tile input { display: none; }
+  .featured-modal .featured-tile .check-mark {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--brand-primary, #b7925a);
+    color: #0a0f1f;
+    display: none;
+    place-items: center;
+    font-size: 10px;
+  }
+  .featured-modal .featured-tile.selected .check-mark { display: grid; }
+  .featured-modal .featured-error {
+    color: var(--coral);
+    font-size: 12px;
+    margin-top: 8px;
+    min-height: 16px;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     Edit Profile Modal — gamification redesign
+     ═══════════════════════════════════════════════════════════ */
+  .edit-profile-modal.modal { z-index: 10080 !important; }
+  .edit-profile-modal .modal-dialog {
+    z-index: 10081;
+    pointer-events: none;
+    max-width: 720px;
+  }
+  .edit-profile-modal .modal-content { pointer-events: auto; }
+  .modal-backdrop.show {
+    z-index: 10070 !important;
+    opacity: 0.6;
+  }
+  /* Custom dim layer (modal uses data-bs-backdrop="false") */
+  .custom-dim-layer {
+    background: rgba(5, 8, 18, 0.78) !important;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  body[data-theme="light"] .custom-dim-layer {
+    background: rgba(20, 24, 38, 0.45) !important;
+  }
+
+  .edit-profile-modal .modal-content {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: 22px;
+    box-shadow:
+      0 32px 80px -16px rgba(0,0,0,0.55),
+      0 0 0 1px var(--gold-glow);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow: hidden;
+    animation: editModalIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  body[data-theme="light"] .edit-profile-modal .modal-content {
+    background: var(--surface);
+    box-shadow: 0 24px 64px -16px rgba(0,0,0,0.18), 0 0 0 1px var(--gold-glow);
+  }
+  @keyframes editModalIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Gradient hero strip behind the header */
+  .edit-profile-modal .modal-header {
+    position: relative;
+    border: none;
+    padding: 22px 26px 18px;
+    background:
+      radial-gradient(ellipse at top right, var(--gold-glow), transparent 60%),
+      radial-gradient(ellipse at bottom left, var(--violet), transparent 70%),
+      var(--bg-2);
+    isolation: isolate;
+  }
+  .edit-profile-modal .modal-header::after {
+    content: '';
+    position: absolute;
+    left: 26px; right: 26px; bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--brand-primary, #b7925a), transparent);
+    opacity: 0.5;
+  }
+  .edit-profile-modal .modal-title {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .edit-profile-modal .modal-title::before {
+    content: '\f044';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    display: inline-grid; place-items: center;
+    background: linear-gradient(135deg, var(--brand-primary, #b7925a), var(--coral));
+    color: #0a0f1f;
+    font-size: 14px;
+    box-shadow: 0 6px 18px -6px var(--gold-glow);
+  }
+  .edit-profile-modal .btn-close {
+    position: absolute;
+    top: 18px; right: 18px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background-color: var(--surface-2);
+    background-image: none;       /* hide Bootstrap's tiny black X SVG */
+    border: 1px solid var(--border);
+    opacity: 1;
+    transition: all 0.15s;
+    display: inline-grid;
+    place-items: center;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 0;
+  }
+  /* Render our own X with a Font Awesome glyph so it inherits color
+     and stays visible on every theme. */
+  .edit-profile-modal .btn-close::before {
+    content: '\f00d';                       /* fa-xmark / fa-times */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 12px;
+    line-height: 1;
+  }
+  .edit-profile-modal .btn-close:hover {
+    background-color: var(--coral);
+    border-color: var(--coral);
+    color: #fff;
+    transform: rotate(90deg);
+  }
+  .edit-profile-modal .btn-close:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--coral-glow);
+  }
+
+  /* Body — comfortable padding + scrollable */
+  .edit-profile-modal .modal-body {
+    padding: 24px 26px;
+    background: var(--surface);
+    max-height: calc(100vh - 220px);
+    overflow-y: auto;
+  }
+
+  /* Footer */
+  .edit-profile-modal .modal-footer {
+    border: none;
+    padding: 16px 26px 22px;
+    background: var(--bg-2);
+    gap: 8px;
+  }
+
+  .edit-profile-modal label.form-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  /* Inputs — pill styled with gold focus */
+  .edit-profile-modal .form-control,
+  .edit-profile-modal .form-select {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: var(--body);
+    transition: all 0.15s;
+  }
+  .edit-profile-modal .form-control::placeholder { color: var(--text-muted); }
+  .edit-profile-modal .form-control:focus,
+  .edit-profile-modal .form-select:focus {
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+    background: var(--bg-2);
+    outline: none;
+  }
+  .edit-profile-modal .form-control[disabled],
+  .edit-profile-modal .form-control[readonly] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: var(--bg-2);
+  }
+  .edit-profile-modal textarea.form-control { resize: vertical; min-height: 60px; }
+  /* File input — make it look like a button */
+  .edit-profile-modal input[type="file"].form-control {
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .edit-profile-modal input[type="file"].form-control::file-selector-button {
+    background: linear-gradient(135deg, var(--brand-primary, #b7925a), var(--coral));
+    color: #0a0f1f;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    margin-right: 12px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: filter 0.15s;
+  }
+  .edit-profile-modal input[type="file"].form-control::file-selector-button:hover {
+    filter: brightness(1.08);
+  }
+
+  .edit-profile-modal .field-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .edit-profile-modal .field-hint::before {
+    content: '\f023';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 10px;
+    opacity: 0.7;
+  }
+
+  /* Photo preview — gradient ring on hover */
+  .edit-profile-modal .photo-preview {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--brand-primary, #b7925a);
+    background: var(--surface-2);
+    box-shadow: 0 0 0 4px var(--gold-glow), 0 8px 24px -8px rgba(0,0,0,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .edit-profile-modal .photo-preview:hover {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 6px var(--gold-glow), 0 12px 32px -8px rgba(0,0,0,0.5);
+  }
+
+  .edit-profile-modal .field-error {
+    color: var(--coral);
+    font-size: 12px;
+    margin-top: 4px;
+    min-height: 14px;
+  }
+  .edit-profile-modal .form-control.is-invalid,
+  .edit-profile-modal .form-select.is-invalid {
+    border-color: var(--coral);
+    box-shadow: 0 0 0 3px var(--coral-glow);
+  }
+
+  /* Section divider before registrar-managed fields */
+  .edit-profile-modal hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+    margin: 8px 0 4px;
+    opacity: 0.7;
+  }
+
+  /* Footer buttons — gold pill submit, ghost cancel */
+  .edit-profile-modal .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-dim);
+    border-radius: 100px;
+    font-weight: 600;
+    padding: 9px 22px;
+    transition: all 0.15s;
+  }
+  .edit-profile-modal .btn-secondary:hover {
+    background: var(--surface-2);
+    color: var(--text);
+    border-color: var(--text-dim);
+  }
+  .edit-profile-modal .btn-primary {
+    background: linear-gradient(135deg, var(--brand-primary, #b7925a), var(--coral)) !important;
+    border: none !important;
+    color: #0a0f1f !important;
+    border-radius: 100px;
+    font-weight: 700;
+    padding: 9px 26px;
+    box-shadow: 0 6px 20px -6px var(--gold-glow);
+    transition: all 0.15s;
+  }
+  .edit-profile-modal .btn-primary:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 26px -6px var(--gold-glow);
+  }
+  .edit-profile-modal .btn-primary:active { transform: translateY(0); }
+  .edit-profile-modal .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Featured modal — keep same surface treatment as edit modal */
+  .featured-modal .modal-content {
+    background: var(--surface) !important;
+    border: 1px solid var(--border-strong);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+</style>
+
+<div class="profile-page">
+
+  <!-- Hero -->
+  <section class="profile-hero">
+    <div class="profile-hero-row">
+      {% with tier=current_level|level_tier %}
+      <div class="profile-photo-wrap" data-current-level="{{ current_level }}" data-tier="{{ tier }}">
+        <svg class="xp-ring tier-{{ tier }}" viewBox="0 0 130 130" aria-hidden="true">
+          <circle class="xp-ring-track" cx="65" cy="65" r="62"></circle>
+          <circle class="xp-ring-arc" cx="65" cy="65" r="62"
+                  pathLength="100"
+                  stroke-dasharray="100"
+                  stroke-dashoffset="100"
+                  data-progress="{{ xp_progress_pct }}"></circle>
+        </svg>
+        <div class="profile-photo tier-{{ tier }}">
+          {% if profile.student_photo %}
+            <img src="{{ profile.student_photo.url }}" alt="{{ profile.first_name }} {{ profile.last_name }}" />
+          {% else %}
+            {{ profile.first_name|slice:":1"|upper }}{{ profile.last_name|slice:":1"|upper }}
+          {% endif %}
+        </div>
+        <span class="level-pill tier-{{ tier }}" title="XP {{ xp_into_level }} / {{ xp_for_next_level }}">Lv {{ current_level }}</span>
+      </div>
+      {% endwith %}
+
+      <div class="profile-meta">
+        {% if profile.role %}
+          <span class="profile-role-pill">{{ profile.role.name }}</span>
+        {% endif %}
+        <h1 class="profile-name">{{ profile.first_name }} {{ profile.last_name }}</h1>
+        <div class="profile-school-info">
+          {% if profile.course %}<span><i class="fas fa-graduation-cap"></i> {{ profile.course }}</span>{% endif %}
+          {% if profile.grade_year_level %}<span><i class="fas fa-layer-group"></i> {{ profile.grade_year_level }}</span>{% endif %}
+          {% if profile.id_number %}<span><i class="far fa-id-card"></i> {{ profile.id_number }}</span>{% endif %}
+        </div>
+
+        <div class="profile-actions">
+          <button type="button" class="cl-tour-replay" data-cl-tour="student-profile">
+            <i class="fas fa-circle-question"></i> Show me how
+          </button>
+          {% if is_own_profile %}
+            <button type="button" class="profile-action primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+              <i class="fas fa-pen"></i> Edit Profile
+            </button>
+          {% endif %}
+          {% if is_own_profile %}
+            <button type="button" class="profile-action primary" id="public-link-btn">
+              <i class="fas fa-share-nodes"></i> Share Profile
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {% if is_own_profile %}
+  <div id="public-link-panel" style="display:none; background:var(--paper,#fff); border:1px solid var(--border,#e5e7eb); border-radius:12px; padding:16px 20px; margin-top:12px; box-shadow:0 4px 16px -8px rgba(0,0,0,.08);">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div>
+        <div style="font-weight:600; color:var(--forest,#1b4332); font-size:14px;">
+          <i class="fas fa-globe"></i> Public Profile Link
+        </div>
+        <div style="font-size:12px; color:var(--ink-muted,#9ca3af); margin-top:2px;">
+          A read-only page showing your name, level, featured badges and recognitions. No personal info is exposed.
+        </div>
+      </div>
+      <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="public-link-toggle" style="width:18px; height:18px;">
+        <span style="font-size:13px; font-weight:600;" id="public-link-toggle-label">Off</span>
+      </label>
+    </div>
+    <div id="public-link-url-row" style="display:none; margin-top:12px;">
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input type="text" id="public-link-url" readonly style="flex:1; min-width:240px; padding:8px 12px; border:1px solid var(--border,#e5e7eb); border-radius:8px; font-family:monospace; font-size:12px; background:var(--cream-2,#f3ecdf);">
+        <button type="button" id="public-link-copy" class="profile-action" style="padding:8px 14px;"><i class="fas fa-copy"></i> Copy</button>
+        <button type="button" id="public-link-rotate" class="profile-action" style="padding:8px 14px;" title="Generate a new link (invalidates the old one)"><i class="fas fa-rotate"></i> Rotate</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const btn = document.getElementById('public-link-btn');
+      const panel = document.getElementById('public-link-panel');
+      const toggle = document.getElementById('public-link-toggle');
+      const label = document.getElementById('public-link-toggle-label');
+      const urlRow = document.getElementById('public-link-url-row');
+      const urlInput = document.getElementById('public-link-url');
+      const csrf = document.querySelector('[name=csrfmiddlewaretoken]') || document.querySelector('meta[name="csrf-token"]');
+      const csrfValue = csrf ? (csrf.value || csrf.content) : '';
+
+      function setState(enabled, shareUrl) {
+        toggle.checked = enabled;
+        label.textContent = enabled ? 'On' : 'Off';
+        if (enabled && shareUrl) {
+          urlRow.style.display = '';
+          urlInput.value = shareUrl;
+        } else {
+          urlRow.style.display = 'none';
+        }
+      }
+
+      function send(action) {
+        const fd = new FormData();
+        fd.append('action', action);
+        fd.append('csrfmiddlewaretoken', csrfValue);
+        return fetch('{% url "toggle_profile_share" %}', { method: 'POST', body: fd, credentials: 'same-origin' })
+          .then(r => r.json())
+          .then(d => { if (d.ok) setState(d.enabled, d.share_url); });
+      }
+
+      btn && btn.addEventListener('click', () => {
+        panel.style.display = panel.style.display === 'none' ? '' : 'none';
+      });
+      toggle && toggle.addEventListener('change', () => send(toggle.checked ? 'enable' : 'disable'));
+      document.getElementById('public-link-copy').addEventListener('click', () => {
+        urlInput.select(); document.execCommand('copy');
+      });
+      document.getElementById('public-link-rotate').addEventListener('click', () => {
+        if (confirm('Generate a new link? The old one will stop working.')) send('rotate');
+      });
+    })();
+  </script>
+  {% endif %}
+
+  <!-- Stat strip -->
+  <section class="profile-stats">
+    <div class="stat-tile gold">
+      <div class="stat-tile-label">Total XP</div>
+      <div class="stat-tile-value">
+        {% if gamification %}{{ gamification.total_xp }}{% else %}0{% endif %}
+      </div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-tile-label">Level</div>
+      <div class="stat-tile-value">
+        {% if gamification %}{{ gamification.current_level }}{% else %}1{% endif %}
+      </div>
+    </div>
+    <div class="stat-tile mint">
+      <div class="stat-tile-label">Badges earned</div>
+      <div class="stat-tile-value">{{ earned_count }}</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-tile-label">Login streak</div>
+      <div class="stat-tile-value">
+        {% if gamification %}{{ gamification.login_streak }}<span class="accent">day{{ gamification.login_streak|pluralize }}</span>{% else %}0<span class="accent">days</span>{% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Two-column body -->
+  <div class="profile-grid">
+
+    <!-- Left: badges -->
+    <section class="profile-section">
+      <div class="profile-section-head">
+        <h2 class="profile-section-title">Badges</h2>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span class="profile-section-count">{{ earned_count }} earned</span>
+          {% if is_own_profile %}
+            <button type="button" class="manage-featured-btn" id="manageFeaturedBtn"
+                    {% if earned_count < 7 %}disabled title="Earn 7 badges to unlock"{% endif %}>
+              <i class="fas fa-star"></i> Manage Featured
+            </button>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if featured_badges or is_own_profile and earned_count >= 7 %}
+        <div class="badges-grid" id="featuredBadgesGrid">
+          {% for sb in featured_badges %}
+            <div class="badge-tile" title="{{ sb.badge.description }} &middot; Earned {{ sb.earned_at|date:'M j, Y' }}">
+              {% if sb.share_token and is_own_profile %}
+              <button type="button" class="badge-share-btn"
+                      data-share-url="{{ request.scheme }}://{{ request.get_host }}{% url 'shared_badge' token=sb.share_token %}"
+                      data-share-text="I earned the {{ sb.badge.name }} badge on ClassEdge!"
+                      data-share-kind="badge"
+                      data-badge-icon="{{ sb.badge.icon }}"
+                      data-badge-name="{{ sb.badge.name }}"
+                      data-badge-tier="{{ sb.badge.tier }}"
+                      data-badge-desc="{{ sb.badge.description }}"
+                      data-badge-date="{{ sb.earned_at|date:'M j, Y' }}"
+                      title="Share this badge">
+                <i class="fas fa-share-nodes"></i>
+              </button>
+              {% endif %}
+              <span class="badge-icon">{{ sb.badge.icon }}</span>
+              <div class="badge-name">{{ sb.badge.name }}</div>
+              <span class="badge-tier {{ sb.badge.tier }}">{{ sb.badge.tier }}</span>
+            </div>
+          {% endfor %}
+          {% if is_own_profile %}
+            {% for _ in "1234567" %}
+              {% if forloop.counter > featured_badges|length %}
+                <div class="featured-empty-slot" data-open-manage="1">
+                  <span><i class="fas fa-plus"></i><br>Pick a featured badge</span>
+                </div>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        </div>
+      {% elif earned_badges %}
+        {# Viewer with no featured curation yet — show all earned in regular grid #}
+        <div class="badges-grid">
+          {% for sb in earned_badges %}
+            <div class="badge-tile" title="{{ sb.badge.description }} &middot; Earned {{ sb.earned_at|date:'M j, Y' }}">
+              {% if sb.share_token and is_own_profile %}
+              <button type="button" class="badge-share-btn"
+                      data-share-url="{{ request.scheme }}://{{ request.get_host }}{% url 'shared_badge' token=sb.share_token %}"
+                      data-share-text="I earned the {{ sb.badge.name }} badge on ClassEdge!"
+                      data-share-kind="badge"
+                      data-badge-icon="{{ sb.badge.icon }}"
+                      data-badge-name="{{ sb.badge.name }}"
+                      data-badge-tier="{{ sb.badge.tier }}"
+                      data-badge-desc="{{ sb.badge.description }}"
+                      data-badge-date="{{ sb.earned_at|date:'M j, Y' }}"
+                      title="Share this badge">
+                <i class="fas fa-share-nodes"></i>
+              </button>
+              {% endif %}
+              <span class="badge-icon">{{ sb.badge.icon }}</span>
+              <div class="badge-name">{{ sb.badge.name }}</div>
+              <span class="badge-tier {{ sb.badge.tier }}">{{ sb.badge.tier }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="badges-empty">
+          <i class="fas fa-medal"></i>
+          No badges earned yet. Complete activities and keep your streak going to start collecting!
+        </div>
+      {% endif %}
+
+      {% if other_badges and featured_badges %}
+        <div class="more-badges">
+          <button type="button" class="more-badges-toggle" id="toggleMoreBadges"
+                  aria-expanded="false" aria-controls="moreBadgesGrid">
+            Show more badges ({{ other_badges|length }})
+          </button>
+          <div class="badges-grid more-badges-grid" id="moreBadgesGrid" hidden>
+            {% for sb in other_badges %}
+              <div class="badge-tile" title="{{ sb.badge.description }} &middot; Earned {{ sb.earned_at|date:'M j, Y' }}">
+                <span class="badge-icon">{{ sb.badge.icon }}</span>
+                <div class="badge-name">{{ sb.badge.name }}</div>
+                <span class="badge-tier {{ sb.badge.tier }}">{{ sb.badge.tier }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if upcoming_badges %}
+        <div class="profile-section-head" style="margin-top: 26px;">
+          <h2 class="profile-section-title" style="font-size: 14px; opacity: 0.8;">Up next</h2>
+          <span class="profile-section-count">Locked</span>
+        </div>
+        <div class="upcoming-list">
+          {% for b in upcoming_badges %}
+            <div class="upcoming-row">
+              <div class="upcoming-icon">{{ b.icon }}</div>
+              <div class="upcoming-info">
+                <div class="upcoming-name">{{ b.name }}</div>
+                <div class="upcoming-desc">{{ b.description }}</div>
+              </div>
+              <span class="badge-tier {{ b.tier }}">{{ b.tier }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- Right: personal info + certificates -->
+    <section class="profile-section">
+      <div class="profile-section-head">
+        <h2 class="profile-section-title">Personal info</h2>
+      </div>
+      <div class="info-list">
+        <div class="info-row"><span class="info-label">Email</span>
+          <span class="info-value">{{ profile.user.email|default:"&mdash;" }}</span></div>
+        <div class="info-row"><span class="info-label">Phone</span>
+          <span class="info-value {% if not profile.phone_number %}muted{% endif %}">{{ profile.phone_number|default:"Not set" }}</span></div>
+        <div class="info-row"><span class="info-label">Gender</span>
+          <span class="info-value {% if not profile.gender %}muted{% endif %}">{{ profile.gender|default:"Not set" }}</span></div>
+        <div class="info-row"><span class="info-label">Date of birth</span>
+          <span class="info-value {% if not profile.date_of_birth %}muted{% endif %}">{{ profile.date_of_birth|date:"F j, Y"|default:"Not set" }}</span></div>
+        <div class="info-row"><span class="info-label">Nationality</span>
+          <span class="info-value {% if not profile.nationality %}muted{% endif %}">{{ profile.nationality|default:"Not set" }}</span></div>
+        <div class="info-row"><span class="info-label">Address</span>
+          <span class="info-value {% if not profile.address %}muted{% endif %}">{{ profile.address|default:"Not set" }}</span></div>
+        {% if profile.student_status %}
+          <div class="info-row"><span class="info-label">Status</span>
+            <span class="info-value">{{ profile.student_status }}</span></div>
+        {% endif %}
+        {% if profile.department_fields %}
+          <div class="info-row"><span class="info-label">Department</span>
+            <span class="info-value">{{ profile.department_fields }}</span></div>
+        {% endif %}
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- Recognition section -->
+  <section class="profile-section" style="margin-top: 16px;">
+    <div class="profile-section-head">
+      <h2 class="profile-section-title">Teacher Recognition</h2>
+      <span class="profile-section-count">{{ recognitions_count }}</span>
+    </div>
+    {% if recognitions %}
+      <style>
+        .rec-profile-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 12px;
+        }
+        .rec-profile-card {
+          display: flex; gap: 12px; align-items: flex-start;
+          padding: 14px; border: 1px solid var(--border, #e5e7eb);
+          border-radius: 12px; background: var(--paper, #fff);
+          transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .rec-profile-card:hover { transform: translateY(-1px); box-shadow: 0 6px 16px -8px rgba(0,0,0,.15); }
+        .rec-profile-icon {
+          width: 44px; height: 44px; border-radius: 50%;
+          display: grid; place-items: center; flex-shrink: 0;
+          background: rgba(183, 146, 90, 0.15); color: var(--gold, #b7925a);
+          font-size: 18px;
+        }
+        .rec-profile-body { min-width: 0; flex: 1; }
+        .rec-profile-label {
+          font-weight: 600; color: var(--forest, #1b4332); font-size: 13px;
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+        .rec-profile-xp {
+          font-size: 10px; color: var(--gold, #b7925a); font-weight: 700;
+          background: rgba(183, 146, 90, 0.12); padding: 2px 8px; border-radius: 999px;
+          letter-spacing: 0.04em;
+        }
+        .rec-profile-msg {
+          font-size: 13px; color: var(--ink-dim, #4b5563);
+          font-style: italic; margin: 4px 0;
+          display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .rec-profile-meta {
+          font-size: 11px; color: var(--ink-muted, #9ca3af);
+          display: flex; gap: 6px; align-items: center;
+        }
+        .rec-profile-meta .from { font-weight: 600; color: var(--ink, #111827); }
+      </style>
+      <div class="rec-profile-grid">
+        {% for r in recognitions %}
+          <div class="rec-profile-card">
+            <div class="rec-profile-icon">
+              <i class="{% if r.icon %}{{ r.icon }}{% else %}fa-solid fa-star{% endif %}"></i>
+            </div>
+            <div class="rec-profile-body">
+              <div class="rec-profile-label">
+                {{ r.award_type|default:"Recognition"|title|cut:"_" }}
+              </div>
+              <div class="rec-profile-msg">"{{ r.message }}"</div>
+              <div class="rec-profile-meta">
+                <span class="from">{{ r.teacher.get_full_name|default:r.teacher.username }}</span>
+                <span>&middot;</span>
+                <span>{{ r.created_at|date:"M j, Y" }}</span>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="padding: 24px; text-align: center; color: var(--ink-muted, #9ca3af); font-size: 14px;">
+        <i class="far fa-comment" style="font-size: 24px; margin-bottom: 8px; display: block; opacity: 0.5;"></i>
+        No recognitions yet — keep up the great work!
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- Certificates section -->
+  <section class="profile-section" style="margin-top: 16px;">
+    <div class="profile-section-head">
+      <h2 class="profile-section-title">Accolades &amp; Certificates</h2>
+      <span class="profile-section-count">{{ certificates|length }}</span>
+    </div>
+    {% if certificates %}
+      <div class="cert-grid">
+        {% for cert in certificates %}
+          <div class="cert-card"
+               data-cert-url="{{ cert.file.url }}"
+               data-cert-title="{{ cert.title }}">
+            <img class="cert-card-img" src="{{ cert.file.url }}" alt="{{ cert.title }}" />
+            <div class="cert-card-body">
+              <div class="cert-card-title">{{ cert.title }}</div>
+              <div class="cert-card-date">{{ cert.issued_date|date:"M j, Y" }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-block">
+        <i class="fas fa-award"></i>
+        No certificates yet. Keep going!
+      </div>
+    {% endif %}
+  </section>
+
+  {% if is_own_profile %}
+  <div class="modal fade featured-modal" id="featuredBadgesModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">Pick your 7 featured badges</h5>
+            <div class="featured-counter" id="featuredCounter"><span id="featuredCount">0</span> / 7 selected</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="featured-grid" id="featuredGrid">
+            {% for sb in earned_badges %}
+              <div class="featured-tile {% if sb.is_featured %}selected{% endif %}" data-badge-id="{{ sb.id }}" role="button" tabindex="0">
+                <span class="badge-icon" style="font-size:26px;">{{ sb.badge.icon }}</span>
+                <div class="badge-name" style="font-size:12px; margin-top:6px;">{{ sb.badge.name }}</div>
+                <span class="check-mark"><i class="fas fa-check"></i></span>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="featured-error" id="featuredError"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="featuredSaveBtn" disabled>Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+{% if is_own_profile %}
+<div class="modal fade edit-profile-modal" id="editProfileModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="editProfileForm" enctype="multipart/form-data" method="post"
+            action="{% url 'update-profile' user_id=profile.user.id %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12 d-flex align-items-center gap-3">
+              <img src="{% if profile.student_photo %}{{ profile.student_photo.url }}{% else %}{% static 'assets/img/def_user.jpg' %}{% endif %}"
+                   class="photo-preview" id="photoPreview" alt="">
+              <div class="flex-grow-1">
+                <label class="form-label" for="id_student_photo">Photo</label>
+                <input type="file" name="student_photo" id="id_student_photo" class="form-control" accept="image/*">
+                <div class="field-error" data-error-for="student_photo"></div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="id_phone_number">Phone number</label>
+              <input type="text" name="phone_number" id="id_phone_number" class="form-control"
+                     value="{{ profile.phone_number|default:'+63' }}">
+              <div class="field-error" data-error-for="phone_number"></div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="id_gender">Gender</label>
+              <select name="gender" id="id_gender" class="form-select">
+                <option value="">—</option>
+                <option value="Male"   {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
+                <option value="Female" {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
+                <option value="Other"  {% if profile.gender == 'Other' %}selected{% endif %}>Other</option>
+              </select>
+              <div class="field-error" data-error-for="gender"></div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="id_date_of_birth">Date of birth</label>
+              <input type="date" name="date_of_birth" id="id_date_of_birth" class="form-control"
+                     value="{{ profile.date_of_birth|date:'Y-m-d' }}">
+              <div class="field-error" data-error-for="date_of_birth"></div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="id_nationality">Nationality</label>
+              <input type="text" name="nationality" id="id_nationality" class="form-control"
+                     value="{{ profile.nationality|default:'' }}">
+              <div class="field-error" data-error-for="nationality"></div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label" for="id_address">Address</label>
+              <textarea name="address" id="id_address" class="form-control" rows="2">{{ profile.address|default:'' }}</textarea>
+              <div class="field-error" data-error-for="address"></div>
+            </div>
+
+            <div class="col-12"><hr style="border-color: var(--border);"></div>
+
+            <div class="col-md-4">
+              <label class="form-label">ID number</label>
+              <input type="text" class="form-control" value="{{ profile.id_number|default:'—' }}" disabled>
+              <div class="field-hint">Managed by registrar</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Program</label>
+              <input type="text" class="form-control" value="{{ profile.course|default:'—' }}" disabled>
+              <div class="field-hint">Managed by registrar</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Year level</label>
+              <input type="text" class="form-control" value="{{ profile.grade_year_level|default:'—' }}" disabled>
+              <div class="field-hint">Managed by registrar</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="field-error me-auto" id="editProfileFormError"></div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="editProfileSubmit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+</div>
+
+<!-- Certificate preview overlay -->
+<div class="cert-overlay" id="certOverlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <button class="cert-overlay-close" id="certOverlayClose" aria-label="Close">&times;</button>
+  <img id="certOverlayImg" src="" alt="" />
+  <div class="cert-overlay-title" id="certOverlayTitle"></div>
+</div>
+
+<script>
+(function () {
+  const arc = document.querySelector('.xp-ring .xp-ring-arc');
+  if (!arc) return;
+  const progress = parseInt(arc.dataset.progress || '0', 10);
+  // dashoffset = 100 - progress (since pathLength is normalized to 100)
+  requestAnimationFrame(() => {
+    arc.setAttribute('stroke-dashoffset', String(Math.max(0, 100 - progress)));
+  });
+})();
+
+(function () {
+  const btn = document.getElementById('toggleMoreBadges');
+  const grid = document.getElementById('moreBadgesGrid');
+  if (!btn || !grid) return;
+  btn.addEventListener('click', () => {
+    const isHidden = grid.hasAttribute('hidden');
+    if (isHidden) {
+      grid.removeAttribute('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+      btn.textContent = 'Show fewer badges';
+    } else {
+      grid.setAttribute('hidden', '');
+      btn.setAttribute('aria-expanded', 'false');
+      const count = grid.querySelectorAll('.badge-tile').length;
+      btn.textContent = `Show more badges (${count})`;
+    }
+  });
+})();
+</script>
+
+<script>
+  (function() {
+    const overlay = document.getElementById('certOverlay');
+    const overlayImg = document.getElementById('certOverlayImg');
+    const overlayTitle = document.getElementById('certOverlayTitle');
+    const overlayClose = document.getElementById('certOverlayClose');
+
+    function openCert(url, title) {
+      overlayImg.src = url;
+      overlayImg.alt = title || '';
+      overlayTitle.textContent = title || '';
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeCert() {
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden', 'true');
+      overlayImg.src = '';
+      document.body.style.overflow = '';
+    }
+
+    document.querySelectorAll('.cert-card').forEach(card => {
+      card.addEventListener('click', () => {
+        openCert(card.dataset.certUrl, card.dataset.certTitle);
+      });
+    });
+    overlayClose.addEventListener('click', closeCert);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeCert(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay.classList.contains('open')) closeCert();
+    });
+  })();
+</script>
+
+<script>
+function initFeaturedBadgesUI() {
+  const openBtn = document.getElementById('manageFeaturedBtn');
+  const modalEl = document.getElementById('featuredBadgesModal');
+  if (!modalEl || typeof bootstrap === 'undefined') return;
+  if (modalEl.parentNode !== document.body) document.body.appendChild(modalEl);
+  let dim = document.querySelector('.custom-dim-layer');
+  if (!dim) {
+    dim = document.createElement('div');
+    dim.className = 'custom-dim-layer';
+    document.body.appendChild(dim);
+  }
+  const modal = new bootstrap.Modal(modalEl);
+  modalEl.addEventListener('show.bs.modal', () => dim.classList.add('show'));
+  modalEl.addEventListener('hidden.bs.modal', () => dim.classList.remove('show'));
+  dim.addEventListener('click', () => modal.hide());
+  const grid = document.getElementById('featuredGrid');
+  const counterEl = document.getElementById('featuredCount');
+  const counterWrap = document.getElementById('featuredCounter');
+  const saveBtn = document.getElementById('featuredSaveBtn');
+  const errorEl = document.getElementById('featuredError');
+
+  function getCSRFToken() {
+    return document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+  }
+
+  function selectedTiles() {
+    return grid.querySelectorAll('.featured-tile.selected');
+  }
+
+  function updateState() {
+    const count = selectedTiles().length;
+    counterEl.textContent = String(count);
+    counterWrap.classList.toggle('full', count === 7);
+    saveBtn.disabled = count !== 7;
+    if (count === 7) errorEl.textContent = '';
+  }
+
+  grid.addEventListener('click', (e) => {
+    const tile = e.target.closest('.featured-tile');
+    if (!tile) return;
+    e.preventDefault();
+    const isSelected = tile.classList.contains('selected');
+    if (!isSelected && selectedTiles().length >= 7) {
+      errorEl.textContent = 'You can only feature 7 badges. Deselect one first.';
+      return;
+    }
+    tile.classList.toggle('selected');
+    errorEl.textContent = '';
+    updateState();
+  });
+
+  if (openBtn) {
+    openBtn.addEventListener('click', () => {
+      errorEl.textContent = '';
+      updateState();
+      modal.show();
+    });
+  }
+
+  // Empty-slot tiles in the featured grid also open the modal
+  document.querySelectorAll('.featured-empty-slot[data-open-manage]').forEach(el => {
+    el.addEventListener('click', () => {
+      errorEl.textContent = '';
+      updateState();
+      modal.show();
+    });
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const ids = Array.from(selectedTiles()).map(t => parseInt(t.dataset.badgeId, 10));
+    if (ids.length !== 7) return;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    errorEl.textContent = '';
+    try {
+      const res = await fetch('/gamification/badges/featured/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+        body: JSON.stringify({ badge_ids: ids }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Save failed.');
+      window.location.reload();
+    } catch (err) {
+      errorEl.textContent = err.message || 'Couldn\'t save. Try again.';
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+    }
+  });
+
+  updateState();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => window.addEventListener('load', initFeaturedBadgesUI, { once: true }));
+} else {
+  window.addEventListener('load', initFeaturedBadgesUI, { once: true });
+}
+</script>
+
+<script>
+(function () {
+  const editModal = document.getElementById('editProfileModal');
+  if (editModal && editModal.parentNode !== document.body) {
+    document.body.appendChild(editModal);
+  }
+  try {
+    const msg = sessionStorage.getItem('profileToast');
+    if (msg) {
+      sessionStorage.removeItem('profileToast');
+      const fire = () => { if (typeof displayToast === 'function') displayToast(msg, 'success'); };
+      if (typeof Swal !== 'undefined') fire(); else window.addEventListener('load', fire);
+    }
+  } catch (_) {}
+})();
+</script>
+
+<script>
+(function () {
+  const form = document.getElementById('editProfileForm');
+  if (!form) return;
+  const submitBtn = document.getElementById('editProfileSubmit');
+  const formError = document.getElementById('editProfileFormError');
+  const photoInput = document.getElementById('id_student_photo');
+  const photoPreview = document.getElementById('photoPreview');
+
+  function getCSRFToken() {
+    return document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+  }
+
+  function clearErrors() {
+    formError.textContent = '';
+    form.querySelectorAll('.field-error').forEach(el => { el.textContent = ''; });
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+  }
+
+  function applyErrors(errors) {
+    Object.entries(errors || {}).forEach(([field, msgs]) => {
+      const target = form.querySelector(`[data-error-for="${field}"]`);
+      const input = form.querySelector(`[name="${field}"]`);
+      const text = Array.isArray(msgs) ? msgs.join(' ') : String(msgs);
+      if (target) target.textContent = text;
+      if (input) input.classList.add('is-invalid');
+    });
+  }
+
+  if (photoInput && photoPreview) {
+    photoInput.addEventListener('change', () => {
+      const file = photoInput.files && photoInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => { photoPreview.src = e.target.result; };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearErrors();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+    try {
+      const fd = new FormData(form);
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: fd,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': getCSRFToken(),
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        try { sessionStorage.setItem('profileToast', 'Profile updated successfully.'); } catch (_) {}
+        window.location.href = data.redirect || window.location.href;
+        return;
+      }
+      if (data && data.errors) {
+        applyErrors(data.errors);
+        formError.textContent = 'Please fix the errors above.';
+        if (typeof displayToast === 'function') displayToast('Please fix the errors above.', 'error');
+      } else {
+        formError.textContent = 'Couldn\'t save. Try again.';
+        if (typeof displayToast === 'function') displayToast('Couldn\'t save. Try again.', 'error');
+      }
+    } catch (err) {
+      formError.textContent = 'Network error. Please try again.';
+      if (typeof displayToast === 'function') displayToast('Network error. Please try again.', 'error');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save Changes';
+    }
+  });
+})();
+
+(function () {
+  const wrap = document.querySelector('.profile-photo-wrap');
+  if (!wrap) return;
+  const userId = '{{ profile.user.id }}';
+  const currentLevel = parseInt(wrap.dataset.currentLevel || '1', 10);
+  const tier = wrap.dataset.tier || 'bronze';
+  const isOwn = {{ is_own_profile|yesno:'true,false' }};
+  if (!isOwn) return;
+
+  const storageKey = `lastSeenLevel:${userId}`;
+  let stored = null;
+  try {
+    stored = parseInt(window.localStorage.getItem(storageKey) || 'NaN', 10);
+  } catch (_) { return; }
+
+  if (Number.isNaN(stored)) {
+    // First load on this device — record silently, don't celebrate.
+    try { window.localStorage.setItem(storageKey, String(currentLevel)); } catch (_) {}
+    return;
+  }
+
+  if (currentLevel <= stored) return;
+
+  // Celebrate.
+  const tierName = tier.charAt(0).toUpperCase() + tier.slice(1);
+  const fireToast = () => {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: `Level up! You're now Lv ${currentLevel} · ${tierName}`,
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+      });
+    }
+  };
+
+  const fireConfetti = () => {
+    if (typeof confetti === 'undefined') { fireToast(); return; }
+    const end = Date.now() + 1200;
+    (function frame() {
+      confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 } });
+      confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 } });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+    fireToast();
+  };
+
+  const markSeen = () => {
+    try { window.localStorage.setItem(storageKey, String(currentLevel)); } catch (_) {}
+  };
+
+  const fireToastAndMark = () => { fireToast(); markSeen(); };
+  const fireConfettiAndMark = () => { fireConfetti(); markSeen(); };
+
+  if (typeof confetti === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js';
+    s.onload = fireConfettiAndMark;
+    s.onerror = fireToastAndMark;
+    document.head.appendChild(s);
+  } else {
+    fireConfettiAndMark();
+  }
+})();
+</script>
+
+<div class="share-modal-backdrop" id="shareModalBackdrop">
+  <div class="share-modal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+    <div class="share-modal-head">
+      <h4 id="shareModalTitle">Share preview</h4>
+      <button type="button" class="share-modal-close" id="shareModalClose" aria-label="Close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="share-modal-preview" id="shareModalPreview">
+      <!-- filled by JS -->
+    </div>
+    <div class="share-modal-body">
+      <div class="share-modal-body-label">Share on</div>
+      <div class="share-modal-opts">
+        <a class="share-opt fb" data-net="fb" target="_blank" rel="noopener" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a class="share-opt x" data-net="x" target="_blank" rel="noopener" title="X"><i class="fab fa-x-twitter"></i></a>
+        <a class="share-opt li" data-net="li" target="_blank" rel="noopener" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <button type="button" class="share-opt copy" data-net="copy" title="Copy link"><i class="fas fa-link"></i></button>
+      </div>
+    </div>
+    <div class="share-modal-foot">
+      Anyone with this link can view this page. <a href="#" id="shareModalOpenPage" target="_blank" rel="noopener">View public page &rarr;</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Profile-level share toggle
+  const shareBtn = document.getElementById('shareProfileBtn');
+  const shareMenu = document.getElementById('shareProfileMenu');
+  if (shareBtn && shareMenu) {
+    shareBtn.addEventListener('click', () => {
+      shareMenu.style.display = shareMenu.style.display === 'flex' ? 'none' : 'flex';
+    });
+  }
+  document.querySelectorAll('.share-copy').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.url);
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.style.background = '#28a745';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.background = '#6c757d'; }, 1500);
+      } catch (_) {
+        window.prompt('Copy this link:', btn.dataset.url);
+      }
+    });
+  });
+
+  // Share preview modal — opens with a preview card, then platform buttons
+  const backdrop = document.getElementById('shareModalBackdrop');
+  if (!backdrop) return;
+  // Teleport the modal to <body> so its `position: fixed` is always
+  // scoped to the viewport. Without this, any ancestor with a
+  // `transform` / `filter` / animation (e.g. the operations shell's
+  // `.page-content` fade-up, or any decorative gradient wrapper) makes
+  // the backdrop cover only that ancestor, not the full screen.
+  if (backdrop.parentNode !== document.body) document.body.appendChild(backdrop);
+  const preview = document.getElementById('shareModalPreview');
+  const titleEl = document.getElementById('shareModalTitle');
+  const closeBtn = document.getElementById('shareModalClose');
+  const openPageLink = document.getElementById('shareModalOpenPage');
+  const fb = backdrop.querySelector('[data-net="fb"]');
+  const xb = backdrop.querySelector('[data-net="x"]');
+  const li = backdrop.querySelector('[data-net="li"]');
+  const copy = backdrop.querySelector('[data-net="copy"]');
+
+  function closeModal() { backdrop.classList.remove('open'); document.body.style.overflow = ''; }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function buildBadgePreview(d) {
+    return `
+      <div class="share-preview-hint">Preview of what others will see</div>
+      <span class="share-preview-icon">${escapeHtml(d.icon)}</span>
+      <div class="share-preview-title">${escapeHtml(d.name)}</div>
+      <div class="share-preview-sub">Earned on ${escapeHtml(d.date)}</div>
+      <div class="share-preview-meta">
+        <span class="share-preview-pill"><i class="fas fa-star"></i> ${escapeHtml((d.tier || '').toUpperCase())}</span>
+      </div>
+    `;
+  }
+  function buildProfilePreview(d) {
+    const photo = d.photo
+      ? `<img class="share-preview-avatar" src="${escapeHtml(d.photo)}" alt="">`
+      : `<div class="share-preview-avatar" style="display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:26px;color:var(--brand-primary, #b7925a);font-weight:600;">${escapeHtml((d.name || '?').charAt(0).toUpperCase())}</div>`;
+    return `
+      <div class="share-preview-hint">Preview of what others will see</div>
+      ${photo}
+      <div class="share-preview-title">${escapeHtml(d.name)}</div>
+      <div class="share-preview-sub">${escapeHtml(d.role)} &middot; Level ${escapeHtml(d.level)}</div>
+      <div class="share-preview-meta">
+        <span class="share-preview-pill"><i class="fas fa-bolt"></i> ${escapeHtml(d.xp)} XP</span>
+        <span class="share-preview-pill"><i class="fas fa-medal"></i> ${escapeHtml(d.badges)} badges</span>
+      </div>
+    `;
+  }
+
+  function openModalFor(btn) {
+    const url = btn.dataset.shareUrl;
+    const text = btn.dataset.shareText || '';
+    const kind = btn.dataset.shareKind || 'badge';
+
+    if (kind === 'profile') {
+      titleEl.textContent = 'Share your profile';
+      preview.innerHTML = buildProfilePreview({
+        name: btn.dataset.profileName,
+        role: btn.dataset.profileRole,
+        photo: btn.dataset.profilePhoto,
+        xp: btn.dataset.profileXp,
+        level: btn.dataset.profileLevel,
+        badges: btn.dataset.profileBadges,
+      });
+    } else {
+      titleEl.textContent = 'Share your badge';
+      preview.innerHTML = buildBadgePreview({
+        icon: btn.dataset.badgeIcon,
+        name: btn.dataset.badgeName,
+        tier: btn.dataset.badgeTier,
+        date: btn.dataset.badgeDate,
+        desc: btn.dataset.badgeDesc,
+      });
+    }
+
+    fb.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
+    xb.href = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text);
+    li.href = 'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url);
+    openPageLink.href = url;
+    copy.dataset.url = url;
+
+    backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  document.querySelectorAll('.badge-share-btn, .share-trigger').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); openModalFor(btn); });
+  });
+
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(copy.dataset.url);
+      const orig = copy.innerHTML;
+      copy.innerHTML = '<i class="fas fa-check"></i>';
+      copy.style.background = '#28a745';
+      setTimeout(() => { copy.innerHTML = orig; copy.style.background = '#6c757d'; }, 1500);
+    } catch (_) {
+      window.prompt('Copy this link:', copy.dataset.url);
+    }
+  });
+
+  closeBtn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && backdrop.classList.contains('open')) closeModal(); });
+})();
+</script>
+
+<script src="{% static 'js/tours/cl-tour-student-profile.js' %}" defer></script>
+{% endblock %}

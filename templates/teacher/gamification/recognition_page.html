@@ -1,0 +1,82 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Student Recognition{% endblock %}
+
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'gamification/teacher/recognition_page.css' %}" />
+{% endblock %}
+
+{% block content %}
+{% include "termbook/_form_styles.html" %}
+
+<div class="gbf-page">
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Send <em>Recognition</em></h1>
+      <p class="page-sub">Celebrate student effort with XP and a personal note.</p>
+    </div>
+  </div>
+
+  <div class="rec-grid">
+    <div class="gbf-card" style="max-width: none;">
+      <h3 class="rec-card-title"><i class="fas fa-users"></i> Students</h3>
+      <input type="text" id="rec-student-search" class="rec-search" placeholder="Search students…" />
+      <ul class="rec-list" id="rec-student-list">
+        {% for s in students %}
+          <li class="rec-row" data-name="{{ s.get_full_name|default:s.username|lower }}">
+            <div>
+              <div class="name">{{ s.get_full_name|default:s.username }}</div>
+              <div class="meta">{{ s.email }}</div>
+            </div>
+            <button type="button" class="rec-send-btn"
+                    data-student-id="{{ s.pk }}"
+                    onclick="openRecognitionModal({{ s.pk }}, '{{ s.get_full_name|default:s.username|escapejs }}')">
+              <i class="fas fa-star"></i> Recognize
+            </button>
+          </li>
+        {% empty %}
+          <li class="rec-empty">No students found.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="gbf-card" style="max-width: none;">
+      <h3 class="rec-card-title"><i class="fas fa-medal"></i> Recent Recognitions</h3>
+      {% for r in recent %}
+        <div class="rec-history-item">
+          <div class="who">
+            {% if r.icon %}<i class="{{ r.icon }}"></i>{% endif %}
+            <span>{{ r.student.get_full_name|default:r.student.username }}</span>
+            <span class="xp">+{{ r.xp_awarded }} XP</span>
+          </div>
+          <div class="msg">"{{ r.message }}"</div>
+          <div class="when">{{ r.created_at|date:"M j, Y · g:i A" }}</div>
+        </div>
+      {% empty %}
+        <div class="rec-empty">You haven't sent any recognitions yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% include "teacher/gamification/teacher_recognition_modal.html" %}
+
+<script>
+  document.getElementById('rec-student-search').addEventListener('input', function () {
+    const qLower = this.value.trim().toLowerCase();
+    const qRaw = this.value.trim();
+    document.querySelectorAll('#rec-student-list .rec-row').forEach(function (row) {
+      const name = row.getAttribute('data-name') || '';
+      const visible = !qLower || name.indexOf(qLower) !== -1;
+      row.style.display = visible ? '' : 'none';
+      // Highlight matches inside the visible row text. Pass the raw query
+      // so case is preserved in the regex (the engine itself is case-insensitive),
+      // and skip hidden rows so we don't touch DOM the user can't see.
+      if (visible && window.ClHighlight) window.ClHighlight.wrap(row, qRaw);
+      else if (window.ClHighlight) window.ClHighlight.clear(row);
+    });
+  });
+</script>
+{% endblock %}

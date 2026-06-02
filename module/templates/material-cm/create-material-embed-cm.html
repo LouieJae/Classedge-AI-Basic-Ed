@@ -1,0 +1,109 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Add Embed Lesson" %}
+</head>
+<body>
+  <div class="cm-shell">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Add material <em>embed</em></h1>
+          <div class="cm-subtitle">{{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %}</div>
+        </div>
+        <div class="cm-hero-actions">
+          <button type="button" class="cl-tour-replay" data-cl-tour="create-material-embed-cm">
+            <i class="fas fa-circle-question"></i> Show me how
+          </button>
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to classroom</a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-form-card">
+      <div class="cm-form-head">
+        <h2><span class="icon"><i class="fas fa-code"></i></span> Embedded content</h2>
+      </div>
+      <form method="post" action="{% url 'create-material-embed-cm' subject.id %}" data-cl-autosave="create-material-embed-cm" data-cl-loading data-cl-loading-label="Creating…">
+        {% csrf_token %}
+        <div class="cm-form-body">
+          <div class="cm-form-row">
+            <div class="cm-col-6">
+              <label for="file_name">Name</label>
+              {{ form.file_name }}
+            </div>
+            <div class="cm-col-6">
+              <label for="term">Term</label>
+              {{ form.term }}
+            </div>
+          </div>
+
+          <div class="cm-form-row">
+            <div class="cm-col-12">
+              <label for="iframe_code">Embed code</label>
+              {{ form.iframe_code }}
+              <small>Paste the full iframe embed code (e.g., from Microsoft Sway, YouTube, or another LMS).</small>
+            </div>
+          </div>
+
+          <div class="cm-form-row">
+            <div class="cm-col-12">
+              <div class="cm-field-head">
+                <label for="display_lesson_for_selected_users">Display for selected students <small style="display:inline; margin-left:4px;">(leave empty for all)</small></label>
+                <div class="cm-field-head-actions">
+                  <button type="button" id="selectAllStudents" class="cm-btn ghost cm-btn-sm">Select all</button>
+                  <button type="button" id="clearAllStudents" class="cm-btn ghost cm-btn-sm">Clear all</button>
+                </div>
+              </div>
+              {{ form.display_lesson_for_selected_users }}
+            </div>
+          </div>
+
+          <div class="cm-form-row">
+            <div class="cm-col-6">
+              <label for="start_date">Start date</label>
+              {{ form.start_date }}
+            </div>
+            <div class="cm-col-6">
+              <label for="end_date">End date</label>
+              {{ form.end_date }}
+            </div>
+          </div>
+
+          <div class="cm-form-row">
+            <div class="cm-col-12">
+              <label for="description">Description</label>
+              {{ form.description }}
+            </div>
+          </div>
+        </div>
+
+        <div class="cm-form-foot">
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost">Cancel</a>
+          <button type="submit" class="cm-btn primary"><i class="fas fa-check"></i> Save material</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script src="{% static 'js/tours/cl-tour-create-material-embed-cm.js' %}" defer></script>
+  <script>
+    (function bindAudienceButtons() {
+      if (!(window.jQuery && window.jQuery.fn)) return setTimeout(bindAudienceButtons, 60);
+      var $ = window.jQuery;
+      var f = $('#id_display_lesson_for_selected_users');
+      if (!f.length) return;
+      $('#selectAllStudents').off('.cl').on('click.cl', function () {
+        f.find('option').prop('selected', true).end().trigger('change');
+      });
+      $('#clearAllStudents').off('.cl').on('click.cl', function () {
+        f.val(null).trigger('change');
+      });
+    })();
+  </script>
+</body>
+</html>

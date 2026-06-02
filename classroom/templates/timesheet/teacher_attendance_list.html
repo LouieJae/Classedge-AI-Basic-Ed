@@ -1,0 +1,49 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}
+  Subject List
+{% endblock %}
+{% block content %}
+  <div class="tal-head" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+    <h3 class="mb-0"><i class="fas fa-user-clock me-2"></i>Teacher Attendance</h3>
+    <button type="button" class="cl-tour-replay" data-cl-tour="teacher-attendance-list">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+        <!-- DataTales Example -->
+        <div class="card shadow mb-4">
+          <div class="card-body">
+            <div class="table-responsive scrollbar">
+              <table class="table mb-0 data-table table-hover table-bordered fs-10 teacher-attendance-list-table">
+                <thead>
+                  <tr>
+                    <th>Teacher</th>
+                    <th>Subject</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody class="text-center">
+                  {% for subject in subject %}
+                    <tr>
+                      <td>{{ subject.subject_name }}</td>
+                      <td>{{ subject.assign_teacher.first_name }} {{ subject.assign_teacher.last_name }}</td>
+                      <td>
+                        <a href="{% url 'teacher_attendance_details' subject.id %}" class="btn btn-primary">
+                          View
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+  <script src="{% static 'classroom/teacher_attendance_list.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-teacher-attendance-list.js' %}" defer></script>
+
+{% endblock %}

@@ -1,0 +1,217 @@
+{% extends is_student_role|yesno:"student_base.html,base_operation.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Setup{% endif %} Test Cases | {{ activity.activity_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .setup-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 0 40px;
+  }
+
+  .setup-header {
+    margin-bottom: 28px;
+  }
+
+  .setup-header h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--text);
+  }
+
+  .setup-header p {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .setup-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 28px;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .form-group .help-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="number"],
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 14px;
+    transition: border-color 0.15s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--violet);
+    box-shadow: 0 0 0 3px rgba(157, 141, 255, 0.15);
+  }
+
+  .form-group textarea.mono {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+
+  .form-group .field-error {
+    color: var(--coral);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .form-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 28px;
+  }
+
+  .submit-btn {
+    background: var(--brand-primary, #b7925a);
+    color: #0a0f1f;
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 36px -8px var(--gold-glow);
+  }
+
+  .cancel-link {
+    color: var(--text-dim);
+    font-size: 14px;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .cancel-link:hover { color: var(--text); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="setup-container">
+
+  <div class="setup-header">
+    <h2>{% if is_edit %}Edit Test Cases{% else %}Setup Test Cases{% endif %}</h2>
+    <p>{{ activity.activity_name }}</p>
+  </div>
+
+  <form method="post" class="setup-form" novalidate>
+    {% csrf_token %}
+
+    <!-- Language -->
+    <div class="form-group">
+      <label for="id_language">Language</label>
+      <select name="language" id="id_language">
+        {% for val, label in form.fields.language.choices %}
+          <option value="{{ val }}" {% if form.language.value == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if form.language.errors %}
+        {% for err in form.language.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Starter Code -->
+    <div class="form-group">
+      <label for="id_starter_code">Starter Code</label>
+      <textarea name="starter_code" id="id_starter_code" rows="8" class="mono">{{ form.starter_code.value|default_if_none:"" }}</textarea>
+      {% if form.starter_code.errors %}
+        {% for err in form.starter_code.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Solution Code -->
+    <div class="form-group">
+      <label for="id_solution_code">Solution Code</label>
+      <textarea name="solution_code" id="id_solution_code" rows="8" class="mono">{{ form.solution_code.value|default_if_none:"" }}</textarea>
+      {% if form.solution_code.errors %}
+        {% for err in form.solution_code.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Test Cases -->
+    <div class="form-group">
+      <label for="id_test_cases_text">Test Cases (JSON)</label>
+      <textarea name="test_cases_text" id="id_test_cases_text" rows="12" class="mono"
+        placeholder='[&#10;  {&#10;    "input": "5\n3",&#10;    "expected_output": "8",&#10;    "label": "Add two numbers"&#10;  }&#10;]'>{{ form.test_cases_text.value|default_if_none:"" }}</textarea>
+      <div class="help-text">JSON array. Each object must have "expected_output"; "input" and "label" are optional.</div>
+      {% if form.test_cases_text.errors %}
+        {% for err in form.test_cases_text.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Time Limit -->
+    <div class="form-group">
+      <label for="id_time_limit_seconds">Time Limit (seconds)</label>
+      <input type="number" name="time_limit_seconds" id="id_time_limit_seconds" min="1" max="30"
+        value="{{ form.time_limit_seconds.value|default_if_none:"5" }}" />
+      {% if form.time_limit_seconds.errors %}
+        {% for err in form.time_limit_seconds.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Memory Limit -->
+    <div class="form-group">
+      <label for="id_memory_limit_kb">Memory Limit (KB)</label>
+      <input type="number" name="memory_limit_kb" id="id_memory_limit_kb" min="1024" max="512000"
+        value="{{ form.memory_limit_kb.value|default_if_none:"256000" }}" />
+      {% if form.memory_limit_kb.errors %}
+        {% for err in form.memory_limit_kb.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Non-field errors -->
+    {% if form.non_field_errors %}
+      {% for err in form.non_field_errors %}
+        <div class="field-error" style="margin-bottom:12px;">{{ err }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="form-actions">
+      <button type="submit" class="submit-btn">
+        {% if is_edit %}Save Changes{% else %}Create Exercise{% endif %}
+      </button>
+      <a href="{% url 'assessment-details' activity.pk %}" class="cancel-link">Cancel</a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

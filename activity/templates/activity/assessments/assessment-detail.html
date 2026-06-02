@@ -1,0 +1,370 @@
+{% extends is_student_role|yesno:'student_base.html,base_operation.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ activity.activity_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'activity/assessments/assessment-detail.css' %}" />
+{% endblock %}
+
+{% block content %}
+{% with type_lc=activity.activity_type.name|lower|default:"" %}
+<div class="ad-page">
+
+  <div class="ad-crumbs" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <a href="{% url 'material-list' activity.subject.id %}?view=assessments">
+      <i class="fas fa-arrow-left"></i> Back to Assessments
+    </a>
+    {% if not is_student %}
+      <button type="button" class="cl-tour-replay" data-cl-tour="assessment-detail">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+    {% endif %}
+  </div>
+
+  <!-- ─── Hero ────────────────────────────────── -->
+  <section class="ad-hero
+    {% if 'exam' in type_lc %}t-exam
+    {% elif 'quiz' in type_lc %}t-quiz
+    {% elif 'assignment' in type_lc %}t-assignment
+    {% elif 'special' in type_lc %}t-special
+    {% elif 'coding' in type_lc %}t-coding
+    {% else %}t-default
+    {% endif %}">
+    <div class="ad-hero-row">
+      <div class="ad-hero-icon">
+        {% if 'exam' in type_lc %}<i class="fas fa-file-alt"></i>
+        {% elif 'quiz' in type_lc %}<i class="fas fa-question-circle"></i>
+        {% elif 'assignment' in type_lc %}<i class="fas fa-pencil-alt"></i>
+        {% elif 'special' in type_lc %}<i class="fas fa-star"></i>
+        {% elif 'coding' in type_lc %}<i class="fas fa-code"></i>
+        {% else %}<i class="fas fa-tasks"></i>
+        {% endif %}
+      </div>
+      <div class="ad-hero-info">
+        {% if activity.activity_type %}
+          <span class="ad-hero-chip">
+            {% if 'exam' in type_lc %}<i class="fas fa-file-alt"></i>
+            {% elif 'quiz' in type_lc %}<i class="fas fa-question-circle"></i>
+            {% elif 'assignment' in type_lc %}<i class="fas fa-pencil-alt"></i>
+            {% elif 'special' in type_lc %}<i class="fas fa-star"></i>
+            {% elif 'coding' in type_lc %}<i class="fas fa-code"></i>
+            {% else %}<i class="fas fa-tasks"></i>
+            {% endif %}
+            {{ activity.activity_type.name }}
+          </span>
+        {% endif %}
+        <h1 class="ad-hero-title">{{ activity.activity_name }} <em>details</em></h1>
+        <div class="ad-hero-sub">
+          <span><i class="fas fa-book"></i>{{ activity.subject.subject_name }}</span>
+          {% if activity.term %}<span><i class="fas fa-bookmark"></i>{{ activity.term.term_name }}</span>{% endif %}
+          {% if activity.max_score %}<span><i class="fas fa-star"></i>{{ activity.max_score }} max</span>{% endif %}
+          {% if activity.time_duration %}<span><i class="fas fa-stopwatch"></i>{{ activity.time_duration }} min</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="ad-stats">
+      <div class="ad-stat">
+        <div class="ad-stat-ico"><i class="far fa-calendar"></i></div>
+        <div>
+          <div class="ad-stat-label">Opens</div>
+          <div class="ad-stat-value">
+            {% if activity.start_time %}{{ activity.start_time|date:'M j, g:i A' }}{% else %}Anytime{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="ad-stat">
+        <div class="ad-stat-ico"><i class="far fa-clock"></i></div>
+        <div>
+          <div class="ad-stat-label">Closes</div>
+          <div class="ad-stat-value">
+            {% if activity.end_time %}{{ activity.end_time|date:'M j, g:i A' }}{% else %}No end{% endif %}
+          </div>
+        </div>
+      </div>
+      {% if is_teacher %}
+        <div class="ad-stat">
+          <div class="ad-stat-ico"><i class="fas fa-paper-plane"></i></div>
+          <div>
+            <div class="ad-stat-label">Submissions</div>
+            <div class="ad-stat-value">
+              {{ teacher_stats.submitted_count|default:0 }} / {{ teacher_stats.enrolled_total|default:0 }}
+            </div>
+          </div>
+        </div>
+        <div class="ad-stat">
+          <div class="ad-stat-ico"><i class="fas fa-user-clock"></i></div>
+          <div>
+            <div class="ad-stat-label">Not Submitted</div>
+            <div class="ad-stat-value">{{ teacher_stats.not_submitted_count|default:0 }}</div>
+          </div>
+        </div>
+        <div class="ad-stat">
+          <div class="ad-stat-ico"><i class="fas fa-clipboard-check"></i></div>
+          <div>
+            <div class="ad-stat-label">Graded</div>
+            <div class="ad-stat-value">
+              {{ teacher_stats.graded_count|default:0 }}{% if teacher_stats.pending_count %} <small style="opacity:.7;font-weight:500">· {{ teacher_stats.pending_count }} pending</small>{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="ad-stat">
+          <div class="ad-stat-ico"><i class="fas fa-chart-line"></i></div>
+          <div>
+            <div class="ad-stat-label">Average Score</div>
+            <div class="ad-stat-value">
+              {% if teacher_stats.avg_score %}{{ teacher_stats.avg_score|floatformat:"0" }}{% if activity.max_score %} / {{ activity.max_score|floatformat:"0" }}{% endif %}{% else %}—{% endif %}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="ad-stat">
+          {# Classroom mode has no retake counter — show submission status instead. #}
+          <div class="ad-stat-ico">
+            {% if activity.classroom_mode %}
+              <i class="fas fa-chalkboard-user"></i>
+            {% else %}
+              <i class="fas fa-redo"></i>
+            {% endif %}
+          </div>
+          <div>
+            <div class="ad-stat-label">
+              {% if activity.classroom_mode %}Submitted in class{% else %}Attempts{% endif %}
+            </div>
+            <div class="ad-stat-value">
+              {% if activity.classroom_mode %}
+                {% if student_attempt >= 1 %}Yes{% else %}Not yet{% endif %}
+              {% else %}
+                {{ student_attempt }} / {% if activity.max_retake %}{{ activity.max_retake }}{% else %}1{% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+      {% if activity.passing_score %}
+        <div class="ad-stat">
+          <div class="ad-stat-ico"><i class="fas fa-trophy"></i></div>
+          <div>
+            <div class="ad-stat-label">Passing</div>
+            <div class="ad-stat-value">
+              {{ activity.passing_score|floatformat:"-2" }}{% if activity.passing_score_type == 'percentage' %}%{% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ─── Instructions ──────────────────────────── -->
+  <div class="ad-card">
+    <div class="ad-card-head"><i class="fas fa-scroll"></i> Instructions</div>
+    {% if activity.activity_instruction %}
+      <p class="ad-instruction">{{ activity.activity_instruction|linebreaksbr }}</p>
+    {% endif %}
+    {% if activity.activity_file_instruction %}
+      <div class="ad-instr-file">
+        <a href="{{ activity.activity_file_instruction.url }}" target="_blank" rel="noopener" class="ad-instr-btn">
+          <i class="fas fa-file" aria-hidden="true"></i>
+          <span>View instruction file</span>
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+    {% endif %}
+    {% if not activity.activity_instruction and not activity.activity_file_instruction %}
+      <p class="ad-instruction empty">No special instructions for this assessment.</p>
+    {% endif %}
+  </div>
+
+  <!-- ─── Attempt History (Student) ─────────────── -->
+  {% if is_student and retake_records %}
+    <div class="ad-card">
+      <div class="ad-card-head"><i class="fas fa-history"></i> Attempt History</div>
+      <div class="ad-attempts">
+        <table class="ad-attempts-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              {% if not activity.max_retake or student_attempt < activity.max_retake %}
+                <th></th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in retake_records %}
+              <tr>
+                <td>Attempt {{ r.retake_number }}</td>
+                <td>
+                  {% if r.score %}
+                    {{ r.score|floatformat:"0" }}{% if activity.max_score %} / {{ activity.max_score|floatformat:"0" }}{% endif %}
+                  {% elif r.pk == canonical_retake_id and student_activity.total_score %}
+                    {{ student_activity.total_score|floatformat:"0" }}{% if activity.max_score %} / {{ activity.max_score|floatformat:"0" }}{% endif %}
+                  {% elif has_gradable_questions %}
+                    <span class="ad-attempt-status s-pending">Pending grading</span>
+                  {% else %}
+                    0{% if activity.max_score %} / {{ activity.max_score|floatformat:"0" }}{% endif %}
+                  {% endif %}
+                </td>
+                <td><span class="ad-attempt-status s-{{ r.status }}">{{ r.get_status_display }}</span></td>
+                <td>{{ r.retake_time|date:'M j, Y g:i A' }}</td>
+                {% if not activity.max_retake or student_attempt < activity.max_retake %}
+                  <td>
+                    <a href="{% url 'my-assessment-score' activity.id %}"
+                       class="ad-attempt-details-btn"
+                       title="View feedback and study materials">
+                      <i class="fas fa-circle-info"></i> View Details
+                    </a>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- ─── Associated Lessons ────────────────────── -->
+  {% if activity.additional_modules.all %}
+    <div class="ad-card">
+      <div class="ad-card-head"><i class="fas fa-book-open"></i> Related Lessons</div>
+      <div class="ad-lesson-list">
+        {% for module in activity.additional_modules.all %}
+          <a href="{% url 'view-material' module.id %}" class="ad-lesson-chip">
+            <i class="fas fa-book"></i> {{ module.file_name }}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- ─── Coding Setup (Coding type only) ───────── -->
+  {% if activity.activity_type.name == 'Coding' %}
+    <div class="ad-action">
+      <div class="ad-action-buttons">
+        {% if activity.coding_exercise %}
+          <a href="{% url 'exercise_detail' activity.pk %}" class="ad-btn primary">
+            <i class="fas fa-code"></i> Open Code Editor
+          </a>
+          {% if is_teacher %}
+            <a href="{% url 'exercise_edit' activity.coding_exercise.pk %}" class="ad-btn">
+              <i class="fas fa-cog"></i> Edit Test Cases
+            </a>
+          {% endif %}
+        {% elif is_teacher %}
+          <a href="{% url 'exercise_create' activity.pk %}" class="ad-btn primary">
+            <i class="fas fa-plus"></i> Setup Test Cases
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- ─── Action Bar ────────────────────────────── -->
+  {% if is_teacher or is_audit %}
+    <div class="ad-action
+      {% if 'exam' in type_lc %}t-exam
+      {% elif 'quiz' in type_lc %}t-quiz
+      {% elif 'assignment' in type_lc %}t-assignment
+      {% elif 'special' in type_lc %}t-special
+      {% elif 'coding' in type_lc %}t-coding
+      {% else %}t-default
+      {% endif %}">
+
+
+        <div class="ad-action-buttons">
+          <a href="{% url 'list-assessment-questions' activity.id %}" class="ad-btn primary">
+            <i class="fas fa-list-ul"></i> View Details
+          </a>
+          <a href="{% url 'score-sheet' activity.id %}" class="ad-btn">
+            <i class="fas fa-chart-line"></i> View Results
+          </a>
+          {% if is_teacher and has_gradable_questions %}
+            <a href="{% url 'gradebook_queue' %}?activity={{ activity.id }}" class="ad-btn success">
+              <i class="fas fa-pen-to-square"></i> Grade Submissions
+            </a>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if is_student %}
+        {% if is_absent %}
+          <div class="ad-action-msg warn">
+            <i class="fas fa-times-circle"></i> You were marked absent and cannot participate.
+          </div>
+        {% elif activity.classroom_mode %}
+          <div class="ad-action-buttons">
+            <a href="{% url 'my-assessment-score' activity.id %}" class="ad-btn">
+              <i class="fas fa-eye"></i> View Result
+            </a>
+          </div>
+        {% elif is_present %}
+          <div class="ad-action-msg info">
+            <i class="fas fa-info-circle"></i> Marked as present. Wait for further instructions.
+          </div>
+        {% else %}
+          {% if activity_ended %}
+            <div class="ad-action-msg">
+              <i class="fas fa-flag-checkered"></i> Assessment has ended.
+            </div>
+            <div class="ad-action-buttons">
+              <a href="{% url 'my-assessment-score' activity.id %}" class="ad-btn">
+                <i class="fas fa-eye"></i> View Result
+              </a>
+            </div>
+          {% elif activity.start_time and activity.start_time > now %}
+            <div class="ad-action-msg info">
+              <i class="far fa-clock"></i> Opens {{ activity.start_time|naturaltime }} ({{ activity.start_time|date:'M j, g:i A' }}).
+            </div>
+          {% elif activity.max_retake and student_attempt >= activity.max_retake %}
+            <div class="ad-action-msg">
+              <i class="fas fa-trophy"></i>
+              You've used all {{ activity.max_retake }} attempt{{ activity.max_retake|pluralize }}.
+            </div>
+            <div class="ad-action-buttons">
+              <a href="{% url 'my-assessment-score' activity.id %}" class="ad-btn primary">
+                <i class="fas fa-chart-bar"></i> View Result
+              </a>
+            </div>
+          {% else %}
+            {% if in_late_window %}
+            <div class="ad-action-msg warning">
+              <i class="fas fa-hourglass-half"></i>
+              Deadline passed. Late submissions accepted until {{ effective_deadline|date:'M j, g:i A' }}{% if activity.late_submission_penalty_percent %} — a {{ activity.late_submission_penalty_percent }}% penalty will apply{% endif %}.
+            </div>
+            {% endif %}
+            <div class="ad-action-msg">
+              {% if attempt_in_progress %}
+                <i class="fas fa-rotate-right"></i> You have an unfinished attempt — pick up where you left off.
+              {% else %}
+                <i class="fas fa-bolt"></i> Ready to begin? You'll earn XP based on your score.
+              {% endif %}
+            </div>
+            <div class="ad-action-buttons">
+              <a href="{% url 'display_question' activity.id %}" class="ad-btn primary" id="ad-start-btn" onclick="return confirmActivityStart();">
+                {% if attempt_in_progress %}
+                  <i class="fas fa-rotate-right" aria-hidden="true"></i>
+                  <span>Resume Assessment</span>
+                {% else %}
+                  <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                  <span>Start Assessment</span>
+                {% endif %}
+              </a>
+            </div>
+          {% endif %}
+        {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endwith %}
+
+<script src="{% static 'activity/assessments/assessment-detail.js' %}"></script>
+{% if not is_student %}
+  <script src="{% static 'js/tours/cl-tour-assessment-detail.js' %}" defer></script>
+{% endif %}
+{% endblock %}

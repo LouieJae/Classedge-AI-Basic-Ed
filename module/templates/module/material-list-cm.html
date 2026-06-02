@@ -1,0 +1,260 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Lessons" %}
+  <style>
+    /* Filter card */
+    .cm-filter-card {
+      background: var(--paper); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); box-shadow: var(--shadow);
+      padding: 16px 18px; margin-bottom: 18px;
+    }
+    .cm-filter-card .form-label { font-size: 11px; font-weight: 700; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .cm-filter-card .form-control, .cm-filter-card .form-select {
+      background: var(--cream); border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm); color: var(--ink);
+      font-size: 13.5px; padding: 9px 12px; transition: all 0.15s;
+    }
+    .cm-filter-card .form-control:focus, .cm-filter-card .form-select:focus {
+      border-color: var(--brand-primary, #1b4332); outline: none; box-shadow: 0 0 0 3px var(--brand-primary-soft);
+    }
+
+    /* File cell + type pills — tracking brand. .cm-pill.type-url and
+       .cm-pill.type-embed stay locked-categorical (blue/brown) so users
+       can distinguish material types regardless of tenant brand. */
+    .cm-file-cell { display: inline-flex; align-items: center; gap: 10px; max-width: 320px; }
+    .cm-file-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332); display: grid; place-items: center; font-size: 14px; flex-shrink: 0; }
+    .cm-file-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cm-pill.type-url { background: rgba(44, 123, 229, 0.12); color: #2c7be5; }
+    .cm-pill.type-embed { background: rgba(180, 106, 74, 0.12); color: #b46a4a; }
+    .cm-pill.type-file { background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332); }
+    .cm-pill.muted { background: var(--cream-2); color: var(--ink-muted); }
+
+    /* Pagination — every hover/active state tracks brand. */
+    .cm-pager { margin-top: 20px; display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
+    .cm-pager a, .cm-pager span {
+      padding: 8px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--paper);
+      color: var(--ink); font-size: 13px; text-decoration: none; transition: all 0.15s;
+    }
+    .cm-pager a:hover { border-color: var(--brand-primary, #1b4332); color: var(--brand-primary, #1b4332); }
+    .cm-pager .active { background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332); }
+    .cm-pager .disabled { opacity: 0.4; cursor: default; }
+  </style>
+</head>
+<body>
+  <div class="cm-shell wide">
+
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Materials <em>list</em></h1>
+          <div class="cm-subtitle">{{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %}</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'classroom_mode' subject_id %}" class="cm-btn ghost">
+            <i class="fas fa-arrow-left"></i> Back to Classroom
+          </a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger">
+            <i class="fas fa-sign-out-alt"></i> Exit Classroom Mode
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-toolbar">
+      <a href="{% url 'copy-materials-cm' subject_id=subject_id %}" class="cm-btn primary">
+        <i class="fas fa-clock-rotate-left"></i> Import from previous semester
+      </a>
+      <a href="{% url 'copy-materials-from-subject-cm' target_subject_id=subject_id %}" class="cm-btn gold">
+        <i class="fas fa-copy"></i> Import from another subject
+      </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="cm-filter-card">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-5 mb-2 mb-md-0">
+          <label for="searchInput" class="form-label">Search</label>
+          <input type="text" class="form-control" id="searchInput" name="search" placeholder="Search by name, term…" value="{{ search_query }}">
+        </div>
+        <div class="col-md-3 mb-2 mb-md-0">
+          <label for="sortSelect" class="form-label">Sort by</label>
+          <select class="form-select form-control" id="sortSelect" name="sort">
+            <option value="-id" {% if sort_by == '-id' %}selected{% endif %}>Newest first</option>
+            <option value="file_name" {% if sort_by == 'file_name' %}selected{% endif %}>Name (A–Z)</option>
+            <option value="-file_name" {% if sort_by == '-file_name' %}selected{% endif %}>Name (Z–A)</option>
+            <option value="start_date" {% if sort_by == 'start_date' %}selected{% endif %}>Start date (oldest)</option>
+            <option value="-start_date" {% if sort_by == '-start_date' %}selected{% endif %}>Start date (newest)</option>
+            <option value="end_date" {% if sort_by == 'end_date' %}selected{% endif %}>End date (oldest)</option>
+            <option value="-end_date" {% if sort_by == '-end_date' %}selected{% endif %}>End date (newest)</option>
+            <option value="term__term_name" {% if sort_by == 'term__term_name' %}selected{% endif %}>Term (A–Z)</option>
+            <option value="-term__term_name" {% if sort_by == '-term__term_name' %}selected{% endif %}>Term (Z–A)</option>
+          </select>
+        </div>
+        <div class="col-md-2 mb-2 mb-md-0">
+          <label for="perPageSelect" class="form-label">Per page</label>
+          <select class="form-select form-control" id="perPageSelect" name="per_page">
+            <option value="5" {% if items_per_page == 5 %}selected{% endif %}>5</option>
+            <option value="10" {% if items_per_page == 10 %}selected{% endif %}>10</option>
+            <option value="25" {% if items_per_page == 25 %}selected{% endif %}>25</option>
+            <option value="50" {% if items_per_page == 50 %}selected{% endif %}>50</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="cm-btn primary w-100" style="width: 100%; justify-content: center;">
+            <i class="fas fa-sliders"></i> Apply
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Lessons table -->
+    <div class="cm-card">
+      <div class="cm-card-head">
+        <h2 class="cm-card-title">
+          <span class="icon"><i class="fas fa-book"></i></span>
+          Materials
+        </h2>
+        <span class="cm-card-meta">{{ page_obj.paginator.count|default:0 }} total</span>
+      </div>
+
+      <div class="cm-table-wrap">
+        <table class="cm-table">
+          <thead>
+            <tr>
+              <th>File name</th>
+              <th>Type</th>
+              <th>Term</th>
+              <th>Start</th>
+              <th>End</th>
+              <th class="text-right" style="width:160px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in page_obj %}
+              <tr>
+                <td>
+                  <div class="cm-file-cell">
+                    <span class="cm-file-icon">
+                      {% if m.url %}<i class="fas fa-link"></i>
+                      {% elif m.iframe_code %}<i class="fas fa-code"></i>
+                      {% elif m.file %}<i class="fas fa-file"></i>
+                      {% else %}<i class="fas fa-file-alt"></i>{% endif %}
+                    </span>
+                    <span class="cm-file-name" title="{{ m.file_name }}">{{ m.file_name }}</span>
+                  </div>
+                </td>
+                <td>
+                  {% if m.url %}<span class="cm-pill type-url">URL</span>
+                  {% elif m.iframe_code %}<span class="cm-pill type-embed">Embed</span>
+                  {% elif m.file %}<span class="cm-pill type-file">File</span>
+                  {% else %}<span class="cm-pill muted">—</span>{% endif %}
+                </td>
+                <td>{% if m.term %}<span class="cm-pill">{{ m.term.term_name }}</span>{% else %}<span class="cm-pill muted">—</span>{% endif %}</td>
+                <td><span class="cm-time">{% if m.start_date %}{{ m.start_date }}{% else %}—{% endif %}</span></td>
+                <td><span class="cm-time">{% if m.end_date %}{{ m.end_date }}{% else %}—{% endif %}</span></td>
+                <td class="text-right" style="white-space: nowrap;">
+                  <a href="{% url 'detail-module-progress-cm' m.id %}" class="cm-row-icon-btn view" title="View progress">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  {% if perms.module.change_module %}
+                    <a href="{% url 'update-material-cm' m.id %}" class="cm-row-icon-btn edit" title="Edit material">
+                      <i class="fas fa-pen"></i>
+                    </a>
+                  {% endif %}
+                  {% if perms.module.delete_module %}
+                    <form method="post" action="{% url 'delete-material' m.id %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="button" class="cm-row-icon-btn delete js-delete-module"
+                              data-filename="{{ m.file_name|escapejs }}" title="Delete">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6">
+                  <div class="cm-empty">
+                    <i class="fas fa-book"></i>
+                    <div class="lead">No materials yet</div>
+                    <div>Add a material from Classroom Mode to see it here.</div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <nav class="cm-pager" aria-label="Pagination">
+        {% if page_obj.has_previous %}
+          <a href="?page=1&search={{ search_query }}&sort={{ sort_by }}&per_page={{ items_per_page }}">First</a>
+          <a href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}&sort={{ sort_by }}&per_page={{ items_per_page }}"><i class="fas fa-chevron-left"></i></a>
+        {% else %}
+          <span class="disabled">First</span>
+          <span class="disabled"><i class="fas fa-chevron-left"></i></span>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+            <span class="active">{{ num }}</span>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}&search={{ search_query }}&sort={{ sort_by }}&per_page={{ items_per_page }}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}&search={{ search_query }}&sort={{ sort_by }}&per_page={{ items_per_page }}"><i class="fas fa-chevron-right"></i></a>
+          <a href="?page={{ page_obj.paginator.num_pages }}&search={{ search_query }}&sort={{ sort_by }}&per_page={{ items_per_page }}">Last</a>
+        {% else %}
+          <span class="disabled"><i class="fas fa-chevron-right"></i></span>
+          <span class="disabled">Last</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </div>
+
+  <!-- Scripts -->
+  {% include "includes/_cm_scripts.html" %}
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const table = document.querySelector('.cm-table');
+      if (!table) return;
+      table.addEventListener('click', async function (e) {
+        const btn = e.target.closest('.js-delete-module');
+        if (!btn) return;
+        e.preventDefault();
+        const form = btn.closest('form');
+        const name = btn.dataset.filename || 'this module';
+        try {
+          const result = await Swal.fire({
+            title: 'Delete material?',
+            html: `Delete "<strong>${name}</strong>"?<br>This cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#c08479',
+            cancelButtonColor: '#6c7080',
+            reverseButtons: true,
+            focusCancel: true,
+          });
+          if (result.isConfirmed) {
+            btn.disabled = true;
+            form.submit();
+          }
+        } catch (err) {
+          if (confirm(`Delete "${name}"? This cannot be undone.`)) form.submit();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

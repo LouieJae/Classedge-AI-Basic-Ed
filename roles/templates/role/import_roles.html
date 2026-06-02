@@ -1,0 +1,120 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Import Roles{% endblock %}
+{% block content %}
+
+  <link rel="stylesheet" href="{% static 'roles/import_roles.css' %}" />
+
+  <div class="ir-page">
+
+    <div class="ir-header">
+      <h2><i class="fas fa-file-import me-2"></i>Import Roles from CSV</h2>
+      <p>Bulk-create roles by uploading a CSV file. Existing roles with the same name will be skipped.</p>
+    </div>
+
+    {% if messages %}
+      <div class="mb-3">
+        {% for message in messages %}
+          <div class="ir-alert {{ message.tags }}">
+            <span><i class="fas fa-info-circle me-2"></i>{{ message }}</span>
+            <button type="button" class="ir-close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="ir-grid">
+      <div class="ir-card">
+        <div class="ir-card-header">
+          <i class="fas fa-upload"></i> Upload CSV File
+        </div>
+        <div class="ir-card-body">
+          <form method="post" enctype="multipart/form-data" id="importForm"
+                data-cl-loading data-cl-loading-label="Importing…">
+            {% csrf_token %}
+
+            <span class="ir-label">CSV File</span>
+            <label class="ir-dropzone" id="dropzone">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <div class="ir-dz-title">Drop your CSV file here, or click to browse</div>
+              <div class="ir-dz-sub">Maximum file size: 5 MB · Format: .csv</div>
+              <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+            </label>
+            <div class="ir-file-chip" id="fileChip">
+              <i class="fas fa-file-csv"></i>
+              <span id="fileName">No file selected</span>
+            </div>
+
+            <div class="ir-tip">
+              <h6><i class="fas fa-lightbulb"></i> CSV Format Instructions</h6>
+              <ul>
+                <li>The first column must be <strong>Role Name</strong>.</li>
+                <li>Subsequent columns must follow the format <code>Can [action] [model]</code>.</li>
+                <li>Use <strong>Yes</strong> or <strong>No</strong> for each permission (case-insensitive).</li>
+                <li>Example: column <code>Can add course</code> with value <code>Yes</code> grants that permission.</li>
+              </ul>
+              <a href="{% url 'download_roles_template' %}" class="ir-template-link mt-2">
+                <i class="fas fa-download"></i> Download Template
+              </a>
+            </div>
+
+            <div class="ir-actions">
+              <button type="submit" class="ir-btn ir-btn-primary">
+                <i class="fas fa-upload"></i> Import Roles
+              </button>
+              <a href="{% url 'role_list' %}" class="ir-btn">
+                <i class="fas fa-arrow-left"></i> Back to Roles
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div>
+        <div class="ir-card mb-3">
+          <div class="ir-card-header">
+            <i class="fas fa-list-ol"></i> How it works
+          </div>
+          <div class="ir-card-body">
+            <div class="ir-aside-step">
+              <span class="ir-step-num">1</span>
+              <div class="ir-step-text">
+                <strong>Download the template</strong>
+                <p>Use the latest column headers so permissions map correctly.</p>
+              </div>
+            </div>
+            <div class="ir-aside-step">
+              <span class="ir-step-num">2</span>
+              <div class="ir-step-text">
+                <strong>Fill in your roles</strong>
+                <p>One row per role. Mark <code>Yes</code> for any permission to grant.</p>
+              </div>
+            </div>
+            <div class="ir-aside-step">
+              <span class="ir-step-num">3</span>
+              <div class="ir-step-text">
+                <strong>Upload &amp; import</strong>
+                <p>Duplicates are skipped automatically; new roles are created instantly.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ir-card">
+          <div class="ir-card-header">
+            <i class="fas fa-table"></i> Sample Structure
+          </div>
+          <div class="ir-card-body">
+<pre class="ir-sample">Role Name,Can add course,Can view course,Can change course,Can delete course
+Teacher,Yes,Yes,Yes,No
+Student,No,Yes,No,No
+Admin,Yes,Yes,Yes,Yes</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'roles/import_roles.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,67 @@
+  .cl-time { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+
+  /* The row dropdown menu is rendered with `position: fixed` via Bootstrap's
+     `data-bs-strategy="fixed"`, so it escapes ancestor overflow on its own.
+     We let the card body show overflow so the dropdown isn't clipped, then
+     give the actual table wrapper its own horizontal scroll. */
+  .cl-card,
+  .cl-card .cl-card-body { overflow: visible !important; }
+  .cl-page .dropdown-menu.show { z-index: 1080; position: fixed; }
+
+  /* `.table-responsive` isn't styled by the operations theme (it's a
+     Bootstrap class) — define it ourselves so the table can pan
+     horizontally on narrow viewports. `display: block` is critical: a
+     bare div is block by default, but if anything overrides it the
+     scroll silently dies. */
+  .cl-card .table-responsive {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* When the parent .cl-card uses `overflow: visible` (so dropdowns can
+     escape), the card header's background no longer gets clipped by the
+     card's rounded corners. Round the header itself so the top edge of
+     the card stays clean. */
+  .cl-card .cl-card-header {
+    border-top-left-radius: var(--radius);
+    border-top-right-radius: var(--radius);
+  }
+
+  /* ── Responsive ────────────────────────────────────────────── */
+  /* Keep the native HTML table at every width — just let the wrapper
+     scroll horizontally on phones. Every cell stays nowrap so the
+     table reaches its natural width and the wrapper handles the pan. */
+  .cl-card .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cl-table th,
+  .cl-table td { white-space: nowrap; }
+
+  @media (max-width: 900px) {
+    .cl-page .cl-toolbar { gap: 10px; }
+    .cl-page .cl-card .cl-table thead th,
+    .cl-page .cl-card .cl-table tbody td { padding: 10px 12px; }
+  }
+
+  @media (max-width: 720px) {
+    .cl-page .cl-header { gap: 12px; }
+    .cl-page .cl-header h2 { font-size: 22px; }
+    .cl-page .cl-header p { font-size: 13px; }
+    .cl-page .cl-toolbar { flex-direction: column; align-items: stretch; }
+    .cl-page .cl-toolbar .cl-search { max-width: none; width: 100%; }
+    .cl-page .cl-toolbar .cl-filter-group { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+    .cl-page .cl-card .cl-card-header { padding: 12px 16px; flex-wrap: wrap; gap: 6px; font-size: 14px; }
+    .cl-page .cl-actions .cl-btn { padding: 8px 14px; font-size: 12.5px; }
+    .cl-page .cl-card .cl-table thead th,
+    .cl-page .cl-card .cl-table tbody td { padding: 9px 12px; font-size: 12.5px; }
+  }
+
+  @media (max-width: 380px) {
+    .cl-page .cl-header h2 { font-size: 20px; }
+    .cl-page .cl-toolbar .cl-filter-group { flex-direction: column; align-items: stretch; gap: 8px; }
+  }

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Essay Submissions" %}
+  <style>
+    .cm-essay-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .cm-essay-card { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 18px; display: flex; flex-direction: column; gap: 10px; transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s; }
+    .cm-essay-card:hover { transform: translateY(-3px); border-color: var(--brand-primary, #1b4332); box-shadow: var(--shadow-hover); }
+    .cm-essay-name { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0; display: inline-flex; align-items: center; gap: 8px; }
+    .cm-essay-name i { color: var(--brand-primary, #1b4332); }
+    .cm-essay-meta { font-size: 12px; color: var(--ink-dim); }
+    .cm-essay-meta i { color: var(--forest); margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <div class="cm-shell wide">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Essay <em>submissions</em></h1>
+          <div class="cm-subtitle">{{ activity.activity_name }}{% if subject %} · {{ subject.subject_name }}{% endif %}</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'classroom_mode' activity.subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to classroom</a>
+          <a href="{% url 'material-list' activity.subject.id %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    {% if error %}
+      <div style="padding: 14px 18px; background: var(--rose-soft); color: var(--rose); border: 1px solid var(--rose); border-radius: var(--radius-sm); margin-bottom: 16px;">{{ error }}</div>
+    {% endif %}
+
+    <div class="cm-essay-grid">
+      {% for d in submission_details %}
+        <div class="cm-essay-card">
+          <h3 class="cm-essay-name"><i class="fas fa-user"></i> {{ d.student.first_name }} {{ d.student.last_name }}</h3>
+          <div class="cm-essay-meta"><i class="fas fa-tag"></i> {{ d.activity_question.quiz_type.name }}</div>
+          <a href="{% url 'grade_individual_essayCM' activity.id d.local_id %}" class="cm-btn primary cm-btn-sm" style="margin-top: auto; justify-content: center;">
+            <i class="fas fa-eye"></i> View answer
+          </a>
+        </div>
+      {% empty %}
+        <div class="cm-empty" style="grid-column: 1 / -1;">
+          <i class="fas fa-file-alt"></i>
+          <div class="lead">No essay submissions yet</div>
+          <div>Once students submit, you'll see them here for grading.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script src="{% static 'js/classroom-mode.js' %}"></script>
+  <script src="{% static 'js/classroom-mode-full-screen.js' %}"></script>
+  <script src="{% static 'js/file-validation.js' %}"></script>
+</body>
+</html>

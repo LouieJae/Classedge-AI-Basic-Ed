@@ -1,0 +1,18 @@
+<section class="badge-shelf">
+  <div class="section-header">
+    <h2 style="font-family:var(--display);font-size:22px;font-weight:500;color:var(--forest);letter-spacing:-0.015em;">My <em style="font-style:italic;color:var(--gold);font-weight:400;">Badges</em></h2>
+    <span class="badge-count">{{ teacher_badges|length }} / {{ teacher_badges_total }}</span>
+  </div>
+
+  <div class="badges-row">
+    {% for tb in teacher_badges %}
+    <div class="badge-item {{ tb.badge.tier }}" title="{{ tb.badge.name }} — earned {{ tb.earned_at|date:'M j, Y' }}">
+      <span class="badge-icon">{{ tb.badge.icon }}</span>
+    </div>
+    {% empty %}
+    <div style="padding:20px;text-align:center;color:var(--ink-dim);font-family:var(--display);font-style:italic;width:100%;">
+      No badges earned yet. Complete challenges to earn your first!
+    </div>
+    {% endfor %}
+  </div>
+</section>

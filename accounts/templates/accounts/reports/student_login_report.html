@@ -1,0 +1,34 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Student Login Report{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-user-graduate me-2"></i>Student Login Report</h2>
+        <p>Online status and last-login timestamps for every student account.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="student-login-report">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <span class="cl-status cl-status-success" style="padding: 8px 16px; font-size: 13px;">
+          <i class="fas fa-circle me-2" style="font-size: 8px;"></i>{{ active_now_count }} active now
+        </span>
+      </div>
+    </div>
+
+    <div id="cl-student-login-wrapper" class="cl-table-wrapper" data-cl-async-table data-base-url="{% url 'student-login-report' %}">
+      {% include "includes/_list_table.html" %}
+    </div>
+  </div>
+
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script src="{% static 'accounts/reports/student_login_report.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-student-login-report.js' %}" defer></script>
+{% endblock %}

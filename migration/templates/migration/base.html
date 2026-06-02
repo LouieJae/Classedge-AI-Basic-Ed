@@ -1,0 +1,55 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Data Migration{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'migration/migration.css' %}">
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+{% endblock %}
+
+{% block content %}
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="cl-page mig-page migration-shell"
+       data-poll-seconds="{{ poll_seconds|default:3 }}"
+       data-dry-run="{{ dry_run|yesno:'true,false' }}">
+
+    <div class="cl-header">
+      <div>
+        <h2>Data <em>Migration</em></h2>
+        <p>Monitor and control the import pipeline from the legacy LMS.</p>
+      </div>
+      <div class="cl-actions">
+        <a class="cl-btn" href="{% url 'migration:sequence' %}">
+          <i class="fas fa-list-check"></i> Sequence view
+        </a>
+      </div>
+    </div>
+
+    <nav class="mig-tabs" role="tablist">
+      {% url 'migration:overview' as url_overview %}
+      {% url 'migration:errors' as url_errors %}
+      {% url 'migration:settings' as url_settings %}
+      <a class="mig-tab {% if request.path == url_overview %}is-active{% endif %}"
+         href="{{ url_overview }}"><i class="fas fa-table-list"></i> Overview</a>
+      <a class="mig-tab {% if request.path == url_errors %}is-active{% endif %}"
+         href="{{ url_errors }}"><i class="fas fa-triangle-exclamation"></i> Errors</a>
+      <a class="mig-tab {% if request.path == url_settings %}is-active{% endif %}"
+         href="{{ url_settings }}"><i class="fas fa-gear"></i> Settings</a>
+    </nav>
+
+    <div class="mig-source-strip">
+      <span><b>Source</b> <code>{{ old_lms_base_url }}</code></span>
+      <span><b>Token</b> {{ token_label|default:"(env)" }}</span>
+      <span><b>Dry-run</b>
+        <span class="mig-status-pill" data-state="{% if dry_run %}running{% else %}pending{% endif %}">
+          {{ dry_run|yesno:"ON,off" }}
+        </span>
+      </span>
+      <span><b>Poll</b> {{ poll_seconds|default:3 }}s</span>
+    </div>
+
+    <main>{% block migration_content %}{% endblock %}</main>
+  </div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block content %}
+<!-- Page Heading with LMS Icon -->
+<div class="d-flex align-items-center mb-3 mt-2">
+  <i class="fas fa-book-open text-primary" style="font-size: 2.0rem; margin-right: 10px;"></i>
+  <h2 class="text-left mb-0 display-10">
+    {% if selected_semester %}
+      {{ selected_semester.semester_name }} - {{ selected_semester.get_academic_year }}
+    {% else %}
+      Please select a semester to view subjects
+    {% endif %}
+  </h2>
+</div>
+
+<!-- Semester Dropdown -->
+<div class="row mb-4">
+  <div class="col-12 col-md-8 col-lg-3">
+      <form method="get" id="semesterFilterForm">
+        <div class="mb-2">
+          <label for="semester" class="form-label">Select Semester:</label>
+          <select name="semester" id="semester" class="select2" onchange="document.getElementById('semesterFilterForm').submit();">
+            <option disabled selected>-- Choose a semester --</option>
+            {% for semester in semesters %}
+              <option value="{{ semester.id }}" {% if semester.id == selected_semester_id %}selected{% endif %}>
+                {{ semester.semester_name }} - {{ semester.get_academic_year }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </form>
+  </div>
+</div>
+<!-- Subjects Cards Grid -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
+    {% for subject in subjects %}
+      <div class="col mb-4">
+        <a href="{% url 'subjectDetailArchieved' subject.id %}{% if selected_semester_id and selected_semester_id != 'None' %}?semester={{ selected_semester_id }}{% endif %}" class="text-decoration-none">
+          <div class="card subject-card shadow h-100 border-0">
+            {% if subject.subject_photo %}
+              <div class="subject-image-wrapper">
+                <img src="{{ subject.subject_photo.url }}" class="card-img-top" alt="{{ subject.subject_name }}" />
+              </div>
+            {% else %}
+              <div class="subject-image-wrapper">
+                <img src="{% static 'images/lms.jpg' %}" class="card-img-top" alt="Default image" />
+              </div>
+            {% endif %}
+            <div class="card-body d-flex flex-column justify-content-between">
+              <h5 class="card-title mb-3 font-weight-bold text-dark">{{ subject.subject_name }}</h5>
+              <p class="card-text mb-0">
+                {% if subject.assign_teacher %}
+                  <small class="teacher-name"><strong class="mr-1">Teacher:</strong> <span class="font-italic">{{ subject.assign_teacher.get_full_name }}</span></small><br />
+                  <small class="teacher-name"><strong class="mr-1">Room:</strong> <span class="font-italic">{{ subject.room_number }}</span></small><br />
+                {% else %}
+                  <small class="teacher-name">No teacher assigned</small>
+                {% endif %}
+
+                {% if subject.schedules.all %}
+                  <small class="schedule-details"><strong>Schedule:</strong></small><br />
+                  {% for schedule in subject.schedules.all %}
+                    <small class="schedule-entry">{{ schedule.days_of_week|join:'-' }} - {{ schedule.schedule_start_time|time:'g:i A' }} to {{ schedule.schedule_end_time|time:'g:i A' }}</small><br />
+                  {% endfor %}
+                {% else %}
+                  <small class="schedule-details">No schedules available</small><br />
+                {% endif %}
+
+                <small class="student-count"><strong class="mr-1">Enrolled Students:</strong> {{ subject.student_count }}</small><br />
+                <small class="student-count"><strong class="mr-1">Subject Unit:</strong> {{ subject.unit }}</small><br />
+
+                {% if can_view_teacher_attendance %}
+                  {% if subject.is_online %}
+                    <small class="student-count"><strong class="mr-1">Present Student/s:</strong> {{ subject.present_student_count }}</small><br />
+                    {% if subject.is_classroom_mode %}
+                      <span class="badge rounded-pill badge-subtle-success">Online/Smart Classroom Mode</span>
+                    {% else %}
+                      <span class="badge rounded-pill badge-subtle-success">Online</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="badge rounded-pill badge-subtle-secondary">Offline</span>
+                  {% endif %}
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </a>
+      </div>
+    {% endfor %}
+</div>
+  <!-- Custom CSS for engaging LMS Design with maintained text colors -->
+  <link rel="stylesheet" href="{% static 'course/archived_semester.css' %}" />
+{% endblock %}

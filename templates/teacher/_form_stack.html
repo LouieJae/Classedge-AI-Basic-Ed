@@ -1,0 +1,30 @@
+{% load static %}
+{% comment %}
+Slim asset stack for teacher form pages that don't need DataTables or
+bootstrap-select. Drop-in replacement for `teacher/_legacy_stack.html`
+on pages whose only legacy dependencies are Bootstrap (grid/utilities),
+jQuery, Select2, SweetAlert2, and Font Awesome.
+
+Drops, vs the full legacy stack:
+  - DataTables core + responsive (CSS + JS, ~150 KB combined)
+  - bootstrap-select (CSS + JS)
+  - select2.full.min.js (redundant with select2.min.js)
+  - dataTables.bootstrap5 (CSS + JS)
+{% endcomment %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="{% static 'vendors/select2/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'vendors/select2-bootstrap-5-theme/select2-bootstrap-5-theme.min.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cl-select2.css' %}" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link rel="stylesheet" href="{% static 'assets/css/custom_modal.css' %}" />
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'vendors/select2/select2.min.js' %}"></script>
+<script src="{% static 'js/cl-select2.js' %}" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+  body { overflow-x: hidden; }
+</style>

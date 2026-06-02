@@ -1,0 +1,224 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Courses{% endblock %}
+
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+{% include "includes/_edit-inline.html" %}
+
+{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'subject/course-list.css' %}" />
+
+<div class="subj-page">
+
+  <!-- Header -->
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Course <em>offered</em></h1>
+      <p class="page-sub">Browse, edit, and assign teachers to the courses in this term.</p>
+    </div>
+    <span class="subj-semester {% if not selected_semester %}empty{% endif %}">
+      <i class="fas fa-calendar-day"></i>
+      {% if selected_semester %}{{ selected_semester.semester_name }} · SY {{ selected_semester.get_academic_year }}{% else %}No active semester{% endif %}
+    </span>
+  </div>
+
+  <!-- Toolbar -->
+  <form method="get" id="subjFilterForm" class="subj-toolbar">
+    {% if selected_semester %}<input type="hidden" name="semester" value="{{ selected_semester.id }}" />{% endif %}
+
+    <div class="subj-search">
+      <i class="fas fa-magnifying-glass"></i>
+      <input type="text" name="search" id="subjSearchInput"
+             value="{{ search_query }}"
+             placeholder="Search by name, code, teacher, or room…"
+             autocomplete="off"
+             hx-get="{% url 'course-list' %}"
+             hx-trigger="keyup changed delay:250ms, search"
+             hx-target="#course-list-results"
+             hx-select="#course-list-results"
+             hx-swap="outerHTML"
+             hx-push-url="true"
+             hx-include="[name='semester'],[name='per_page']"
+             hx-indicator="#course-search-spinner" />
+      <span id="course-search-spinner" class="htmx-indicator" aria-hidden="true">
+        <i class="fas fa-circle-notch fa-spin"></i>
+      </span>
+      {% if search_query %}
+        <a href="?{% if selected_semester %}semester={{ selected_semester.id }}&{% endif %}per_page={{ items_per_page }}" class="subj-search-clear" title="Clear search">&times;</a>
+      {% endif %}
+    </div>
+
+    <label class="subj-perpage">
+      Show
+      <select name="per_page" id="subjPerPage">
+        <option value="10"  {% if items_per_page == 10 %}selected{% endif %}>10</option>
+        <option value="25"  {% if items_per_page == 25 %}selected{% endif %}>25</option>
+        <option value="50"  {% if items_per_page == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if items_per_page == 100 %}selected{% endif %}>100</option>
+      </select>
+      per page
+    </label>
+
+    <div class="subj-toolbar-actions">
+      {% if perms.subject.add_subject %}
+        <a href="{% url 'create-course' %}" class="subj-btn primary">
+          <i class="fas fa-plus"></i> Add Course
+        </a>
+        <a href="{% url 'import_subjects_and_schedules' %}" class="subj-btn gold">
+          <i class="fas fa-file-import"></i> Import CSV
+        </a>
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- Card -->
+  <div id="course-list-results" class="subj-card">
+    <div class="subj-card-head">
+      <h2 class="subj-card-title">Course <em>master data</em></h2>
+      {% if page_obj %}
+        <span class="subj-card-count">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</span>
+      {% endif %}
+    </div>
+
+    <div class="subj-table-wrap">
+      <table class="subj-table">
+        <thead>
+          <tr>
+            <th>Course</th>
+            <th>Code</th>
+            <th>Teacher</th>
+            <th>Substitute</th>
+            <th>Room</th>
+            {% if perms.subject.view_subject and user_role != 'time keeper' %}
+              <th style="width: 80px; text-align: right;">Action</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for subject in page_obj %}
+            <tr>
+              <td data-label="Course">
+                <div class="subj-name-cell">
+                  {% if subject.subject_photo %}
+                    <div class="subj-thumb" style="background-image: url('{{ subject.subject_photo.url }}'); background-color: transparent; color: transparent;"></div>
+                  {% else %}
+                    <div class="subj-thumb">{{ subject.subject_name|slice:":1"|upper }}</div>
+                  {% endif %}
+                  <div>
+                    <div class="subj-name">
+                      {{ subject.subject_name }}
+                      {% if subject.is_coil %}<span class="subj-tag">COIL</span>{% endif %}
+                      {% if subject.is_hali %}<span class="subj-tag">HALI</span>{% endif %}
+                      {% if subject.is_cte %}<span class="subj-tag">CTE</span>{% endif %}
+                    </div>
+                    <div class="subj-code">
+                      <span class="cl-edit"
+                            data-endpoint="{% url 'rename-subject' subject.id %}"
+                            data-field="subject_short_name"
+                            data-label="Short name"
+                            data-min="1"
+                            data-max="30">{{ subject.subject_short_name|default:"—" }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td data-label="Code"><code style="background: var(--cream-2); padding: 3px 8px; border-radius: 4px; font-size: 12px;">{{ subject.subject_code|default:"—" }}</code></td>
+              <td data-label="Teacher"><span class="subj-teacher">{{ subject.assign_teacher.first_name }} {{ subject.assign_teacher.last_name }}</span></td>
+              <td data-label="Substitute">
+                {% if subject.substitute_teacher %}
+                  <span class="subj-teacher">{{ subject.substitute_teacher.first_name }} {{ subject.substitute_teacher.last_name }}</span>
+                {% else %}
+                  <span class="subj-teacher muted">—</span>
+                {% endif %}
+              </td>
+              <td data-label="Room">{{ subject.room_number|default:"—" }}</td>
+              {% if perms.subject.view_subject and user_role != 'time keeper' %}
+                <td data-label="Action" style="text-align: right;">
+                  <div class="dropdown" style="display: inline-block;">
+                    <button type="button" class="subj-action-btn dropdown-toggle"
+                            id="subjMenu{{ subject.id }}"
+                            data-bs-toggle="dropdown"
+                            data-bs-display="static"
+                            aria-expanded="false"
+                            aria-label="Open actions menu">
+                      <i class="fas fa-ellipsis-vertical"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="subjMenu{{ subject.id }}">
+                      {% if perms.subject.change_subject %}
+                        <a class="dropdown-item" href="{% url 'assessment-list-registrar' subject.id %}"><i class="fas fa-eye"></i> View activity</a>
+                        <a class="dropdown-item" href="{% url 'update-course' subject.id %}"><i class="fas fa-pen"></i> Edit course</a>
+                        <a class="dropdown-item danger" href="javascript:void(0);" onclick="confirmDelete({{ subject.id }})"><i class="fas fa-trash"></i> Delete</a>
+                      {% endif %}
+                      {% if request.user.profile.role.name|lower == "teacher" %}
+                        <a class="dropdown-item" href="{% url 'update-course-photo' subject.id %}"><i class="fas fa-image"></i> Photo</a>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+              {% endif %}
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="{% if perms.subject.view_subject and user_role != 'time keeper' %}6{% else %}5{% endif %}">
+                <div class="subj-empty">
+                  <i class="fas fa-inbox"></i>
+                  <div class="lead">No courses found</div>
+                  <div>{% if search_query %}Adjust your search or clear it to see all courses.{% else %}Add your first course to get started.{% endif %}</div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div class="subj-pagination">
+        <div class="subj-pag-info">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</div>
+        <ul class="subj-pag-list">
+          {% if show_first %}
+            <li><a href="?page=1{% if query_string %}&{{ query_string }}{% endif %}" title="First"><i class="fas fa-angles-left"></i></a></li>
+          {% else %}
+            <li><span class="disabled"><i class="fas fa-angles-left"></i></span></li>
+          {% endif %}
+
+          {% if page_obj.has_previous %}
+            <li><a href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}" title="Previous"><i class="fas fa-angle-left"></i></a></li>
+          {% else %}
+            <li><span class="disabled"><i class="fas fa-angle-left"></i></span></li>
+          {% endif %}
+
+          {% for num in page_range %}
+            {% if num == page_obj.number %}
+              <li><span class="current">{{ num }}</span></li>
+            {% else %}
+              <li><a href="?page={{ num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ num }}</a></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <li><a href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}" title="Next"><i class="fas fa-angle-right"></i></a></li>
+          {% else %}
+            <li><span class="disabled"><i class="fas fa-angle-right"></i></span></li>
+          {% endif %}
+
+          {% if show_last %}
+            <li><a href="?page={{ page_obj.paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}" title="Last"><i class="fas fa-angles-right"></i></a></li>
+          {% else %}
+            <li><span class="disabled"><i class="fas fa-angles-right"></i></span></li>
+          {% endif %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script src="{% static 'subject/course-list.js' %}"></script>
+
+{% csrf_token %}
+
+{% endblock %}

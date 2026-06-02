@@ -1,0 +1,1950 @@
+{% extends 'student_base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ subject.subject_name }} &middot; Lessons{% endblock %}
+
+{% block content %}
+<style>
+  .lessons-page { padding: 8px 0 32px; }
+
+  /* ── Two-column layout: lessons + activity sidebar ─────────── */
+  .lessons-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 24px;
+    align-items: start;
+  }
+  .lessons-main { min-width: 0; }
+  .lessons-side {
+    position: sticky;
+    top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  @media (max-width: 1100px) {
+    .lessons-layout { grid-template-columns: 1fr; }
+    .lessons-side { position: static; }
+  }
+
+  /* ── Activity panel (sidebar card) ─────────────────────────── */
+  .act-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 18px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .act-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--accent, var(--brand-primary));
+    opacity: 0.85;
+  }
+  .act-panel.due { --accent: var(--coral); }
+  .act-panel.todo { --accent: var(--brand-primary, #b7925a); }
+  .act-panel.upcoming { --accent: var(--mint); }
+  .act-panel.progress-panel { --accent: var(--mint); }
+  .act-panel.instructor-panel { --accent: var(--brand-primary, #b7925a); }
+  .act-panel.resources-panel { --accent: var(--coral); }
+
+  /* ── Progress card ── */
+  .progress-track {
+    height: 8px;
+    border-radius: 100px;
+    background: var(--surface-2);
+    overflow: hidden;
+    margin: 6px 0 14px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--mint), var(--brand-primary, #b7925a));
+    border-radius: 100px;
+    transition: width 0.6s ease;
+  }
+  .progress-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+  }
+  .progress-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .progress-stat-value {
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+  .progress-stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Instructor card ── */
+  .instructor-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0 12px;
+  }
+  .instructor-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-primary, #b7925a), var(--mint));
+    color: #1a1a2e;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .instructor-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .instructor-body { min-width: 0; flex: 1; }
+  .instructor-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .instructor-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .instructor-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .instructor-action:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+
+  /* ── Quick links ── */
+  .resources-list { display: flex; flex-direction: column; gap: 4px; }
+  .resources-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+  }
+  .resources-link:hover { background: var(--surface-2); color: var(--brand-primary); }
+  .resources-link > i:first-child { width: 18px; text-align: center; color: var(--text-dim); }
+  .resources-link:hover > i:first-child { color: var(--brand-primary); }
+  .resources-link span { flex: 1; }
+  .resources-chev { font-size: 11px; color: var(--text-dim); opacity: 0.5; }
+
+  /* Classmates quick link enhancements: inline count pill + avatar stack. */
+  .rl-classmates .rl-classmates-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+  .rl-count {
+    display: inline;
+    margin-left: 4px;
+    color: var(--text-dim);
+    font-size: 0.85em;
+    font-weight: 600;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .rl-count::before { content: "("; }
+  .rl-count::after { content: ")"; }
+  .resources-link:hover .rl-count {
+    color: var(--brand-primary);
+  }
+  .rl-avatars {
+    display: inline-flex;
+    flex-shrink: 0;
+    padding-left: 4px;
+  }
+  .rl-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-primary, #b7925a), var(--mint));
+    color: #1a1a2e;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9.5px;
+    font-weight: 700;
+    border: 2px solid var(--surface);
+    overflow: hidden;
+    margin-left: -8px;
+    transition: transform 0.15s;
+  }
+  .rl-avatar:first-child { margin-left: 0; }
+  .rl-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .resources-link:hover .rl-avatar { transform: translateY(-1px); }
+
+  .act-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .act-head h3 {
+    margin: 0;
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .act-head h3 i { color: var(--accent, var(--brand-primary)); }
+  .act-count {
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    font-family: var(--body);
+  }
+  .act-panel.due .act-count {
+    background: rgba(224, 69, 69, 0.12);
+    color: var(--coral);
+    border-color: rgba(224, 69, 69, 0.3);
+  }
+  .act-panel.todo .act-count {
+    background: rgba(244, 183, 64, 0.12);
+    color: var(--brand-primary, #b7925a);
+    border-color: rgba(244, 183, 64, 0.3);
+  }
+  .act-panel.upcoming .act-count {
+    background: rgba(78, 205, 196, 0.12);
+    color: var(--mint);
+    border-color: rgba(78, 205, 196, 0.3);
+  }
+
+  .act-list { display: flex; flex-direction: column; gap: 10px; }
+
+  /* "Show N more" expansion — items past the 5th are hidden until the user
+     clicks the toggle. Toggling sets `is-expanded` on the parent panel. */
+  .act-panel .act-item.is-overflow { display: none; }
+  .act-panel.is-expanded .act-item.is-overflow { display: flex; }
+  .act-more-btn {
+    margin-top: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .act-more-btn:hover { border-color: var(--accent, var(--brand-primary)); color: var(--text); }
+  .act-more-btn .label-more { display: inline; }
+  .act-more-btn .label-less { display: none; }
+  .act-panel.is-expanded .act-more-btn .label-more { display: none; }
+  .act-panel.is-expanded .act-more-btn .label-less { display: inline; }
+  .act-more-btn i { transition: transform 0.2s; }
+  .act-panel.is-expanded .act-more-btn i { transform: rotate(180deg); }
+
+  .act-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.18s ease;
+    position: relative;
+  }
+  .act-item:hover {
+    border-color: var(--accent, var(--brand-primary));
+    transform: translateX(2px);
+  }
+  .act-item .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent, var(--brand-primary));
+    flex-shrink: 0;
+    margin-top: 6px;
+    box-shadow: 0 0 8px var(--accent, var(--brand-primary));
+  }
+  .act-item-body { flex: 1; min-width: 0; }
+  .act-item-name {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .act-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    align-items: center;
+  }
+  .act-item-meta .type-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .act-item-meta .when {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .act-item-meta .when.urgent { color: var(--coral); font-weight: 600; }
+  .act-item-meta .when.soft { color: var(--mint); }
+
+  .act-empty {
+    text-align: center;
+    padding: 22px 12px;
+    color: var(--text-muted);
+    font-size: 12px;
+    background: var(--surface-2);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+  }
+  .act-empty i {
+    font-size: 22px;
+    opacity: 0.45;
+    margin-bottom: 8px;
+    display: block;
+    color: var(--accent, var(--brand-primary));
+  }
+
+  .crumbs {
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .crumbs a {
+    color: var(--brand-primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .crumbs a:hover { text-decoration: underline; }
+
+  .lessons-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .lessons-header-text { min-width: 0; }
+  .lessons-title {
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 2px;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .lessons-sub { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+  /* Compact instructor pill (right-aligned in header) */
+  .instructor-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 6px 5px 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.15s, background 0.15s;
+    max-width: 100%;
+  }
+  .instructor-chip:hover { border-color: var(--brand-primary); background: var(--surface-2); }
+  .instructor-chip .ic-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--brand-primary, #b7925a), var(--mint));
+    color: #1a1a2e;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .instructor-chip .ic-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .instructor-chip .ic-body {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+    min-width: 0;
+  }
+  .instructor-chip .ic-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+  .instructor-chip .ic-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  .instructor-chip .ic-msg {
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-left: 1px solid var(--border);
+    margin-left: 2px;
+    align-self: stretch;
+    display: inline-flex;
+    align-items: center;
+  }
+  .instructor-chip:hover .ic-msg { color: var(--brand-primary); }
+
+  /* ── Lessons / Assessments tab strip (above the search toolbar) ─── */
+  .lessons-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lessons-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    position: relative;
+    top: 1px;
+  }
+  .lessons-tab:hover { color: var(--text); }
+  .lessons-tab.is-active {
+    color: var(--brand-primary);
+    border-bottom-color: var(--brand-primary);
+  }
+  .lessons-tab .lt-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .lessons-tab.is-active .lt-count { background: var(--brand-primary-soft); color: var(--brand-primary); }
+
+  /* ── Assessment cards (per-subject inventory with status pills) ─── */
+  .asm-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .asm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-dim);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .asm-chip:hover { border-color: var(--brand-primary); color: var(--text); }
+  .asm-chip.is-active {
+    background: var(--surface-2);
+    border-color: var(--brand-primary);
+    color: var(--text);
+  }
+  .asm-chip .asm-chip-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    padding: 0 6px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+  }
+  .asm-chip.is-active .asm-chip-count { background: var(--brand-primary-soft); color: var(--brand-primary); }
+
+  .asm-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .asm-card {
+    position: relative;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent, var(--brand-primary));
+    border-radius: var(--radius);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .asm-card:hover {
+    border-color: var(--accent, var(--brand-primary));
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px -12px rgba(0, 0, 0, 0.25);
+  }
+  .asm-card.s-due-soon { --accent: var(--coral); }
+  .asm-card.s-open { --accent: var(--mint); }
+  .asm-card.s-upcoming { --accent: var(--brand-primary, #b7925a); }
+  .asm-card.s-late-open { --accent: #c47a00; }
+  .asm-card.s-missed { --accent: #c0392b; }
+  .asm-card.s-submitted, .asm-card.s-submitted-late { --accent: var(--mint); }
+  .asm-card.s-graded { --accent: #2ecc71; }
+
+  .asm-body { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; }
+  .asm-title {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .asm-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    align-items: center;
+  }
+  .asm-meta .type-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .asm-meta .asm-when { display: inline-flex; align-items: center; gap: 4px; }
+  .asm-aside { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .status-pill i { font-size: 10px; }
+  .status-pill.due-soon       { background: rgba(255, 107, 107, 0.12); color: var(--coral); border-color: rgba(255, 107, 107, 0.3); }
+  .status-pill.open           { background: rgba(78, 205, 196, 0.12); color: var(--mint);  border-color: rgba(78, 205, 196, 0.3); }
+  .status-pill.upcoming       { background: rgba(244, 183, 64, 0.14); color: var(--brand-primary, #b7925a);  border-color: rgba(244, 183, 64, 0.3); }
+  .status-pill.late-open      { background: rgba(244, 183, 64, 0.14); color: #c47a00;       border-color: rgba(244, 183, 64, 0.4); }
+  .status-pill.missed         { background: rgba(192, 57, 43, 0.10);  color: #c0392b;       border-color: rgba(192, 57, 43, 0.30); }
+  .status-pill.submitted      { background: rgba(78, 205, 196, 0.12); color: var(--mint);  border-color: rgba(78, 205, 196, 0.3); }
+  .status-pill.submitted-late { background: rgba(244, 183, 64, 0.14); color: #c47a00;       border-color: rgba(244, 183, 64, 0.4); }
+  .status-pill.graded         { background: rgba(46, 204, 113, 0.14); color: #1e7d4a;       border-color: rgba(46, 204, 113, 0.32); }
+
+  .asm-score {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+  .asm-score strong { color: var(--text); font-size: 13px; }
+
+  .asm-empty {
+    text-align: center;
+    padding: 48px 16px;
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+  }
+  .asm-empty i { font-size: 32px; margin-bottom: 10px; display: block; opacity: 0.6; }
+
+  /* Hide assessment items that don't match the active filter chip. */
+  .asm-list[data-filter="all"] .asm-card { display: grid; }
+  .asm-list:not([data-filter="all"]) .asm-card { display: none; }
+  .asm-list[data-filter="due_soon"] .asm-card[data-status="due_soon"],
+  .asm-list[data-filter="open"] .asm-card[data-status="open"],
+  .asm-list[data-filter="upcoming"] .asm-card[data-status="upcoming"],
+  .asm-list[data-filter="late_open"] .asm-card[data-status="late_open"],
+  .asm-list[data-filter="missed"] .asm-card[data-status="missed"],
+  .asm-list[data-filter="submitted"] .asm-card[data-status="submitted"],
+  .asm-list[data-filter="submitted"] .asm-card[data-status="submitted_late"],
+  .asm-list[data-filter="submitted"] .asm-card[data-status="graded"] { display: grid; }
+
+  .lessons-toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .lessons-toolbar input[type="text"] {
+    flex: 1 1 280px;
+    padding: 9px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 14px;
+    outline: none;
+  }
+  .lessons-toolbar input[type="text"]:focus { border-color: var(--brand-primary); }
+  .lessons-toolbar select {
+    padding: 9px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 13px;
+  }
+  .lessons-toolbar button {
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--brand-primary);
+    background: var(--brand-primary);
+    color: #1a1a2e;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .lesson-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .lesson-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.18s, transform 0.18s;
+  }
+  .lesson-card:hover {
+    transform: translateY(-1px);
+    border-color: var(--brand-primary);
+  }
+  .lesson-icon {
+    width: 44px; height: 44px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    background: var(--surface-2);
+    /* Default lesson-icon color tracks brand; the .kind-X overrides
+       below are categorical (file/url/embed type) and stay locked. */
+    color: var(--brand-primary);
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    border: 1px solid var(--border);
+  }
+  .lesson-icon.kind-file { color: var(--mint); }
+  .lesson-icon.kind-url { color: var(--brand-primary, #b7925a); }
+  .lesson-icon.kind-embed { color: var(--violet); }
+  .lesson-icon.kind-empty { color: var(--text-muted); }
+
+  .lesson-info { flex: 1; min-width: 0; }
+  .lesson-name {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+  .lesson-meta {
+    color: var(--text-dim);
+    font-size: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .lesson-meta span { display: inline-flex; align-items: center; gap: 5px; }
+
+  .lesson-cta {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    background: transparent;
+    color: var(--brand-primary);
+    border: 1px solid var(--brand-primary);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .lesson-card:hover .lesson-cta {
+    background: var(--brand-primary);
+    color: #1a1a2e;
+  }
+
+  .lesson-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+  .lesson-row > .lesson-card { flex: 1; min-width: 0; }
+  .lesson-download {
+    flex-shrink: 0;
+    align-self: center;
+    margin-right: 18px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    border-radius: 100px;
+    font-size: 12px; font-weight: 600;
+    color: var(--text-dim, #64748b);
+    text-decoration: none;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .lesson-download:hover {
+    border-color: var(--brand-primary, #b7925a);
+    color: var(--brand-primary, #b7925a);
+    transform: translateY(-1px);
+  }
+  .lesson-download i { font-size: 11px; }
+  @media (max-width: 540px) {
+    .lesson-download span { display: none; }
+    .lesson-download { padding: 7px 10px; margin-right: 12px; }
+  }
+
+  /* ── Lesson + nested activities (parent + children) ────────── */
+  .lesson-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: border-color 0.18s;
+  }
+  .lesson-block:hover { border-color: var(--brand-primary); }
+  .lesson-block .lesson-card {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 18px 22px;
+  }
+  .lesson-block .lesson-card:hover {
+    transform: none;
+    border: none;
+  }
+  .lesson-block.has-children .lesson-card {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .lesson-children {
+    background: linear-gradient(180deg, transparent, rgba(244, 183, 64, 0.03));
+    padding: 6px 14px 12px 28px;
+    position: relative;
+  }
+  .lesson-children::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 18px;
+    width: 2px;
+    background: linear-gradient(180deg, var(--brand-primary, #b7925a), transparent);
+    opacity: 0.45;
+  }
+
+  .lesson-child-head {
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 8px 0 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lesson-child-head i { color: var(--brand-primary, #b7925a); }
+  .lesson-child-head .count {
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    font-family: var(--body);
+  }
+
+  .lesson-child {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.18s ease;
+    margin-left: 8px;
+    position: relative;
+  }
+  .lesson-child::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 50%;
+    width: 10px;
+    height: 2px;
+    background: var(--brand-primary, #b7925a);
+    opacity: 0.35;
+  }
+  .lesson-child:hover {
+    background: var(--surface-2);
+    transform: translateX(2px);
+  }
+  .lesson-child.completed { opacity: 0.7; }
+  .lesson-child.completed .lesson-child-name { text-decoration: line-through; color: var(--text-muted); }
+
+  .lesson-child-icon {
+    width: 32px; height: 32px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+  .lesson-child-icon.t-exam { color: var(--coral); }
+  .lesson-child-icon.t-quiz { color: var(--brand-primary, #b7925a); }
+  .lesson-child-icon.t-assignment { color: var(--mint); }
+  .lesson-child-icon.t-special { color: var(--violet); }
+  .lesson-child-icon.t-coding { color: var(--violet); }
+  .lesson-child-icon.t-default { color: var(--brand-primary, #b7925a); }
+
+  .lesson-child-info { flex: 1; min-width: 0; }
+  .lesson-child-name {
+    font-family: var(--display);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lesson-child-meta {
+    color: var(--text-dim);
+    font-size: 11px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .lesson-child-meta span { display: inline-flex; align-items: center; gap: 4px; }
+  .lesson-child-meta .type-pill {
+    padding: 1px 7px;
+    border-radius: 100px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .lesson-child-meta .due-soon { color: var(--coral); font-weight: 600; }
+  .lesson-child-meta .future { color: var(--mint); }
+
+  .lesson-child-cta {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border-radius: 100px;
+    background: transparent;
+    color: var(--brand-primary);
+    border: 1px solid var(--brand-primary);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.18s;
+  }
+  .lesson-child:hover .lesson-child-cta {
+    background: var(--brand-primary);
+    color: #1a1a2e;
+  }
+  .lesson-child.completed .lesson-child-cta {
+    color: var(--mint);
+    border-color: var(--mint);
+  }
+  .lesson-child.completed:hover .lesson-child-cta {
+    background: var(--mint);
+    color: #1a1a2e;
+  }
+
+  .pagination-row {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pagination-row a, .pagination-row span {
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    text-decoration: none;
+  }
+  .pagination-row .active { background: var(--brand-primary); color: #1a1a2e; border-color: var(--brand-primary); }
+  .pagination-row .disabled { opacity: 0.4; cursor: default; }
+
+  .empty-lessons {
+    text-align: center;
+    padding: 60px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-dim);
+  }
+  .empty-lessons i { font-size: 32px; margin-bottom: 12px; opacity: 0.4; display: block; }
+
+  /* ── In-page lesson viewer modal ─────────────────────────── */
+  .lesson-viewer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 15, 31, 0.78);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    /* Fade opacity, but defer visibility flip until the fade-out finishes
+       so the element stays clickable during open and disappears cleanly on close. */
+    transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+  }
+  .lesson-viewer-backdrop.open {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.18s ease, visibility 0s linear 0s;
+  }
+  .lesson-viewer {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 1100px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 64px -16px rgba(0,0,0,0.45);
+    transform: translateY(8px);
+    transition: transform 0.18s ease, max-width 0.2s ease, max-height 0.2s ease, border-radius 0.2s ease;
+  }
+  .lesson-viewer-backdrop.open .lesson-viewer { transform: translateY(0); }
+  .lesson-viewer-backdrop.full-page { padding: 0; }
+  .lesson-viewer-backdrop.full-page .lesson-viewer {
+    max-width: none;
+    max-height: 100vh;
+    height: 100vh;
+    width: 100vw;
+    border-radius: 0;
+    border-color: transparent;
+  }
+  .lesson-viewer-backdrop.full-page .lesson-viewer-body iframe { min-height: calc(100vh - 65px); }
+
+  .lesson-viewer-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .lesson-viewer-title {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin: 0;
+  }
+  .lesson-viewer-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .lesson-viewer-action {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lesson-viewer-action:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+  .lesson-viewer-close {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 22px;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .lesson-viewer-close:hover { color: var(--text); background: var(--surface-2); }
+
+  .lesson-viewer-body {
+    flex: 1;
+    /* Reserve full viewer height up-front so the modal doesn't pop from
+       small (spinner) to large (iframe) when content swaps in. */
+    min-height: 70vh;
+    overflow: auto;
+    background: #0a0f1f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .lesson-viewer-body iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 70vh;
+    border: 0;
+    background: #fff;
+    display: block;
+  }
+  /* When an embed (Canva, Slides, etc.) injects its own
+     position-relative wrapper with `padding-top: 56.25%`, that wrapper
+     collapses inside the flex-centered body on mobile and the iframe
+     ends up as a tiny black box. Force every wrapper inside the viewer
+     body to fill, and pin the iframe inside it to the wrapper's edges
+     so the slide scales correctly on any viewport. */
+  .lesson-viewer-body > div {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 70vh;
+    padding: 0 !important;
+    margin: 0 !important;
+    flex: 1 1 auto;
+  }
+  .lesson-viewer-body > div iframe {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+  .lesson-viewer-backdrop.full-page .lesson-viewer-body > div { min-height: calc(100vh - 65px); }
+  .lesson-viewer-body img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    display: block;
+    margin: auto;
+  }
+  .lesson-viewer-body video {
+    max-width: 100%;
+    max-height: 80vh;
+    display: block;
+    margin: auto;
+  }
+  .lesson-viewer-body .viewer-empty {
+    color: var(--text-dim);
+    padding: 60px 24px;
+    text-align: center;
+  }
+  .lesson-viewer-body .viewer-empty i {
+    font-size: 32px;
+    opacity: 0.4;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  body.lesson-viewer-locked { overflow: hidden; }
+
+  @media (max-width: 700px) {
+    .lesson-viewer-backdrop { padding: 0; }
+    .lesson-viewer { max-height: 100vh; border-radius: 0; height: 100vh; max-width: none; }
+  }
+</style>
+
+<div class="lessons-page">
+  <div class="crumbs">
+    <a href="{% url 'course-list' %}"><i class="fas fa-arrow-left"></i> Back to my courses</a>
+  </div>
+
+  <div class="lessons-header">
+    <div class="lessons-header-text">
+      <h1 class="lessons-title">{{ subject.subject_name }}</h1>
+      <p class="lessons-sub">
+        {% if subject.subject_code %}{{ subject.subject_code }} &middot; {% endif %}
+        {{ page_obj.paginator.count }} lesson{{ page_obj.paginator.count|pluralize }}
+      </p>
+    </div>
+    <div class="lessons-header-aside" style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="cl-tour-replay" data-cl-tour="student-material-list">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      {% if subject.active_teacher %}
+        <a class="instructor-chip" href="{% url 'social_media_inbox' %}" title="Message instructor">
+          <span class="ic-avatar">
+            {% if subject.active_teacher.profile.profile_picture %}
+              <img src="{{ subject.active_teacher.profile.profile_picture.url }}" alt="" />
+            {% else %}
+              {{ subject.active_teacher.first_name|slice:":1"|upper }}{{ subject.active_teacher.last_name|slice:":1"|upper }}
+            {% endif %}
+          </span>
+          <span class="ic-body">
+            <span class="ic-label">{% if subject.allow_substitute_teacher and subject.substitute_teacher %}Substitute{% else %}Instructor{% endif %}</span>
+            <span class="ic-name">{{ subject.active_teacher.get_full_name|default:subject.active_teacher.username }}</span>
+          </span>
+          <span class="ic-msg" aria-label="Message instructor"><i class="fas fa-paper-plane"></i></span>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="lessons-layout">
+    <div class="lessons-main">
+
+  {# Tabs: Lessons / Assessments — preserved in URL so back-button works. #}
+  <div class="lessons-tabs" role="tablist">
+    <a class="lessons-tab {% if active_view != 'assessments' %}is-active{% endif %}"
+       href="?view=lessons" role="tab" aria-selected="{% if active_view != 'assessments' %}true{% else %}false{% endif %}">
+      <i class="fas fa-book-open"></i> Lessons
+      <span class="lt-count">{{ page_obj.paginator.count }}</span>
+    </a>
+    <a class="lessons-tab {% if active_view == 'assessments' %}is-active{% endif %}"
+       href="?view=assessments" role="tab" aria-selected="{% if active_view == 'assessments' %}true{% else %}false{% endif %}">
+      <i class="fas fa-pen-to-square"></i> Assessments
+      <span class="lt-count">{{ assessment_counts.all|default:0 }}</span>
+    </a>
+  </div>
+
+  {% if active_view != 'assessments' %}
+  <form method="get" class="lessons-toolbar">
+    <input type="hidden" name="view" value="lessons" />
+    <input type="text" name="search" placeholder="Search materials..." value="{{ search_query }}" />
+    <select name="sort">
+      <option value="-id" {% if sort_by == '-id' %}selected{% endif %}>Newest first</option>
+      <option value="file_name" {% if sort_by == 'file_name' %}selected{% endif %}>Name (A&ndash;Z)</option>
+      <option value="-file_name" {% if sort_by == '-file_name' %}selected{% endif %}>Name (Z&ndash;A)</option>
+      <option value="-end_date" {% if sort_by == '-end_date' %}selected{% endif %}>Due date (latest)</option>
+      <option value="end_date" {% if sort_by == 'end_date' %}selected{% endif %}>Due date (earliest)</option>
+    </select>
+    <button type="submit"><i class="fas fa-search"></i> Filter</button>
+  </form>
+  {% endif %}
+
+  {% if active_view == 'assessments' %}
+  {# ── Assessments view ────────────────────────────────────────── #}
+  <div class="asm-filters" role="tablist" aria-label="Filter assessments">
+    <button type="button" class="asm-chip is-active" data-asm-filter="all">
+      All <span class="asm-chip-count">{{ assessment_counts.all|default:0 }}</span>
+    </button>
+    <button type="button" class="asm-chip" data-asm-filter="due_soon">
+      <i class="fas fa-fire"></i> Due soon <span class="asm-chip-count">{{ assessment_counts.due_soon|default:0 }}</span>
+    </button>
+    <button type="button" class="asm-chip" data-asm-filter="open">
+      <i class="far fa-circle-play"></i> Open <span class="asm-chip-count">{{ assessment_counts.open|default:0 }}</span>
+    </button>
+    <button type="button" class="asm-chip" data-asm-filter="upcoming">
+      <i class="far fa-clock"></i> Upcoming <span class="asm-chip-count">{{ assessment_counts.upcoming|default:0 }}</span>
+    </button>
+    {% if assessment_counts.late_open %}
+    <button type="button" class="asm-chip" data-asm-filter="late_open">
+      <i class="fas fa-hourglass-half"></i> Late open <span class="asm-chip-count">{{ assessment_counts.late_open }}</span>
+    </button>
+    {% endif %}
+    {% if assessment_counts.missed %}
+    <button type="button" class="asm-chip" data-asm-filter="missed">
+      <i class="fas fa-circle-exclamation"></i> Missed <span class="asm-chip-count">{{ assessment_counts.missed }}</span>
+    </button>
+    {% endif %}
+    <button type="button" class="asm-chip" data-asm-filter="submitted">
+      <i class="fas fa-check"></i> Submitted <span class="asm-chip-count">{{ assessment_counts.submitted|default:0 }}</span>
+    </button>
+  </div>
+
+  <div class="asm-list" data-filter="all" id="asmList">
+    {% for item in assessment_items %}
+      {% with a=item.activity %}
+      <a class="asm-card s-{{ item.status|cut:'_' }}" href="{% url 'assessment-details' a.id %}" data-status="{{ item.status }}">
+        <div class="asm-body">
+          <div class="asm-title">{{ a.activity_name|default:"Untitled assessment" }}</div>
+          <div class="asm-meta">
+            {% if a.activity_type %}<span class="type-pill">{{ a.activity_type.name }}</span>{% endif %}
+            {% if a.max_score %}<span class="asm-when">{{ a.max_score|floatformat:"-2" }} pts</span>{% endif %}
+            {% if a.start_time and item.status == 'upcoming' %}
+              <span class="asm-when"><i class="far fa-clock"></i> Opens {{ a.start_time|date:"M j, g:i A" }}</span>
+            {% elif a.end_time %}
+              <span class="asm-when"><i class="far fa-calendar"></i> Due {{ a.end_time|date:"M j, g:i A" }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="asm-aside">
+          {% if item.status == 'due_soon' %}
+            <span class="status-pill due-soon"><i class="fas fa-bolt"></i> Due soon</span>
+          {% elif item.status == 'open' %}
+            <span class="status-pill open"><i class="far fa-circle-play"></i> Open</span>
+          {% elif item.status == 'upcoming' %}
+            <span class="status-pill upcoming"><i class="far fa-clock"></i> Upcoming</span>
+          {% elif item.status == 'late_open' %}
+            <span class="status-pill late-open"><i class="fas fa-hourglass-half"></i> Late open</span>
+          {% elif item.status == 'missed' %}
+            <span class="status-pill missed"><i class="fas fa-circle-exclamation"></i> Missed</span>
+          {% elif item.status == 'submitted' %}
+            <span class="status-pill submitted"><i class="fas fa-check"></i> Submitted</span>
+          {% elif item.status == 'submitted_late' %}
+            <span class="status-pill submitted-late"><i class="fas fa-check"></i> Submitted late</span>
+          {% elif item.status == 'graded' %}
+            <span class="status-pill graded"><i class="fas fa-star"></i> Graded</span>
+          {% endif %}
+          {% if item.score is not None and a.show_score %}
+            <span class="asm-score"><strong>{{ item.score|floatformat:"-2" }}</strong>{% if a.max_score %} / {{ a.max_score|floatformat:"-2" }}{% endif %}</span>
+          {% endif %}
+        </div>
+      </a>
+      {% endwith %}
+    {% empty %}
+      <div class="asm-empty">
+        <i class="fas fa-pen-to-square"></i>
+        No assessments yet — check back when your teacher posts one.
+      </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="lesson-list">
+    {% for lesson in page_obj %}
+      <div class="lesson-block{% if lesson.lesson_activities %} has-children{% endif %}">
+        <div class="lesson-row">
+        <a class="lesson-card"
+           data-lesson-id="{{ lesson.id }}"
+           data-lesson-name="{{ lesson.file_name }}"
+           {% if lesson.url %}data-lesson-url="{{ lesson.url }}"{% endif %}
+           {% if lesson.file %}data-lesson-file="{{ lesson.file.url }}" data-lesson-allow-download="{% if lesson.allow_download %}1{% else %}0{% endif %}"{% endif %}
+           {% if lesson.onedrive_embed_url %}data-lesson-onedrive="{{ lesson.onedrive_embed_url }}"{% endif %}
+           {% if lesson.iframe_code %}data-lesson-iframe-id="lesson-iframe-{{ lesson.id }}"{% endif %}
+           href="{% if lesson.url %}{{ lesson.url }}{% elif lesson.file %}{{ lesson.file.url }}{% else %}#{% endif %}"
+           {% if lesson.url or lesson.file %}target="_blank" rel="noopener"{% endif %}>
+          {% if lesson.url %}
+            <div class="lesson-icon kind-url"><i class="fas fa-link"></i></div>
+          {% elif lesson.file %}
+            <div class="lesson-icon kind-file"><i class="fas fa-file-alt"></i></div>
+          {% elif lesson.iframe_code %}
+            <div class="lesson-icon kind-embed"><i class="fas fa-window-maximize"></i></div>
+          {% else %}
+            <div class="lesson-icon kind-empty"><i class="far fa-circle"></i></div>
+          {% endif %}
+          <div class="lesson-info">
+            <div class="lesson-name">{{ lesson.file_name }}</div>
+            <div class="lesson-meta">
+              {% if lesson.term %}<span><i class="fas fa-folder"></i> {{ lesson.term.term_name }}</span>{% endif %}
+              {% if lesson.start_date %}<span><i class="far fa-calendar"></i> {{ lesson.start_date|date:"M j, Y" }}</span>{% endif %}
+              {% if lesson.end_date %}<span><i class="far fa-clock"></i> Ends {{ lesson.end_date|date:"M j, Y" }}</span>{% endif %}
+              {% if lesson.lesson_activities %}<span><i class="fas fa-layer-group"></i> {{ lesson.lesson_activities|length }} activit{{ lesson.lesson_activities|length|pluralize:"y,ies" }}</span>{% endif %}
+            </div>
+          </div>
+          <span class="lesson-cta">Open</span>
+        </a>
+          {% if lesson.file and lesson.allow_download %}
+            <a class="lesson-download"
+               href="{{ lesson.file.url }}"
+               download="{{ lesson.file_name }}"
+               title="Download {{ lesson.file_name }}"
+               aria-label="Download {{ lesson.file_name }}">
+              <i class="fas fa-download"></i>
+              <span>Download</span>
+            </a>
+          {% endif %}
+        </div><!-- /.lesson-row -->
+
+        {% if lesson.lesson_activities %}
+          <div class="lesson-children">
+            <div class="lesson-child-head">
+              <i class="fas fa-tasks"></i> Activities
+              <span class="count">{{ lesson.lesson_activities|length }}</span>
+            </div>
+            {% for a in lesson.lesson_activities %}
+              <a class="lesson-child{% if a.is_completed %} completed{% endif %}" href="{% url 'assessment-details' a.id %}">
+                <div class="lesson-child-icon
+                  {% with t=a.activity_type.name|lower %}
+                    {% if 'exam' in t %}t-exam
+                    {% elif 'quiz' in t %}t-quiz
+                    {% elif 'assignment' in t %}t-assignment
+                    {% elif 'special' in t %}t-special
+                    {% elif 'coding' in t %}t-coding
+                    {% else %}t-default
+                    {% endif %}
+                  {% endwith %}">
+                  {% with t=a.activity_type.name|lower %}
+                    {% if 'exam' in t %}<i class="fas fa-file-alt"></i>
+                    {% elif 'quiz' in t %}<i class="fas fa-question-circle"></i>
+                    {% elif 'assignment' in t %}<i class="fas fa-pencil-alt"></i>
+                    {% elif 'special' in t %}<i class="fas fa-star"></i>
+                    {% elif 'coding' in t %}<i class="fas fa-code"></i>
+                    {% else %}<i class="fas fa-tasks"></i>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+                <div class="lesson-child-info">
+                  <div class="lesson-child-name">{{ a.activity_name }}</div>
+                  <div class="lesson-child-meta">
+                    {% if a.activity_type %}<span class="type-pill">{{ a.activity_type.name }}</span>{% endif %}
+                    {% if a.is_completed %}
+                      <span><i class="fas fa-check-circle" style="color: var(--mint);"></i> Completed</span>
+                    {% elif a.end_time %}
+                      {% if a.end_time < now %}
+                        <span class="due-soon"><i class="fas fa-exclamation-circle"></i> Overdue</span>
+                      {% else %}
+                        <span><i class="far fa-clock"></i> Due {{ a.end_time|naturaltime }}</span>
+                      {% endif %}
+                    {% endif %}
+                    {% if a.start_time and a.start_time > now %}
+                      <span class="future"><i class="far fa-calendar"></i> Opens {{ a.start_time|naturaltime }}</span>
+                    {% endif %}
+                    {% if a.max_score %}<span><i class="fas fa-star"></i>{{ a.max_score }}</span>{% endif %}
+                  </div>
+                </div>
+                <span class="lesson-child-cta">{% if a.is_completed %}Review{% else %}Start{% endif %}</span>
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      {% if lesson.iframe_code %}
+        <template id="lesson-iframe-{{ lesson.id }}">{{ lesson.iframe_code|safe }}</template>
+      {% endif %}
+    {% empty %}
+      <div class="empty-lessons">
+        <i class="fas fa-book-open"></i>
+        <div style="font-size: 16px; margin-bottom: 6px; color: var(--text);">No lessons yet</div>
+        <div style="font-size: 13px;">Your teacher hasn't posted any lessons for this course yet.</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination-row" aria-label="Pagination">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"><i class="fas fa-chevron-left"></i></a>
+      {% else %}
+        <span class="disabled"><i class="fas fa-chevron-left"></i></span>
+      {% endif %}
+      {% for n in page_obj.paginator.page_range %}
+        {% if n == page_obj.number %}
+          <span class="active">{{ n }}</span>
+        {% else %}
+          <a href="?page={{ n }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ n }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"><i class="fas fa-chevron-right"></i></a>
+      {% else %}
+        <span class="disabled"><i class="fas fa-chevron-right"></i></span>
+      {% endif %}
+    </nav>
+  {% endif %}
+  {% endif %}{# /active_view != 'assessments' #}
+
+    </div><!-- /.lessons-main -->
+
+    <!-- ── Activity sidebar ─────────────────────────────────── -->
+    <aside class="lessons-side" aria-label="Course sidebar">
+
+      <!-- Course progress -->
+      <section class="act-panel progress-panel">
+        <div class="act-head">
+          <h3><i class="fas fa-chart-line"></i> Your Progress</h3>
+          <span class="act-count">{{ subject_progress_pct }}%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width: {{ subject_progress_pct }}%;"></div>
+        </div>
+        <div class="progress-stats">
+          <div class="progress-stat">
+            <span class="progress-stat-value">{{ subject_completed_count }}</span>
+            <span class="progress-stat-label">Completed</span>
+          </div>
+          <div class="progress-stat">
+            <span class="progress-stat-value">{{ subject_total_activities }}</span>
+            <span class="progress-stat-label">Total</span>
+          </div>
+          <div class="progress-stat">
+            <span class="progress-stat-value">{{ page_obj.paginator.count }}</span>
+            <span class="progress-stat-label">Materials</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="act-panel due">
+        <div class="act-head">
+          <h3><i class="fas fa-fire"></i> Due Soon</h3>
+          <span class="act-count">{{ due_activities|length }}</span>
+        </div>
+        <div class="act-list">
+          {% for a in due_activities %}
+            <a class="act-item {% if forloop.counter0 >= 5 %}is-overflow{% endif %}" href="{% url 'assessment-details' a.id %}">
+              <span class="dot"></span>
+              <div class="act-item-body">
+                <div class="act-item-name">{{ a.activity_name }}</div>
+                <div class="act-item-meta">
+                  {% if a.activity_type %}<span class="type-pill">{{ a.activity_type.name }}</span>{% endif %}
+                  <span class="when">{{ a.subject.subject_short_name|default:a.subject.subject_name }}</span>
+                  {% if a.end_time %}
+                    {% if a.end_time < now %}
+                      <span class="when urgent"><i class="fas fa-exclamation-circle"></i> Overdue</span>
+                    {% else %}
+                      <span class="when urgent"><i class="far fa-clock"></i> {{ a.end_time|naturaltime }}</span>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
+            </a>
+          {% empty %}
+            <div class="act-empty">
+              <i class="fas fa-check-circle"></i>
+              Nothing due right now. Nice work!
+            </div>
+          {% endfor %}
+        </div>
+        {% if due_activities|length > 5 %}
+          <button type="button" class="act-more-btn" data-act-toggle>
+            <span class="label-more">View {{ due_activities|length|add:"-5" }} more</span>
+            <span class="label-less">Show less</span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+        {% endif %}
+      </section>
+
+      <section class="act-panel todo">
+        <div class="act-head">
+          <h3><i class="fas fa-bolt"></i> To Do</h3>
+          <span class="act-count">{{ todo_activities|length }}</span>
+        </div>
+        <div class="act-list">
+          {% for a in todo_activities %}
+            <a class="act-item {% if forloop.counter0 >= 5 %}is-overflow{% endif %}" href="{% url 'assessment-details' a.id %}">
+              <span class="dot"></span>
+              <div class="act-item-body">
+                <div class="act-item-name">{{ a.activity_name }}</div>
+                <div class="act-item-meta">
+                  {% if a.activity_type %}<span class="type-pill">{{ a.activity_type.name }}</span>{% endif %}
+                  <span class="when">{{ a.subject.subject_short_name|default:a.subject.subject_name }}</span>
+                  {% if a.end_time %}<span class="when"><i class="far fa-calendar"></i> {{ a.end_time|date:"M j" }}</span>{% endif %}
+                </div>
+              </div>
+            </a>
+          {% empty %}
+            <div class="act-empty">
+              <i class="fas fa-coffee"></i>
+              No open work. You're all caught up.
+            </div>
+          {% endfor %}
+        </div>
+        {% if todo_activities|length > 5 %}
+          <button type="button" class="act-more-btn" data-act-toggle>
+            <span class="label-more">View {{ todo_activities|length|add:"-5" }} more</span>
+            <span class="label-less">Show less</span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+        {% endif %}
+      </section>
+
+      <!-- Course resources -->
+      <section class="act-panel resources-panel">
+        <div class="act-head">
+          <h3><i class="fas fa-compass"></i> Quick Links</h3>
+        </div>
+        <div class="resources-list">
+          <a class="resources-link" href="{% url 'my-grades' %}">
+            <i class="fas fa-chart-bar"></i>
+            <span>My Grades</span>
+            <i class="fas fa-chevron-right resources-chev"></i>
+          </a>
+          <a class="resources-link" href="{% url 'news' %}">
+            <i class="fas fa-bullhorn"></i>
+            <span>News</span>
+            <i class="fas fa-chevron-right resources-chev"></i>
+          </a>
+          <a class="resources-link rl-classmates" href="{% url 'classmates' subject.id %}">
+            <i class="fas fa-user-group"></i>
+            <span class="rl-classmates-label">
+              Classmates
+              {% if classmates_count %}<span class="rl-count">{{ classmates_count }}</span>{% endif %}
+            </span>
+            <i class="fas fa-chevron-right resources-chev"></i>
+          </a>
+          <a class="resources-link" href="{% url 'calendars' %}">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Calendar</span>
+            <i class="fas fa-chevron-right resources-chev"></i>
+          </a>
+          <a class="resources-link" href="{% url back_url_name|default:'course-list' %}">
+            <i class="fas fa-book"></i>
+            <span>All Courses</span>
+            <i class="fas fa-chevron-right resources-chev"></i>
+          </a>
+        </div>
+      </section>
+
+    </aside>
+  </div><!-- /.lessons-layout -->
+</div>
+
+{# In-page lesson viewer #}
+<div class="lesson-viewer-backdrop" id="lessonViewer" role="dialog" aria-modal="true" aria-labelledby="lessonViewerTitle" aria-hidden="true">
+  <div class="lesson-viewer">
+    <div class="lesson-viewer-head">
+      <h2 class="lesson-viewer-title" id="lessonViewerTitle">Material</h2>
+      <div class="lesson-viewer-actions">
+        <button type="button" class="lesson-viewer-action" id="lessonViewerFullPage" aria-pressed="false">
+          <i class="fas fa-expand" id="lessonViewerFullPageIcon"></i>
+          <span id="lessonViewerFullPageLabel">View full page</span>
+        </button>
+        <a class="lesson-viewer-action" id="lessonViewerOpenTab" href="#" target="_blank" rel="noopener" hidden>
+          <i class="fas fa-external-link-alt"></i> Open in new tab
+        </a>
+        <button class="lesson-viewer-close" id="lessonViewerClose" aria-label="Close">&times;</button>
+      </div>
+    </div>
+    <div class="lesson-viewer-body" id="lessonViewerBody"></div>
+  </div>
+</div>
+
+<script>
+  // Sidebar panel "View N more" / "Show less" toggle.
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-act-toggle]');
+    if (!btn) return;
+    const panel = btn.closest('.act-panel');
+    if (panel) panel.classList.toggle('is-expanded');
+  });
+
+  // Assessments tab: filter chips toggle which cards are visible via a
+  // `data-filter` attribute on the list (CSS handles the show/hide).
+  document.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-asm-filter]');
+    if (!chip) return;
+    const list = document.getElementById('asmList');
+    if (!list) return;
+    list.setAttribute('data-filter', chip.dataset.asmFilter);
+    chip.parentElement.querySelectorAll('.asm-chip').forEach(c => c.classList.remove('is-active'));
+    chip.classList.add('is-active');
+  });
+</script>
+
+<script>
+  (function() {
+    const FILE_EXT = (url) => {
+      try { return url.split('?')[0].split('#')[0].split('.').pop().toLowerCase(); }
+      catch (e) { return ''; }
+    };
+    const IMAGE_EXTS = ['png','jpg','jpeg','gif','webp','svg','bmp'];
+    const VIDEO_EXTS = ['mp4','webm','ogv','ogg','mov'];
+    const AUDIO_EXTS = ['mp3','wav','m4a','aac'];
+    // Browsers can render PDFs via <iframe> directly; for office files we let
+    // the iframe try then offer "Open in new tab" as fallback.
+
+    const backdrop = document.getElementById('lessonViewer');
+    const body = document.getElementById('lessonViewerBody');
+    const titleEl = document.getElementById('lessonViewerTitle');
+    const openTabLink = document.getElementById('lessonViewerOpenTab');
+    const closeBtn = document.getElementById('lessonViewerClose');
+    const fullBtn = document.getElementById('lessonViewerFullPage');
+    const fullIcon = document.getElementById('lessonViewerFullPageIcon');
+    const fullLabel = document.getElementById('lessonViewerFullPageLabel');
+
+    // ── Progress persistence ──────────────────────────────────
+    const PROGRESS_URL = '{% url "module-progress" %}';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    // Currently-viewed lesson state. Reset each time the modal opens.
+    let currentModuleId = null;
+    let currentMediaEl = null;       // the active <video> or <audio>, if any
+    let lastSavedAt = 0;
+    let saveTimer = null;
+
+    function fetchProgress(moduleId) {
+      return fetch(`${PROGRESS_URL}?module_id=${moduleId}`, { credentials: 'same-origin' })
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null);
+    }
+
+    function saveProgress(moduleId, progressPct, lastPage) {
+      if (!moduleId) return;
+      const payload = { module_id: moduleId };
+      if (progressPct !== undefined && progressPct !== null && !isNaN(progressPct)) {
+        payload.progress = Math.max(0, Math.min(100, progressPct));
+      }
+      if (lastPage !== undefined && lastPage !== null) payload.last_page = lastPage;
+      // Use sendBeacon during unload for reliability.
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      try {
+        fetch(PROGRESS_URL, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+          body: blob,
+        });
+      } catch (e) { /* swallow */ }
+    }
+
+    function flushProgress() {
+      if (!currentModuleId) return;
+      if (currentMediaEl && currentMediaEl.duration && !isNaN(currentMediaEl.duration)) {
+        const pct = (currentMediaEl.currentTime / currentMediaEl.duration) * 100;
+        saveProgress(currentModuleId, pct);
+      }
+    }
+
+    // Save before page unload as a final backstop.
+    window.addEventListener('beforeunload', flushProgress);
+
+    function setFullPage(on) {
+      backdrop.classList.toggle('full-page', on);
+      fullBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      fullIcon.className = on ? 'fas fa-compress' : 'fas fa-expand';
+      fullLabel.textContent = on ? 'Exit full page' : 'View full page';
+    }
+
+    function close() {
+      // Save progress before tearing down the viewer.
+      flushProgress();
+      if (saveTimer) { clearInterval(saveTimer); saveTimer = null; }
+      currentModuleId = null;
+      currentMediaEl = null;
+
+      backdrop.classList.remove('open');
+      backdrop.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('lesson-viewer-locked');
+      // Stop video/iframe playback by clearing the body.
+      body.innerHTML = '';
+      openTabLink.hidden = true;
+      openTabLink.removeAttribute('href');
+      setFullPage(false);
+    }
+
+    function attachMediaProgress(media, savedPct) {
+      currentMediaEl = media;
+      // Restore saved position once we know the duration.
+      const restore = () => {
+        if (savedPct > 0 && media.duration && !isNaN(media.duration)) {
+          // Cap at 99% so finishing the lesson doesn't always reset to "the
+          // end" — gives the student some buffer to see context.
+          const target = media.duration * (Math.min(savedPct, 99) / 100);
+          try { media.currentTime = target; } catch (_) { /* ignore */ }
+        }
+      };
+      if (media.readyState >= 1) restore();
+      else media.addEventListener('loadedmetadata', restore, { once: true });
+
+      // Periodic save while playing — every 5s of wall-clock time.
+      lastSavedAt = 0;
+      media.addEventListener('timeupdate', () => {
+        const now = Date.now();
+        if (now - lastSavedAt < 5000) return;
+        if (!media.duration || isNaN(media.duration)) return;
+        lastSavedAt = now;
+        const pct = (media.currentTime / media.duration) * 100;
+        saveProgress(currentModuleId, pct);
+      });
+      // Mark complete when finished.
+      media.addEventListener('ended', () => {
+        saveProgress(currentModuleId, 100);
+      });
+    }
+
+    function renderContent(card, savedPct, savedPage) {
+      const name = card.dataset.lessonName || 'Lesson';
+      const url = card.dataset.lessonUrl;
+      const file = card.dataset.lessonFile;
+      const iframeId = card.dataset.lessonIframeId;
+      const onedriveUrl = card.dataset.lessonOnedrive;
+
+      titleEl.textContent = name;
+      body.innerHTML = '';
+      openTabLink.hidden = true;
+      openTabLink.removeAttribute('href');
+
+      let externalUrl = '';
+      if (iframeId) {
+        const tpl = document.getElementById(iframeId);
+        if (tpl) body.innerHTML = tpl.innerHTML;
+        // Normalize any author-provided wrapper (Canva, Slides, etc.) so
+        // its `padding-top: 56.25%` aspect-ratio hack doesn't collapse in
+        // our flex-centered viewer on small viewports. We force the
+        // wrapper to fill, then pin the iframe inside.
+        body.querySelectorAll(':scope > div').forEach(w => {
+          w.style.position = 'relative';
+          w.style.width = '100%';
+          w.style.height = '100%';
+          w.style.paddingTop = '0';
+          w.style.paddingBottom = '0';
+          w.style.margin = '0';
+          w.style.flex = '1 1 auto';
+        });
+        body.querySelectorAll('iframe').forEach(f => {
+          // Strip author-set width/height attributes that lock the iframe
+          // to a fixed pixel size and break responsiveness.
+          f.removeAttribute('width');
+          f.removeAttribute('height');
+          f.style.position = 'absolute';
+          f.style.top = '0';
+          f.style.left = '0';
+          f.style.width = '100%';
+          f.style.height = '100%';
+          f.style.minHeight = '70vh';
+          f.style.border = '0';
+          if (!f.getAttribute('allowfullscreen')) f.setAttribute('allowfullscreen', '');
+        });
+      } else if (file) {
+        externalUrl = file;
+        const ext = FILE_EXT(file);
+        if (IMAGE_EXTS.includes(ext)) {
+          const img = document.createElement('img');
+          img.src = file;
+          img.alt = name;
+          body.appendChild(img);
+        } else if (VIDEO_EXTS.includes(ext)) {
+          const v = document.createElement('video');
+          v.src = file; v.controls = true; v.preload = 'metadata';
+          body.appendChild(v);
+          attachMediaProgress(v, savedPct);
+        } else if (AUDIO_EXTS.includes(ext)) {
+          const a = document.createElement('audio');
+          a.src = file; a.controls = true; a.preload = 'metadata';
+          body.appendChild(a);
+          attachMediaProgress(a, savedPct);
+        } else if (ext === 'pdf') {
+          // Use our self-hosted PDF.js viewer so we can track page changes
+          // and resume from the saved page on next open.
+          const f = document.createElement('iframe');
+          const params = new URLSearchParams({ file: file });
+          if (currentModuleId) params.set('module', currentModuleId);
+          f.src = `{% url 'student-pdf-viewer' %}?${params.toString()}`;
+          f.title = name;
+          body.appendChild(f);
+        } else if (onedriveUrl) {
+          // Office docs (ppt/pptx/doc/docx/xls/xlsx) — use the OneDrive
+          // embed URL Microsoft generated so PowerPoint/Word/Excel Online
+          // renders inline. Plain iframe-to-file just triggers a download.
+          const f = document.createElement('iframe');
+          f.src = onedriveUrl;
+          f.title = name;
+          f.setAttribute('allowfullscreen', '');
+          f.setAttribute('allow', 'autoplay; clipboard-write; encrypted-media; fullscreen');
+          body.appendChild(f);
+        } else {
+          // Office docs and other types — let the browser try its default
+          // handling via plain iframe.
+          const f = document.createElement('iframe');
+          f.src = file;
+          f.title = name;
+          body.appendChild(f);
+        }
+      } else if (url) {
+        externalUrl = url;
+        const f = document.createElement('iframe');
+        f.src = url;
+        f.title = name;
+        f.referrerPolicy = 'no-referrer-when-downgrade';
+        body.appendChild(f);
+      } else {
+        body.innerHTML = '<div class="viewer-empty"><i class="fas fa-info-circle"></i>This lesson has no content yet.</div>';
+      }
+
+      if (externalUrl) {
+        openTabLink.href = externalUrl;
+        openTabLink.hidden = false;
+      }
+    }
+
+    function open(card) {
+      const moduleId = card.dataset.lessonId;
+      currentModuleId = moduleId;
+      currentMediaEl = null;
+
+      backdrop.classList.add('open');
+      backdrop.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('lesson-viewer-locked');
+
+      // Show a loading state while we fetch saved progress.
+      titleEl.textContent = card.dataset.lessonName || 'Lesson';
+      body.innerHTML = '<div class="cl-skel cl-skel-block" style="height:60vh;border-radius:14px" aria-busy="true" aria-label="Loading lesson"></div>';
+
+      fetchProgress(moduleId).then(data => {
+        const pct = data && data.status === 'success' ? data.progress : 0;
+        const page = data && data.status === 'success' ? data.last_page : 1;
+        renderContent(card, pct, page);
+      });
+    }
+
+    document.querySelectorAll('.lesson-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const hasContent = card.dataset.lessonUrl || card.dataset.lessonFile || card.dataset.lessonIframeId;
+        if (!hasContent) {
+          e.preventDefault();
+          return;
+        }
+        // Allow modifier-clicks (cmd/ctrl/middle/shift) to fall through to the
+        // native href for "open in new tab" and "save as".
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+        e.preventDefault();
+        open(card);
+      });
+    });
+
+    closeBtn.addEventListener('click', close);
+    fullBtn.addEventListener('click', () => {
+      setFullPage(!backdrop.classList.contains('full-page'));
+    });
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && backdrop.classList.contains('open')) {
+        // ESC: exit full page first if in it, otherwise close the modal.
+        if (backdrop.classList.contains('full-page')) {
+          setFullPage(false);
+        } else {
+          close();
+        }
+      }
+    });
+  })();
+</script>
+
+{% include "rag_tutor/chat_bubble.html" with subject_id=subject.id subject_name=subject.subject_name %}
+
+<script src="{% static 'js/tours/cl-tour-student-material-list.js' %}" defer></script>
+{% endblock %}

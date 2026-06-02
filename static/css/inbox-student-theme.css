@@ -1,0 +1,1173 @@
+/* ============================================================
+   inbox-student-theme.css
+   ------------------------------------------------------------
+   Re-skins the social-media inbox to match the ClassEdge student
+   dashboard design system (Bricolage Grotesque + Inter Tight,
+   dark/light palette via CSS custom properties from
+   static/css/student_theme.css).
+
+   IMPORTANT: load this file AFTER inbox-styles.css so its rules win.
+   All class names, IDs, and DOM structure rendered by inbox-logic.js
+   are left untouched — only colors / borders / radii / typography
+   are overridden.
+   ============================================================ */
+
+/* ─── Chat-bubble palette mapped to student theme ─────────── */
+body[data-theme="dark"] {
+  --chat-sent-bg: var(--gold);
+  --chat-sent-color: #0a0f1f;
+  --chat-received-bg: rgba(255, 255, 255, 0.08);
+  --chat-received-color: var(--text);
+  --chat-sent-img-bg: rgba(244, 183, 64, 0.18);
+  --chat-received-img-bg: rgba(255, 255, 255, 0.06);
+  --chat-deleted-bg: rgba(255, 255, 255, 0.05);
+  --chat-deleted-color: var(--text-muted);
+}
+body[data-theme="light"] {
+  --chat-sent-bg: var(--gold);
+  --chat-sent-color: #1a1a2e;
+  --chat-received-bg: var(--surface-2);
+  --chat-received-color: var(--text);
+  --chat-sent-img-bg: rgba(212, 150, 10, 0.14);
+  --chat-received-img-bg: var(--surface-2);
+  --chat-deleted-bg: rgba(0, 0, 0, 0.04);
+  --chat-deleted-color: var(--text-muted);
+}
+
+/* ─── Page-level wrapper (the card that frames the inbox) ── */
+body[data-theme] .inbox-page-header {
+  margin-bottom: 20px;
+}
+body[data-theme] .inbox-page-header h1 {
+  font-family: var(--display);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin: 0 0 6px 0;
+}
+body[data-theme] .inbox-page-header p {
+  color: var(--text-dim);
+  font-size: 14px;
+  margin: 0;
+}
+
+body[data-theme] .card.card-chat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(14px);
+  height: calc(100vh - 200px);
+  min-height: 600px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px -16px rgba(0, 0, 0, 0.35);
+  width: 100%;
+}
+body[data-theme="light"] .card.card-chat {
+  box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.12);
+}
+
+/* The body holds sidebar + chat content side-by-side; force full size */
+body[data-theme] .card.card-chat > .card-body {
+  height: 100%;
+  width: 100%;
+  display: flex !important;
+  flex-direction: row;
+  padding: 0 !important;
+}
+
+/* ─── Sidebar (contacts list) ─────────────────────────────── */
+body[data-theme] .card.card-chat .chat-sidebar {
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+  color: var(--text);
+  flex: 0 0 300px;
+  width: 300px;
+  max-width: 300px;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+@media (max-width: 1024px) {
+  body[data-theme] .card.card-chat .chat-sidebar {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+body[data-theme] .card.card-chat .sidebar-actions {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+}
+body[data-theme] .card.card-chat .sidebar-actions .btn {
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 9px 14px;
+  border: 1px solid var(--border-strong);
+  transition: all 0.18s ease;
+}
+body[data-theme] .card.card-chat .sidebar-actions .btn-success {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: #0a0f1f;
+}
+body[data-theme] .card.card-chat .sidebar-actions .btn-success:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 0 0 4px var(--mint-glow);
+}
+body[data-theme] .card.card-chat .sidebar-actions .btn-primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #0a0f1f;
+}
+body[data-theme] .card.card-chat .sidebar-actions .btn-primary:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 0 0 4px var(--gold-glow);
+}
+
+/* Contacts list scroll area */
+body[data-theme] .card.card-chat .contacts-list {
+  background: transparent;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+body[data-theme] .card.card-chat .chat-sidebar {
+  display: flex !important;
+  flex-direction: column;
+}
+body[data-theme] .card.card-chat .nav.nav-tabs {
+  border: none;
+  background: transparent;
+}
+body[data-theme] .card.card-chat .nav-tabs .chat-contact,
+body[data-theme] .card.card-chat .nav-tabs > a,
+body[data-theme] .card.card-chat .nav-tabs > .nav-link {
+  border: none !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  border-radius: var(--radius-sm) !important;
+  margin: 4px 8px;
+  padding: 0 !important;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+body[data-theme] .card.card-chat .nav-tabs .chat-contact:hover,
+body[data-theme] .card.card-chat .nav-tabs .chat-contact:focus,
+body[data-theme] .card.card-chat .nav-tabs > a:hover,
+body[data-theme] .card.card-chat .nav-tabs > a:focus {
+  background: var(--bg-2) !important;
+}
+body[data-theme] .card.card-chat .nav-tabs .chat-contact:active {
+  transform: scale(0.99);
+}
+body[data-theme] .card.card-chat .nav-tabs .chat-contact.active,
+body[data-theme] .card.card-chat .nav-tabs > a.active {
+  background: linear-gradient(90deg, rgba(244, 183, 64, 0.18), transparent) !important;
+  position: relative;
+}
+body[data-theme] .card.card-chat .nav-tabs .chat-contact.active::before,
+body[data-theme] .card.card-chat .nav-tabs > a.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 3px;
+  background: var(--gold);
+  border-radius: 2px;
+  box-shadow: 0 0 12px var(--gold);
+}
+body[data-theme] .card.card-chat .nav-tabs .chat-contact * {
+  cursor: pointer;
+}
+body[data-theme] .card.card-chat .chat-contact-title {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  font-family: var(--body);
+}
+body[data-theme] .card.card-chat .chat-contact-content,
+body[data-theme] .card.card-chat .chat-contact-body-text {
+  color: var(--text-dim);
+  font-size: 12.5px;
+}
+body[data-theme] .card.card-chat .message-time {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Avatars and presence dots */
+body[data-theme] .card.card-chat .avatar,
+body[data-theme] .card.card-chat .avatar.avatar-xl {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  background: transparent;
+  display: block;
+  border-radius: 50%;
+  overflow: visible;
+}
+body[data-theme] .card.card-chat .avatar img.rounded-circle {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border: 1px solid var(--border-strong);
+  display: block;
+}
+body[data-theme] .card.card-chat .status-online::after,
+body[data-theme] .card.card-chat .status-offline::after {
+  width: 10px;
+  height: 10px;
+  border-width: 2px;
+}
+body[data-theme] .card.card-chat .status-online::after {
+  background-color: var(--mint);
+  border-color: var(--surface-2);
+  box-shadow: 0 0 8px var(--mint-glow);
+}
+body[data-theme] .card.card-chat .status-offline::after {
+  background-color: var(--text-muted);
+  border-color: var(--surface-2);
+}
+
+/* Search input at the bottom of sidebar */
+body[data-theme] .card.card-chat .contacts-search-wrapper {
+  background: var(--surface);
+  border-top: 1px solid var(--border) !important;
+  padding: 10px 12px;
+}
+body[data-theme] .card.card-chat .chat-contacts-search {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: 100px !important;
+  padding-left: 32px !important;
+  height: 36px;
+  font-size: 13px;
+}
+body[data-theme] .card.card-chat .chat-contacts-search::placeholder {
+  color: var(--text-muted);
+}
+body[data-theme] .card.card-chat .contacts-search-icon {
+  color: var(--text-muted);
+  margin-left: 12px !important;
+}
+
+/* Sidebar dropdown (per-contact gear) */
+body[data-theme] .card.card-chat .chat-contact {
+  position: relative;
+}
+body[data-theme] .card.card-chat .chat-contact .dropdown-chat {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+}
+body[data-theme] .card.card-chat .dropdown-chat .hover-actions.dropdown-toggle {
+  position: static;
+  width: 28px;
+  height: 28px;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-dim) !important;
+  font-size: 11px;
+  line-height: 1;
+  text-decoration: none !important;
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.15s ease, transform 0.15s ease,
+              background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.25);
+}
+body[data-theme] .card.card-chat .dropdown-chat .hover-actions.dropdown-toggle::after,
+body[data-theme] .card.card-chat .dropdown-chat .hover-actions.dropdown-toggle::before {
+  display: none !important;
+  content: none !important;
+}
+body[data-theme] .card.card-chat .dropdown-chat .hover-actions.dropdown-toggle .fas {
+  transform: none !important;
+  font-size: 11px;
+  line-height: 1;
+}
+body[data-theme] .card.card-chat .chat-contact:hover .dropdown-chat .hover-actions.dropdown-toggle,
+body[data-theme] .card.card-chat .chat-contact:focus-within .dropdown-chat .hover-actions.dropdown-toggle,
+body[data-theme] .card.card-chat .dropdown-chat .hover-actions.dropdown-toggle.show,
+body[data-theme] .card.card-chat .dropdown-chat.show .hover-actions.dropdown-toggle {
+  opacity: 1;
+  transform: scale(1);
+}
+body[data-theme] .card.card-chat .dropdown-chat .hover-actions.dropdown-toggle:hover,
+body[data-theme] .card.card-chat .dropdown-chat .hover-actions.dropdown-toggle:focus,
+body[data-theme] .card.card-chat .dropdown-chat .hover-actions.dropdown-toggle.show {
+  background: var(--bg-2) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text) !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 10px -3px rgba(0, 0, 0, 0.35);
+}
+body[data-theme] .card.card-chat .dropdown-chat .dropdown-menu {
+  background-color: var(--bg-2) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.55);
+  padding: 6px !important;
+  min-width: 180px;
+  margin-top: 6px !important;
+}
+body[data-theme="light"] .card.card-chat .dropdown-chat .dropdown-menu {
+  background-color: #ffffff !important;
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.18);
+}
+body[data-theme] .card.card-chat .dropdown-chat .dropdown-item {
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--body);
+  padding: 8px 10px;
+  border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+body[data-theme] .card.card-chat .dropdown-chat .dropdown-item + .dropdown-item {
+  margin-top: 1px;
+}
+body[data-theme] .card.card-chat .dropdown-chat .dropdown-item:hover,
+body[data-theme] .card.card-chat .dropdown-chat .dropdown-item:focus {
+  background: var(--surface-2);
+  color: var(--text);
+}
+body[data-theme] .card.card-chat .dropdown-chat .dropdown-divider {
+  border-top: 1px solid var(--border);
+  margin: 4px 2px;
+  opacity: 1;
+}
+body[data-theme] .card.card-chat .dropdown-chat .dropdown-item.text-danger {
+  color: var(--coral) !important;
+}
+body[data-theme] .card.card-chat .dropdown-chat .dropdown-item.text-danger:hover,
+body[data-theme] .card.card-chat .dropdown-chat .dropdown-item.text-danger:focus {
+  background: rgba(239, 90, 90, 0.12);
+  color: var(--coral) !important;
+}
+
+/* Touch devices: gear is always visible (no hover state) */
+@media (hover: none) {
+  body[data-theme] .card.card-chat .dropdown-chat .hover-actions.dropdown-toggle {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ─── Chat panel (right column) ───────────────────────────── */
+body[data-theme] .card.card-chat .card-chat-content {
+  background: transparent;
+  color: var(--text);
+  flex: 1 1 auto !important;
+  min-width: 0;
+  width: auto;
+  height: 100%;
+  display: flex !important;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+body[data-theme] .card.card-chat .card-chat-content > .tab-pane.active {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+/* Empty / "Select a conversation" placeholder */
+body[data-theme] .card.card-chat .card-chat-content > p.text-center {
+  color: var(--text-muted);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  margin: auto;
+  padding: 40px;
+  text-align: center;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+body[data-theme] .card.card-chat .card-chat-content > p.text-center::before {
+  content: '\f4ad';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  font-size: 56px;
+  color: var(--gold);
+  opacity: 0.7;
+  display: block;
+  filter: drop-shadow(0 0 24px var(--gold-glow));
+}
+
+/* Header bar inside chat panel */
+body[data-theme] .card.card-chat .chat-content-header {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 22px;
+  flex: 0 0 auto;
+  width: 100%;
+}
+body[data-theme] .card.card-chat .chat-content-header h5 {
+  color: var(--text);
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-size: 17px !important;
+}
+body[data-theme] .card.card-chat .chat-content-header .text-400 {
+  color: var(--text-muted) !important;
+  font-size: 12px;
+}
+body[data-theme] .card.card-chat .chat-content-header .chat-back-btn {
+  color: var(--text-dim) !important;
+}
+body[data-theme] .card.card-chat .chat-header-actions .btn {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+body[data-theme] .card.card-chat .chat-header-actions .btn:hover {
+  color: var(--text);
+  border-color: var(--gold);
+}
+
+/* Messages scroll area — must fill all space between header and editor */
+body[data-theme] .card.card-chat .chat-messages {
+  background: transparent;
+  padding: 16px 22px 24px;
+  flex: 1 1 auto !important;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+}
+body[data-theme] .card.card-chat .chat-time-divider span {
+  color: var(--text-muted);
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+body[data-theme] .card.card-chat .chat-time-divider::before,
+body[data-theme] .card.card-chat .chat-time-divider::after {
+  background: var(--border);
+}
+
+/* Bubble — the JS already injects bg/color via inline styles using
+   CSS variables. We override those vars above; here we polish radius
+   + shadow + typography. */
+body[data-theme] .card.card-chat .chat-message-content {
+  border-radius: 18px !important;
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.45;
+  box-shadow: 0 2px 6px -3px rgba(0, 0, 0, 0.25);
+}
+body[data-theme="light"] .card.card-chat .chat-message-content {
+  box-shadow: 0 2px 6px -3px rgba(0, 0, 0, 0.08);
+}
+body[data-theme] .card.card-chat .chat-message-text a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* Hover action buttons next to a message */
+body[data-theme] .card.card-chat .msg-hover-actions .msg-action-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+body[data-theme] .card.card-chat .msg-hover-actions .msg-action-btn:hover {
+  background: var(--surface-2);
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+/* "More" dropdown */
+body[data-theme] .msg-more-dropdown {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.4) !important;
+}
+body[data-theme] .msg-more-dropdown .dropdown-item {
+  color: var(--text) !important;
+  font-size: 13px;
+}
+body[data-theme] .msg-more-dropdown .dropdown-item:hover {
+  background: var(--surface-2) !important;
+}
+body[data-theme] .msg-more-dropdown .dropdown-item.text-danger {
+  color: var(--coral) !important;
+}
+
+/* Reply quote block above a bubble */
+body[data-theme] .card.card-chat .msg-reply-block .msg-reply-label {
+  color: var(--text-muted);
+  font-family: var(--body);
+}
+body[data-theme] .card.card-chat .msg-reply-quoted {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+body[data-theme] .card.card-chat .msg-reply-quoted:hover {
+  background: var(--surface);
+  border-color: var(--border-strong);
+}
+body[data-theme] .card.card-chat .msg-reply-quoted .reply-quoted-text {
+  color: var(--text-dim);
+}
+
+/* Reply preview bar (above input when replying) */
+body[data-theme] .card.card-chat .reply-preview-bar {
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  color: var(--text);
+}
+body[data-theme] .card.card-chat .reply-preview-bar .reply-preview-sender {
+  color: var(--gold);
+}
+body[data-theme] .card.card-chat .reply-preview-bar .reply-preview-text {
+  color: var(--text-dim);
+}
+body[data-theme] .card.card-chat .reply-preview-bar .reply-cancel-btn {
+  color: var(--text-muted);
+}
+body[data-theme] .card.card-chat .reply-preview-bar .reply-cancel-btn:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Editor area (footer with input + send) — pinned to bottom, full
+   width. Same brand-tinted gradient as the operations theater so the
+   composer feels stitched into the rest of the dynamic design
+   regardless of theme. */
+body[data-theme] .card.card-chat .chat-editor-area {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--brand-primary-soft) 35%, var(--surface-2)),
+    var(--surface-2)) !important;
+  border-top: 1px solid var(--border) !important;
+  padding: 14px 18px !important;
+  gap: 10px;
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex !important;
+  align-items: center;
+}
+body[data-theme] .card.card-chat .chat-bubble-wrapper {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-strong, var(--border)) !important;
+  color: var(--text) !important;
+  border-radius: 22px !important;
+  min-height: 48px;
+  padding: 10px 16px !important;
+  flex: 1 1 auto !important;
+  width: 100%;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+body[data-theme] .card.card-chat .chat-bubble-wrapper:focus-within {
+  border-color: var(--brand-primary, #b7925a) !important;
+  box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+body[data-theme] .card.card-chat .chat-input,
+body[data-theme] .card.card-chat .emojiarea-editor {
+  color: var(--text) !important;
+  caret-color: var(--gold);
+  background: transparent !important;
+  font-family: var(--body);
+  font-size: 14.5px;
+  flex: 1 1 auto;
+  min-height: 24px;
+  width: 100%;
+  outline: none;
+  line-height: 1.5;
+}
+body[data-theme] .card.card-chat .chat-input[contenteditable="true"]:empty::before,
+body[data-theme] .card.card-chat .emojiarea-editor[contenteditable="true"]:empty::before {
+  color: var(--text-muted);
+}
+body[data-theme] .card.card-chat .chat-file-upload,
+body[data-theme] .card.card-chat .emoji-icon {
+  color: var(--text-muted) !important;
+  font-size: 18px;
+}
+body[data-theme] .card.card-chat .chat-file-upload:hover,
+body[data-theme] .card.card-chat .emoji-icon:hover {
+  color: var(--brand-primary, var(--gold)) !important;
+}
+
+/* Send button — tracks tenant brand instead of locked --gold so it
+   repaints on any tenant. Glow uses --brand-primary-soft. */
+body[data-theme] .card.card-chat .chat-send-btn,
+body[data-theme] .card.card-chat .btn.btn-falcon-primary.chat-send-btn {
+  background: var(--brand-primary, var(--gold)) !important;
+  border: none !important;
+  color: #ffffff !important;
+  border-radius: 100px !important;
+  padding: 9px 20px !important;
+  font-weight: 600;
+  box-shadow: 0 0 0 0 var(--brand-primary-soft);
+  transition: box-shadow 0.18s ease, filter 0.18s ease, transform 0.18s ease;
+}
+body[data-theme] .card.card-chat .chat-send-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 4px var(--brand-primary-soft);
+}
+
+/* Custom emoji picker */
+body[data-theme] .custom-emoji-picker {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.45) !important;
+}
+body[data-theme] .custom-emoji-picker .emoji:hover {
+  background: var(--surface-2) !important;
+}
+
+/* File preview chip in the editor */
+body[data-theme] .card.card-chat .file-preview-box {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+}
+
+/* File attachment bubble (rendered messages) */
+body[data-theme] .card.card-chat .msg-content-file {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+body[data-theme] .card.card-chat .msg-content-file:hover {
+  background: var(--surface) !important;
+  border-color: var(--border-strong) !important;
+}
+body[data-theme] .card.card-chat .msg-content-file .file-icon {
+  background: var(--brand-primary, var(--gold)) !important;
+  color: #ffffff !important;
+}
+body[data-theme] .card.card-chat .msg-content-file .fa-download {
+  color: var(--brand-primary, var(--gold)) !important;
+  opacity: 1 !important;
+}
+body[data-theme] .card.card-chat .msg-content-file .file-size {
+  color: var(--text-muted);
+}
+
+/* Scroll-to-bottom floating button */
+body[data-theme] .card.card-chat .scroll-to-bottom-btn {
+  background: var(--gold) !important;
+  color: #0a0f1f !important;
+  box-shadow: 0 4px 14px -4px var(--gold-glow);
+}
+body[data-theme] .card.card-chat .scroll-to-bottom-btn:hover {
+  filter: brightness(1.05);
+}
+body[data-theme] .card.card-chat .scroll-to-bottom-btn .unread-badge {
+  background: var(--coral);
+  box-shadow: 0 0 8px var(--coral-glow);
+}
+
+/* Reactions */
+body[data-theme] .reaction-display .reaction-badge,
+body[data-theme] .reaction-bubble-container .reaction-badge {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border-strong);
+  color: var(--text) !important;
+  font-size: 13px;
+}
+body[data-theme] .reaction-display .reaction-badge.reaction-mine,
+body[data-theme] .reaction-bubble-container .reaction-badge.reaction-mine {
+  background: rgba(244, 183, 64, 0.15) !important;
+  border-color: var(--gold) !important;
+}
+body[data-theme] .reaction-display .reaction-badge.reaction-mine .reaction-count,
+body[data-theme] .reaction-bubble-container .reaction-badge.reaction-mine .reaction-count {
+  color: var(--gold) !important;
+}
+body[data-theme] .reaction-picker {
+  background-color: var(--bg-2) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 14px 32px -12px rgba(0, 0, 0, 0.55) !important;
+  padding: 6px 8px !important;
+}
+body[data-theme="light"] .reaction-picker {
+  background-color: #ffffff !important;
+  box-shadow: 0 14px 32px -12px rgba(0, 0, 0, 0.18) !important;
+}
+body[data-theme] .reaction-picker .reaction-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 50%;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+body[data-theme] .reaction-picker .reaction-emoji:hover,
+body[data-theme] .reaction-picker .reaction-emoji:focus {
+  background: var(--surface-2);
+  transform: scale(1.18);
+}
+body[data-theme] .reaction-picker .reaction-emoji-mine {
+  background: rgba(244, 183, 64, 0.22);
+  box-shadow: inset 0 0 0 1px var(--gold);
+}
+
+/* ─── Modals (Create Group, Group Info offcanvas) ─────────── */
+body[data-theme] #createGroupModal .modal-content,
+body[data-theme] #groupChatInfoOffcanvas {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+body[data-theme] #createGroupModal .modal-header,
+body[data-theme] #groupChatInfoOffcanvas .offcanvas-header {
+  border-bottom: 1px solid var(--border);
+}
+body[data-theme] #createGroupModal .modal-title,
+body[data-theme] #groupChatInfoOffcanvas .offcanvas-title {
+  font-family: var(--display);
+  color: var(--text);
+  font-weight: 600;
+}
+body[data-theme] #createGroupModal .form-label {
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+}
+body[data-theme] #createGroupModal .form-control {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+}
+body[data-theme] #createGroupModal .form-control:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-glow);
+}
+body[data-theme] #createGroupModal .modal-footer {
+  border-top: 1px solid var(--border);
+}
+body[data-theme] #createGroupModal .btn-success {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: #0a0f1f;
+  font-weight: 600;
+}
+body[data-theme] #createGroupModal .btn-close,
+body[data-theme] #groupChatInfoOffcanvas .btn-close {
+  filter: var(--theme-btn-close-filter, none);
+}
+body[data-theme="dark"] #createGroupModal .btn-close,
+body[data-theme="dark"] #groupChatInfoOffcanvas .btn-close {
+  filter: invert(1) grayscale(100%) brightness(2);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Mobile / tablet (≤ 1024px)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  body[data-theme] .inbox-page-header {
+    margin-bottom: 14px;
+  }
+  body[data-theme] .inbox-page-header h1 {
+    font-size: 24px;
+  }
+  body[data-theme] .inbox-page-header p {
+    font-size: 13px;
+  }
+
+  /* Card occupies almost the full viewport, side-by-side layout swaps to
+     "either sidebar OR chat" controlled by the .chat-active class on
+     #chatCard (toggled by inbox-logic.js openChatPanel / contacts-list-show). */
+  body[data-theme] .card.card-chat {
+    height: calc(100vh - 160px);
+    min-height: 0;
+    border-radius: var(--radius-sm);
+  }
+  body[data-theme] .card.card-chat > .card-body {
+    flex-direction: row;
+  }
+
+  /* Default state: sidebar full-width, chat panel hidden */
+  body[data-theme] .card.card-chat .chat-sidebar {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  body[data-theme] .card.card-chat .card-chat-content {
+    display: none !important;
+  }
+
+  /* When a chat is selected: hide sidebar, reveal chat panel */
+  body[data-theme] .card.card-chat.chat-active .chat-sidebar {
+    display: none !important;
+  }
+  body[data-theme] .card.card-chat.chat-active .card-chat-content {
+    display: flex !important;
+    flex: 1 1 100% !important;
+    width: 100%;
+  }
+
+  /* Compact sidebar action buttons */
+  body[data-theme] .card.card-chat .sidebar-actions {
+    padding: 12px;
+    gap: 8px;
+  }
+  body[data-theme] .card.card-chat .sidebar-actions .btn {
+    padding: 9px 12px;
+    font-size: 12.5px;
+  }
+
+  /* Show the back chevron button on mobile (desktop hides it) */
+  body[data-theme] .card.card-chat .chat-back-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text) !important;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+  body[data-theme] .card.card-chat .chat-back-btn:hover {
+    background: var(--surface-2);
+    border-color: var(--gold);
+    color: var(--gold) !important;
+  }
+
+  /* Tighter chat header */
+  body[data-theme] .card.card-chat .chat-content-header {
+    padding: 12px 14px;
+  }
+  body[data-theme] .card.card-chat .chat-content-header h5 {
+    font-size: 16px !important;
+  }
+
+  /* Messages */
+  body[data-theme] .card.card-chat .chat-messages {
+    padding: 12px 14px 18px;
+  }
+  body[data-theme] .card.card-chat .chat-message-content {
+    max-width: 85vw;
+  }
+
+  /* Editor */
+  body[data-theme] .card.card-chat .chat-editor-area {
+    padding: 10px 12px !important;
+    gap: 8px;
+  }
+  body[data-theme] .card.card-chat .chat-bubble-wrapper {
+    border-radius: 20px !important;
+    min-height: 42px;
+    padding: 8px 12px !important;
+  }
+  body[data-theme] .card.card-chat .chat-input,
+  body[data-theme] .card.card-chat .emojiarea-editor {
+    font-size: 14px;
+  }
+  body[data-theme] .card.card-chat .chat-send-btn {
+    padding: 9px 14px !important;
+    width: 42px;
+    height: 42px;
+    border-radius: 50% !important;
+    justify-content: center;
+  }
+  body[data-theme] .card.card-chat .chat-send-btn .send-label {
+    display: none;
+  }
+  body[data-theme] .card.card-chat .chat-file-upload,
+  body[data-theme] .card.card-chat .emoji-icon {
+    font-size: 16px;
+  }
+
+  /* Empty placeholder smaller */
+  body[data-theme] .card.card-chat .card-chat-content > p.text-center {
+    padding: 24px 18px;
+    font-size: 16px;
+  }
+  body[data-theme] .card.card-chat .card-chat-content > p.text-center::before {
+    font-size: 44px;
+  }
+
+  /* Custom emoji picker fits on phone */
+  body[data-theme] .custom-emoji-picker {
+    grid-template-columns: repeat(6, 30px) !important;
+    max-width: calc(100vw - 24px) !important;
+    right: 12px !important;
+    bottom: 70px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Phones (≤ 575px) — sharper compaction
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 575.98px) {
+  body[data-theme] .inbox-page-header h1 {
+    font-size: 22px;
+  }
+  body[data-theme] .inbox-page-header p {
+    font-size: 12.5px;
+  }
+
+  body[data-theme] .card.card-chat {
+    /* Account for student_base topbar (~72px) + page header */
+    height: calc(100vh - 130px);
+    border-radius: 14px;
+  }
+
+  /* Two action buttons stack to give labels room when narrow */
+  body[data-theme] .card.card-chat .sidebar-actions {
+    padding: 10px;
+  }
+  body[data-theme] .card.card-chat .sidebar-actions .btn {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  /* Contact rows tighter */
+  body[data-theme] .card.card-chat .nav-tabs > a {
+    margin: 2px 6px;
+  }
+  body[data-theme] .card.card-chat .chat-contact-title {
+    font-size: 13.5px;
+  }
+  body[data-theme] .card.card-chat .chat-contact-content,
+  body[data-theme] .card.card-chat .chat-contact-body-text {
+    font-size: 12px;
+  }
+  body[data-theme] .card.card-chat .message-time {
+    font-size: 10px;
+  }
+  body[data-theme] .card.card-chat .avatar.avatar-xl img.rounded-circle,
+  body[data-theme] .card.card-chat .avatar img.rounded-circle {
+    width: 40px !important;
+    height: 40px !important;
+    object-fit: cover;
+  }
+  body[data-theme] .card.card-chat .avatar,
+  body[data-theme] .card.card-chat .avatar.avatar-xl {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  /* Search bar */
+  body[data-theme] .card.card-chat .contacts-search-wrapper {
+    padding: 8px 10px;
+  }
+
+  /* Chat header — make sure name + back button fit */
+  body[data-theme] .card.card-chat .chat-content-header {
+    padding: 10px 12px;
+  }
+  body[data-theme] .card.card-chat .chat-content-header h5 {
+    font-size: 15px !important;
+  }
+  body[data-theme] .card.card-chat .chat-content-header .text-400 {
+    font-size: 11px;
+  }
+  body[data-theme] .card.card-chat .chat-header-actions .btn {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  /* Messages */
+  body[data-theme] .card.card-chat .chat-messages {
+    padding: 10px 10px 16px;
+  }
+  body[data-theme] .card.card-chat .chat-message-content {
+    max-width: 88vw;
+    font-size: 13.5px;
+  }
+
+  /* Editor more compact */
+  body[data-theme] .card.card-chat .chat-editor-area {
+    padding: 8px 10px !important;
+    gap: 6px;
+  }
+  body[data-theme] .card.card-chat .chat-bubble-wrapper {
+    padding: 6px 10px !important;
+    min-height: 40px;
+  }
+  body[data-theme] .card.card-chat .chat-send-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Modal full-width-ish on phone */
+  body[data-theme] #createGroupModal .modal-dialog {
+    margin: 12px;
+    max-width: calc(100vw - 24px);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Friends page — mobile polish
+   (Bootstrap @media is at 575.98px but we add tablet refinements
+   so the layout breathes between phone and desktop)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  body[data-theme] .friends-page-header {
+    margin-bottom: 16px;
+  }
+  body[data-theme] .friends-page-header h1 {
+    font-size: 24px;
+  }
+  body[data-theme] .friends-page-header p {
+    font-size: 13px;
+  }
+  body[data-theme] .friends-header h3 {
+    font-size: 20px;
+  }
+  body[data-theme] .friends-header .friends-title i {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+  }
+  body[data-theme] main .card.friends-card .card-header {
+    padding: 14px 16px 0;
+  }
+  body[data-theme] main .card.friends-card .card-body {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  body[data-theme] .friends-page-header h1 {
+    font-size: 22px;
+  }
+  body[data-theme] .friends-back-btn {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+  body[data-theme] .friends-back-btn span,
+  body[data-theme] .friends-back-btn:not(:has(i)) {
+    /* keep icon visible regardless */
+  }
+  body[data-theme] .friends-tabs {
+    flex-wrap: wrap !important;
+    gap: 6px;
+  }
+  body[data-theme] .friends-tabs .nav-item {
+    flex: 1 1 auto;
+  }
+  body[data-theme] .friends-tabs .nav-link {
+    width: 100%;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  body[data-theme] .friends-tabs .nav-link i {
+    font-size: 12px;
+  }
+  body[data-theme] .friends-grid {
+    grid-template-columns: 1fr;
+  }
+  body[data-theme] .friend-card {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  body[data-theme] .friend-card .friend-avatar {
+    width: 42px;
+    height: 42px;
+  }
+  body[data-theme] .friend-card .friend-name {
+    font-size: 13.5px;
+  }
+  body[data-theme] .friend-card .friend-actions .btn {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  body[data-theme] .discover-section-header h5 {
+    font-size: 16px;
+  }
+  body[data-theme] .discover-section-header .see-all-link {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+  body[data-theme] .discover-card {
+    flex: 0 0 150px;
+    width: 150px;
+  }
+  body[data-theme] .discover-card .discover-name {
+    font-size: 13px;
+  }
+  body[data-theme] .discover-card .discover-add-btn,
+  body[data-theme] .discover-card .discover-remove-btn {
+    font-size: 12px;
+    padding: 7px 0;
+  }
+  body[data-theme] .discover-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  body[data-theme] .discover-scroll-arrow {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  body[data-theme] .discover-scroll-arrow.arrow-left {
+    left: -4px;
+  }
+  body[data-theme] .discover-scroll-arrow.arrow-right {
+    right: -4px;
+  }
+  body[data-theme] .friends-search-box input.form-control {
+    height: 38px;
+    font-size: 13px;
+    padding-left: 34px;
+  }
+}

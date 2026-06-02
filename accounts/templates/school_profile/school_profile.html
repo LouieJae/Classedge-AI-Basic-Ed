@@ -1,0 +1,183 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}School Profile{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+  {% include "includes/_centre_modal_theme.html" %}
+
+  <link rel="stylesheet" href="{% static 'accounts/school_profile.css' %}" />
+
+  <div class="cl-page">
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-school me-2"></i>School <em>profile</em></h2>
+        <p>Public-facing identity of your institution. The logo and name are shown across login pages, certificates, and reports.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="school-profile">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="sp-alert {{ message.tags }}"><i class="fas fa-info-circle me-2"></i>{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="sp-grid">
+      <div class="sp-card">
+        <div class="sp-card-header"><i class="fas fa-image"></i> School logo</div>
+        <div class="sp-card-body">
+          <div class="sp-logo-frame">
+            <img src="{{ MEDIA_URL }}logos/HCCCI-logo.png?{{ logo_update_time }}" alt="School logo">
+          </div>
+          <button type="button" class="cl-btn cl-btn-primary w-100" id="openLogoModal">
+            <i class="fas fa-cloud-arrow-up"></i> Replace logo
+          </button>
+          <p class="hint mt-2" style="font-size: 12px; color: var(--ink-muted); margin: 8px 0 0;">PNG only · recommended 1:1 ratio · max 2 MB.</p>
+        </div>
+      </div>
+
+      <div class="sp-card">
+        <div class="sp-card-header"><i class="fas fa-quote-left"></i> School name</div>
+        <div class="sp-card-body">
+          <div class="sp-name-row">
+            <div>
+              <div class="label">Display name</div>
+              <div class="value">{% if school_name %}{{ school_name.name }}{% else %}<span class="sp-empty">— not set —</span>{% endif %}</div>
+            </div>
+          </div>
+          <div class="sp-name-row">
+            <div>
+              <div class="label">Short name</div>
+              <div class="value">{% if school_name and school_name.short_name %}{{ school_name.short_name }}{% else %}<span class="sp-empty">— not set —</span>{% endif %}</div>
+            </div>
+          </div>
+          <button type="button" class="cl-btn cl-btn-primary w-100 mt-2" id="openNameModal">
+            <i class="fas fa-pen"></i> Edit school name
+          </button>
+        </div>
+      </div>
+      <div class="sp-card sp-card--brand">
+        <div class="sp-card-header"><i class="fas fa-palette"></i> Brand color</div>
+        <div class="sp-card-body">
+          <p class="sp-brand-hint" style="margin: 0 0 14px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5;">
+            One color drives every brand-tracking surface across the app — sidebar accents, icons, em accents in titles, primary buttons, page atmosphere. Pick a preset or fine-tune with the custom picker. Preview updates instantly; <strong>Save</strong> persists it for every user.
+          </p>
+
+          <form method="POST" action="{% url 'change_brand_color' %}" id="brandColorForm" class="sp-brand-form">
+            {% csrf_token %}
+
+            <span class="sp-brand-label">Presets</span>
+            <div class="sp-brand-swatches" role="radiogroup" aria-label="Brand color presets">
+              {% for p in brand_presets %}
+                <button type="button"
+                        class="sp-brand-swatch{% if p.hex|lower == current_brand_color %} is-active{% endif %}"
+                        data-brand-hex="{{ p.hex }}"
+                        title="{{ p.label }} ({{ p.hex }})"
+                        aria-label="{{ p.label }}"
+                        aria-pressed="{% if p.hex|lower == current_brand_color %}true{% else %}false{% endif %}">
+                  <span class="sp-brand-swatch-dot" style="background:{{ p.hex }};"></span>
+                  <span class="sp-brand-swatch-label">{{ p.label }}</span>
+                </button>
+              {% endfor %}
+            </div>
+
+            <span class="sp-brand-label sp-brand-label--mt">Custom</span>
+            <div class="sp-brand-custom">
+              <label for="brand_color_picker" class="sp-brand-picker-frame" title="Pick a custom color">
+                <input type="color"
+                       id="brand_color_picker"
+                       value="{{ current_brand_color }}"
+                       aria-label="Custom brand color">
+                <span class="sp-brand-picker-overlay" aria-hidden="true">
+                  <i class="fas fa-eye-dropper"></i>
+                </span>
+              </label>
+              <input type="text"
+                     id="brand_color_hex"
+                     name="brand_color"
+                     class="sp-brand-hex-input"
+                     value="{{ current_brand_color }}"
+                     pattern="^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+                     maxlength="7"
+                     spellcheck="false"
+                     autocomplete="off"
+                     aria-label="Hex value">
+            </div>
+
+            <div class="sp-brand-foot">
+              <button type="button" class="sp-btn" id="brandResetBtn">
+                <i class="fas fa-rotate-left"></i> Reset
+              </button>
+              <button type="submit" class="sp-btn sp-btn-primary">
+                <i class="fas fa-save"></i> Save brand color
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logo modal -->
+  <div id="logoModal" class="rl-modal rl-modal--compact" role="dialog" aria-labelledby="logoTitle" aria-modal="true">
+    <div class="rl-modal-head">
+      <h5 id="logoTitle"><i class="fas fa-image"></i> Update school <em>logo</em></h5>
+      <button type="button" class="rl-modal-close" id="closeLogoModalBtn" aria-label="Close">&times;</button>
+    </div>
+    <div class="rl-modal-content">
+      <form method="POST" action="{% url 'school-profile' %}" enctype="multipart/form-data" class="sp-form rl-form">
+        {% csrf_token %}
+        <div class="rl-form-body">
+          <div class="field">
+            <label for="logo">PNG image</label>
+            <input type="file" name="logo" id="logo" accept="image/png" required>
+            <div class="hint">Only PNG files are accepted. Existing logo will be replaced.</div>
+          </div>
+        </div>
+        <div class="rl-form-foot">
+          <button type="button" class="sp-btn" id="cancelLogoBtn">Cancel</button>
+          <button type="submit" class="sp-btn sp-btn-primary"><i class="fas fa-save"></i> Save logo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="logoModalBackdrop" class="rl-modal-backdrop"></div>
+
+  <!-- Name modal -->
+  <div id="nameModal" class="rl-modal rl-modal--compact" role="dialog" aria-labelledby="nameTitle" aria-modal="true">
+    <div class="rl-modal-head">
+      <h5 id="nameTitle"><i class="fas fa-quote-left"></i> Update school <em>name</em></h5>
+      <button type="button" class="rl-modal-close" id="closeNameModalBtn" aria-label="Close">&times;</button>
+    </div>
+    <div class="rl-modal-content">
+      <form method="POST" action="{% url 'change_school_name' %}" class="sp-form rl-form">
+        {% csrf_token %}
+        <div class="rl-form-body">
+          <div class="field">
+            <label for="school_name">Display name</label>
+            <input type="text" name="school_name" id="school_name" required value="{{ school_name.name|default:'' }}">
+          </div>
+          <div class="field">
+            <label for="school_short_name">Short name</label>
+            <input type="text" name="school_short_name" id="school_short_name" maxlength="10" value="{{ school_name.short_name|default:'' }}">
+            <div class="hint">Up to 10 characters — used in compact UI like the sidebar.</div>
+          </div>
+        </div>
+        <div class="rl-form-foot">
+          <button type="button" class="sp-btn" id="cancelNameBtn">Cancel</button>
+          <button type="submit" class="sp-btn sp-btn-primary"><i class="fas fa-save"></i> Save name</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="nameModalBackdrop" class="rl-modal-backdrop"></div>
+
+  <script src="{% static 'accounts/school_profile.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-school-profile.js' %}" defer></script>
+{% endblock %}

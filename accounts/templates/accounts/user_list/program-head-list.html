@@ -1,0 +1,43 @@
+{% extends 'base_operation.html' %}
+{% load humanize %}
+{% load static %}
+{% block title %}Program Heads{% endblock %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% include "includes/_edit-inline.html" %}{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2>Program Heads</h2>
+        <p>Manage program head accounts responsible for departments and programs.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="program-head-list">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+      </div>
+    </div>
+
+    <div id="cl-ph-wrapper" class="cl-table-wrapper" data-cl-async-table data-base-url="{% url 'program-head-list' %}">
+      {% include "includes/_list_table.html" %}
+    </div>
+  </div>
+
+  <script>
+    // Edit now navigates to a dedicated update page (no more in-page modal).
+    function openEditModal(profileId) {
+      const userRole = '{{ role|lower }}';
+      const url = (userRole === 'registrar')
+        ? `/account/profile/update/program-head-profile/${profileId}/`
+        : `/account/admin/update-program-head-profile/${profileId}/`;
+      window.location.href = url;
+    }
+  </script>
+
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script src="{% static 'accounts/user_list/program-head-list.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-program-head-list.js' %}" defer></script>
+{% endblock %}

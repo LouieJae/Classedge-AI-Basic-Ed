@@ -1,0 +1,149 @@
+{% comment %}
+[Classedge LMS] Global toast notifications.
+
+Drop a single include into any base template:
+  {% include "includes/_toast.html" %}
+
+It auto-renders any Django ``messages`` as themed toasts on page load and
+exposes a global ``clToast(message, type, timeoutMs)`` JS helper for ad-hoc
+client-side notifications.
+
+Types: 'success' | 'info' | 'warning' | 'danger' (alias 'error' = 'danger').
+Defaults: type='info', timeout=5000ms (use 0 to keep until dismissed).
+{% endcomment %}
+<style>
+  .cl-toast-host {
+    position: fixed;
+    top: 18px; right: 18px;
+    z-index: 2000;
+    display: flex; flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    max-width: min(380px, calc(100vw - 36px));
+  }
+  .cl-toast {
+    pointer-events: auto;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
+    border-left: 4px solid var(--ink-muted);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 28px -10px rgba(0,0,0,0.18);
+    font-family: var(--body); font-size: 13.5px;
+    line-height: 1.4;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  .cl-toast.show { opacity: 1; transform: translateX(0); }
+  .cl-toast.hide { opacity: 0; transform: translateX(20px); }
+
+  .cl-toast .cl-toast-icon {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 11px; flex-shrink: 0;
+    color: var(--cream);
+  }
+  .cl-toast .cl-toast-body strong {
+    display: block;
+    font-family: var(--display); font-weight: 600;
+    color: var(--ink); margin-bottom: 2px;
+    font-size: 13px;
+  }
+  .cl-toast .cl-toast-close {
+    background: transparent; border: 0; color: var(--ink-muted);
+    cursor: pointer; padding: 2px 4px; line-height: 1;
+    font-size: 14px;
+  }
+  .cl-toast .cl-toast-close:hover { color: var(--ink); }
+
+  .cl-toast.cl-success { border-left-color: var(--brand-primary, #b7925a); }
+  .cl-toast.cl-success .cl-toast-icon { background: var(--brand-primary, #b7925a); }
+  .cl-toast.cl-info    { border-left-color: var(--brand-primary, #b7925a); }
+  .cl-toast.cl-info .cl-toast-icon { background: var(--brand-primary, #b7925a); }
+  .cl-toast.cl-warning { border-left-color: var(--brand-primary, #b7925a); }
+  .cl-toast.cl-warning .cl-toast-icon { background: var(--brand-primary, #b7925a); color: #4b3a18; }
+  /* Danger toast — same rose-deep red as the inline validation cues so a
+     server-side error feels visually continuous with the field-level
+     messages users have just seen. */
+  .cl-toast.cl-danger  {
+    border-left-color: var(--rose-deep, #b3261e);
+    box-shadow: 0 8px 28px -10px rgba(0,0,0,0.18),
+                0 0 0 3px color-mix(in srgb, var(--rose-deep, #b3261e) 14%, transparent);
+  }
+  .cl-toast.cl-danger .cl-toast-icon { background: var(--rose-deep, #b3261e); }
+  .cl-toast.cl-danger .cl-toast-body strong { color: var(--rose-deep, #b3261e); }
+
+  body[data-theme="dark"] .cl-toast { background: #1f2a26; box-shadow: 0 8px 32px -8px rgba(0,0,0,0.6); }
+</style>
+
+<div class="cl-toast-host" id="cl-toast-host" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+  (function () {
+    const host = document.getElementById('cl-toast-host');
+    const TYPE_MAP = {
+      success: { cls: 'cl-success', icon: 'fa-check',                label: 'Success' },
+      info:    { cls: 'cl-info',    icon: 'fa-info',                 label: 'Notice'  },
+      warning: { cls: 'cl-warning', icon: 'fa-triangle-exclamation', label: 'Warning' },
+      danger:  { cls: 'cl-danger',  icon: 'fa-xmark',                label: 'Error'   },
+    };
+
+    function dismiss(el) {
+      if (!el || el.classList.contains('hide')) return;
+      el.classList.remove('show');
+      el.classList.add('hide');
+      setTimeout(() => el.remove(), 220);
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    window.clToast = function (message, type, timeoutMs) {
+      type = (type || 'info').toLowerCase();
+      if (type === 'error') type = 'danger';
+      if (type === 'debug') type = 'info';
+      const meta = TYPE_MAP[type] || TYPE_MAP.info;
+      if (timeoutMs === undefined) timeoutMs = 5000;
+
+      const el = document.createElement('div');
+      el.className = 'cl-toast ' + meta.cls;
+      el.setAttribute('role', 'status');
+      el.innerHTML =
+        '<span class="cl-toast-icon"><i class="fas ' + meta.icon + '"></i></span>' +
+        '<div class="cl-toast-body"><strong>' + meta.label + '</strong>' + escapeHtml(String(message)) + '</div>' +
+        '<button class="cl-toast-close" aria-label="Dismiss">&times;</button>';
+      host.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('show'));
+      el.querySelector('.cl-toast-close').addEventListener('click', () => dismiss(el));
+
+      if (timeoutMs > 0) setTimeout(() => dismiss(el), timeoutMs);
+      return el;
+    };
+
+    // Backwards-compat alias for code that still calls displayToast(msg, icon).
+    if (!window.displayToast) {
+      window.displayToast = function (message, icon) {
+        // Map SweetAlert-style icons to our types.
+        const map = { success: 'success', error: 'danger', warning: 'warning', info: 'info', question: 'info' };
+        window.clToast(message, map[(icon || '').toLowerCase()] || 'info');
+      };
+    }
+  })();
+</script>
+
+{% if messages %}
+  <script>
+    (function () {
+      {% for m in messages %}
+        window.clToast("{{ m|escapejs }}", "{{ m.tags|escapejs }}");
+      {% endfor %}
+    })();
+  </script>
+{% endif %}

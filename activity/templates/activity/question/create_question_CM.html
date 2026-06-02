@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Add Question" %}
+</head>
+<body>
+  <div class="cm-shell narrow">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Add <em>question</em></h1>
+          <div class="cm-subtitle">{{ activity.activity_name }} · {{ quiz_type.name }}</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'classroom_mode' activity.subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to classroom</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-form-card">
+      <div class="cm-form-head">
+        <h2><span class="icon"><i class="fas fa-plus"></i></span> Question details</h2>
+      </div>
+      <form method="post" enctype="multipart/form-data" data-cl-autosave="create-question-cm" data-cl-loading data-cl-loading-label="Creating…">
+        {% csrf_token %}
+        <div class="cm-form-body">
+          {% if quiz_type.name == 'Participation' %}
+            <div class="cm-form-row">
+              <div class="cm-col-12">
+                <label for="max_score">Maximum score</label>
+                <input type="number" id="max_score" name="max_score" required>
+              </div>
+            </div>
+
+            <h3 style="font-size: 14px; font-weight: 700; color: var(--forest); margin: 18px 0 10px;">Major Assessment scores</h3>
+            <div class="cm-table-wrap">
+              <table class="cm-table">
+                <thead>
+                  <tr><th>Student</th><th style="width: 160px;">Score</th></tr>
+                </thead>
+                <tbody>
+                  {% for student in students %}
+                    <tr>
+                      <td>{{ student.get_full_name }}</td>
+                      <td>
+                        <input type="number" name="score_{{ student.id }}" required
+                               style="width: 100%; background: var(--cream); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--ink); padding: 8px 12px;">
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            {% if quiz_type.name != 'Matching Type' and quiz_type.name != 'Document' %}
+              <div class="cm-form-row">
+                <div class="cm-col-12">
+                  <label for="question_text">Question</label>
+                  <textarea id="question_text" name="question_text" required></textarea>
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="cm-form-row">
+              <div class="cm-col-12">
+                <label for="score">Score</label>
+                <input type="number" id="score" name="score" required>
+              </div>
+            </div>
+
+            {% if quiz_type.name == 'Multiple Choice' %}
+              <div class="cm-form-row">
+                <div class="cm-col-12">
+                  <label>Choices <small style="display:inline; margin-left:4px;">(pick the correct one)</small></label>
+                  <div id="choices" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <input type="radio" name="correct_answer" value="0" required style="width: 18px; height: 18px; accent-color: var(--forest);">
+                      <input type="text" name="choices" placeholder="Choice 1" required>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <input type="radio" name="correct_answer" value="1" style="width: 18px; height: 18px; accent-color: var(--forest);">
+                      <input type="text" name="choices" placeholder="Choice 2" required>
+                    </div>
+                  </div>
+                  <button type="button" class="cm-btn ghost cm-btn-sm" style="margin-top: 10px;" onclick="addChoice()">
+                    <i class="fas fa-plus"></i> Add another choice
+                  </button>
+                </div>
+              </div>
+            {% elif quiz_type.name == 'True/False' %}
+              <div class="cm-form-row">
+                <div class="cm-col-12">
+                  <label for="correct_answer">Correct answer</label>
+                  <select id="correct_answer" name="correct_answer" required>
+                    <option value="True">True</option>
+                    <option value="False">False</option>
+                  </select>
+                </div>
+              </div>
+            {% elif quiz_type.name == 'Matching Type' %}
+              <div class="cm-form-row">
+                <div class="cm-col-12">
+                  <label>Matching pairs</label>
+                  <div id="matching_pairs" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                      <input type="text" name="matching_left" placeholder="Left side" required>
+                      <input type="text" name="matching_right" placeholder="Right side" required>
+                    </div>
+                  </div>
+                  <button type="button" class="cm-btn ghost cm-btn-sm" style="margin-top: 10px;" onclick="addMatchingPair()">
+                    <i class="fas fa-plus"></i> Add another pair
+                  </button>
+                </div>
+              </div>
+            {% elif quiz_type.name == 'Calculated Numeric' %}
+              <div class="cm-form-row">
+                <div class="cm-col-12">
+                  <label for="correct_answer">Correct answer</label>
+                  <input type="number" id="correct_answer" name="correct_answer" required>
+                </div>
+              </div>
+            {% elif quiz_type.name == 'Document' %}
+              <div class="cm-form-row">
+                <div class="cm-col-12">
+                  <label for="document_file">Upload document</label>
+                  <input type="file" id="document_file" name="document_file" required>
+                </div>
+              </div>
+            {% elif quiz_type.name != 'Essay' %}
+              <div class="cm-form-row">
+                <div class="cm-col-12">
+                  <label for="correct_answer">Correct answer</label>
+                  <input type="text" id="correct_answer" name="correct_answer" required>
+                </div>
+              </div>
+            {% endif %}
+          {% endif %}
+        </div>
+
+        <div class="cm-form-foot">
+          <a href="{% url 'classroom_mode' activity.subject.id %}" class="cm-btn ghost">Cancel</a>
+          <button type="submit" class="cm-btn primary"><i class="fas fa-plus"></i> Add question</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Existing questions -->
+    {% if questions %}
+      <div class="cm-card" style="margin-top: 18px;">
+        <div class="cm-card-head">
+          <h2 class="cm-card-title"><span class="icon"><i class="fas fa-list-check"></i></span> Existing questions</h2>
+          <span class="cm-card-meta">Total score: <strong>{{ total_score }}</strong></span>
+        </div>
+        <div class="cm-table-wrap">
+          <table class="cm-table">
+            <thead>
+              <tr><th>Question</th><th style="width: 100px;">Score</th><th style="width: 110px;">Action</th></tr>
+            </thead>
+            <tbody>
+              {% for question in questions %}
+                <tr>
+                  <td>{{ question.question_text }}</td>
+                  <td><span class="cm-pill gold">{{ question.score }}</span></td>
+                  <td>
+                    <a href="{% url 'edit_question' question.id %}" class="cm-row-icon-btn edit" title="Edit"><i class="fas fa-pen"></i></a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script>
+    function addChoice() {
+      const idx = document.querySelectorAll('input[name="choices"]').length;
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+      wrap.innerHTML = '<input type="radio" name="correct_answer" value="' + idx + '" style="width: 18px; height: 18px; accent-color: var(--forest);">' +
+        '<input type="text" name="choices" placeholder="Choice ' + (idx + 1) + '" required>';
+      document.getElementById('choices').appendChild(wrap);
+    }
+    function addMatchingPair() {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 8px;';
+      wrap.innerHTML = '<input type="text" name="matching_left" placeholder="Left side" required>' +
+        '<input type="text" name="matching_right" placeholder="Right side" required>';
+      document.getElementById('matching_pairs').appendChild(wrap);
+    }
+  </script>
+  <script src="{% static 'js/classroom-mode.js' %}"></script>
+</body>
+</html>

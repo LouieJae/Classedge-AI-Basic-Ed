@@ -1,0 +1,63 @@
+{% load static %}
+{% comment %}
+  Shared <head> for standalone Classroom Mode pages.
+  Usage:
+    {% include "includes/_cm_head.html" with title="Activities · Subject" %}
+{% endcomment %}
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="csrf-token" content="{{ csrf_token }}" />
+<meta name="cm-page" content="true" />
+<title>{{ title|default:"Classroom Mode" }}</title>
+
+<link rel="icon" type="image/png" href="{% static 'favicon.ico' %}" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://onedrive.live.com" crossorigin />
+<link rel="preconnect" href="https://res.cdn.office.net" crossorigin />
+<link rel="preconnect" href="https://view.officeapps.live.com" crossorigin />
+<link rel="preconnect" href="https://www.youtube.com" crossorigin />
+<link rel="preconnect" href="https://i.ytimg.com" crossorigin />
+<link rel="preconnect" href="https://player.vimeo.com" crossorigin />
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+<link rel="dns-prefetch" href="https://1drv.ms" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+<link rel="stylesheet" href="{% static 'css/adminlte.min.css' %}" />
+<link rel="stylesheet" href="{% static 'css/settings.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/css/custom_modal.css' %}" />
+<link rel="stylesheet" href="{% static 'css/subject_details.css' %}" />
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="{% static 'vendors/select2-bootstrap-5-theme/select2-bootstrap-5-theme.min.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cl-select2.css' %}" />
+<link href="{% static 'vendors/choices/choices.min.css' %}" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" />
+<link rel="stylesheet" href="{% static 'css/cl-tour.css' %}" />
+
+<link rel="stylesheet" href="{% static 'css/classroom-mode-shell.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cl-brand-utilities.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cl-form-validation.css' %}" />
+
+{% comment %}
+  Tenant brand injection — same pattern as base_operation.html. Every
+  standalone Classroom Mode page now picks up the saved SCHOOL_BRAND_COLOR
+  from the school_context processor and propagates it into --brand-primary
+  (+ the derived soft tint) at body scope. Without this, CM pages had no
+  --brand-primary declared anywhere and all tokens fell back to the
+  hardcoded forest hex in classroom-mode-shell.css.
+{% endcomment %}
+<style data-cl-brand-tenant>
+  :root,
+  body[data-theme="light"],
+  body[data-theme="dark"] {
+    --brand-primary: {{ SCHOOL_BRAND_COLOR|default:"#1b4332" }};
+    --brand-primary-soft: color-mix(in srgb, {{ SCHOOL_BRAND_COLOR|default:"#1b4332" }} 18%, transparent);
+  }
+</style>

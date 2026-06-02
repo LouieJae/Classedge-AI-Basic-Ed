@@ -1,0 +1,550 @@
+{% comment %}
+Shared styles + scripts for the lesson create/update forms.
+Include this once per template inside extra_css (after _legacy_stack.html so
+Bootstrap and Select2 are already loaded).
+The dropzone script is defensive: it only binds if #dropzone exists, so the
+URL and Embed forms (which don't upload files) can include this safely.
+{% endcomment %}
+<style>
+  /* ─── Page header ─────────────────────────────────── */
+  .lesson-shell { max-width: 1280px; margin: 0 auto; }
+
+  /* ─── Landscape grid (main + side panel) ───────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .form-grid { grid-template-columns: 1fr; gap: 18px; }
+  }
+  .form-main, .form-side {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+  }
+  @media (min-width: 1101px) {
+    .form-side { position: sticky; top: 16px; }
+  }
+  .form-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+  }
+  .form-card .form-section + .form-section {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  .form-footer-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 24px;
+    margin-top: 18px;
+  }
+  .form-footer-card .form-actions {
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  /* Solid pill back-button — used as a top-of-page nav across the material
+     forms (create/update material, copy materials, import from subject, etc.). */
+  .lesson-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm, 12px);
+    color: var(--ink); font-size: 13px; font-weight: 600;
+    text-decoration: none; margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+    transition: all 0.18s ease;
+  }
+  .lesson-back:hover {
+    background: var(--cream-2); color: var(--ink);
+    border-color: var(--brand-primary, #b7925a); text-decoration: none;
+    transform: translateX(-2px);
+  }
+  .lesson-back i {
+    font-size: 11px;
+    transition: transform 0.18s ease;
+  }
+  .lesson-back:hover i { transform: translateX(-2px); }
+
+  .lesson-header { margin-bottom: 24px; }
+  .lesson-header .page-title { margin-bottom: 4px; }
+  .lesson-header .page-sub { font-size: 14px; }
+
+  /* ─── Lesson-type segmented switcher ──────────────── */
+  .lesson-type-tabs {
+    display: inline-flex;
+    background: var(--cream-2);
+    border-radius: 100px;
+    padding: 4px;
+    gap: 2px;
+    margin-bottom: 22px;
+    border: 1px solid var(--border);
+  }
+  .lesson-type-tabs .tab {
+    padding: 9px 18px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-dim);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.18s;
+  }
+  .lesson-type-tabs .tab i { font-size: 12px; color: var(--brand-primary, #b7925a); }
+  .lesson-type-tabs .tab:hover { color: var(--ink); }
+  .lesson-type-tabs .tab.active {
+    background: var(--paper);
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+  }
+  .lesson-type-tabs .tab.active i { color: var(--ink); }
+
+  /* ─── Form panel ──────────────────────────────────── */
+  .form-panel {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px 36px;
+  }
+  .form-section + .form-section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .form-section-title {
+    font-family: var(--body);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--brand-primary, #b7925a);
+    font-weight: 700;
+    margin: 0 0 16px;
+  }
+
+  /* ─── Form fields ────────────────────────────────── */
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .field-row { grid-template-columns: 1fr; } }
+
+  .field > label,
+  .field-row .field > label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .field-help {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 6px;
+  }
+  /* Style any Django-rendered widget without touching the widget HTML */
+  .field input.form-control,
+  .field select.form-control,
+  .field textarea.form-control,
+  .field input[type="text"],
+  .field input[type="url"],
+  .field input[type="email"],
+  .field input[type="number"],
+  .field input[type="date"],
+  .field input[type="datetime-local"],
+  .field select,
+  .field textarea {
+    width: 100%;
+    padding: 10px 14px;
+    font-family: var(--body);
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    line-height: 1.4;
+  }
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    outline: none;
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .field textarea { resize: vertical; min-height: 96px; }
+
+  /* ─── Native date / datetime picker (cross-browser) ──────
+     Replace Chrome's near-invisible ::-webkit-calendar-picker-indicator
+     with a CSS background-image so the icon is consistently visible in
+     light + dark themes and across Chrome / Edge / Firefox / Safari.
+     The native indicator is kept clickable (full-input click target via
+     `appearance: none` + transparent overlay) so it still opens the
+     picker on all browsers. */
+  .field input[type="date"],
+  .field input[type="datetime-local"],
+  .field input[type="time"],
+  .field input[type="month"],
+  .field input[type="week"] {
+    padding-right: 38px;
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 16px;
+    /* Calendar SVG in --ink color (light mode). */
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232d3142' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    color-scheme: light;
+  }
+  .field input[type="time"] {
+    /* Clock SVG for time-only inputs. */
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232d3142' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E");
+  }
+
+  /* Dark-mode variants — same SVGs, recoloured to a light cream stroke
+     so they read against the dark surface. */
+  body[data-theme="dark"] .field input[type="date"],
+  body[data-theme="dark"] .field input[type="datetime-local"],
+  body[data-theme="dark"] .field input[type="month"],
+  body[data-theme="dark"] .field input[type="week"] {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e8eaf0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    color-scheme: dark;
+  }
+  body[data-theme="dark"] .field input[type="time"] {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e8eaf0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E");
+  }
+
+  /* Hide Chrome's native indicator (we draw our own above) but keep the
+     click area — Chrome opens the picker when ANY part of the input is
+     clicked once the indicator's opacity is 1 and width spans the input. */
+  .field input[type="date"]::-webkit-calendar-picker-indicator,
+  .field input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  .field input[type="time"]::-webkit-calendar-picker-indicator,
+  .field input[type="month"]::-webkit-calendar-picker-indicator,
+  .field input[type="week"]::-webkit-calendar-picker-indicator {
+    opacity: 0;            /* invisible — we paint our own glyph */
+    cursor: pointer;
+    position: absolute;
+    right: 0; top: 0;
+    width: 38px; height: 100%;
+  }
+  .field input[type="date"],
+  .field input[type="datetime-local"],
+  .field input[type="time"],
+  .field input[type="month"],
+  .field input[type="week"] { position: relative; }
+
+  /* ─── Dropzone ───────────────────────────────────── */
+  .dropzone {
+    position: relative;
+    border: 2px dashed var(--brand-primary, #b7925a);
+    background: var(--brand-primary-soft);
+    border-radius: var(--radius-sm);
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .dropzone:hover,
+  .dropzone.dragover {
+    border-color: var(--brand-primary, #b7925a);
+    background: var(--brand-primary-soft);
+  }
+  .dropzone-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .dropzone-icon {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+    font-size: 20px;
+    color: var(--brand-primary, #b7925a);
+  }
+  .dropzone-primary {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .dropzone-secondary {
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+  .dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .file-preview-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin-top: 16px;
+    box-shadow: var(--shadow);
+  }
+  .file-preview-card .icon {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    background: var(--brand-primary-soft);
+    color: var(--ink);
+    display: grid; place-items: center;
+    font-size: 18px;
+  }
+  .file-preview-card .name {
+    font-weight: 600;
+    color: var(--ink);
+    font-size: 14px;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-preview-card .size {
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+  .current-file-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--ink-dim);
+    background: var(--cream-2);
+    padding: 6px 12px;
+    border-radius: 100px;
+    margin-bottom: 10px;
+  }
+  .current-file-note strong { color: var(--ink); font-weight: 600; }
+  .current-file-note i { color: var(--brand-primary, #b7925a); }
+
+  /* ─── Audience helpers ───────────────────────────── */
+  .audience-actions { display: flex; gap: 8px; margin-bottom: 10px; }
+  .audience-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    font-size: 12px; font-weight: 500;
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    color: var(--ink-dim);
+    cursor: pointer;
+    font-family: var(--body);
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .audience-btn:hover { color: var(--ink); border-color: var(--brand-primary-soft); }
+  .audience-btn i { font-size: 11px; color: var(--brand-primary, #b7925a); }
+
+  /* ─── Inline checkbox row ─────────────────────────── */
+  .field-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--cream-2);
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    color: var(--ink);
+    border: 1px solid var(--border);
+  }
+  .field-check input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: var(--ink);
+    margin: 0;
+  }
+  .field-check label { margin: 0; font-weight: 500; cursor: pointer; }
+
+  /* ─── Action buttons ─────────────────────────────── */
+  .form-actions {
+    display: flex; justify-content: flex-end; gap: 12px;
+    padding-top: 24px;
+    margin-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 22px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--border-strong);
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    font-family: var(--body);
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  .btn-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+    color: var(--ink);
+  }
+  .btn-pill.primary {
+    background: var(--brand-primary, #b7925a);
+    color: var(--cream);
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .btn-pill.primary:hover {
+    background: var(--brand-primary, #b7925a);
+    color: var(--cream);
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .btn-pill i { font-size: 12px; }
+
+  /* Select2 styling lives in /static/css/cl-select2.css — the global
+     skin (loaded by base_operation.html) gives every page the same
+     brand-soft chips, custom .cl-chip-x circular × buttons, and
+     theme-aware dropdown. No page-local overrides needed. */
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // ── Dropzone (file uploads only) ─────────────────────────────
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const filePreview = document.getElementById('filePreview');
+
+    if (dropzone && fileInput) {
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => {
+        dropzone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
+      });
+      ['dragenter', 'dragover'].forEach(ev =>
+        dropzone.addEventListener(ev, () => dropzone.classList.add('dragover'))
+      );
+      ['dragleave', 'drop'].forEach(ev =>
+        dropzone.addEventListener(ev, () => dropzone.classList.remove('dragover'))
+      );
+
+      dropzone.addEventListener('drop', e => {
+        const files = e.dataTransfer.files;
+        if (files.length) { fileInput.files = files; handleFiles(files); }
+      });
+      // The <input type="file"> is `position: absolute; inset: 0`, so it
+      // already receives clicks natively across the dropzone. Only fire
+      // the programmatic .click() when the event came from somewhere else
+      // (e.g. a child overlay) — calling it on the input itself causes a
+      // double-trigger that some browsers turn into a `cancel` event,
+      // wiping the previously selected file.
+      dropzone.addEventListener('click', e => {
+        if (e.target === fileInput) return;
+        fileInput.click();
+      });
+      fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+      const allowedExts = [
+        '.pdf', '.jpg', '.jpeg', '.png',
+        '.mp4', '.avi', '.mov', '.wmv',
+        '.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx',
+      ];
+      const allowedMimes = [
+        'application/pdf',
+        'image/jpeg', 'image/jpg', 'image/png',
+        'video/mp4', 'video/x-msvideo', 'video/quicktime', 'video/x-ms-wmv',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ];
+      const MAX_SIZE = 30 * 1024 * 1024;
+
+      function handleFiles(files) {
+        if (!files || !files.length) return;
+        const file = files[0];
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+        if (!allowedMimes.includes(file.type) && !allowedExts.includes(ext)) {
+          alert('Invalid file type. Allowed: PDF, JPG, JPEG, PNG, MP4, AVI, MOV, WMV, PPT, PPTX, DOC, DOCX, XLS, XLSX');
+          fileInput.value = '';
+          return;
+        }
+        if (file.size > MAX_SIZE) {
+          alert('File size exceeds 30MB.');
+          fileInput.value = '';
+          return;
+        }
+        renderPreview(file);
+      }
+
+      function renderPreview(file) {
+        const sizeMb = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+        const major = file.type.split('/')[0];
+        let iconClass = 'fa-file';
+        if (major === 'image') iconClass = 'fa-image';
+        else if (major === 'video') iconClass = 'fa-video';
+        else if (file.type === 'application/pdf') iconClass = 'fa-file-pdf';
+        filePreview.innerHTML = `
+          <div class="file-preview-card">
+            <div class="icon"><i class="fas ${iconClass}"></i></div>
+            <div>
+              <div class="name" title="${file.name}">${file.name}</div>
+              <div class="size">${sizeMb}</div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // ── Select2 init for student multi-select ────────────────────
+    if (typeof window.jQuery !== 'undefined' && jQuery.fn.select2) {
+      const $sel = jQuery('#id_display_lesson_for_selected_users');
+      if ($sel.length) {
+        $sel.select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Pick students…',
+          allowClear: true,
+          closeOnSelect: false,
+          width: '100%',
+        });
+
+        const $selectAll = jQuery('#selectAllStudents');
+        const $clearAll = jQuery('#clearAllStudents');
+        $selectAll.on('click', function () {
+          const ids = $sel.find('option').map(function () { return this.value; }).get();
+          $sel.val(ids).trigger('change');
+        });
+        $clearAll.on('click', function () {
+          $sel.val(null).trigger('change');
+        });
+      }
+
+      // Initialise Select2 on every other single-select inside .field
+      // (Term, etc.) so they match the design system's styling
+      // instead of using the browser's native dropdown.
+      jQuery('.field select').not('[multiple]').each(function () {
+        const $this = jQuery(this);
+        if ($this.data('select2') || $this.attr('id') === 'id_display_lesson_for_selected_users') return;
+        $this.select2({
+          theme: 'bootstrap-5',
+          width: '100%',
+          minimumResultsForSearch: 8, // hide search box on short lists
+          placeholder: $this.find('option[value=""]').text() || 'Select…',
+        });
+      });
+    }
+  });
+</script>

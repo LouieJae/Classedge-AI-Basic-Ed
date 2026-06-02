@@ -1,0 +1,17 @@
+    /* Circular Chart */
+    .circular-chart {
+      transform: rotate(-90deg);
+    }
+    .bg-circle {
+      fill: none;
+      stroke: #eee;
+      stroke-width: 8;
+    }
+    .progress-circle {
+      fill: none;
+      stroke: #4caf50;
+      stroke-width: 8;
+      stroke-dasharray: 0 100;
+      transition: stroke-dasharray 0.5s ease;
+    }
+  

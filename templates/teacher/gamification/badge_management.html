@@ -1,0 +1,185 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Badge Management{% endblock %}
+
+{% block content %}
+{% include "includes/_list_page_theme.html" %}
+
+<div class="cl-page bm-page">
+
+  <div class="cl-header">
+    <div>
+      <h2><i class="fas fa-award me-2"></i>Badge <em>library</em></h2>
+      <p>Curate the achievements that motivate your students. Toggle, edit, or manually award badges.</p>
+    </div>
+  </div>
+
+  {# ─── Stat strip ─────────────────────────────────────────────────── #}
+  <div class="bm-stat-strip">
+    <div class="bm-stat">
+      <span class="bm-stat-icon"><i class="fas fa-award"></i></span>
+      <div>
+        <div class="bm-stat-label">Total badges</div>
+        <div class="bm-stat-value">{{ page_obj.paginator.count|default:0 }}</div>
+      </div>
+    </div>
+    <div class="bm-stat">
+      <span class="bm-stat-icon active"><i class="fas fa-circle-check"></i></span>
+      <div>
+        <div class="bm-stat-label">Showing on this page</div>
+        <div class="bm-stat-value">{{ page_obj|length }}</div>
+      </div>
+    </div>
+    {% if search_query or category_filter or status_filter %}
+      <div class="bm-stat filtered">
+        <span class="bm-stat-icon gold"><i class="fas fa-filter"></i></span>
+        <div>
+          <div class="bm-stat-label">Filtered view</div>
+          <div class="bm-stat-link"><a href="{% url 'badge_management' %}">Clear all filters</a></div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ─── Toolbar ────────────────────────────────────────────────────── #}
+  <form method="get" class="bm-toolbar" id="bm-filter-form">
+    <div class="bm-search-row">
+      <div class="cl-search">
+        <i class="fas fa-search"></i>
+        <input type="text" name="search" placeholder="Search by name or description…" value="{{ search_query }}">
+      </div>
+      <button type="submit" class="cl-btn cl-btn-primary bm-search-btn">
+        <i class="fas fa-search"></i> <span>Search</span>
+      </button>
+      {% if search_query %}
+        <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if category_filter %}category={{ category_filter }}{% endif %}"
+           class="cl-btn bm-search-clear">
+          <i class="fas fa-xmark"></i> <span>Clear</span>
+        </a>
+      {% endif %}
+    </div>
+    <div class="bm-filters">
+      <label for="bm-status">Status</label>
+      <select id="bm-status" name="status" onchange="document.getElementById('bm-filter-form').submit()">
+        <option value="">All</option>
+        <option value="active"   {% if status_filter == "active" %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactive</option>
+      </select>
+      <label for="bm-category">Category</label>
+      <select id="bm-category" name="category" onchange="document.getElementById('bm-filter-form').submit()">
+        <option value="">All</option>
+        <option value="General"       {% if category_filter == "General" %}selected{% endif %}>General</option>
+        <option value="Coding"        {% if category_filter == "Coding" %}selected{% endif %}>Coding</option>
+        <option value="Side Activity" {% if category_filter == "Side Activity" %}selected{% endif %}>Side Activity</option>
+      </select>
+    </div>
+  </form>
+
+  {# ─── Badge grid ─────────────────────────────────────────────────── #}
+  {% if page_obj %}
+    <div class="bm-grid">
+      {% for b in page_obj %}
+        <article class="bm-card tier-{{ b.tier|lower }} {% if not b.is_active %}is-inactive{% endif %}">
+          <header class="bm-card-head">
+            <div class="bm-icon tier-{{ b.tier|lower }}">
+              {% if b.icon %}{{ b.icon }}{% else %}<i class="fas fa-award"></i>{% endif %}
+            </div>
+            <div class="bm-tier-pill tier-{{ b.tier|lower }}">{{ b.tier|default:"—" }}</div>
+          </header>
+
+          <div class="bm-card-body">
+            <h3 class="bm-name">{{ b.name }}</h3>
+            <p class="bm-desc">{{ b.description|default:"No description provided." }}</p>
+
+            <div class="bm-meta">
+              <span class="bm-chip cat-{{ b.category|lower|cut:" " }}">
+                <i class="fas fa-tag"></i> {{ b.category }}
+              </span>
+              <span class="bm-chip earned">
+                <i class="fas fa-users"></i> {{ b.earned_count }} earned
+              </span>
+              {% if b.is_manual %}
+                <span class="bm-chip manual"><i class="fas fa-hand-sparkles"></i> Manual</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <footer class="bm-card-foot">
+            <span class="bm-status {% if b.is_active %}active{% else %}inactive{% endif %}">
+              <span class="bm-status-dot"></span>{{ b.status_label }}
+            </span>
+            <div class="bm-actions">
+              {% if perms.gamification.change_badgedefinition %}
+                <a href="{% url 'badge_edit' b.id %}" class="bm-action-btn" title="Edit">
+                  <i class="fas fa-pen"></i>
+                </a>
+              {% endif %}
+              {% if b.is_manual and perms.gamification.add_studentbadge %}
+                <a href="{% url 'badge_manual_award' b.id %}" class="bm-action-btn gold" title="Award to student">
+                  <i class="fas fa-medal"></i>
+                </a>
+              {% endif %}
+              {% if perms.gamification.change_badgedefinition %}
+                <form method="post" action="{% url 'badge_toggle_active' b.id %}" class="bm-action-form">
+                  {% csrf_token %}
+                  <button type="submit" class="bm-action-btn {% if b.is_active %}danger{% else %}forest{% endif %}" title="{{ b.toggle_label }}">
+                    <i class="fas fa-power-off"></i>
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </footer>
+        </article>
+      {% endfor %}
+    </div>
+
+    {# ─── Pagination ─────────────────────────────────────────────── #}
+    {% if page_obj.has_other_pages %}
+      <nav class="bm-pager" aria-label="Page navigation">
+        {% if page_obj.has_previous %}
+          <a class="bm-pager-btn" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}"><i class="fas fa-angle-left"></i></a>
+        {% else %}
+          <span class="bm-pager-btn disabled"><i class="fas fa-angle-left"></i></span>
+        {% endif %}
+
+        {% for n in page_range %}
+          {% if n == page_obj.number %}
+            <span class="bm-pager-btn active">{{ n }}</span>
+          {% else %}
+            <a class="bm-pager-btn" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ n }}">{{ n }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <a class="bm-pager-btn" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}"><i class="fas fa-angle-right"></i></a>
+        {% else %}
+          <span class="bm-pager-btn disabled"><i class="fas fa-angle-right"></i></span>
+        {% endif %}
+      </nav>
+    {% endif %}
+
+  {% else %}
+    {# ─── Empty state ────────────────────────────────────────────── #}
+    <div class="bm-empty">
+      <div class="bm-empty-icon"><i class="fas fa-award"></i></div>
+      <h3>No badges {% if search_query or category_filter or status_filter %}match this filter{% else %}yet{% endif %}</h3>
+      <p>
+        {% if search_query or category_filter or status_filter %}
+          Try clearing the filters or searching with different keywords.
+        {% else %}
+          Create the first badge to start celebrating student achievements.
+        {% endif %}
+      </p>
+      <div>
+        {% if search_query or category_filter or status_filter %}
+          <a href="{% url 'badge_management' %}" class="cl-btn cl-btn-primary">Clear filters</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+
+<link rel="stylesheet" href="{% static 'gamification/teacher/badge_management.css' %}" />
+{% endblock %}

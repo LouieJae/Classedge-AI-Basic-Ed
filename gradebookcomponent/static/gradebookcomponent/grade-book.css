@@ -1,0 +1,505 @@
+  /* Keep this page from forcing the base_operation grid (260px | 1fr) wider
+     than the viewport. Without min-width: 0 a wide DataTable can blow out
+     the 1fr column and shift the sticky sidebar. */
+  main { min-width: 0; }
+  .gb-shell { padding: 8px 0; min-width: 0; }
+  .gb-shell, .gb-shell * { box-sizing: border-box; }
+
+  .gb-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  /* Header uses base .page-title / .page-sub for cross-page consistency. */
+
+  .gb-section {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px 30px;
+    margin-bottom: 28px;
+    position: relative;
+    /* overflow visible so the row action dropdowns can escape the card */
+    overflow: visible;
+    animation: fadeUp 0.6s ease both;
+  }
+  /* Bootstrap dropdown menus inside the gradebook should always float above
+     surrounding cards / accordions and never get clipped. */
+  .gb-section .dropdown-menu.show {
+    z-index: 1050;
+  }
+  .gb-section::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle at top right, rgba(183, 146, 90, 0.08), transparent 65%);
+    pointer-events: none;
+  }
+  .gb-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .gb-section-title {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+  .gb-section-title em {
+    font-style: italic;
+    color: var(--brand-primary, #b7925a);
+    font-weight: 400;
+  }
+
+  .gb-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .gb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--border-strong);
+    background: var(--cream);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+    white-space: nowrap;
+  }
+  .gb-btn:hover { border-color: var(--brand-primary, #b7925a); transform: translateY(-1px); }
+  .gb-btn--primary {
+    background: var(--brand-primary, #1b4332);
+    color: var(--cream)!important;
+    border-color: var(--brand-primary, #1b4332);
+  }
+  .gb-btn--primary:hover { background: var(--brand-primary, #1b4332); border-color: var(--brand-primary, #1b4332); color: var(--cream); }
+  .gb-btn--ghost {
+    background: transparent;
+    color: var(--ink-dim);
+  }
+  .gb-btn--ghost:hover { color: var(--ink); }
+
+  /* Custom accordion styled to match design system */
+  .gb-accordion { display: flex; flex-direction: column; gap: 10px; }
+  .gb-accordion-item {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    border-left: 3px solid var(--brand-primary, #1b4332);
+  }
+  .gb-accordion-item:hover { border-color: var(--brand-primary-soft); box-shadow: var(--shadow); }
+
+  .gb-accordion-button {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    cursor: pointer;
+    font-family: var(--body);
+    transition: background 0.15s;
+  }
+  .gb-accordion-button:hover { background: color-mix(in srgb, var(--brand-primary, #b7925a) 4%, transparent); }
+  .gb-accordion-button:focus { outline: none; box-shadow: none; }
+  .gb-accordion-button .gb-acc-info { display: flex; flex-direction: column; min-width: 0; gap: 4px; }
+  .gb-accordion-button .gb-acc-subject {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .gb-accordion-button .gb-acc-hint {
+    font-family: var(--display);
+    font-style: italic;
+    color: var(--ink-muted);
+    font-size: 12px;
+  }
+  .gb-accordion-button .gb-acc-right {
+    display: flex; align-items: center; gap: 14px; flex-shrink: 0;
+  }
+  .gb-accordion-button .gb-chevron {
+    color: var(--ink-dim);
+    font-size: 14px;
+    transition: transform 0.25s ease;
+  }
+  .gb-accordion-button:not(.collapsed) .gb-chevron { transform: rotate(180deg); color: var(--ink); }
+
+  .t-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .t-badge--gold { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); border-color: var(--brand-primary-soft); }
+  .t-badge--forest { background: var(--brand-primary-soft); color: var(--ink); }
+  .t-badge--rose { background: var(--rose-soft); color: var(--rose); }
+
+  .gb-accordion-body {
+    padding: 18px 20px 22px;
+    background: var(--paper);
+    border-top: 1px solid var(--border);
+  }
+
+  /* Tables */
+  .gb-table-wrap {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .gb-table-wrap .dataTables_wrapper { padding: 12px 14px; max-width: 100%; }
+
+  table.gb-table {
+    width: 100% !important;
+    border-collapse: collapse;
+    background: var(--paper);
+    font-family: var(--body);
+    margin: 0 !important;
+  }
+  table.gb-table thead th {
+    background: var(--cream-2);
+    color: var(--ink);
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.gb-table tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    color: var(--ink);
+    vertical-align: middle;
+  }
+  table.gb-table tbody tr:hover td { background: var(--cream); }
+  table.gb-table tbody tr:last-child td { border-bottom: none; }
+  table.gb-table tfoot th {
+    padding: 12px 14px;
+    background: var(--cream-2);
+    color: var(--ink);
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 600;
+    border-top: 1px solid var(--border);
+  }
+  .gb-cell-strong {
+    font-family: var(--display);
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .gb-action-cell,
+  table.gb-table thead th.gb-action-cell,
+  table.gb-table tbody td.gb-action-cell { text-align: right; white-space: nowrap; }
+
+  .gb-subact-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 360px;
+  }
+  .gb-subact-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    font-family: var(--body);
+    font-size: 12px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .gb-subact-chip .gb-subact-name { color: var(--ink); font-weight: 500; }
+  .gb-subact-chip .gb-subact-pct {
+    font-family: var(--display);
+    font-size: 11px;
+    color: var(--brand-primary, #b7925a);
+    font-weight: 600;
+  }
+
+  .gb-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--cream);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    font-size: 12px;
+    margin: 0 2px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    cursor: pointer;
+  }
+  .gb-icon-btn:hover { border-color: var(--brand-primary, #b7925a); color: var(--ink); }
+  .gb-icon-btn--danger { color: var(--rose); }
+  .gb-icon-btn--danger:hover { background: var(--rose-soft); border-color: var(--rose); }
+
+  /* Dropdown action menu (Bootstrap-driven, themed) */
+  .gb-action-cell .dropdown-menu {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow);
+    padding: 6px;
+    min-width: 160px;
+  }
+  .gb-action-cell .dropdown-item {
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .gb-action-cell .dropdown-item:hover { background: var(--cream); color: var(--ink); }
+  .gb-action-cell .dropdown-item i { color: var(--ink-dim); width: 14px; text-align: center; }
+  .gb-action-cell .dropdown-toggle::after { display: none; }
+
+  /* Total color codes */
+  .gb-total.text-success { color: var(--ink) !important; font-weight: 700; }
+  .gb-total.text-warning { color: var(--brand-primary, #b7925a) !important; font-weight: 700; }
+  .gb-total.text-danger { color: var(--rose) !important; font-weight: 700; }
+
+  .gb-empty {
+    text-align: center;
+    padding: 50px 24px;
+    color: var(--ink-dim);
+    font-family: var(--display);
+    font-style: italic;
+  }
+  .gb-empty .ico { font-size: 30px; opacity: 0.4; margin-bottom: 10px; color: var(--ink); }
+  .gb-empty .lead { color: var(--ink); font-size: 16px; margin-bottom: 4px; }
+
+  /* DataTables overrides */
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter,
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate {
+    font-family: var(--body);
+    font-size: 12.5px;
+    color: var(--ink-dim);
+  }
+  .dataTables_wrapper .dataTables_filter input,
+  .dataTables_wrapper .dataTables_length select {
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 5px 10px;
+    background: var(--paper);
+    font-family: var(--body);
+    color: var(--ink);
+  }
+  .dataTables_wrapper .dataTables_filter input:focus,
+  .dataTables_wrapper .dataTables_length select:focus {
+    outline: none;
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 8px !important;
+    border: 1px solid transparent !important;
+    color: var(--ink-dim) !important;
+    padding: 4px 10px !important;
+    margin: 0 2px !important;
+  }
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: var(--brand-primary, #1b4332) !important;
+    border-color: var(--brand-primary, #1b4332) !important;
+    color: var(--cream) !important;
+  }
+  .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--cream) !important;
+    border-color: var(--border-strong) !important;
+    color: var(--ink) !important;
+  }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  /* ─── Responsive ────────────────────────────────────────── */
+  @media (max-width: 720px) {
+    .gb-shell { padding: 0; }
+    .gb-section { padding: 20px 18px; }
+    .gb-section::before { display: none; }
+    .gb-section-title { font-size: 18px; }
+    .gb-section-head { gap: 10px; padding-bottom: 14px; margin-bottom: 16px; }
+    .gb-actions { width: 100%; }
+    .gb-actions > * { flex: 1 1 140px; }
+    .gb-actions .gb-input,
+    .gb-actions .gb-search { width: 100%; min-width: 0; }
+    .gb-btn { padding: 9px 14px; justify-content: center; }
+
+    /* Accordion header — stack subject info above the badges so the
+       subject name has the full row width instead of being squeezed
+       into a 26-px column behind the right-side pills. */
+    .gb-accordion-button {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      padding: 14px 16px;
+    }
+    .gb-accordion-button .gb-acc-subject {
+      font-size: 15px;
+      word-break: break-word;
+    }
+    .gb-accordion-button .gb-acc-hint { font-size: 11.5px; }
+    .gb-accordion-button .gb-acc-right {
+      flex-wrap: wrap;
+      gap: 8px;
+      width: 100%;
+      justify-content: flex-start;
+    }
+    /* Float the chevron to the corner so the badges stay aligned left. */
+    .gb-accordion-button .gb-chevron {
+      margin-left: auto;
+      align-self: center;
+    }
+    .t-badge { font-size: 10px; padding: 3px 8px; }
+
+    .gb-accordion-body { padding: 14px 16px 18px; }
+    .gb-table-wrap { overflow-x: visible; -webkit-overflow-scrolling: touch; }
+
+    /* Stack the table as label/value cards instead of scrolling
+       horizontally on phones. Each <td> uses its data-label attribute
+       to surface the column name. The Termbook + Gradebook tables both
+       carry data-label on every cell. */
+    table.gb-table { display: block; width: 100%; }
+    table.gb-table thead { display: none; }
+    table.gb-table tbody { display: block; }
+    table.gb-table tfoot { display: block; }
+    table.gb-table tr {
+      display: block;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+      padding: 6px 0;
+      overflow: hidden;
+    }
+    table.gb-table tr:last-child { margin-bottom: 0; }
+    table.gb-table tr:hover td { background: var(--paper); }
+    table.gb-table td {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 14px;
+      border-bottom: 1px dashed var(--border);
+      font-size: 13px;
+      text-align: right;
+      min-height: 38px;
+    }
+    table.gb-table tr td:last-child { border-bottom: none; }
+    table.gb-table td::before {
+      content: attr(data-label);
+      font-family: var(--display);
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      text-align: left;
+      flex-shrink: 0;
+    }
+    table.gb-table td:not([data-label])::before { content: ""; }
+    /* Cells that hold long content (subject names, sub-category chips)
+       should let the value wrap below the label rather than crowd it. */
+    table.gb-table td.gb-cell-strong,
+    table.gb-table td:first-child {
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+      gap: 4px;
+    }
+    table.gb-table td.gb-cell-strong::before,
+    table.gb-table td:first-child::before { margin-bottom: 0; }
+
+    /* The sub-category chip list inside the Gradebook table can be
+       wider than the row; let it wrap and align to the right side. */
+    table.gb-table .gb-subact-list {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+    /* Action cell: keep the edit + delete buttons grouped together on
+       the right, with the "ACTION" label pinned to the left.
+       (`space-between` was spreading the two buttons apart because the
+       label, the <a>, and the <form> are three separate flex items.) */
+    table.gb-table td.gb-action-cell {
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    table.gb-table td.gb-action-cell::before {
+      color: var(--ink-muted);
+      margin-right: auto;
+    }
+    table.gb-table td.gb-action-cell .gb-icon-btn,
+    table.gb-table td.gb-action-cell form { display: inline-flex; }
+
+    /* Foot rows on the gradebook total — keep the colspan summary
+       intact but render as a single row card. */
+    table.gb-table tfoot tr {
+      background: var(--cream-2);
+      border-color: var(--brand-primary-soft);
+      margin-top: 4px;
+    }
+    table.gb-table tfoot th {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px;
+      font-size: 13px;
+      gap: 12px;
+      border-top: none;
+      background: transparent;
+      text-align: right;
+    }
+    table.gb-table tfoot th:empty { display: none; }
+  }
+  @media (max-width: 560px) {
+    .gb-header { gap: 10px; }
+  }
+  /* Tiny phones */
+  @media (max-width: 380px) {
+    .gb-section { padding: 16px 14px; }
+    .gb-accordion-button { padding: 12px 14px; }
+    .gb-accordion-button .gb-acc-subject { font-size: 14px; }
+    .t-badge { font-size: 9.5px; padding: 3px 7px; letter-spacing: 0.04em; }
+  }

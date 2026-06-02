@@ -1,0 +1,446 @@
+{% comment %}
+Shared styles + scripts for activity create/update forms.
+Include this once per template inside extra_css (after _legacy_stack.html so
+Bootstrap is already loaded, and after the Choices.js CSS+JS).
+All scripts are defensive: handlers only attach when their target element
+exists, so the same partial works for both create and update flows.
+{% endcomment %}
+<style>
+  /* ─── Page header / shell ─────────────────────────── */
+  .activity-shell { max-width: 1280px; }
+
+  /* ─── Landscape grid (main + side panel) ──────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .form-grid { grid-template-columns: 1fr; gap: 18px; }
+  }
+  .form-main, .form-side {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+  }
+  @media (min-width: 1101px) {
+    .form-side { position: sticky; top: 16px; }
+  }
+
+  /* Each section becomes its own card so the columns read cleanly side-by-side */
+  .form-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+  }
+  .form-card .form-section + .form-section {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  /* Cancel/Submit footer becomes its own full-width strip below the grid */
+  .form-footer-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 24px;
+    margin-top: 18px;
+  }
+  .form-footer-card .form-actions {
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  .activity-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm, 12px);
+    color: var(--ink); font-size: 13px; font-weight: 600;
+    text-decoration: none; margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+    transition: all 0.18s ease;
+  }
+  .activity-back:hover {
+    background: var(--cream-2); color: var(--ink);
+    border-color: var(--brand-primary, #b7925a); text-decoration: none;
+    transform: translateX(-2px);
+  }
+  .activity-back i { font-size: 11px; transition: transform 0.18s ease; }
+  .activity-back:hover i { transform: translateX(-2px); }
+
+  .activity-header { margin-bottom: 24px; }
+  .activity-header .page-title { margin-bottom: 4px; }
+  .activity-header .page-sub { font-size: 14px; }
+
+  /* ─── Form panel ──────────────────────────────────── */
+  .form-panel {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px 36px;
+  }
+  .form-section + .form-section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .form-section-title {
+    font-family: var(--body);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--brand-primary, #b7925a);
+    font-weight: 700;
+    margin: 0 0 16px;
+  }
+
+  /* ─── Fields ─────────────────────────────────────── */
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+  .field-row-mixed {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr 2fr;
+    gap: 18px;
+  }
+  @media (max-width: 820px) {
+    .field-row,
+    .field-row-3,
+    .field-row-mixed { grid-template-columns: 1fr; }
+  }
+
+  .field > label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .field > label .hint {
+    color: var(--ink-muted);
+    font-size: 12px;
+    cursor: help;
+    transition: color 0.15s;
+  }
+  .field > label .hint:hover { color: var(--brand-primary, #b7925a); }
+  .field-help {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 6px;
+  }
+  /* Hardcoded `<div class="invalid-feedback">` messages stay hidden
+     until the input the global cl-form-validation engine has flagged as
+     invalid (or until Bootstrap's `was-validated` pass on the form). */
+  .invalid-feedback {
+    display: none;
+    font-size: 12px;
+    color: var(--rose-deep, #b3261e);
+    margin-top: 4px;
+  }
+  .is-invalid ~ .invalid-feedback,
+  .was-validated :invalid ~ .invalid-feedback {
+    display: block;
+  }
+
+  /* Style every input/select/textarea, regardless of whether the widget
+     came from a Django form or hand-written HTML. */
+  .form-panel input.form-control,
+  .form-panel select.form-control,
+  .form-panel textarea.form-control,
+  .form-panel select.form-select,
+  .form-panel input[type="text"],
+  .form-panel input[type="url"],
+  .form-panel input[type="email"],
+  .form-panel input[type="number"],
+  .form-panel input[type="date"],
+  .form-panel input[type="datetime-local"],
+  .form-panel input[type="time"],
+  .form-panel select,
+  .form-panel textarea {
+    width: 100%;
+    padding: 10px 14px;
+    font-family: var(--body);
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    line-height: 1.4;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-shadow: none;
+  }
+  .form-panel input:focus,
+  .form-panel select:focus,
+  .form-panel textarea:focus {
+    outline: none;
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .form-panel textarea { resize: vertical; min-height: 110px; }
+
+  /* ─── Toggle / setting checkboxes ────────────────── */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  /* Inside the narrow side pane the toggles stack vertically for readability */
+  .form-side .settings-grid { grid-template-columns: 1fr; gap: 10px; }
+  @media (max-width: 820px) { .settings-grid { grid-template-columns: 1fr; } }
+  .setting-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s, background 0.15s;
+    cursor: pointer;
+  }
+  .setting-card:hover { border-color: var(--brand-primary-soft); }
+  .setting-card input[type="checkbox"] {
+    width: 18px; height: 18px;
+    accent-color: var(--ink);
+    margin: 0;
+    flex-shrink: 0;
+  }
+  .setting-card .setting-text {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .setting-card .setting-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .setting-card .setting-desc {
+    font-size: 12px;
+    color: var(--ink-dim);
+    line-height: 1.35;
+  }
+
+  /* ─── Buttons ─────────────────────────────────────── */
+  .form-actions {
+    display: flex; justify-content: flex-end; gap: 12px;
+    padding-top: 24px;
+    margin-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 22px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--border-strong);
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    font-family: var(--body);
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  .btn-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+    color: var(--ink);
+  }
+  .btn-pill.primary {
+    background: var(--brand-primary, #b7925a);
+    color: var(--cream);
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .btn-pill.primary:hover {
+    background: var(--brand-primary, #b7925a);
+    color: var(--cream);
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .btn-pill i { font-size: 12px; }
+
+  /* ─── Choices.js — match the design system ───────── */
+  .form-panel .choices {
+    margin: 0;
+    font-family: var(--body);
+    font-size: 14px;
+  }
+  .form-panel .choices__inner {
+    background: var(--cream) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 6px 10px !important;
+    min-height: 42px;
+    color: var(--ink) !important;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .form-panel .choices.is-focused .choices__inner,
+  .form-panel .choices.is-open .choices__inner {
+    border-color: var(--brand-primary, #b7925a) !important;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+  }
+  /* Placeholder text — must read on both light + dark backgrounds */
+  .form-panel .choices__placeholder,
+  .form-panel .choices__list--single .choices__placeholder,
+  .form-panel .choices__list--multiple .choices__placeholder,
+  .form-panel .choices__input::placeholder {
+    color: var(--ink-muted) !important;
+    opacity: 1 !important;
+  }
+  .form-panel .choices__input {
+    background: transparent !important;
+    color: var(--ink) !important;
+  }
+  .form-panel .choices__list--multiple .choices__item {
+    background: var(--brand-primary-soft) !important;
+    color: var(--ink) !important;
+    border: none !important;
+    border-radius: 100px !important;
+    padding: 4px 12px 4px 14px !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    margin: 2px 4px 2px 0 !important;
+  }
+  .form-panel .choices__list--multiple .choices__item .choices__button {
+    border-left: 1px solid var(--brand-primary-soft) !important;
+    margin-left: 8px !important;
+    opacity: 0.7;
+  }
+  .form-panel .choices__list--multiple .choices__item .choices__button:hover {
+    opacity: 1;
+  }
+  .form-panel .choices__list--dropdown {
+    border-color: var(--border-strong) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: var(--shadow);
+    background: var(--paper) !important;
+    color: var(--ink) !important;
+  }
+  .form-panel .choices__list--dropdown .choices__item {
+    color: var(--ink) !important;
+  }
+  .form-panel .choices__list--dropdown .choices__item--selectable.is-highlighted {
+    background: var(--brand-primary-soft) !important;
+    color: var(--ink) !important;
+  }
+
+  /* File-input styling is centralized in templates/includes/_stepper.html
+     so every stepper renders the same way. Removed from this partial. */
+</style>
+
+<script>
+  (function () {
+    // Wait for DOM and any vendor scripts loaded later in the page.
+    function ready(fn) {
+      if (document.readyState !== 'loading') return fn();
+      document.addEventListener('DOMContentLoaded', fn);
+    }
+
+    ready(function () {
+      // Bootstrap tooltips
+      if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+          new bootstrap.Tooltip(el);
+        });
+      }
+
+      // Select2 init for multi-selects — unified with material/schedule
+      // forms so every multi-select in the app uses the same widget +
+      // design system. The `.js-choice` class on the underlying <select>
+      // is kept for historical compatibility but Choices.js is no longer
+      // initialised here.
+      var modulesEl = document.getElementById('additional_modules');
+      var remedialEl = document.getElementById('remedial_students');
+      if (typeof window.jQuery !== 'undefined' && jQuery.fn.select2) {
+        if (modulesEl && !jQuery(modulesEl).data('select2')) {
+          jQuery(modulesEl).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select lessons',
+            allowClear: true,
+            closeOnSelect: false,
+            width: '100%',
+          });
+        }
+        if (remedialEl && !jQuery(remedialEl).data('select2')) {
+          jQuery(remedialEl).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select students',
+            allowClear: true,
+            closeOnSelect: false,
+            width: '100%',
+          });
+        }
+        // Single selects inside .field — same design-system look as
+        // material/schedule forms.
+        jQuery('.field select').not('[multiple]').each(function () {
+          var $this = jQuery(this);
+          if ($this.data('select2')) return;
+          $this.select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            minimumResultsForSearch: 8,
+            placeholder: $this.find('option[value=""]').text() || 'Select…',
+          });
+        });
+      }
+
+      // Remedial visibility toggle
+      var remedialCheckbox = document.getElementById('remedial');
+      var remedialField = document.getElementById('remedial_students_field');
+      if (remedialCheckbox && remedialField) {
+        remedialCheckbox.addEventListener('change', function () {
+          remedialField.style.display = this.checked ? 'block' : 'none';
+          if (remedialEl) {
+            this.checked
+              ? remedialEl.removeAttribute('disabled')
+              : remedialEl.setAttribute('disabled', 'disabled');
+          }
+        });
+      }
+
+      // Late-submission window visibility toggle
+      var lateCheckbox = document.getElementById('allow_late_submission');
+      var lateField = document.getElementById('late_submission_fields');
+      if (lateCheckbox && lateField) {
+        function syncLate() {
+          lateField.style.display = lateCheckbox.checked ? 'block' : 'none';
+        }
+        lateCheckbox.addEventListener('change', syncLate);
+        syncLate();
+      }
+
+      // Disable retake-method dropdown when max_retake = 1
+      var maxRetake = document.getElementById('max_retake');
+      var retakeMethod = document.getElementById('retake_method');
+      if (maxRetake && retakeMethod) {
+        function syncRetake() {
+          if (parseInt(maxRetake.value, 10) === 1) {
+            retakeMethod.disabled = true;
+            retakeMethod.value = 'first';
+          } else {
+            retakeMethod.disabled = false;
+          }
+        }
+        maxRetake.addEventListener('input', syncRetake);
+        syncRetake();
+      }
+
+      // Strip non-numeric characters from number inputs
+      document.querySelectorAll('.form-panel input[type="number"]').forEach(function (input) {
+        input.addEventListener('input', function () {
+          if (!/^\d*$/.test(this.value)) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+          }
+        });
+      });
+    });
+  })();
+</script>

@@ -1,0 +1,10 @@
+{% extends is_student_role|yesno:'student_base.html,base_operation.html' %}
+{% block title %}Not available{% endblock %}
+{% block content %}
+<div style="padding:80px 32px;text-align:center;">
+  <i class="fas fa-lock" style="font-size:48px;opacity:.35;color:var(--brand-primary, #b7925a);"></i>
+  <h2 style="font-family:var(--display);margin-top:18px;">Not available in your archive</h2>
+  <p style="color:var(--text-dim);">You were not enrolled in this subject for the selected semester.</p>
+  <a href="{% url 'archive-index' %}" style="color:var(--brand-primary, #b7925a);">&larr; Back to archive</a>
+</div>
+{% endblock %}

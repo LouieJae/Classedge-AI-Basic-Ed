@@ -1,0 +1,14 @@
+  .dept-delete-page { background: var(--surface-cream, #faf7f2); padding: 24px 32px; font-family: "Inter Tight", sans-serif; max-width: 640px; }
+  .dept-delete-page h1 { font-family: "Fraunces", serif; color: #8b1e1e; margin-bottom: 8px; }
+  .dept-delete-page .subtitle { color: #2d3142; margin-bottom: 20px; line-height: 1.5; }
+  .dept-delete-page .dept-name { font-weight: 700; color: #1b4332; }
+  .dept-delete-page .impact-card { background: #fff; border: 1px solid #e0d6c1; border-radius: 8px; padding: 16px 20px; margin: 20px 0; }
+  .dept-delete-page .impact-card h3 { margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #2d3142; }
+  .dept-delete-page .impact-card ul { margin: 0; padding-left: 20px; color: #2d3142; }
+  .dept-delete-page .impact-card li { margin: 4px 0; }
+  .dept-delete-page .impact-card .muted { color: #2d3142; opacity: 0.6; font-style: italic; }
+  .dept-delete-page .actions { margin-top: 20px; display: flex; gap: 12px; }
+  .dept-delete-page .btn-danger { padding: 10px 20px; border: 0; border-radius: 6px; background: #8b1e1e; color: #faf7f2; font-weight: 600; cursor: pointer; font-size: 15px; }
+  .dept-delete-page .btn-danger:hover { background: #a72424; }
+  .dept-delete-page .btn-secondary { padding: 10px 20px; border: 1px solid #e0d6c1; border-radius: 6px; background: #fff; color: #2d3142; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; font-size: 15px; }
+  .dept-delete-page .btn-secondary:hover { background: #f4efe3; }

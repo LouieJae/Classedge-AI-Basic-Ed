@@ -1,0 +1,556 @@
+{% load static %}
+<!DOCTYPE html>
+<html data-bs-theme="light" lang="en-US" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token }}" />
+
+    <!-- =============================================== -->
+    <!-- Document Title -->
+    <!-- =============================================== -->
+    <title>{% block title %}{{ SCHOOL_NAME }} | Dashboard{% endblock %}</title>
+
+    <!-- =============================================== -->
+    <!-- Favicons -->
+    <!-- =============================================== -->
+    <link rel="icon" type="image/png" href="{{ MEDIA_URL }}logos/HCCCI-logo.png?{{ logo_update_time }}" />
+    <link rel="apple-touch-icon" href="{{ MEDIA_URL }}logos/HCCCI-logo.png?{{ logo_update_time }}" />
+    <meta name="msapplication-TileImage" content="{{ MEDIA_URL }}logos/HCCCI-logo.png?{{ logo_update_time }}" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <!-- =============================================== -->
+    <!-- SEO & Open Graph (for search engines / social) -->
+    <!-- =============================================== -->
+    <meta property="og:title" content="{{ SCHOOL_NAME }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ MEDIA_URL }}logos/HCCCI-logo.png?{{ logo_update_time }}" />
+    <meta property="og:site_name" content="{{ SCHOOL_NAME }}" />
+    <script src="{% static 'assets/js/config.js' %}"></script>
+    <script src="{% static 'vendors/simplebar/simplebar.min.js' %}"></script>
+
+    <!-- =============================================== -->
+    <!-- Stylesheets -->
+    <!-- =============================================== -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700%7cPoppins:300,400,500,600,700,800,900&amp;display=swap" rel="stylesheet" />
+    <link href="{% static 'vendors/simplebar/simplebar.min.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/theme-rtl.css' %}" rel="stylesheet" id="style-rtl" />
+    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" id="style-default" />
+    <link href="{% static 'assets/css/user-rtl.css' %}" rel="stylesheet" id="user-style-rtl" />
+    <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" id="user-style-default" />
+    <link href="{% static 'assets/css/settings.css' %}" rel="stylesheet" id="user-style-default" />
+    <link href="{% static 'assets/css/custom_modal.css' %}" rel="stylesheet" id="user-style-default" />
+
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+
+    <link href="{% static 'vendors/choices/choices.min.css' %}" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'vendors/select2/select2.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'vendors/select2-bootstrap-5-theme/select2-bootstrap-5-theme.min.css' %}" />
+    <!-- DataTables Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/3.0.0/css/responsive.bootstrap5.min.css" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta2/css/bootstrap-select.min.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.2/dist/index.umd.min.js"></script>
+
+    <link href="{% static 'vendors/glightbox/glightbox.min.css' %}" rel="stylesheet" />
+
+    <script>
+      var isRTL = JSON.parse(localStorage.getItem('isRTL'))
+      if (isRTL) {
+        var linkDefault = document.getElementById('style-default')
+        var userLinkDefault = document.getElementById('user-style-default')
+        linkDefault.setAttribute('disabled', true)
+        userLinkDefault.setAttribute('disabled', true)
+        document.querySelector('html').setAttribute('dir', 'rtl')
+      } else {
+        var linkRTL = document.getElementById('style-rtl')
+        var userLinkRTL = document.getElementById('user-style-rtl')
+        linkRTL.setAttribute('disabled', true)
+        userLinkRTL.setAttribute('disabled', true)
+      }
+    </script>
+    <style>
+      /* Choices.js styling fixes */
+      .choices__list--dropdown .choices__item {
+        background-color: #fff !important;
+      }
+      .choices__button {
+        background-color: transparent !important;
+        color: #000 !important;
+      }
+      .choices__button:after {
+        content: '×';
+        display: block;
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        text-indent: 0;
+        transform: translateY(-50%);
+        font-size: 14px;
+        line-height: 1;
+      }
+      .choices__item--selectable {
+        padding-right: 30px !important;
+      }
+      .choices__list--multiple .choices__item {
+        background-color: #75adee !important;
+        border: 1px solid #75adee !important;
+        color: #fff !important;
+        margin-right: 3px;
+        margin-bottom: 3px;
+        padding: 3px 10px;
+        border-radius: 4px;
+      }
+      /* Highlighted/focused option in dropdown */
+      .choices__list--dropdown .choices__item--selectable.is-highlighted {
+        background-color: #e9f2ff !important;
+        color: #333 !important;
+      }
+      /* Active state for dropdown items */
+      .choices__list--dropdown .choices__item--active {
+        background-color: #d1e5ff !important;
+        color: #333 !important;
+      }
+      {% block extra_css %}{% endblock %}
+    </style>
+    <link rel="stylesheet" href="{% static 'css/cl-form-validation.css' %}" />
+</head>
+
+  <body data-current-user-id="{{ request.user.id }}">
+    <main class="main" id="top">
+      <div class="container-fluid" data-layout="container">
+        <script>
+          var isFluid = JSON.parse(localStorage.getItem('isFluid'))
+          if (isFluid) {
+            var container = document.querySelector('[data-layout="container"]')
+            if (container) {
+              container.classList.remove('container')
+              container.classList.add('container-fluid')
+            }
+          }
+        </script>
+
+        <!-- Sidebar -->
+        {% include 'includes/sidebar.html' %}
+
+        <div class="content">
+          <!-- Navbar -->
+          {% include 'includes/navbar.html' %}
+
+          <!-- Page Content -->
+          {% block content %}
+
+          {% endblock %}
+
+          <!-- Footer -->
+          <div class="footer">
+            {% include 'includes/footer.html' %}
+          </div>
+        </div>
+      </div>
+    </main>
+
+      {% comment %} <!-- Offcanvas: AI Settings Panel -->
+    <div class="offcanvas offcanvas-end border-0 settings-panel" tabindex="-1" id="settings-offcanvas" aria-labelledby="settings-label">
+      <div class="offcanvas-header justify-content-between bg-shape settings-panel-header">
+        <div class="z-1 py-1">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h5 id="settings-label" class="text-white mb-0 me-2">
+              <i class="fas fa-brain me-2 fs-9"></i>Chat Bot
+            </h5>
+          </div>
+        </div>
+        <div class="z-1" data-bs-theme="dark">
+          <button class="btn-close z-1" type="button" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+      </div>
+
+      <div class="offcanvas-body scrollbar-overlay px-x1 h-100" id="aiSettingsContent">
+        <!-- 💬 AI Ask Question UI -->
+        <form id="questionForm">
+          <div class="mb-3">
+            <label for="question" class="form-label fw-semibold">Your Question:</label>
+            <textarea class="form-control" id="question" name="question" rows="3" placeholder="Ask something..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fas fa-paper-plane me-1"></i> Ask
+          </button>
+        </form>
+
+        <div class="mt-4" id="responseBox" style="display: none;">
+          <h6 class="text-muted">💡 Answer:</h6>
+          <div id="answerText" class="text-dark small border rounded p-2 bg-light" style="white-space: pre-wrap;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toggle: AI Panel (Spinning, Small) -->
+    <a href="#settings-offcanvas" class="position-fixed top-50 end-0 translate-middle-y z-3 text-decoration-none" data-bs-toggle="offcanvas" style="background-color: #1a1f36; border-radius: 8px 0 0 8px; padding: 8px 6px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-comments text-light fs-6"></i></a> {% endcomment %}
+
+
+    <script>
+      function getCSRFToken() {
+        const name = 'csrftoken';
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.startsWith(name + '=')) {
+            return decodeURIComponent(cookie.substring(name.length + 1));
+          }
+        }
+        return '';
+      }
+
+      document.getElementById('questionForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const question = document.getElementById('question').value;
+        const csrfToken = getCSRFToken();
+        const responseBox = document.getElementById('responseBox');
+        const answerText = document.getElementById('answerText');
+        // Show prompt sent message and spinner
+        answerText.innerHTML = '<span class="spinner-border spinner-border-sm text-primary me-2" role="status" aria-hidden="true"></span> <span class="text-muted">Prompt sent... waiting for AI response.</span>';
+        responseBox.style.display = 'block';
+
+        fetch('/ask_question/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrfToken,
+          },
+          body: new URLSearchParams({ 'question': question })
+        })
+        .then(res => res.json())
+        .then(data => {
+          const responseBox = document.getElementById('responseBox');
+          const answerText = document.getElementById('answerText');
+
+          if (data.status === 'success') {
+            const html = renderFormattedAnswerHTML(data.answer);
+            if (html.length > 2000) {
+              answerText.innerHTML = html;
+            } else {
+              typeWriterHTML(answerText, html, 5);
+            }
+            document.getElementById('question').value = '';
+          } else {
+            answerText.innerHTML = `<span class='text-danger fw-bold'>⚠️ Error:</span> <span>${data.message}</span>`;
+          }
+
+          responseBox.style.display = 'block';
+        })
+        .catch(error => {
+          answerText.innerHTML = `<span class='text-danger fw-bold'>⚠️ Error:</span> <span>Something went wrong. Please try again.</span>`;
+          responseBox.style.display = 'block';
+          console.error(error);
+        });
+      });
+
+      document.getElementById('question').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault(); // Don't insert newline
+          document.getElementById('questionForm').requestSubmit(); // Trigger form submit
+        }
+      });
+
+      // Convert markdown-style text to formatted HTML string
+      function renderFormattedAnswerHTML(text) {
+        let html = text
+          .replace(/\n{2,}/g, '</p><p>') // Paragraphs
+          .replace(/\n/g, '<br>') // Line breaks
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+          .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
+          .replace(/`([^`]+)`/g, '<code>$1</code>') // Inline code
+          .replace(/^\s*\- (.*)$/gm, '<li>$1</li>') // Unordered lists
+          .replace(/^\s*\d+\. (.*)$/gm, '<li>$1</li>'); // Ordered lists
+
+        // Wrap <li> in <ul> or <ol>
+        html = html.replace(/(<li>.*?<\/li>)/gs, '<ul class="mb-2">$1</ul>');
+        html = html.replace(/<ul class="mb-2"><li>(\d+\. .*)<\/li><\/ul>/gs, function(match, p1) {
+          return '<ol class="mb-2">' + match.replace(/<ul class="mb-2">|<\/ul>/g, '') + '</ol>';
+        });
+
+        // Headings
+        html = html.replace(/^\s*\#\#\# (.*)$/gm, '<h6 class="fw-bold mt-3">$1</h6>')
+                   .replace(/^\s*\#\# (.*)$/gm, '<h5 class="fw-bold mt-3">$1</h5>')
+                   .replace(/^\s*\# (.*)$/gm, '<h4 class="fw-bold mt-3">$1</h4>');
+
+        // Code blocks
+        html = html.replace(/```([\s\S]*?)```/g, '<pre class="bg-light p-2 rounded border mt-2 mb-2"><code>$1</code></pre>');
+
+        // Wrap in paragraph if not already block element
+        if (!/^\s*<(h\d|ul|ol|pre|p|div)/.test(html)) {
+          html = '<p>' + html + '</p>';
+        }
+        return html;
+      }
+
+      // Reveal HTML content character-by-character (typewriter effect)
+      function typeWriterHTML(element, html, speed = 20) {
+        element.innerHTML = '';
+        let i = 0;
+        (function type() {
+          element.innerHTML = html.slice(0, i);
+          if (i < html.length) {
+            i++;
+            setTimeout(type, speed);
+          }
+        })();
+      }
+    </script>
+
+    <!-- =============================================== -->
+    <!-- JavaScripts -->
+    <!-- =============================================== -->
+    <script src="{% static 'vendors/popper/popper.min.js' %}"></script>
+    <script src="{% static 'vendors/bootstrap/bootstrap.min.js' %}"></script>
+    <script src="{% static 'vendors/anchorjs/anchor.min.js' %}"></script>
+    <script src="{% static 'vendors/is/is.min.js' %}"></script>
+    <script src="{% static 'vendors/echarts/echarts.min.js' %}"></script>
+    <script src="{% static 'vendors/fontawesome/all.min.js' %}"></script>
+    <script src="{% static 'vendors/lodash/lodash.min.js' %}"></script>
+    {% comment %} <script src="{% static 'vendors/list.js/list.min.js' %}"></script> {% endcomment %}
+    {% comment %} <script src="{% static 'js/classroom-mode.js' %}"></script> {% endcomment %}
+    <script src="{% static 'assets/data/world.js' %}"></script>
+    <script src="{% static 'vendors/fullcalendar/index.global.min.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="{% static 'vendors/choices/choices.min.js' %}"></script>
+    <script src="{% static 'vendors/tinymce/tinymce.min.js' %}"></script>
+
+    <script src="{% static 'vendors/jquery/jquery.min.js' %}"></script>
+    <script src="{% static 'vendors/select2/select2.min.js' %}"></script>
+    <script src="{% static 'vendors/select2/select2.full.min.js' %}"></script>
+
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="{% static 'vendors/datatables.net-fixedcolumns/dataTables.fixedColumns.min.js' %}"></script>
+
+    <!-- DataTables Responsive Extension -->
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta2/js/bootstrap-select.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="{% static 'assets/js/theme.js' %}"></script>
+    <script>
+      feather.replace()
+    </script>
+    
+    <script src="{% static 'vendors/glightbox/glightbox.min.js' %}"></script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        tinymce.init({
+          selector: 'textarea.tinymce', // Target textarea with class 'tinymce'
+          menubar: false,
+          plugins: 'lists link image charmap preview',
+          toolbar: 'undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | link image | preview',
+          height: 300,
+          branding: false
+        })
+      
+        // Initialize Choices.js for elements with js-choice class
+        if (document.querySelector('.js-choice')) {
+          const jsChoices = document.querySelectorAll('.js-choice');
+          jsChoices.forEach(element => {
+            element._clChoices = new Choices(element, {
+              allowHTML: true,
+              removeItemButton: true,
+              searchEnabled: true,
+              placeholder: true,
+              placeholderValue: 'Select options...',
+              classNames: {
+                containerOuter: 'choices form-select',
+                containerInner: 'choices__inner form-control',
+                input: 'choices__input',
+                item: 'choices__item',
+                removeItem: 'choices__button',
+              }
+            });
+          });
+        }
+      
+        console.log('TinyMCE and Choices.js Initialized!')
+      })
+    </script>
+    <script>
+      $(document).ready(function () {
+        var tableElement = $('table[data-datatables="data-datatables"]')
+      
+        if ($.fn.DataTable.isDataTable(tableElement)) {
+          tableElement.DataTable().destroy() // Destroy existing instance
+        }
+      
+        tableElement.DataTable({
+          responsive: true, // ✅ Enables mobile-friendly layout
+          autoWidth: false,
+          paging: true,
+          searching: true,
+          ordering: true,
+          pageLength: 10
+        })
+      })
+    </script>
+
+    {% include "includes/_toast.html" %}
+    <script>
+      // Surface server-side form errors through the same cl-toast
+      // component (and rose-deep red palette) used by inline validation.
+      {% if form.errors %}
+        {% for field in form %}
+          {% for error in field.errors %}
+            window.clToast("{{ error|escapejs }}", 'danger');
+          {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+          window.clToast("{{ error|escapejs }}", 'danger');
+        {% endfor %}
+      {% endif %}
+    </script>
+    <script>
+      $(document).ready(function() {
+        $('.select2').select2({
+          theme: 'bootstrap-5',
+          placeholder: function() {
+            $(this).data('placeholder');
+          },
+          allowClear: true
+        });
+      });
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        let currentUrl = window.location.pathname; // Get current page path
+      
+        document.querySelectorAll(".nav-link").forEach(link => {
+          if (link.getAttribute("href") === currentUrl) {
+            link.classList.add("active");
+          }
+      
+          // Handle dropdown menus
+          let parentMenu = link.closest(".nav.collapse");
+          if (link.classList.contains("active") && parentMenu) {
+            parentMenu.classList.add("show"); // Expand parent menu
+            let parentTrigger = document.querySelector(`[href="#${parentMenu.id}"]`);
+            if (parentTrigger) {
+              parentTrigger.classList.add("active"); // Highlight parent menu link
+            }
+          }
+        });
+      });
+      
+     </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        let currentUrl = window.location.pathname; // Get current page path
+    
+        document.querySelectorAll(".nav-link").forEach(link => {
+          if (link.getAttribute("href") === currentUrl) {
+            link.classList.add("active");
+          }
+    
+          // Handle dropdown menus
+          let parentMenu = link.closest(".nav.collapse");
+          if (link.classList.contains("active") && parentMenu) {
+            parentMenu.classList.add("show"); // Expand parent menu
+            let parentTrigger = document.querySelector(`[href="#${parentMenu.id}"]`);
+            if (parentTrigger) {
+              parentTrigger.classList.add("active"); // Highlight parent menu link
+            }
+          }
+        });
+    
+        // Close other dropdowns when opening a new one
+        document.querySelectorAll(".nav-link.dropdown-indicator").forEach(trigger => {
+          trigger.addEventListener("click", function (event) {
+            let targetId = this.getAttribute("href").substring(1);
+            let targetMenu = document.getElementById(targetId);
+    
+            if (!targetMenu.classList.contains("show")) {
+              // Close other dropdowns
+              document.querySelectorAll(".nav.collapse.show").forEach(openMenu => {
+                if (openMenu !== targetMenu) {
+                  openMenu.classList.remove("show");
+                  let openTrigger = document.querySelector(`[href="#${openMenu.id}"]`);
+                  if (openTrigger) {
+                    openTrigger.classList.remove("active");
+                  }
+                }
+              });
+            }
+          });
+        });
+      });
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".unread-log").forEach(function (log) {
+            log.addEventListener("click", function (event) {
+                event.preventDefault();
+                let logElement = this;
+    
+                // Extract subject_log_id from the clicked notification
+                let subjectLogId = logElement.dataset.logId; 
+    
+                fetch(`/mark-notification-read/${subjectLogId}/`, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFToken(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ subject_log_id: subjectLogId }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        logElement.classList.remove("unread-log");
+                        logElement.classList.add("read-log");
+    
+                        // Update notification count dynamically
+                        let notificationCounter = document.querySelector(".notification-indicator-number");
+                        let count = parseInt(notificationCounter.innerText) || 0;
+                        if (count > 0) {
+                            notificationCounter.innerText = count - 1;
+                        }
+                        if (count - 1 === 0) {
+                            notificationCounter.style.display = "none"; 
+                        }
+                    }
+                })
+                .catch(error => console.error("Error marking as read:", error));
+            });
+        });
+    
+        function getCSRFToken() {
+            let csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+            return csrfTokenMeta ? csrfTokenMeta.getAttribute("content") : "";
+        }
+    });    
+  </script>
+<!-- =============================================== -->
+<!-- Global Floating Chat System -->
+<!-- =============================================== -->
+<link rel="stylesheet" href="{% static 'css/messenger-styles.css' %}" />
+
+<div id="fc-container">
+  <div id="fc-heads"></div>
+  <div id="fc-windows"></div>
+</div>
+
+<script src="{% static 'js/messenger-logic.js' %}"></script>
+<script src="{% static 'js/cl-form-validation.js' %}" defer></script>
+
+ </body>
+</html>

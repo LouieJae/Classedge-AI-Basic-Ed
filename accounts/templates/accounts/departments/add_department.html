@@ -1,0 +1,15 @@
+{% comment %}
+[Classedge LMS] Centre modal for creating a Department.
+Form body lives in `_dept_form.html` (shared with the edit modal).
+{% endcomment %}
+
+<div id="addDepartmentModal" class="rl-modal rl-modal--compact" role="dialog" aria-labelledby="addDeptTitle" aria-modal="true">
+  <div class="rl-modal-head">
+    <h5 id="addDeptTitle"><i class="fas fa-plus-circle"></i> Add new <em>department</em></h5>
+    <button type="button" class="rl-modal-close" id="closeAddDepartmentBtn" aria-label="Close">&times;</button>
+  </div>
+  <div class="rl-modal-content">
+    {% include "accounts/departments/_dept_form.html" %}
+  </div>
+</div>
+<div id="addDepartmentBackdrop" class="rl-modal-backdrop"></div>

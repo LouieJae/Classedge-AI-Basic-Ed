@@ -1,0 +1,73 @@
+{% extends "central_content/base.html" %}
+{% block title %}Generation Job — {{ textbook.title }}{% endblock %}
+{% block content %}
+<div class="flex justify-between items-start mb-4">
+    <div>
+        <h1 class="text-2xl font-semibold">Content Generation</h1>
+        <p class="text-gray-600">{{ textbook.title }} · {{ job.model_key }} · {{ plan.session_count }} sessions</p>
+    </div>
+    <div hx-get="/subjects/{{ subject.id }}/textbooks/{{ textbook.id }}/plans/{{ plan.id }}/jobs/{{ job.id }}/status"
+         hx-trigger="every 5s"
+         hx-swap="innerHTML">
+        {% include "central_content/generation/status_badge.html" %}
+    </div>
+</div>
+
+<div class="bg-white rounded shadow overflow-hidden mb-6">
+    <div class="p-4 border-b bg-gray-50">
+        <div class="flex justify-between text-sm text-gray-600">
+            <span>Progress: {{ job.completed_weeks }}/{{ job.total_weeks }} weeks</span>
+            {% if job.failed_weeks > 0 %}
+            <span class="text-red-600">{{ job.failed_weeks }} failed</span>
+            {% endif %}
+        </div>
+        {% if job.total_weeks > 0 %}
+        <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+            <div class="bg-blue-600 h-2 rounded-full" style="width: {% widthratio job.completed_weeks job.total_weeks 100 %}%"></div>
+        </div>
+        {% endif %}
+    </div>
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="text-left text-gray-500 border-b">
+                <th class="py-2 px-4 w-16">Week</th>
+                <th class="py-2 px-4">Status</th>
+                <th class="py-2 px-4">Result</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for week in job.week_results %}
+            <tr class="border-t">
+                <td class="py-2 px-4 font-medium">{{ week.week }}</td>
+                <td class="py-2 px-4">
+                    {% if week.status == "done" %}
+                    <span class="text-green-700">done</span>
+                    {% elif week.status == "failed" %}
+                    <span class="text-red-700">failed</span>
+                    {% elif week.status == "generating" %}
+                    <span class="text-amber-700">generating</span>
+                    {% else %}
+                    <span class="text-gray-500">pending</span>
+                    {% endif %}
+                </td>
+                <td class="py-2 px-4">
+                    {% if week.status == "done" %}
+                    <a href="/subjects/{{ subject.id }}/modules/{{ week.module_id }}/" class="text-blue-700">Module</a>
+                    ·
+                    <a href="/subjects/{{ subject.id }}/activities/{{ week.activity_id }}/" class="text-blue-700">Assessment</a>
+                    {% elif week.status == "failed" %}
+                    <span class="text-red-600 text-xs">{{ week.error }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="text-sm text-gray-500 mb-4">
+    Triggered by {{ job.triggered_by.full_name }} · {{ job.created_at|date:"M d, Y H:i" }}
+</div>
+
+<a href="/subjects/{{ subject.id }}/textbooks/{{ textbook.id }}/plans/{{ plan.id }}/" class="text-blue-700">&larr; Back to plan</a>
+{% endblock %}

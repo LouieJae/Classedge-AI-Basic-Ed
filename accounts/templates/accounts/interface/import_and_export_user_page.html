@@ -1,0 +1,238 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}
+  Teacher List
+{% endblock %}
+{% block content %}
+  <div class="row mb-2">
+    <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+          <li class="breadcrumb-item">Import & Export</li>
+          <li class="breadcrumb-item active" aria-current="page">Import & Export User</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <div class="row mb-2">
+    <div class="col-6">
+      <h3>User List</h3>
+    </div>
+    <div class="col-md-6 d-flex justify-content-end">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <button id="openImportModalBtn" type="button" class="btn btn-success d-inline-flex align-items-center" data-bs-toggle="modal"  data-bs-target="#importModal" aria-label="Open import modal">
+            <i class="fas fa-file-import me-2"></i> Import User
+          </button>
+      
+          <a href="{% url 'export_all_user' %}" class="btn btn-primary d-inline-flex align-items-center" aria-label="Export all users" >
+            <i class="fas fa-file-export me-2"></i> Export User
+          </a>
+        </div>   
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col-12 col-md-6 mb-3 mb-md-0">
+      <form method="get">
+        <div class="input-group">
+          <input type="text" name="search" class="form-control" placeholder="Search by name, email, id number..." value="{{ search_query }}" />
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search"></i> Search
+          </button>
+          {% if search_query %}
+            <a href="{% url 'import_and_export_user_page' %}" class="btn btn-secondary">
+              <i class="fas fa-times"></i> Clear
+            </a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+    <div class="col-12 col-md-6 text-md-end">
+      <form method="get" class="d-inline-flex align-items-center gap-2">
+        <label class="mb-0">Items per page:</label>
+        <select name="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+          <option value="5" {% if items_per_page == 5 %}selected{% endif %}>5</option>
+          <option value="10" {% if items_per_page == 10 %}selected{% endif %}>10</option>
+          <option value="25" {% if items_per_page == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if items_per_page == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if items_per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+        {% if search_query %}
+          <input type="hidden" name="search" value="{{ search_query }}" />
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Main Content -->
+  <div class="row">
+    <div class="col-lg-12">
+      <!-- Card for Teacher List -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">Available Users</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table mb-0 fs-10 table-bordered user-import-table">
+              <thead class="bg-primary">
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Id Number</th>
+                </tr>
+              </thead>
+              <tbody>
+                  {% for user in page_obj %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ user.first_name }} {{ user.last_name }}</td>
+                      <td class="text-truncate" style="max-width: 150px;">{{ user.email }}</td>
+                      <td>{{ user.id_number|default:'--' }}</td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="4" class="text-center text-muted py-4">No users found.</td>
+                    </tr>
+                  {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <nav aria-label="Page navigation" class="mt-3">
+            <ul class="pagination justify-content-center justify-content-md-end mb-0 flex-wrap">
+              {% if show_first and page_obj.paginator.num_pages > 1 %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if query_string %}&{{ query_string }}{% endif %}">
+                    <span class="d-none d-sm-inline">First</span>
+                    <i class="fas fa-angle-double-left d-inline d-sm-none"></i>
+                  </a>
+                </li>
+              {% endif %}
+
+              <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                {% if page_obj.has_previous %}
+                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                  </a>
+                {% else %}
+                  <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                {% endif %}
+              </li>
+
+              {% for page_num in page_range %}
+                {% if page_num == page_obj.number %}
+                  <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                {% else %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ page_num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ page_num }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                {% if page_obj.has_next %}
+                  <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                  </a>
+                {% else %}
+                  <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                {% endif %}
+              </li>
+
+              {% if show_last and page_obj.paginator.num_pages > 1 %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}">
+                    <span class="d-none d-sm-inline">Last</span>
+                    <i class="fas fa-angle-double-right d-inline d-sm-none"></i>
+                  </a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Teachers Modal -->
+  <div id="importModal" class="custom-modal">
+    <div class="custom-modal-header">
+      <button class="close-btn" id="closeImportModalBtn"></button>
+      <h5>Import Teachers</h5>
+    </div>
+    <div class="custom-modal-body">
+      <form method="post" enctype="multipart/form-data" action="{% url 'import_students' %}"
+            data-cl-loading data-cl-loading-label="Importing…">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="importFile">Choose CSV File:</label>
+          <input type="file" name="import_file" id="importFile" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Upload</button>
+      </form>
+      <div class="mt-2 text-center">
+        <a href="{{ MEDIA_URL|add:'template/Import User Template.csv' }}" class="btn btn-sm btn-secondary" download>Download Template here.</a>
+        <br />
+        <small>(Download the template above for guidance.)</small>
+      </div>
+    </div>
+  </div>
+  <div id="importModalBackdrop" class="custom-modal-backdrop"></div>
+
+  <!-- Edit Teacher Profile Modal -->
+  <div id="editModal" class="custom-modal">
+    <div class="custom-modal-header">
+      <button class="close-btn" id="closeEditModalBtn"></button>
+      <h5>Edit Teacher Profile</h5>
+    </div>
+    <div class="custom-modal-body" id="editModalBody">
+      <!-- Content will be dynamically loaded here -->
+    </div>
+  </div>
+  <div id="editModalBackdrop" class="custom-modal-backdrop"></div>
+
+  <!-- JavaScript for Modal and Selectpicker -->
+  <script>
+    document.getElementById('openImportModalBtn').addEventListener('click', function () {
+      document.getElementById('importModal').classList.add('show')
+      document.getElementById('importModalBackdrop').classList.add('show')
+    })
+    
+    document.getElementById('closeImportModalBtn').addEventListener('click', function () {
+      document.getElementById('importModal').classList.remove('show')
+      document.getElementById('importModalBackdrop').classList.remove('show')
+    })
+    
+    function openEditModal(profileId) {
+      const userRole = '{{ role|lower }}'
+      let fetchUrl
+      if (userRole === 'it admin') {
+        fetchUrl = `/admin_update_teacher_profile/${profileId}/`
+      } else if (userRole === 'registrar') {
+        fetchUrl = `/registrar_update_teacher_profile/${profileId}/`
+      }
+    
+      fetch(fetchUrl)
+        .then((response) => response.text())
+        .then((html) => {
+          document.getElementById('editModalBody').innerHTML = html
+          document.getElementById('editModal').classList.add('show')
+          document.getElementById('editModalBackdrop').classList.add('show')
+          $('.selectpicker').selectpicker('refresh')
+        })
+    }
+    
+    document.getElementById('closeEditModalBtn').addEventListener('click', function () {
+      document.getElementById('editModal').classList.remove('show')
+      document.getElementById('editModalBackdrop').classList.remove('show')
+    })
+  </script>
+
+  <link rel="stylesheet" href="{% static 'accounts/interface/import_and_export_user_page.css' %}" />
+{% endblock %}

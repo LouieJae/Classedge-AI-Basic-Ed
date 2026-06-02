@@ -1,0 +1,34 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% block content %}
+<div class="container rqs-page" style="max-width:640px;padding:24px;">
+  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      <h2>Quest Authoring Settings</h2>
+      <p>Choose which quest authoring modes teachers can use.</p>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="registrar-quest-settings">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+  <form method="post">{% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="rqs-modes">
+      <label><input type="checkbox" name="ai_mode_enabled" {% if form.ai_mode_enabled.value %}checked{% endif %}> AI-assisted generation</label><br>
+      <label><input type="checkbox" name="manual_mode_enabled" {% if form.manual_mode_enabled.value %}checked{% endif %}> Manual entry</label><br>
+      <label><input type="checkbox" name="upload_mode_enabled" {% if form.upload_mode_enabled.value %}checked{% endif %}> Bulk upload (CSV/JSON)</label>
+    </div>
+    <br>
+    <label>AI provider:
+      <select name="ai_provider">
+        <option value="anthropic" {% if form.ai_provider.value == 'anthropic' %}selected{% endif %}>Anthropic</option>
+        <option value="openai" {% if form.ai_provider.value == 'openai' %}selected{% endif %}>OpenAI</option>
+      </select>
+    </label><br><br>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </form>
+  {% if obj.updated_at %}<p style="color:#888;margin-top:16px;">Last updated {{ obj.updated_at }} by {{ obj.updated_by|default:'—' }}</p>{% endif %}
+</div>
+
+<script src="{% static 'js/tours/cl-tour-registrar-quest-settings.js' %}" defer></script>
+{% endblock %}

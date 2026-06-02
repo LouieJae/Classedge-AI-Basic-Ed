@@ -1,0 +1,312 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Import materials · {{ target_subject.subject_name }}{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+  {% include "module/_material-import-assets.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="imp-shell">
+
+  <a href="{% url 'material-list' id=target_subject.id %}" class="imp-back">
+    <i class="fas fa-arrow-left"></i> Back to {{ subject.subject_short_name|default:subject.subject_name }}
+  </a>
+
+  <div class="imp-header">
+    <h1 class="page-title">Import from <em>another course</em></h1>
+    <div class="page-sub">Importing materials into {{ target_subject.subject_code }} &middot; {{ target_subject.subject_name }}</div>
+  </div>
+
+  <form method="post" id="copyLessonForm" class="form-panel">
+    {% csrf_token %}
+
+    <!-- ─── Source ──────────────────────────────── -->
+    <div class="form-section">
+      <h3 class="form-section-title">Source</h3>
+      <div class="field">
+        <label for="id_source_subject">Source course</label>
+        {{ form.source_subject.errors }}
+        <select name="source_subject" id="id_source_subject" class="form-select" required>
+          <option value="">Select a course…</option>
+          {% for subject in form.source_subject.field.queryset %}
+            <option value="{{ subject.id }}">{{ subject.subject_name }}</option>
+          {% endfor %}
+        </select>
+        <span class="field-help">Pick which course's materials to copy from.</span>
+      </div>
+    </div>
+
+    <!-- ─── Schedule for imported materials (shown when ≥1 selected) ── -->
+    <div class="form-section" id="date-config" style="display: none;">
+      <h3 class="form-section-title">Schedule &amp; placement</h3>
+      <label class="override-toggle" for="use_override_dates">
+        <input class="form-check-input" type="checkbox" id="use_override_dates" name="use_override_dates" />
+        <div class="text">
+          <span class="name">Use custom dates for the copied materials</span>
+          <span class="desc">Off — use today's date for each copied material. On — set custom start/end dates and a term below.</span>
+        </div>
+      </label>
+
+      <div id="override-fields" style="display: none; margin-top: 18px;">
+        <div class="field-row">
+          <div class="field">
+            <label for="start_date">Start date</label>
+            <input type="datetime-local" id="start_date" name="start_date" />
+          </div>
+          <div class="field">
+            <label for="end_date">End date</label>
+            <input type="datetime-local" id="end_date" name="end_date" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="term">Term</label>
+          <select id="term" name="term">
+            <option value="">Select a term…</option>
+            {% for term in available_terms %}
+              <option value="{{ term.id }}">{{ term.term_name }}</option>
+            {% endfor %}
+          </select>
+          <span class="field-help">Pick a term from the current semester.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Available materials ─────────────────── -->
+    <div class="form-section" id="moduleSelectionContainer" style="display: none;">
+      <h3 class="form-section-title">Available materials (<span id="lessonCounter">0</span>)</h3>
+      <div id="moduleList" class="lesson-pool">
+        {% include "includes/_skel_card_list.html" with count=4 label="Loading materials" %}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{% url 'material-list' id=target_subject.id %}" class="btn-pill">
+        <i class="fas fa-arrow-left"></i> Cancel
+      </a>
+      <button type="submit" class="btn-pill primary" id="copyButton" disabled>
+        <i class="fas fa-file-import"></i> Import materials
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const moduleSelectionContainer = document.getElementById('moduleSelectionContainer');
+    const moduleList = document.getElementById('moduleList');
+    const copyButton = document.getElementById('copyButton');
+    const dateConfig = document.getElementById('date-config');
+    const useOverrideDates = document.getElementById('use_override_dates');
+    const overrideFields = document.getElementById('override-fields');
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    const sourceSubjectSelect = document.getElementById('id_source_subject');
+
+    function syncSelectedClass(cb) {
+      const card = cb.closest('.lesson-card');
+      if (card) card.classList.toggle('is-selected', cb.checked && !cb.disabled);
+    }
+
+    function formatDateTime(s) {
+      if (!s) return 'Not set';
+      try {
+        let d;
+        if (s.includes('T') && !s.includes('+') && !s.includes('Z')) d = new Date(s + ':00');
+        else d = new Date(s);
+        if (isNaN(d.getTime())) return 'Not set';
+        return d.toLocaleString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric',
+          hour: '2-digit', minute: '2-digit',
+        });
+      } catch { return 'Not set'; }
+    }
+
+    function updateDetailsDisplay() {
+      const useOverride = useOverrideDates.checked;
+      const startVal = startDateInput.value;
+      const endVal = endDateInput.value;
+      const termSel = document.getElementById('term');
+      const termText = termSel && termSel.options[termSel.selectedIndex] ? termSel.options[termSel.selectedIndex].text : '';
+
+      document.querySelectorAll('.lesson-card.is-selected').forEach((card) => {
+        const details = card.querySelector('.details');
+        if (!details) return;
+        const cb = card.querySelector('input[type="checkbox"]');
+        const origStart = cb.getAttribute('data-start-date');
+        const origEnd = cb.getAttribute('data-end-date');
+        const origTerm = cb.getAttribute('data-term');
+
+        details.querySelector('.original-start-date').textContent = formatDateTime(origStart);
+        details.querySelector('.original-end-date').textContent = formatDateTime(origEnd);
+        details.querySelector('.original-term').textContent = origTerm || 'Not set';
+
+        if (useOverride && startVal && endVal) {
+          details.querySelector('.final-start-date').textContent = formatDateTime(startVal);
+          details.querySelector('.final-end-date').textContent = formatDateTime(endVal);
+          details.querySelector('.final-term').textContent = termText || 'Not set';
+        } else {
+          details.querySelector('.final-start-date').textContent = formatDateTime(origStart);
+          details.querySelector('.final-end-date').textContent = formatDateTime(origEnd);
+          details.querySelector('.final-term').textContent = origTerm || 'Not set';
+        }
+      });
+    }
+
+    function updateCopyButtonState() {
+      const checked = document.querySelectorAll('.module-checkbox:checked');
+      copyButton.disabled = checked.length === 0;
+      dateConfig.style.display = checked.length ? 'block' : 'none';
+    }
+
+    function checkIfLessonExists(lessonId) {
+      fetch(`/check_subject_lesson_exists/{{ target_subject.id }}/?lesson_id=${lessonId}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.exists) return;
+          const card = document.getElementById(`lesson-item-${lessonId}`);
+          if (!card) return;
+          const nameEl = card.querySelector('.name');
+          if (nameEl && !nameEl.querySelector('.duplicate-warn')) {
+            const warn = document.createElement('span');
+            warn.className = 'duplicate-warn';
+            warn.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Already exists';
+            nameEl.appendChild(warn);
+          }
+        })
+        .catch((err) => console.error(err));
+    }
+
+    sourceSubjectSelect.addEventListener('change', function () {
+      const sourceSubjectId = this.value;
+      if (!sourceSubjectId) {
+        moduleSelectionContainer.style.display = 'none';
+        document.getElementById('lessonCounter').textContent = '0';
+        moduleList.innerHTML = '';
+        copyButton.disabled = true;
+        return;
+      }
+      moduleSelectionContainer.style.display = 'block';
+      moduleList.innerHTML = (window.ClSkeleton ? window.ClSkeleton.cardList(4, 'Loading materials') : '');
+
+      fetch(`/subject/${sourceSubjectId}/get_subject_modules/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.modules_by_semester || !Object.keys(data.modules_by_semester).length) {
+            document.getElementById('lessonCounter').textContent = '0';
+            moduleList.innerHTML = '<div class="pool-empty">No materials found in this subject.</div>';
+            return;
+          }
+          let total = 0;
+          Object.values(data.modules_by_semester).forEach((terms) => {
+            Object.values(terms).forEach((modules) => { total += modules.length; });
+          });
+          document.getElementById('lessonCounter').textContent = total;
+
+          let html = `
+            <div class="pool-toolbar">
+              <label>
+                <input type="checkbox" id="selectAll">
+                Select all materials
+              </label>
+              <span class="pool-count"><strong id="selectedCount">0</strong> of ${total} selected</span>
+            </div>
+          `;
+          Object.keys(data.modules_by_semester).forEach((semKey) => {
+            const [, semName] = semKey.split('|');
+            const terms = data.modules_by_semester[semKey];
+            html += `<div class="semester-group"><h4 class="semester-label">${semName}</h4>`;
+            Object.keys(terms).forEach((termKey) => {
+              const [, termName] = termKey.split('|');
+              const modules = terms[termKey];
+              html += `<div class="term-group"><div class="term-label">${termName}</div>`;
+              modules.forEach((m) => {
+                const origStart = m.start_date ? formatDateTime(m.start_date) : 'Not set';
+                const origEnd = m.end_date ? formatDateTime(m.end_date) : 'Not set';
+                const origTerm = m.term || 'Not set';
+                const termChip = m.term ? `<span class="chip chip-term">${m.term}</span>` : '';
+                html += `
+                  <label class="lesson-card" id="lesson-item-${m.id}" for="module_${m.id}">
+                    <input type="checkbox" name="selected_modules" value="${m.id}" id="module_${m.id}" class="module-checkbox"
+                           data-module-id="${m.id}"
+                           data-start-date="${m.start_date || ''}"
+                           data-end-date="${m.end_date || ''}"
+                           data-term="${m.term || ''}">
+                    <div class="body">
+                      <div class="name">${m.file_name}${termChip}</div>
+                      <div class="details">
+                        <strong>Original start:</strong> <span class="original-start-date">${origStart}</span><br />
+                        <strong>Original end:</strong> <span class="original-end-date">${origEnd}</span><br />
+                        <strong>Original term:</strong> <span class="original-term">${origTerm}</span>
+                        <span class="copy-as">Will copy as</span>
+                        <strong>Start:</strong> <span class="final-start-date">${origStart}</span><br />
+                        <strong>End:</strong> <span class="final-end-date">${origEnd}</span><br />
+                        <strong>Term:</strong> <span class="final-term">${origTerm}</span>
+                      </div>
+                    </div>
+                  </label>`;
+              });
+              html += `</div>`;
+            });
+            html += `</div>`;
+          });
+          moduleList.innerHTML = html;
+
+          const selectAll = document.getElementById('selectAll');
+          const counter = document.getElementById('selectedCount');
+          const cbs = document.querySelectorAll('.module-checkbox');
+
+          function refreshCount() {
+            counter.textContent = document.querySelectorAll('.module-checkbox:checked').length;
+          }
+
+          selectAll.addEventListener('change', function () {
+            cbs.forEach((cb) => { cb.checked = selectAll.checked; syncSelectedClass(cb); });
+            refreshCount();
+            updateCopyButtonState();
+            updateDetailsDisplay();
+          });
+          cbs.forEach((cb) => {
+            cb.addEventListener('change', function () {
+              if (this.checked) checkIfLessonExists(this.value);
+              syncSelectedClass(this);
+              refreshCount();
+              updateCopyButtonState();
+              updateDetailsDisplay();
+            });
+          });
+        })
+        .catch((err) => {
+          document.getElementById('lessonCounter').textContent = '0';
+          moduleList.innerHTML = '<div class="pool-empty" style="color: var(--rose);">Error loading materials. Please try again.</div>';
+          console.error(err);
+        });
+    });
+
+    if (useOverrideDates) {
+      useOverrideDates.addEventListener('change', function () {
+        overrideFields.style.display = this.checked ? 'block' : 'none';
+        if (this.checked) {
+          const termSel = document.getElementById('term');
+          if (termSel && termSel.options.length > 1) termSel.selectedIndex = 1;
+        }
+        updateDetailsDisplay();
+      });
+    }
+    if (startDateInput) {
+      startDateInput.addEventListener('change', updateDetailsDisplay);
+      startDateInput.addEventListener('input', updateDetailsDisplay);
+    }
+    if (endDateInput) {
+      endDateInput.addEventListener('change', updateDetailsDisplay);
+      endDateInput.addEventListener('input', updateDetailsDisplay);
+    }
+  });
+</script>
+{% endblock %}

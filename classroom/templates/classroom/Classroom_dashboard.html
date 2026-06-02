@@ -1,0 +1,35 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block content %}
+  <!-- Page Heading with LMS Icon -->
+  <div class="content-wrapper">
+    <div class="content-header">
+      <div class="container-fluid">
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <section class="content">
+      <div class="container my-4">
+        <h1>Classroom Sessions</h1>
+        <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Teacher</th>
+              <th>Date</th>
+              <th>Total Time</th>
+            </tr>
+          </thead>
+          <tbody id="classroomTableBody">
+            <!-- Rows will be populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <script src="{% static 'classroom/Classroom_dashboard.js' %}"></script>
+    </section>
+  </div>
+{% endblock %}

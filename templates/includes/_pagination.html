@@ -1,0 +1,61 @@
+{% comment %}
+[Classedge LMS] Reusable pagination control. Expects in context:
+  page_obj, page_range, show_first, show_last, query_string
+Drop in below any backend-paginated table.
+{% endcomment %}
+<style>
+  .cl-pagination {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    justify-content: flex-end; align-items: center;
+    padding: 14px 0 4px;
+    font-family: var(--body);
+  }
+  .cl-pagination .cl-page-btn {
+    min-width: 34px; height: 34px;
+    padding: 0 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--paper);
+    color: var(--ink-dim);
+    font-size: 12.5px; font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .cl-pagination .cl-page-btn:hover { background: var(--cream-2); color: var(--ink); border-color: var(--brand-primary, #b7925a); }
+  .cl-pagination .cl-page-btn.active { background: var(--brand-primary, #b7925a); color: var(--cream); border-color: var(--brand-primary, #b7925a); }
+  .cl-pagination .cl-page-btn.disabled { opacity: 0.4; pointer-events: none; }
+</style>
+<nav aria-label="Page navigation" class="cl-pagination">
+  {% if show_first and page_obj.paginator.num_pages > 1 %}
+    <a class="cl-page-btn" href="?page=1{% if query_string %}&{{ query_string }}{% endif %}" aria-label="First">
+      <i class="fas fa-angle-double-left"></i>
+    </a>
+  {% endif %}
+  {% if page_obj.has_previous %}
+    <a class="cl-page-btn" href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}" aria-label="Previous">
+      <i class="fas fa-chevron-left"></i>
+    </a>
+  {% else %}
+    <span class="cl-page-btn disabled"><i class="fas fa-chevron-left"></i></span>
+  {% endif %}
+  {% for page_num in page_range %}
+    {% if page_num == page_obj.number %}
+      <span class="cl-page-btn active">{{ page_num }}</span>
+    {% else %}
+      <a class="cl-page-btn" href="?page={{ page_num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ page_num }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}
+    <a class="cl-page-btn" href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}" aria-label="Next">
+      <i class="fas fa-chevron-right"></i>
+    </a>
+  {% else %}
+    <span class="cl-page-btn disabled"><i class="fas fa-chevron-right"></i></span>
+  {% endif %}
+  {% if show_last and page_obj.paginator.num_pages > 1 %}
+    <a class="cl-page-btn" href="?page={{ page_obj.paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}" aria-label="Last">
+      <i class="fas fa-angle-double-right"></i>
+    </a>
+  {% endif %}
+</nav>

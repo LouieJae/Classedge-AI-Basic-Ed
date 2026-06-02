@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Edit Scores" %}
+</head>
+<body>
+  <div class="cm-shell wide">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Edit student <em>scores</em></h1>
+          <div class="cm-subtitle">{{ activity.activity_name }} · Max {{ max_score }} points</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'add_quiz_typeCM' activity.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+      </div>
+    </section>
+
+    <form method="post" enctype="multipart/form-data" data-cl-loading data-cl-loading-label="Saving…">
+      {% csrf_token %}
+      <input type="hidden" name="max_score" value="{{ max_score }}">
+
+      <div class="cm-card">
+        <div class="cm-card-head">
+          <h2 class="cm-card-title"><span class="icon"><i class="fas fa-users"></i></span> Student scores</h2>
+          <span class="cm-card-meta">Maximum: {{ max_score }} points</span>
+        </div>
+        <div class="cm-table-wrap">
+          <table class="cm-table">
+            <thead>
+              <tr>
+                <th style="width: 60px; text-align: center;">#</th>
+                <th>Student</th>
+                <th style="width: 140px;">Score</th>
+                <th>Paper / scan <small style="display:block; color: var(--ink-muted); font-weight: 400; text-transform: none; letter-spacing: 0;">(optional)</small></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in participation_data %}
+                <tr>
+                  <td class="text-center"><span style="display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332); font-weight: 700; font-size: 12px;">{{ forloop.counter }}</span></td>
+                  <td>
+                    <strong>{{ student.student_name }}</strong>
+                    <input type="hidden" name="name_{{ student.student_id }}" value="{{ student.student_name }}">
+                  </td>
+                  <td>
+                    <input type="number" name="score_{{ student.student_id }}"
+                           value="{{ student.score }}" min="0" max="{{ max_score }}" step="0.01" required
+                           style="width: 100%; background: var(--cream); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--ink); padding: 8px 12px; font-size: 14px;">
+                  </td>
+                  <td>
+                    <input type="file" name="file_{{ student.student_id }}"
+                           accept=".pdf,.jpg,.jpeg,.png"
+                           style="width: 100%; background: var(--cream); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--ink); padding: 6px 10px; font-size: 12.5px;">
+                    {% if student.file_path %}
+                      <a href="/media/{{ student.file_path }}" target="_blank" style="font-size: 12px; color: var(--brand-primary, #1b4332); text-decoration: none; margin-top: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-file"></i> Current file
+                      </a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4"><div class="cm-empty"><i class="fas fa-users"></i><div class="lead">No participation data yet</div></div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="cm-toolbar" style="margin-top: 18px;">
+        <a href="{% url 'add_quiz_typeCM' activity.id %}" class="cm-btn ghost"><i class="fas fa-times"></i> Cancel</a>
+        <button type="submit" class="cm-btn primary"><i class="fas fa-save"></i> Update scores</button>
+      </div>
+    </form>
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+</body>
+</html>

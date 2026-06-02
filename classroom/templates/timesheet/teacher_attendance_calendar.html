@@ -1,0 +1,183 @@
+{% extends "base_operation.html" %}
+{% block title %}
+  Teacher Attendance Calendar
+{% endblock %}
+{% load static %}
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+  <script src="{% static 'vendors/fullcalendar/index.global.min.js' %}"></script>
+{% endblock %}
+{% block content %}
+  <div class="tac-head" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+    <h3 class="mb-0">Teacher Attendance Calendar</h3>
+    <button type="button" class="cl-tour-replay" data-cl-tour="teacher-attendance-calendar">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <!-- Display Teacher and Subject -->
+  <div class="tac-info alert alert-info shadow-sm border-left-primary p-4 d-flex justify-content-between align-items-center">
+    <div>
+      <h4 class="fw-bold text-primary mb-2">
+        <i class="fas fa-user-tie me-2"></i> Teacher:
+        {{ subject.subject__assign_teacher__first_name }} {{ subject.subject__assign_teacher__last_name }}
+      </h4>
+      <h5 class="fw-semibold mb-0"><i class="fas fa-book-open me-2"></i> Subject: {{ subject.subject__subject_name }}</h5>
+    </div>
+    <a href="{% url 'teacher_attendance_details' subject_id %}" class="btn btn-outline-primary fw-semibold"><i class="fas fa-images me-2"></i> View All Screenshots</a>
+  </div>
+
+  <!-- Date Range Filter -->
+  <div class="row mb-3" id="tac-filter">
+    <div class="col-md-4">
+      <label for="start_date">Start Date:</label>
+      <input type="date" id="start_date" class="form-control" value="{{ start_date }}" />
+    </div>
+    <div class="col-md-4">
+      <label for="end_date">End Date:</label>
+      <input type="date" id="end_date" class="form-control" value="{{ end_date }}" />
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+      <button id="exportPDF" class="btn btn-danger w-100">Export PDF</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="card position-relative">
+        <div class="card-body position-relative">
+          <div class="bg-holder position-absolute top-0 start-0 w-100 h-100" style="background-image: url('{% static 'assets/img/icons/spot-illustrations/corner-4.png' %}');
+                                background-size: cover;
+                                background-position: center;
+                                background-repeat: no-repeat;
+                                opacity: 0.7;
+                                z-index: 0;"></div>
+          <div id="calendar" class="position-relative" style="z-index: 1;"></div>
+        </div>
+      </div>
+      <div id="calendar"></div>
+    </div>
+  </div>
+
+  <!-- Include FullCalendar -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <link rel="stylesheet" href="{% static 'classroom/teacher_attendance_calendar.css' %}" />
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var calendarEl = document.getElementById('calendar');
+        var subjectId = "{{ subject_id }}";
+        var eventDates = new Set(); // Store dates with attendance
+        
+        // Get initial date values if provided from URL
+        var initialStartDate = document.getElementById("start_date").value;
+        var initialEndDate = document.getElementById("end_date").value;
+
+        function fetchEvents(startDate = "", endDate = "") {
+            var url = `/api/teacher_attendance/?subject_id=${subjectId}`;
+            if (startDate) {
+                url += `&start_date=${startDate}`;
+            }
+            if (endDate) {
+                url += `&end_date=${endDate}`;
+            }
+
+
+            return fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(events => {
+                    eventDates.clear();
+                    events.forEach(event => eventDates.add(event.start)); // Store clickable dates
+                    return events;
+                })
+                .catch(error => {
+                    return []; // Return empty array on error
+                });
+        }
+
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            initialDate: initialStartDate ? new Date(initialStartDate) : null,
+            events: function (fetchInfo, successCallback, failureCallback) {
+                var startDate = document.getElementById("start_date").value;
+                var endDate = document.getElementById("end_date").value;
+                fetchEvents(startDate, endDate).then(events => successCallback(events));
+            },
+            eventClick: function (info) {
+                var selectedDate = info.event.startStr;
+                window.location.href = `/view_screenshots_per_date/${subjectId}/${selectedDate}/`;
+            },
+            dateClick: function (info) {
+                var selectedDate = info.dateStr;
+                if (eventDates.has(selectedDate)) { // Only allow clicks on dates with attendance
+                window.location.href = `/view_screenshots_per_date/${subjectId}/${selectedDate}/`;
+                }
+            },
+            eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: 'short' },
+            locale: 'en',
+            themeSystem: 'bootstrap5',
+        });
+
+        calendar.render();
+
+        function updateCalendarView() {
+            var startDate = document.getElementById("start_date").value;
+            if (startDate) {
+                var selectedDate = new Date(startDate);
+                calendar.gotoDate(selectedDate); // Move calendar view to selected date
+            }
+            calendar.refetchEvents();
+        }
+
+        document.getElementById("start_date").addEventListener("change", updateCalendarView);
+        document.getElementById("end_date").addEventListener("change", updateCalendarView);
+
+        // PDF Export functionality
+        document.getElementById("exportPDF").addEventListener("click", function() {
+            const { jsPDF } = window.jspdf;
+            
+            // Get teacher and subject info for the PDF title
+            const teacherName = "{{ subject.subject__assign_teacher__first_name }} {{ subject.subject__assign_teacher__last_name }}";
+            const subjectName = "{{ subject.subject__subject_name }}";
+            const startDate = document.getElementById("start_date").value || "All dates";
+            const endDate = document.getElementById("end_date").value || "Present";
+            
+            // Create PDF instance
+            const pdf = new jsPDF('landscape', 'mm', 'a4');
+            
+            // Add title and metadata
+            pdf.setFontSize(18);
+            pdf.text(`Teacher Attendance Calendar`, 20, 20);
+            pdf.setFontSize(12);
+            pdf.text(`Teacher: ${teacherName}`, 20, 30);
+            pdf.text(`Subject: ${subjectName}`, 20, 37);
+            pdf.text(`Period: ${startDate} to ${endDate}`, 20, 44);
+            
+            // Capture the calendar as an image
+            html2canvas(document.querySelector("#calendar"), {
+                scale: 1.5, // Higher quality
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: "#ffffff"
+            }).then(canvas => {
+                // Add the calendar image to PDF
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 250;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                
+                pdf.addImage(imgData, 'PNG', 20, 55, imgWidth, imgHeight);
+                
+                // Save the PDF
+                pdf.save(`Teacher_Attendance_${teacherName}_${subjectName}.pdf`);
+            });
+        });
+    });
+</script>
+
+<script src="{% static 'js/tours/cl-tour-teacher-attendance-calendar.js' %}" defer></script>
+{% endblock %}

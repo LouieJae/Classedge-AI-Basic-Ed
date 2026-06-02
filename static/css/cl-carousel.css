@@ -1,0 +1,77 @@
+@media (max-width: 768px) {
+  .cl-carousel {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 14px;
+
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+
+    padding: 4px 0 18px;
+    scroll-padding-left: 0;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    grid-auto-flow: column !important;
+  }
+  .cl-carousel::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
+  .cl-carousel > * {
+    flex: 0 0 min(85%, 320px);
+    max-width: min(85%, 320px);
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
+  .cl-carousel::after {
+    content: '';
+    flex: 0 0 1px;
+  }
+
+  .cl-carousel.cl-carousel--peek-sm > * {
+    flex-basis: min(75%, 280px);
+    max-width:  min(75%, 280px);
+  }
+  .cl-carousel.cl-carousel--peek-lg > * {
+    flex-basis: min(92%, 360px);
+    max-width:  min(92%, 360px);
+  }
+  .cl-carousel.cl-carousel--snap-none {
+    scroll-snap-type: none;
+  }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .cl-carousel { scroll-behavior: auto; }
+}
+
+@media print {
+  .cl-carousel {
+    display: block !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .cl-carousel > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-inside: avoid;
+    margin-bottom: 12px;
+  }
+}

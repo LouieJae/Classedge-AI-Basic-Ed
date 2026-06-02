@@ -1,0 +1,37 @@
+  /* Improve Accordion Appearance */
+    .accordion-button {
+      font-weight: bold;
+      transition: background-color 0.3s ease-in-out;
+    }
+
+    .accordion-button:hover {
+      background-color:rgb(180, 180, 180);
+    }
+
+    .accordion-item {
+      border: none;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+/* Accordion Icon Animation */
+    .accordion-button .fas {
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .accordion-button:not(.collapsed) .fas {
+      transform: rotate(180deg);
+    }
+
+/* Table Styling */
+    .table-hover tbody tr:hover {
+      background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    .badge {
+      font-size: 14px;
+      padding: 5px 10px;
+    }
+
+  

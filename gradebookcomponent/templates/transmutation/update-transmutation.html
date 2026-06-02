@@ -1,0 +1,60 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Edit Transmutation Rule{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+  {% include "includes/_form_card.html" %}
+
+  <div class="cl-page">
+        <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-edit me-2"></i>Edit Transmutation Rule</h2>
+        <p>Adjust the grade range or its transmuted value.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="transmutation-form">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+      </div>
+    </div>
+
+    <div class="cl-form-card">
+      <form method="post" action="{% url 'update-transmutation' transmutation.id %}" data-cl-loading data-cl-loading-label="Updating…">
+        {% csrf_token %}
+        <div class="cl-form-section">
+          <h6><i class="fas fa-table"></i> Rule Details</h6>
+          <div class="cl-form-grid">
+            <div class="cl-field full">
+              <label for="{{ form.transmutation_table_name.id_for_label }}">Table Name <span class="req">*</span></label>
+              {{ form.transmutation_table_name }}
+              {% if form.transmutation_table_name.errors %}<div class="err">{{ form.transmutation_table_name.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field">
+              <label for="{{ form.min_grade.id_for_label }}">Min Grade <span class="req">*</span></label>
+              {{ form.min_grade }}
+              {% if form.min_grade.errors %}<div class="err">{{ form.min_grade.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field">
+              <label for="{{ form.max_grade.id_for_label }}">Max Grade <span class="req">*</span></label>
+              {{ form.max_grade }}
+              {% if form.max_grade.errors %}<div class="err">{{ form.max_grade.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field full">
+              <label for="{{ form.transmuted_value.id_for_label }}">Transmuted Value <span class="req">*</span></label>
+              {{ form.transmuted_value }}
+              {% if form.transmuted_value.errors %}<div class="err">{{ form.transmuted_value.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="cl-form-actions">
+          <button type="submit" class="cl-btn cl-btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+          <a href="{% url 'transmutation-list' %}" class="cl-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'js/tours/cl-tour-transmutation-form.js' %}" defer></script>
+{% endblock %}

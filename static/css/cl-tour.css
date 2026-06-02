@@ -1,0 +1,315 @@
+/* cl-tour.css — Shepherd.js theming using brand tokens.
+ *
+ * Shepherd renders its popovers at document root (outside any
+ * .cm-shell / .form-panel), so all rules live at the global scope.
+ * Both light and dark themes pick up the same --paper / --ink /
+ * --brand-primary tokens defined in base_operation.html so popovers
+ * always match the surrounding UI.
+ */
+
+.shepherd-element.cl-shepherd {
+  border-radius: 14px;
+  background: var(--paper, #fff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  box-shadow:
+    0 24px 50px -22px rgba(15, 23, 42, 0.28),
+    0 2px 6px rgba(15, 23, 42, 0.08);
+  color: var(--ink, #2d3142);
+  font-family: 'Inter Tight', 'Inter', system-ui, sans-serif;
+  max-width: 380px;
+}
+body[data-theme="dark"] .shepherd-element.cl-shepherd {
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.14));
+  box-shadow:
+    0 28px 60px -20px rgba(0, 0, 0, 0.72),
+    0 6px 18px -6px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.shepherd-element.cl-shepherd .shepherd-content {
+  background: transparent;
+  border-radius: inherit;
+}
+
+.shepherd-element.cl-shepherd .shepherd-header {
+  background: linear-gradient(135deg, var(--brand-primary-soft), transparent);
+  padding: 14px 18px 6px;
+  border-radius: 14px 14px 0 0;
+}
+
+.shepherd-element.cl-shepherd .shepherd-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-primary, #1b4332);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.shepherd-element.cl-shepherd .shepherd-text {
+  padding: 12px 18px 16px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink, #2d3142);
+}
+
+.shepherd-element.cl-shepherd .shepherd-text strong {
+  color: var(--brand-primary, #1b4332);
+  font-weight: 600;
+}
+
+.shepherd-element.cl-shepherd .shepherd-footer {
+  padding: 10px 16px 14px;
+  border-top: 1px dashed var(--border, rgba(0, 0, 0, 0.08));
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Button system — matches our .btn-pill family */
+.shepherd-element.cl-shepherd .cl-shepherd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 100px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.shepherd-element.cl-shepherd .cl-shepherd-btn.ghost {
+  background: transparent;
+  color: var(--ink-dim, #6c7080);
+  border-color: var(--border, rgba(0, 0, 0, 0.12));
+}
+.shepherd-element.cl-shepherd .cl-shepherd-btn.ghost:hover {
+  background: var(--cream-2, #f3ede2);
+  color: var(--ink, #2d3142);
+}
+.shepherd-element.cl-shepherd .cl-shepherd-btn.primary {
+  background: var(--brand-primary, #1b4332);
+  color: #fff;
+}
+.shepherd-element.cl-shepherd .cl-shepherd-btn.primary:hover {
+  background: color-mix(in srgb, var(--brand-primary, #1b4332) 88%, black);
+  transform: translateY(-1px);
+}
+
+/* Cancel (X) icon */
+.shepherd-element.cl-shepherd .shepherd-cancel-icon {
+  color: var(--ink-muted, #a0a4b8);
+  font-size: 18px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.shepherd-element.cl-shepherd .shepherd-cancel-icon:hover {
+  color: var(--rose, #c08479);
+}
+
+/* Arrow */
+.shepherd-element.cl-shepherd .shepherd-arrow::before {
+  background: var(--paper, #fff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+}
+body[data-theme="dark"] .shepherd-element.cl-shepherd .shepherd-arrow::before {
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.14));
+}
+
+/* Ghost button needs a more legible hover in dark — --cream-2 is darker than
+   paper in dark theme which would make the button vanish on hover. */
+body[data-theme="dark"] .shepherd-element.cl-shepherd .cl-shepherd-btn.ghost {
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.18));
+  color: var(--ink, #e8eaf0);
+}
+body[data-theme="dark"] .shepherd-element.cl-shepherd .cl-shepherd-btn.ghost:hover {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+  color: var(--ink, #e8eaf0);
+}
+
+/* Header gradient — brand-primary-soft on dark resolves to a faint tint;
+   give it a touch more punch so the title section reads as a distinct band. */
+body[data-theme="dark"] .shepherd-element.cl-shepherd .shepherd-header {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--brand-primary) 30%, transparent),
+    transparent
+  );
+}
+body[data-theme="dark"] .shepherd-element.cl-shepherd .shepherd-title,
+body[data-theme="dark"] .shepherd-element.cl-shepherd .shepherd-text strong {
+  color: color-mix(in srgb, var(--brand-primary) 55%, var(--ink));
+}
+
+/* Modal overlay (the dim layer behind the popover) */
+.shepherd-modal-overlay-container {
+  pointer-events: none;
+}
+.shepherd-modal-overlay-container.shepherd-modal-is-visible {
+  pointer-events: all;
+}
+.shepherd-modal-overlay-container path {
+  fill: rgba(15, 23, 42, 0.45);
+}
+body[data-theme="dark"] .shepherd-modal-overlay-container path {
+  fill: rgba(0, 0, 0, 0.68);
+}
+
+/* Active highlight ring around the focused anchor.
+   In light mode the dim overlay already isolates the target. In dark mode
+   the page is dark, the overlay is dark, and the cutout reveals more dark —
+   so we paint a brand-tinted glow ring directly on the target so it reads
+   as "this is the highlighted thing". The light-mode ring is subtle (it
+   doesn't need to do much work), the dark-mode ring is more pronounced. */
+.shepherd-target.shepherd-enabled {
+  position: relative;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--brand-primary, #1b4332) 32%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--brand-primary, #1b4332) 10%, transparent);
+  border-radius: var(--radius-sm, 8px);
+  transition: box-shadow 0.2s ease;
+}
+body[data-theme="dark"] .shepherd-target.shepherd-enabled {
+  box-shadow:
+    0 0 0 2px var(--paper, #1a2420),
+    0 0 0 5px color-mix(in srgb, var(--brand-primary) 70%, transparent),
+    0 0 0 10px color-mix(in srgb, var(--brand-primary) 25%, transparent);
+}
+
+/* Replay button — drop-in style for `<button data-cl-tour="…">`. */
+.cl-tour-replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary, #1b4332);
+  border: 1px solid color-mix(in srgb, var(--brand-primary, #1b4332) 22%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.cl-tour-replay:hover {
+  background: var(--brand-primary, #1b4332);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.cl-tour-replay i { font-size: 11px; }
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .shepherd-element.cl-shepherd .cl-shepherd-btn { transition: none; }
+  .shepherd-element.cl-shepherd .cl-shepherd-btn.primary:hover,
+  .cl-tour-replay:hover { transform: none; }
+}
+
+/* ───────────────────────────────────────────────────────────
+   Classroom Mode pill variant — sits inside .cm-hero-actions
+   alongside .cm-btn buttons. Matches their pill shape, padding,
+   and font weight so it reads as part of the action row instead
+   of a foreign element.
+   ─────────────────────────────────────────────────────────── */
+.cm-hero-actions .cl-tour-replay,
+.cm-shell .cl-tour-replay {
+  padding: 9px 16px;
+  font-size: 13px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--border-strong, var(--border, rgba(0, 0, 0, 0.12)));
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.cm-hero-actions .cl-tour-replay i,
+.cm-shell .cl-tour-replay i { font-size: 12px; color: var(--brand-primary, #1b4332); }
+.cm-hero-actions .cl-tour-replay:hover,
+.cm-shell .cl-tour-replay:hover {
+  background: var(--brand-primary, #1b4332);
+  color: #fff;
+  border-color: var(--brand-primary, #1b4332);
+}
+.cm-hero-actions .cl-tour-replay:hover i,
+.cm-shell .cl-tour-replay:hover i { color: #fff; }
+
+/* ───────────────────────────────────────────────────────────
+   Floating Action Button variant
+   ───────────────────────────────────────────────────────────
+   Opt in by adding `.cl-tour-replay-fab` to the pill. Pins to
+   bottom-right of the viewport at a respectful z-index (still
+   below Shepherd's z:10000 overlay so it never sits on top of
+   an active tour). Collapses to icon-only on phones to stay
+   out of the way of one-handed use.
+   ─────────────────────────────────────────────────────────── */
+.cl-tour-replay-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 9000;
+  padding: 11px 20px;
+  font-size: 13.5px;
+  border-radius: 999px;
+  background: var(--brand-primary, #1b4332);
+  color: #fff;
+  border: 1px solid var(--brand-primary, #1b4332);
+  box-shadow:
+    0 14px 32px -10px rgba(15, 23, 42, 0.28),
+    0 4px 10px -4px rgba(15, 23, 42, 0.18);
+  transition:
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+.cl-tour-replay-fab i {
+  font-size: 14px;
+  color: #fff !important;
+  margin-right: 2px;
+}
+.cl-tour-replay-fab:hover,
+.cl-tour-replay-fab:focus-visible {
+  background: color-mix(in srgb, var(--brand-primary, #1b4332) 88%, #000) !important;
+  color: #fff !important;
+  border-color: color-mix(in srgb, var(--brand-primary, #1b4332) 88%, #000) !important;
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 38px -10px rgba(15, 23, 42, 0.36),
+    0 6px 14px -4px rgba(15, 23, 42, 0.22);
+  outline: none;
+}
+.cl-tour-replay-fab:hover i,
+.cl-tour-replay-fab:focus-visible i { color: #fff !important; }
+
+/* CM-scoped override (cl-tour-replay base + .cm-shell override would
+   normally give the floating button the paper/ghost variant). Keep
+   the FAB filled-brand regardless of context so it reads as a CTA. */
+.cm-shell .cl-tour-replay-fab,
+.cm-hero-actions .cl-tour-replay-fab {
+  background: var(--brand-primary, #1b4332);
+  color: #fff;
+  border-color: var(--brand-primary, #1b4332);
+  box-shadow:
+    0 14px 32px -10px rgba(15, 23, 42, 0.28),
+    0 4px 10px -4px rgba(15, 23, 42, 0.18);
+}
+.cm-shell .cl-tour-replay-fab i,
+.cm-hero-actions .cl-tour-replay-fab i { color: #fff; }
+
+/* Mobile: icon-only at narrow viewports to keep the FAB unobtrusive. */
+@media (max-width: 600px) {
+  .cl-tour-replay-fab {
+    right: 16px;
+    bottom: 16px;
+    padding: 11px;
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+  }
+  .cl-tour-replay-fab span { display: none; }
+  .cl-tour-replay-fab i { margin: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-tour-replay-fab:hover { transform: none; }
+}

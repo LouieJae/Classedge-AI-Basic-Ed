@@ -1,0 +1,154 @@
+{% comment %}
+[Classedge LMS] Cohesive-brand variant — reusable partial.
+
+Drop this inside {% block extra_css %} on any page that should adopt the
+cohesive doctrine:
+
+  • Text / headings / numerals    → var(--ink)            (locked neutral)
+  • Icons + decorative atmosphere → var(--brand-primary)  (tenant-tracked)
+  • Page canvas (--cream / -2)    → soft tint of --brand-primary
+  • White card bodies (--paper)   → unchanged (locked)
+  • Categorical (rose warn, status-pending, semantic-warning, achievement
+    tiers, file-type icons)       → unchanged (locked)
+
+Usage on any custom page:
+
+  {% block extra_css %}
+  {% include "includes/_brand_cohesive.html" %}
+  <style>
+    /* page-specific overrides only — anything master-defined is
+       already handled by the partial */
+  </style>
+  {% endblock %}
+
+────────────────────────────────────────────────────────────────────────
+ARCHITECTURE (no ?brand= in URL — base/default state)
+
+The partial works in three layers:
+
+1. `:root { --brand-primary: var(--gold); }` — directly assigns the
+   brand-primary token to gold. Beats the master's `:root { --brand-primary:
+   var(--forest); }` via later source order. Specificity (0,1,0) — strictly
+   below the dev shim's (0,1,1), so tenant injection still wins.
+
+2. `body[data-theme="light|dark"] { --forest, --forest-2, --forest-light:
+   var(--gold) !important; }` — re-routes the entire forest family in
+   both themes. Any master surface that reads `var(--forest)` directly
+   (sidebar hovers, class-card excellent, notification panels, spotlight,
+   brand emblem) now resolves to gold instead of the master's forest hex.
+   !important guards against later master rules re-asserting these.
+
+3. Theme-scoped overrides for `--cream`, `--cream-2`, and the page
+   `background` so atmospheric radial gradients also track brand instead
+   of being baked-in forest/gold rgba.
+
+When ?brand=#hex is present, the dev shim in base_operation.html writes
+--brand-primary at body[data-theme="..."] scope (higher specificity than
+our :root). That bypasses the alias entirely, so tenant injection wins.
+────────────────────────────────────────────────────────────────────────
+{% endcomment %}
+<style>
+  /* (Note: previously had a `:root { --brand-primary: var(--gold); }`
+     defensive declaration here. Removed once the server-side tenant
+     style block — <style data-cl-brand-tenant> rendered from
+     SCHOOL_BRAND_COLOR in base_operation.html — became the source of
+     truth. The defensive line was fighting tenant injection by
+     winning :root cascade and locking the resolved value to --gold,
+     which then made --brand-primary-soft and all its descendant
+     atmospheres render as gold tints regardless of saved tenant.) */
+
+  body[data-theme="light"] {
+    /* Re-route the whole --forest family to the brand-primary axis.
+       --forest is the headline brand token; --forest-2 is its darker
+       sibling used in gradients; --forest-light is the pale tinted
+       background used on hover states and "excellent" cards. Re-routing
+       all three keeps the cohesive doctrine consistent everywhere the
+       master reads these names — sidebar hovers, class-card excellent
+       backgrounds, notification panels, spotlight gradient, brand
+       emblem gradient. !important guards against any later master rule
+       (or post-partial stylesheet) re-asserting --forest. */
+    --forest:        var(--gold) !important;
+    --forest-2:      var(--gold) !important;
+    --forest-light:  var(--brand-primary-soft) !important;
+
+    /* Re-derive cream + cream-2 from --brand-primary so the page canvas
+       tints with whatever the tenant picks (or gold by default). Base
+       is pure white instead of the legacy warm cream so the default
+       state reads as clean / neutral, with brand presence emerging only
+       as a subtle wash (3% mix). --cream-2 gets a 5% mix on near-white
+       so input rails, table headers, and tonal chips sit one notch
+       above the canvas. */
+    --cream:   color-mix(in srgb, var(--brand-primary, #b7925a) 3%, #ffffff);
+    --cream-2: color-mix(in srgb, var(--brand-primary, #b7925a) 5%, #f7f7f7);
+
+    /* Override the master's body background. The master ships two
+       hardcoded rgba radial-gradients (forest + gold) as ambient body
+       atmosphere; those don't track brand and would leak forest/gold
+       into the canvas regardless of tenant. Replace with color-mix so
+       both atmospheres track --brand-primary. !important guards against
+       any later master block re-asserting the hardcoded gradient. */
+    background:
+      radial-gradient(ellipse at 10% 0%, color-mix(in srgb, var(--brand-primary, #b7925a) 6%, transparent) 0%, transparent 40%),
+      radial-gradient(ellipse at 90% 100%, color-mix(in srgb, var(--brand-primary, #b7925a) 4%, transparent) 0%, transparent 50%),
+      var(--cream) !important;
+    background-attachment: fixed !important;
+  }
+
+  body[data-theme="dark"] {
+    /* Dark-mode counterpart. Same doctrine, dark-tone base.
+       The whole --forest family re-routes to brand-primary so
+       sidebar hovers, class-card excellent backgrounds, notification
+       panels, and the spotlight/brand-emblem gradients all track
+       tenant brand instead of the mint forest #7bc4a5 the master
+       declares for dark mode. !important guards against any later
+       master rule re-asserting --forest at lower specificity. */
+    --forest:       var(--gold) !important;
+    --forest-2:     var(--gold) !important;
+    --forest-light: var(--brand-primary-soft) !important;
+
+    --cream:   color-mix(in srgb, var(--brand-primary, #d4a973) 6%, #0f1714);
+    --cream-2: color-mix(in srgb, var(--brand-primary, #d4a973) 9%, #161f1a);
+
+    /* Override the master's hardcoded dark-mode radial gradients
+       (rgba(123,196,165) = dark forest mint #7bc4a5, the actual
+       culprit making dark mode look forest-tinted). Replace with
+       color-mix on --brand-primary so atmospheres track tenant brand.
+       !important defends against the master's later rule from leaking
+       its hardcoded rgba(212, 169, 115) gold and rgba(123, 196, 165)
+       mint into the page. */
+    background:
+      radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--brand-primary, #d4a973) 8%, transparent) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 100%, color-mix(in srgb, var(--brand-primary, #d4a973) 6%, transparent) 0%, transparent 50%),
+      var(--cream) !important;
+    background-attachment: fixed !important;
+  }
+
+  /* ── Master-class overrides ────────────────────────────────────────
+     .page-title and .class-card are defined in base_operation.html;
+     these page-local rules win via source order so the master stays
+     untouched. */
+
+  /* .page-title body color → locked neutral. The <em> accent inside it
+     already uses var(--brand-primary) from the master, so it continues
+     to track tenant. */
+  .page-title { color: var(--ink); }
+
+  /* .class-card surfaces. Default + .excellent borders track brand
+     for tenant cohesion. .warn variant stays amber (categorical at-risk
+     signal) — the border IS the data-status flag, not decoration. Text +
+     numerals stay neutral; warn metric value + progress fill also amber. */
+  .class-card                                 { border-left-color: var(--brand-primary, #b7925a); }
+  .class-card.excellent {
+    border-left-color: var(--brand-primary, #b7925a);
+    background: var(--brand-primary-soft);
+  }
+  .class-card.warn                            { border-left-color: var(--semantic-warning, #c47a00); }
+  .class-name                                 { color: var(--ink); }
+  .class-metric-value                         { color: var(--ink); }
+  .class-metric-value.done                    { color: var(--ink); }
+  .class-metric-value.warn                    { color: var(--semantic-warning, #c47a00); }
+  .class-progress-label span:last-child       { color: var(--ink); }
+  .class-progress-fill                        { background: var(--brand-primary, #b7925a); }
+  .class-card.excellent .class-progress-fill  { background: var(--brand-primary, #b7925a); }
+  .class-card.warn .class-progress-fill       { background: var(--semantic-warning, #c47a00); }
+</style>

@@ -1,0 +1,290 @@
+  /* ─── Shell ──────────────────────────────────────────── */
+  .sc-shell {
+    padding: 8px 0 40px;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  .sc-shell, .sc-shell * { box-sizing: border-box; }
+
+  /* ─── Header ─────────────────────────────────────────── */
+  .sc-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    gap: 16px; flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .sc-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--body);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary, #b7925a);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    margin-bottom: 8px;
+  }
+  .sc-eyebrow::before {
+    content: '\f073'; /* fa-calendar */
+    font-family: 'Font Awesome 6 Free'; font-weight: 900;
+    font-size: 10px;
+  }
+  /* Page-level title uses canonical .page-title / .page-sub from student_theme.css */
+
+  /* Month nav (prev / today / next) */
+  .sc-nav {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    border-radius: 100px;
+    padding: 4px;
+    backdrop-filter: blur(10px);
+  }
+  .sc-nav a, .sc-nav button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 100px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-family: var(--body); font-size: 12.5px; font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .sc-nav a:hover, .sc-nav button:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+  }
+  .sc-nav .sc-nav-today,
+  .sc-nav a.sc-nav-today,
+  .sc-nav a.sc-nav-today:link,
+  .sc-nav a.sc-nav-today:visited {
+    background: var(--brand-primary, #b7925a) !important;
+    color: #0a0f1f !important;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+  .sc-nav .sc-nav-today:hover,
+  .sc-nav a.sc-nav-today:hover {
+    background: var(--brand-primary, #b7925a) !important;
+    color: #0a0f1f !important;
+    filter: brightness(1.06);
+  }
+  .sc-nav .sc-nav-today:focus-visible {
+    outline: 2px solid var(--brand-primary, #b7925a);
+    outline-offset: 2px;
+  }
+
+  /* ─── Calendar card ──────────────────────────────────── */
+  .sc-card {
+    background: var(--surface);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    border-radius: 18px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+  }
+  .sc-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+  }
+  .sc-head {
+    padding: 12px 4px;
+    text-align: center;
+    font-family: var(--body);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    background: var(--bg-2, rgba(255, 255, 255, 0.04));
+    border-right: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+    border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  }
+  .sc-head:nth-child(7n) { border-right: none; }
+
+  .sc-day {
+    min-height: 96px;
+    padding: 8px 10px;
+    border-right: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+    border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+    position: relative;
+    transition: background 0.12s;
+  }
+  .sc-day:nth-child(7n) { border-right: none; }
+  .sc-day.empty {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .sc-day.today {
+    background: rgba(244, 183, 64, 0.06);
+  }
+  .sc-day.today .sc-day-num {
+    background: var(--brand-primary, #b7925a);
+    color: #0a0f1f;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 3px rgba(244, 183, 64, 0.18);
+  }
+  .sc-day-num {
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 6px;
+    line-height: 1;
+  }
+  .sc-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .sc-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: block;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  }
+  .sc-dot.deadline     { background: #ef4444; }
+  .sc-dot.holiday      { background: #f59e0b; }
+  .sc-dot.event        { background: #6366f1; }
+  .sc-dot.announcement { background: #10b981; }
+
+  .sc-day.has-events { cursor: pointer; }
+  .sc-day.has-events:hover { background: rgba(244, 183, 64, 0.08); }
+  .sc-day.today.has-events:hover { background: rgba(244, 183, 64, 0.14); }
+  .sc-day.has-events:focus-visible {
+    outline: 2px solid var(--brand-primary, #b7925a);
+    outline-offset: -2px;
+  }
+
+  /* ─── Popover ────────────────────────────────────────── */
+  .sc-popover {
+    position: fixed;
+    /* Park the empty popover far offscreen until JS positions it on
+       hover/focus. Without an explicit top/left, `position: fixed`
+       falls back to the element's static position — which is right
+       under the legend — and the empty padded box can flash there on
+       first paint before transitions / classes settle. */
+    top: -9999px;
+    left: -9999px;
+    z-index: 1080;
+    min-width: 240px;
+    max-width: min(320px, calc(100vw - 24px));
+    background: var(--surface, #fff);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.45);
+    padding: 14px 16px;
+    pointer-events: none;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.12s ease, transform 0.12s ease, visibility 0s linear 0.12s;
+    backdrop-filter: blur(12px);
+  }
+  .sc-popover.show {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.12s ease, transform 0.12s ease, visibility 0s linear 0s;
+  }
+  .sc-popover-header {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sc-popover-list { display: flex; flex-direction: column; gap: 10px; }
+  .sc-popover-item { display: flex; gap: 10px; align-items: flex-start; }
+  .sc-popover-item .sc-dot { width: 10px; height: 10px; margin-top: 5px; flex: none; }
+  .sc-popover-item-title {
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .sc-popover-item-type {
+    font-size: 10.5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+    font-weight: 600;
+  }
+
+  /* ─── Legend ─────────────────────────────────────────── */
+  .sc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .sc-legend-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    border-radius: 100px;
+    background: var(--surface);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    font-family: var(--body);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .sc-legend-chip .sc-dot {
+    width: 9px; height: 9px;
+    box-shadow: none;
+  }
+
+  /* ─── Responsive ─────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .sc-day { min-height: 80px; padding: 6px 8px; }
+  }
+  @media (max-width: 640px) {
+    .sc-shell { padding: 0 0 32px; }
+    .sc-header { gap: 12px; margin-bottom: 14px; }
+    .sc-header > div:first-child { flex: 1 1 100%; }
+    .sc-nav { width: 100%; justify-content: space-between; padding: 4px; }
+    .sc-nav a, .sc-nav button { flex: 1 1 0; min-width: 0; }
+    .sc-nav .sc-nav-today { flex: 1 1 0; }
+
+    .sc-card { border-radius: 14px; }
+    .sc-head {
+      padding: 8px 2px;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+    }
+    .sc-day {
+      min-height: 60px;
+      padding: 5px 6px;
+    }
+    .sc-day-num { font-size: 11.5px; }
+    .sc-day.today .sc-day-num { width: 22px; height: 22px; }
+    .sc-dot { width: 6px; height: 6px; }
+    .sc-dots { gap: 3px; }
+
+    .sc-legend { gap: 6px; margin-top: 14px; }
+    .sc-legend-chip { padding: 4px 10px; font-size: 11px; }
+  }
+  @media (max-width: 420px) {
+    .sc-head { font-size: 9.5px; }
+    /* Show only first letter of weekday names to save space */
+    .sc-head { white-space: nowrap; overflow: hidden; }
+    .sc-day { min-height: 50px; padding: 4px; }
+    .sc-day-num { font-size: 11px; }
+    .sc-day.today .sc-day-num { width: 20px; height: 20px; font-size: 10px; }
+  }
+
+  /* Weekday label swap: hide tiny letter by default, swap on phones. */
+  .sc-head-tiny { display: none; }
+  @media (max-width: 420px) {
+    .sc-head-full { display: none; }
+    .sc-head-tiny { display: inline; }
+  }

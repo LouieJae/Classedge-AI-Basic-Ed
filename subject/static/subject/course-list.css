@@ -1,0 +1,392 @@
+  .subj-page { animation: subjFade 0.6s ease both; }
+  @keyframes subjFade { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+  .subj-semester {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .subj-semester i { color: var(--brand-primary, #b7925a); }
+  .subj-semester.empty { color: var(--ink-muted); font-style: italic; }
+
+  /* Toolbar */
+  .subj-toolbar {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 12px;
+    margin: 0 0 18px;
+  }
+  .subj-search { position: relative; flex: 1; min-width: 240px; max-width: 460px; }
+  .subj-search input {
+    width: 100%;
+    padding: 11px 14px 11px 40px;
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 13.5px;
+    transition: all 0.18s ease;
+  }
+  .subj-search input:focus {
+    outline: none;
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .subj-search i {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-muted); font-size: 13px;
+  }
+  .subj-search-clear {
+    position: absolute;
+    right: 8px; top: 50%; transform: translateY(-50%);
+    background: transparent; border: none;
+    color: var(--ink-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+    text-decoration: none;
+  }
+  .subj-search-clear:hover { color: var(--rose); }
+
+  /* Real-time search spinner — visible while HTMX is in-flight. */
+  .subj-search .htmx-indicator {
+    display: none;
+    position: absolute;
+    right: 36px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--brand-primary, #b7925a);
+    font-size: 13px;
+    pointer-events: none;
+  }
+  .subj-search .htmx-indicator.htmx-request,
+  .subj-search.htmx-request .htmx-indicator { display: inline-flex; }
+  #course-list-results.htmx-request,
+  #course-list-results.htmx-swapping { opacity: 0.55; transition: opacity 0.15s ease; }
+
+  .subj-perpage {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--ink-dim);
+    font-family: var(--body);
+    font-size: 12px;
+  }
+  .subj-perpage select {
+    padding: 7px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    font-family: var(--body);
+    font-size: 12.5px;
+    color: var(--ink);
+  }
+
+  .subj-toolbar-actions { display: inline-flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+  .subj-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--border-strong);
+    background: var(--paper);
+    color: var(--ink-dim);
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .subj-btn:hover { background: var(--cream-2); color: var(--ink); transform: translateY(-1px); }
+  .subj-btn.primary { background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332); }
+  .subj-btn.primary:hover { background: var(--brand-primary, #1b4332); border-color: var(--brand-primary, #1b4332); color: var(--cream); }
+  .subj-btn.gold { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent); }
+  .subj-btn.gold:hover { background: var(--brand-primary, #b7925a); color: var(--cream); border-color: var(--brand-primary, #b7925a); }
+
+  /* Table card */
+  .subj-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .subj-card-head {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--cream-2);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .subj-card-title {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--ink);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .subj-card-title em { font-style: italic; color: var(--brand-primary, #b7925a); font-weight: 400; }
+  .subj-card-count {
+    font-family: var(--display);
+    font-style: italic;
+    color: var(--ink-dim);
+    font-size: 13px;
+  }
+
+  .subj-table-wrap { overflow-x: auto; }
+  .subj-table { width: 100%; border-collapse: collapse; font-family: var(--body); }
+  .subj-table thead th {
+    background: transparent;
+    color: var(--ink-dim);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .subj-table tbody td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    color: var(--ink);
+    font-size: 13.5px;
+    vertical-align: middle;
+  }
+  .subj-table tbody tr:hover td { background: var(--cream); }
+  .subj-table tbody tr:last-child td { border-bottom: none; }
+
+  .subj-name-cell { display: flex; align-items: center; gap: 12px; min-width: 220px; }
+  .subj-thumb {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--ink), var(--ink));
+    color: var(--cream);
+    display: grid; place-items: center;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+    background-size: cover; background-position: center;
+  }
+  .subj-name { font-weight: 600; color: var(--ink); line-height: 1.25; word-break: break-word; }
+  .subj-code {
+    font-family: var(--display);
+    font-style: italic;
+    color: var(--ink-muted);
+    font-size: 12px;
+  }
+  .subj-tag {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-left: 6px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent);
+  }
+  .subj-teacher { color: var(--ink); font-weight: 500; }
+  .subj-teacher.muted { color: var(--ink-muted); font-style: italic; font-weight: 400; }
+
+  /* Action dropdown — keep Bootstrap dropdown but restyle */
+  .subj-action-btn {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: inline-grid; place-items: center;
+    color: var(--ink-dim);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+  }
+  .subj-action-btn:hover { background: var(--cream-2); color: var(--ink); border-color: var(--brand-primary, #b7925a); }
+  /* Suppress Bootstrap's auto-injected caret on .dropdown-toggle */
+  .subj-action-btn.dropdown-toggle::after,
+  .subj-action-btn.dropdown-toggle::before { display: none !important; content: none !important; }
+  /* Dropdown menu styled by class (not by `.subj-table` descendant)
+     so the design survives when the menu is teleported to <body>. */
+  .subj-action-menu.dropdown-menu,
+  .subj-table .dropdown-menu {
+    background: var(--paper) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 12px 32px -12px rgba(45, 49, 66, 0.18),
+                0 4px 10px -6px rgba(45, 49, 66, 0.12) !important;
+    padding: 6px !important;
+    min-width: 200px !important;
+    font-family: var(--body) !important;
+    animation: subjMenuRise 0.16s ease both;
+  }
+  @keyframes subjMenuRise {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .subj-action-menu .dropdown-item,
+  .subj-table .dropdown-item {
+    font-family: var(--body) !important;
+    font-size: 13px !important;
+    color: var(--ink) !important;
+    padding: 9px 12px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    background: transparent !important;
+    transition: background 0.15s, color 0.15s !important;
+  }
+  .subj-action-menu .dropdown-item:hover,
+  .subj-action-menu .dropdown-item:focus,
+  .subj-table .dropdown-item:hover,
+  .subj-table .dropdown-item:focus {
+    background: var(--cream-2) !important;
+    color: var(--ink) !important;
+    outline: none !important;
+  }
+  .subj-action-menu .dropdown-item i,
+  .subj-table .dropdown-item i {
+    width: 16px;
+    text-align: center;
+    color: var(--brand-primary, #b7925a) !important;
+    font-size: 12px !important;
+  }
+  .subj-action-menu .dropdown-item.danger,
+  .subj-table .dropdown-item.danger { color: var(--rose) !important; }
+  .subj-action-menu .dropdown-item.danger i,
+  .subj-table .dropdown-item.danger i { color: var(--rose) !important; }
+  .subj-action-menu .dropdown-item.danger:hover,
+  .subj-action-menu .dropdown-item.danger:focus,
+  .subj-table .dropdown-item.danger:hover,
+  .subj-table .dropdown-item.danger:focus {
+    background: var(--rose-soft, rgba(192, 132, 121, 0.14)) !important;
+    color: var(--rose) !important;
+  }
+  .subj-action-menu .dropdown-item.danger:hover i,
+  .subj-table .dropdown-item.danger:hover i { color: var(--rose) !important; }
+
+  .subj-empty {
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--ink-dim);
+    font-family: var(--display);
+    font-style: italic;
+  }
+  .subj-empty i { color: var(--brand-primary, #b7925a); font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.7; }
+  .subj-empty .lead { font-family: var(--display); font-size: 18px; font-weight: 500; color: var(--ink); margin-bottom: 4px; font-style: normal; }
+
+  /* Pagination */
+  .subj-pagination {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    padding: 16px 22px;
+    border-top: 1px solid var(--border);
+    background: var(--cream);
+  }
+  .subj-pag-info {
+    font-family: var(--display);
+    font-style: italic;
+    color: var(--ink-dim);
+    font-size: 12.5px;
+  }
+  .subj-pag-list { display: inline-flex; align-items: center; gap: 4px; list-style: none; margin: 0; padding: 0; }
+  .subj-pag-list a, .subj-pag-list span {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 34px; height: 34px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--paper);
+    font-family: var(--body);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .subj-pag-list a:hover { background: var(--cream-2); color: var(--ink); transform: translateY(-1px); }
+  .subj-pag-list .current { background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332); }
+  .subj-pag-list .disabled { opacity: 0.45; pointer-events: none; }
+
+  /* ─── Typography normalization ─────────────────────────── */
+  .subj-page .page-title { font-size: clamp(24px, 4.4vw, 32px); line-height: 1.1; }
+
+  /* ─── Responsive ───────────────────────────────────────── */
+  @media (max-width: 880px) {
+    .subj-card-head { padding: 14px 18px; }
+    .subj-card-title { font-size: 16px; }
+    .subj-table-wrap { -webkit-overflow-scrolling: touch; }
+  }
+  @media (max-width: 640px) {
+    .subj-page > .topbar { flex-direction: column; align-items: stretch; gap: 12px; }
+    .subj-page > .topbar > div:last-child { display: flex; flex-wrap: wrap; gap: 8px; }
+    .subj-btn { padding: 9px 14px; font-size: 12.5px; justify-content: center; flex: 1 1 auto; }
+
+    .subj-card-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .subj-card-count { font-size: 12px; }
+
+    /* Convert the subjects table to a card-stack on phones using
+       data-label attributes (added below in template). */
+    .subj-table-wrap { overflow-x: visible; padding: 10px 14px; }
+    .subj-table { display: block; width: 100%; }
+    .subj-table thead { display: none; }
+    .subj-table tbody { display: block; }
+    .subj-table tr {
+      display: block;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+      padding: 6px 0;
+    }
+    .subj-table tr:hover td { background: transparent; }
+    .subj-table td {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      padding: 9px 14px;
+      border-bottom: 1px dashed var(--border);
+      font-size: 13px;
+      text-align: right;
+      min-height: 38px;
+    }
+    .subj-table tr td:last-child { border-bottom: none; justify-content: flex-end; }
+    .subj-table td::before {
+      content: attr(data-label);
+      font-family: var(--display);
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      text-align: left;
+      flex-shrink: 0;
+    }
+    .subj-table td:not([data-label])::before { content: ""; }
+    /* First cell (subject info) stacks label+value vertically because
+       the content includes the photo thumb. */
+    .subj-table td:first-child {
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+      gap: 6px;
+    }
+
+    .subj-pagination { flex-direction: column; gap: 12px; align-items: stretch; }
+    .subj-pag-list { justify-content: center; flex-wrap: wrap; }
+  }
+  @media (max-width: 420px) {
+    .subj-card-head { padding: 12px 14px; }
+    .subj-table-wrap { padding: 8px 12px; }
+    .subj-table td { padding: 8px 12px; font-size: 12.5px; }
+    .subj-table td::before { font-size: 10px; }
+  }

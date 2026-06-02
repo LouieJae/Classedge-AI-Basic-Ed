@@ -1,0 +1,303 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Update Course{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_form_stack.html" %}
+  {% include "material/_material-form-assets.html" %}
+  {% include "includes/_stepper.html" %}
+  <link rel="stylesheet" href="{% static 'subject/create-course.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="lesson-shell subj-form-page">
+  <a href="{% url 'course-list' %}" class="lesson-back">
+    <i class="fas fa-arrow-left"></i> Back to courses
+  </a>
+
+  <div class="lesson-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      {% include "includes/_page_header.html" with title="Update" accent="course" sub="Adjust this course's basics, teaching assignments, and program flags." %}
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour-family="update-course">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" action="{% url 'update-course' subject.id %}" id="subjectForm"
+        class="form-panel needs-validation"
+        data-cl-stepper
+        data-cl-no-autosave
+        data-cl-loading data-cl-loading-label="Updating…"
+        style="background: transparent; border: none; box-shadow: none; padding: 0;"
+        novalidate>
+    {% csrf_token %}
+
+    <div class="cl-stepper-head" data-cl-stepper-nav>
+      <button type="button" class="cl-stepper-dot is-active" aria-label="Go to step 1">
+        <span class="cl-stepper-num">1</span>
+        <span class="cl-stepper-label">Basics</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 2">
+        <span class="cl-stepper-num">2</span>
+        <span class="cl-stepper-label">Teaching</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 3">
+        <span class="cl-stepper-num">3</span>
+        <span class="cl-stepper-label">Program</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 4">
+        <span class="cl-stepper-num">4</span>
+        <span class="cl-stepper-label">Review</span>
+      </button>
+    </div>
+
+    <section class="cl-step is-active" data-step="basics" data-step-title="Basics">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 1</span> · Basics
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Course details</h3>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="id_subject_name">Course name</label>
+            {{ form.subject_name }}
+          </div>
+          <div class="field">
+            <label for="id_subject_short_name">Short name</label>
+            {{ form.subject_short_name }}
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="id_subject_code">Course code</label>
+            {{ form.subject_code }}
+          </div>
+          <div class="field">
+            <label for="id_subject_type">Type</label>
+            {{ form.subject_type }}
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="id_unit">Unit</label>
+            {{ form.unit }}
+          </div>
+          <div class="field">
+            <label for="id_room_number">Room number</label>
+            {{ form.room_number }}
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="id_subject_photo">Course photo</label>
+          <div class="custom-file">{{ form.subject_photo }}</div>
+        </div>
+
+        <div class="field">
+          <label for="id_subject_description">Description</label>
+          {{ form.subject_description }}
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="teaching" data-step-title="Teaching">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 2</span> · Teaching
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Teachers</h3>
+        <div class="field-row">
+          <div class="field">
+            <label for="id_assign_teacher">Assigned teacher</label>
+            {{ form.assign_teacher }}
+          </div>
+          <div class="field">
+            <label for="id_substitute_teacher">Substitute teacher</label>
+            {{ form.substitute_teacher }}
+          </div>
+        </div>
+
+        <label class="field flag-card sub-input">
+          <span class="flag-icon"><i class="fas fa-user-shield"></i></span>
+          <span class="flag-body">
+            <span class="flag-title">Allow substitute teacher</span>
+            <span class="flag-desc">Let the substitute teacher take over this course when needed.</span>
+          </span>
+          {{ form.allow_substitute_teacher }}
+        </label>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="program" data-step-title="Program">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 3</span> · Program type
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Program <em>type</em> <span class="subj-section-hint">Pick one — leave blank for a standard course.</span></h3>
+
+        <div class="subj-flag-grid program-flag-group" data-mutex="program">
+          <label class="field flag-card coil-input">
+            <span class="flag-icon"><i class="fas fa-handshake-angle"></i></span>
+            <span class="flag-body">
+              <span class="flag-title">COIL</span>
+              <span class="flag-desc">Collaborative Online International Learning</span>
+            </span>
+            {{ form.is_coil }}
+          </label>
+          <label class="field flag-card hali-input">
+            <span class="flag-icon"><i class="fas fa-globe-americas"></i></span>
+            <span class="flag-body">
+              <span class="flag-title">HALI</span>
+              <span class="flag-desc">Higher Asian Learning Initiative</span>
+            </span>
+            {{ form.is_hali }}
+          </label>
+          <label class="field flag-card cte-input">
+            <span class="flag-icon"><i class="fas fa-screwdriver-wrench"></i></span>
+            <span class="flag-body">
+              <span class="flag-title">CTE</span>
+              <span class="flag-desc">Career &amp; Technical Education</span>
+            </span>
+            {{ form.is_cte }}
+          </label>
+        </div>
+      </div>
+
+      <div class="form-card form-section coil-hali-fields d-none">
+        <h3 class="form-section-title">COIL / HALI details</h3>
+        <div class="field-row">
+          <div class="field">
+            <label for="id_max_number_of_enrollees">Max enrollees</label>
+            {{ form.max_number_of_enrollees }}
+          </div>
+          <div class="field">
+            <label for="id_duration">Duration</label>
+            {{ form.duration }}
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="id_industry_partners">Industry partners</label>
+            {{ form.industry_partners }}
+          </div>
+          <div class="field">
+            <label for="id_country">Country</label>
+            {{ form.country }}
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="id_target_sdgs">Target SDGs</label>
+            {{ form.target_sdgs }}
+          </div>
+          <div class="field">
+            <label for="id_status">Status</label>
+            {{ form.status }}
+          </div>
+        </div>
+        <div class="field">
+          <label for="id_highlight">Highlight</label>
+          {{ form.highlight }}
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="review" data-step-title="Review" data-step-review>
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 4</span> · Review &amp; save
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Confirm your changes</h3>
+        <p class="field-help" style="margin-bottom: 18px;">
+          Quick read-through. Use the dots above or the <strong>Back</strong> button to fix anything,
+          then click <strong>Save changes</strong> below.
+        </p>
+
+        <dl class="cl-review-list">
+          <div class="cl-review-row full">
+            <dt>Course name</dt>
+            <dd data-cl-review-for="subject_name">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Short name</dt>
+            <dd data-cl-review-for="subject_short_name">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Code</dt>
+            <dd data-cl-review-for="subject_code">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Type</dt>
+            <dd data-cl-review-for="subject_type">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Unit</dt>
+            <dd data-cl-review-for="unit">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Room</dt>
+            <dd data-cl-review-for="room_number">—</dd>
+          </div>
+          <div class="cl-review-row full">
+            <dt>Description</dt>
+            <dd data-cl-review-for="subject_description">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Assigned teacher</dt>
+            <dd data-cl-review-for="assign_teacher">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Substitute teacher</dt>
+            <dd data-cl-review-for="substitute_teacher">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Allow substitute</dt>
+            <dd data-cl-review-for="allow_substitute_teacher">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>COIL</dt>
+            <dd data-cl-review-for="is_coil">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>HALI</dt>
+            <dd data-cl-review-for="is_hali">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>CTE</dt>
+            <dd data-cl-review-for="is_cte">—</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <div class="cl-stepper-footer">
+      <button type="button" class="btn-pill" data-cl-stepper-prev>
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <span class="cl-stepper-counter" data-cl-stepper-counter>1 / 4</span>
+      <button type="button" class="btn-pill primary" data-cl-stepper-next>
+        Next <i class="fas fa-arrow-right"></i>
+      </button>
+      <button type="submit" class="btn-pill primary" data-cl-stepper-submit style="display:none;">
+        <i class="fas fa-check"></i> Save changes
+      </button>
+    </div>
+  </form>
+</div>
+
+<script src="{% static 'subject/update-course.js' %}"></script>
+<script src="{% static 'js/tours/cl-tour-update-course.js' %}" defer></script>
+{% endblock %}

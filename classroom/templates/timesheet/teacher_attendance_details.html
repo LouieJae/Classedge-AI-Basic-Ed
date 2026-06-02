@@ -1,0 +1,66 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}
+  Teacher Attendance Details
+{% endblock %}
+{% block content %}
+  <div class="tad-head" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+    <h3 class="mb-0">Teacher Attendance Screenshots</h3>
+    <button type="button" class="cl-tour-replay" data-cl-tour="teacher-attendance-details">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+  <a href="{% url 'teacher_attendance_calendar_page' subject_id %}" class="tad-back btn btn-secondary mb-2">
+    Back to Calendar
+  </a>
+  <div class="card shadow mb-4">
+    <div class="card-body">
+      <div class="table-responsive scrollbar">
+        <table class="table mb-0 data-table table-hover table-bordered fs-10 teacher-attendance-table">
+          <thead class="bg-primary">
+            <tr>
+              <th>Teacher</th>
+              <th>Date</th>
+              <th>Schedule</th>
+              <th>Schedule Type</th>
+              <th>Time Started</th>
+              <th>Time Ended</th>
+              <th>Total Time</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody class="text-center">
+            {% for attendance in attendance_details %}
+              <tr>
+                <td>{{ attendance.teacher.first_name }} {{ attendance.teacher.last_name }}</td>
+                <td>{{ attendance.time_started|date:'F j, Y' }}</td>
+
+                {% with schedule=attendance.subject.schedules.first %}
+                  <td>
+                    {% if schedule %}
+                      {{ schedule.schedule_start_time|time:'h:i A' }} - {{ schedule.schedule_end_time|time:'h:i A' }} ({{ schedule.days_of_week|join:', ' }})
+                    {% else %}
+                      No Schedule
+                    {% endif %}
+                  </td>
+                  <td>{{ schedule.schedule_type|default:'N/A' }}</td>
+                {% endwith %}
+                <td>{{ attendance.time_started|time:'h:i A' }}</td>
+                <td>{{ attendance.time_ended|time:'h:i A' }}</td>
+                <td>{{ attendance.total_time }}</td>
+                <td>
+                  <a href="{% url 'screenshots' attendance.id %}" class="btn btn-primary">View Screenshot</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'classroom/teacher_attendance_details.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-teacher-attendance-details.js' %}" defer></script>
+{% endblock %}

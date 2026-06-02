@@ -1,0 +1,228 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Import activities · {{ target_subject.subject_name }}{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+  {% include "activity/assessments/_import_form_assets.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="imp-shell">
+
+  <a href="{% url 'subject-assessment-list' subject_id=target_subject.id %}" class="imp-back">
+    <i class="fas fa-arrow-left"></i> Back to assessments
+  </a>
+
+  <div class="imp-header">
+    <h1 class="page-title">Import from <em>another subject</em></h1>
+    <div class="page-sub">Importing into {{ target_subject.subject_code }} &middot; {{ target_subject.subject_name }}</div>
+  </div>
+
+  <form method="post" id="copyActivityForm" class="form-panel"
+        data-cl-loading data-cl-loading-label="Copying…">
+    {% csrf_token %}
+
+    <!-- ─── Source ──────────────────────────────── -->
+    <div class="form-section">
+      <h3 class="form-section-title">Source</h3>
+      <div class="field">
+        <label for="id_source_subject">Source subject</label>
+        {{ form.source_subject.errors }}
+        <select name="source_subject" id="id_source_subject" class="form-select" required>
+          <option value="">Select a subject…</option>
+          {% for subject in form.source_subject.field.queryset %}
+            <option value="{{ subject.id }}">{{ subject.subject_name }}</option>
+          {% endfor %}
+        </select>
+        <span class="field-help">Pick which subject's assessments to copy from.</span>
+      </div>
+    </div>
+
+    <!-- ─── Schedule for imported activities (shown when ≥1 selected) ── -->
+    <div class="form-section" id="dateConfig" style="display: none;">
+      <h3 class="form-section-title">Schedule &amp; placement</h3>
+      <div class="field-row">
+        <div class="field">
+          <label for="start_time">Opens at</label>
+          <input type="datetime-local" id="start_time" name="start_time" value="{{ default_start_time|date:'Y-m-d\TH:i' }}" />
+        </div>
+        <div class="field">
+          <label for="end_time">Closes at</label>
+          <input type="datetime-local" id="end_time" name="end_time" value="{{ default_end_time|date:'Y-m-d\TH:i' }}" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="term">Term</label>
+        <select id="term" name="term">
+          {% for term in available_terms %}
+            <option value="{{ term.id }}" {% if term.id == current_term.id %}selected{% endif %}>{{ term.term_name }}</option>
+          {% endfor %}
+        </select>
+        <span class="field-help">Term for the imported assessments in the current semester.</span>
+      </div>
+      <div class="field">
+        <label for="modules">Anchor to lessons (optional)</label>
+        <select id="modules" name="modules" multiple size="6">
+          {% for module in available_modules %}
+            <option value="{{ module.id }}">
+              {{ module.file_name }}{% if module.term %} ({{ module.term.term_name }}){% endif %}
+            </option>
+          {% endfor %}
+        </select>
+        <span class="field-help">Hold Ctrl (or ⌘ on Mac) to select multiple. If left empty, lessons are matched by name.</span>
+      </div>
+    </div>
+
+    <!-- ─── Available activities ─────────────────── -->
+    <div class="form-section" id="activitySelectionContainer" style="display: none;">
+      <h3 class="form-section-title">Available assessments</h3>
+      <div id="assessment-list" class="activity-pool">
+        {% include "includes/_skel_card_list.html" with count=4 label="Loading assessments" %}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{% url 'subject-assessment-list' subject_id=target_subject.id %}" class="btn-pill">
+        <i class="fas fa-arrow-left"></i> Cancel
+      </a>
+      <button type="submit" class="btn-pill primary" id="copyButton" disabled>
+        <i class="fas fa-file-import"></i> Import assessments
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const sourceSubjectSelect = document.getElementById('id_source_subject');
+  const activitySelectionContainer = document.getElementById('activitySelectionContainer');
+  const assessment_list = document.getElementById('assessment-list');
+  const copyButton = document.getElementById('copyButton');
+  const dateConfig = document.getElementById('dateConfig');
+
+  function syncSelectedClass(checkbox) {
+    const card = checkbox.closest('.activity-card');
+    if (!card) return;
+    card.classList.toggle('is-selected', checkbox.checked && !checkbox.disabled);
+  }
+
+  function updateCopyButtonState() {
+    const selectedCount = document.querySelectorAll('.activity-checkbox:checked').length;
+    copyButton.disabled = selectedCount === 0;
+    dateConfig.style.display = selectedCount >= 1 ? 'block' : 'none';
+  }
+
+  function checkIfActivityExists(activityId) {
+    fetch(`/check_subject_assessment_exists/{{ target_subject.id }}/?activity_id=${activityId}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.exists) return;
+        const card = document.getElementById(`activity-${activityId}`);
+        if (!card) return;
+        const nameEl = card.querySelector('.name');
+        if (nameEl && !nameEl.querySelector('.duplicate-warn')) {
+          const warn = document.createElement('span');
+          warn.className = 'duplicate-warn';
+          warn.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Already exists';
+          nameEl.appendChild(warn);
+        }
+      })
+      .catch(err => console.error('Error checking assessment existence:', err));
+  }
+
+  function formatDate(dt) {
+    if (!dt) return 'Not set';
+    try { return new Date(dt).toLocaleString(); } catch (_) { return dt; }
+  }
+
+  sourceSubjectSelect.addEventListener('change', function () {
+    const sourceSubjectId = this.value;
+    if (!sourceSubjectId) {
+      activitySelectionContainer.style.display = 'none';
+      return;
+    }
+    activitySelectionContainer.style.display = 'block';
+
+    fetch(`/get_subject_assessments/${sourceSubjectId}/`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.assessments || data.assessments.length === 0) {
+          assessment_list.innerHTML = '<div class="pool-empty">No assessments found in this subject.</div>';
+          return;
+        }
+        let html = `
+          <div class="pool-toolbar">
+            <label>
+              <input type="checkbox" id="selectAll">
+              Select all assessments
+            </label>
+            <span class="pool-count"><strong id="selectedCount">0</strong> of ${data.assessments.length} selected</span>
+          </div>
+        `;
+        data.assessments.forEach(act => {
+          const type = act.activity_type || 'Unknown';
+          const term = act.term || 'Unknown';
+          const startStr = formatDate(act.start_time);
+          const endStr = formatDate(act.end_time);
+          const lessonsDisplay = (act.additional_modules && act.additional_modules.length)
+            ? act.additional_modules.join(', ')
+            : 'None';
+
+          html += `
+            <label class="activity-card" id="activity-${act.id}" for="activity-checkbox-${act.id}">
+              <input class="activity-checkbox" type="checkbox" name="selected_activities" value="${act.id}" id="activity-checkbox-${act.id}">
+              <div class="body">
+                <div class="name">
+                  ${act.activity_name}
+                  <span class="chip chip-type">${type}</span>
+                  <span class="chip chip-term">${term}</span>
+                </div>
+                <div class="meta">
+                  <span class="meta-line"><span class="lbl">Materials</span>${lessonsDisplay}</span>
+                  <span class="meta-line"><span class="lbl">Window</span>${startStr} → ${endStr}</span>
+                </div>
+              </div>
+            </label>
+          `;
+        });
+        assessment_list.innerHTML = html;
+
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.activity-checkbox');
+        const counter = document.getElementById('selectedCount');
+
+        function refreshCount() {
+          if (counter) counter.textContent = document.querySelectorAll('.activity-checkbox:checked').length;
+        }
+
+        selectAll.addEventListener('change', function () {
+          checkboxes.forEach(cb => {
+            cb.checked = selectAll.checked;
+            syncSelectedClass(cb);
+          });
+          refreshCount();
+          updateCopyButtonState();
+        });
+
+        checkboxes.forEach(cb => {
+          cb.addEventListener('change', function () {
+            if (this.checked) checkIfActivityExists(this.value);
+            syncSelectedClass(this);
+            refreshCount();
+            updateCopyButtonState();
+          });
+        });
+      })
+      .catch(() => {
+        assessment_list.innerHTML = '<div class="pool-empty" style="color: var(--rose);">Error loading assessments. Please try again.</div>';
+      });
+  });
+});
+</script>
+{% endblock %}

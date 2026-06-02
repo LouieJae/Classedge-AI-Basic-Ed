@@ -1,0 +1,91 @@
+{% extends "central_content/base.html" %}
+{% block title %}{{ subject.subject_name }}{% endblock %}
+{% block content %}
+<div class="flex justify-between items-start mb-4">
+    <div>
+        <h1 class="text-2xl font-semibold">{{ subject.subject_name }}</h1>
+        <p class="text-gray-600">{{ subject.target_grade_level }} · {{ subject.target_curriculum }}</p>
+    </div>
+    <span class="px-3 py-1 rounded bg-gray-200 text-sm">{{ subject.state }}</span>
+</div>
+
+<div class="mb-6 bg-white p-4 rounded shadow">
+    <h2 class="font-semibold mb-2">Overview</h2>
+    <p>{{ subject.subject_description|default:"No description." }}</p>
+    <p class="text-sm text-gray-500 mt-2">Version {{ subject.version }} · Created by {{ subject.created_by.full_name }}</p>
+    {% if subject.state == "draft" %}
+    <a href="/subjects/{{ subject.id }}/edit" class="inline-block mt-3 text-blue-700">Edit</a>
+    {% endif %}
+</div>
+
+<div class="mb-6 bg-white p-4 rounded shadow">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="font-semibold">Modules</h2>
+        <a href="/subjects/{{ subject.id }}/modules/new" class="text-blue-700">+ New module</a>
+    </div>
+    <ul>
+    {% for m in modules %}
+        <li class="border-t py-2"><a href="/subjects/{{ subject.id }}/modules/{{ m.id }}/" class="text-blue-700">{{ m.file_name }}</a> <span class="text-xs text-gray-500">[{{ m.state }}]</span></li>
+    {% empty %}
+        <li class="text-gray-500 py-2">No modules yet.</li>
+    {% endfor %}
+    </ul>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="font-semibold">Assessments</h2>
+        <a href="/subjects/{{ subject.id }}/activities/new" class="text-blue-700">+ New activity</a>
+    </div>
+    <ul>
+    {% for a in activities %}
+        <li class="border-t py-2"><a href="/subjects/{{ subject.id }}/activities/{{ a.id }}/" class="text-blue-700">{{ a.activity_name }}</a> <span class="text-xs text-gray-500">[{{ a.state }}]</span></li>
+    {% empty %}
+        <li class="text-gray-500 py-2">No activities yet.</li>
+    {% endfor %}
+    </ul>
+</div>
+
+<div class="bg-white p-4 rounded shadow mt-6">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="font-semibold">Textbooks</h2>
+        <a href="/subjects/{{ subject.id }}/textbooks/upload" class="text-blue-700">+ Upload textbook</a>
+    </div>
+    <ul>
+    {% for t in textbooks %}
+        <li class="border-t py-2 flex justify-between items-center">
+            <a href="/subjects/{{ subject.id }}/textbooks/{{ t.id }}/" class="text-blue-700">{{ t.title }}</a>
+            {% include "central_content/textbooks/status_badge.html" with textbook=t %}
+        </li>
+    {% empty %}
+        <li class="text-gray-500 py-2">No textbooks yet.</li>
+    {% endfor %}
+    </ul>
+</div>
+
+{% if bindings %}
+<div class="bg-white p-4 rounded shadow mt-6">
+    <h2 class="font-semibold mb-3">Bulk Generate Plans</h2>
+    <p class="text-sm text-gray-600 mb-3">Generate curriculum plans for all TOC-ready textbooks in this subject.</p>
+    <form method="post" action="/subjects/{{ subject.id }}/plans/bulk-generate" class="flex gap-3 items-end">
+        {% csrf_token %}
+        <div>
+            <label class="block text-xs text-gray-500 mb-1">School Binding</label>
+            <select name="binding_id" class="border rounded px-3 py-1.5 text-sm">
+                {% for b in bindings %}
+                <option value="{{ b.pk }}">{{ b.target_school.name }} — {{ b.school_subject_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs text-gray-500 mb-1">Model</label>
+            <select name="model_key" class="border rounded px-3 py-1.5 text-sm">
+                <option value="haiku">haiku</option>
+                <option value="sonnet">sonnet</option>
+            </select>
+        </div>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">Generate All</button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,558 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Assessment Detail page — dynamic-brand revamp.
+   --------------------------------------------------------------------
+   Cohesive-brand doctrine applied:
+     • Text / numerals      → var(--ink)             (locked)
+     • Decorative icons     → var(--brand-primary)   (tenant-tracked)
+     • Atmosphere / glows   → var(--brand-primary-soft) via color-mix
+     • Categorical signals  → locked (exam = coral, assignment = mint,
+                              special/coding = violet, attempt status
+                              colors stay distinct)
+   The .t-default and .t-quiz variants now resolve their accent to
+   --brand-primary so the page repaints when the tenant brand color
+   changes. Exam / Assignment / Special / Coding keep their distinct
+   hues so users can tell types apart at a glance.
+   ═══════════════════════════════════════════════════════════════════════ */
+  .ad-page { padding: 8px 0 32px; }
+  .ad-page {
+    /* Teacher shell (base_operation) defines --paper/--ink/--ink-dim;
+       student shell (student_base) defines --surface/--text/--text-dim.
+       Try teacher tokens first, then student, then a hardcoded fallback —
+       so the page tracks whichever shell wraps it (and its dark mode). */
+    --ad-surface: var(--paper, var(--surface, #ffffff));
+    --ad-surface-2: var(--cream-2, var(--surface-2, #f3f4f8));
+    --ad-text: var(--ink, var(--text, #1a1a2e));
+    --ad-text-dim: var(--ink-dim, var(--text-dim, #5a5f7a));
+    --ad-text-muted: var(--ink-muted, var(--text-muted, #8b90a8));
+    /* Categorical content-type accents — locked. Used to distinguish
+       Exam (coral / red) / Assignment (mint) / Special, Coding (violet)
+       so a teacher can tell them apart even when the tenant brand
+       changes. */
+    --ad-coral: var(--coral, #e04545);
+    --ad-mint: var(--mint, #2ba69e);
+    --ad-violet: var(--violet, #7b6de0);
+    --ad-border: var(--border, rgba(0, 0, 0, 0.08));
+    --ad-border-strong: var(--border-strong, rgba(0, 0, 0, 0.14));
+    /* Tenant brand. Acts as default accent for Quiz + untyped activities
+       and powers every decorative icon / atmosphere on this page. */
+    --ad-accent: var(--brand-primary, #1b4332);
+    --ad-accent-soft: var(--brand-primary-soft);
+    --ad-accent-glow: var(--brand-primary-soft);
+    --ad-radius: var(--radius, 20px);
+    --ad-radius-sm: var(--radius-sm, 12px);
+    --ad-display: var(--display, 'Bricolage Grotesque', sans-serif);
+    --ad-body: var(--body, 'Inter Tight', sans-serif);
+    color: var(--ad-text);
+    font-family: var(--ad-body);
+  }
+
+  /* ── Breadcrumb ───────────────────────────────── */
+  .ad-crumbs { margin-bottom: 16px; }
+  .ad-crumbs a {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    background: var(--ad-surface);
+    border: 1px solid var(--ad-border-strong);
+    border-radius: var(--ad-radius-sm);
+    color: var(--ad-text);
+    font-size: 13px; font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+    transition: background 0.18s ease, border-color 0.18s ease,
+                color 0.18s ease, transform 0.18s ease;
+  }
+  .ad-crumbs a:hover {
+    background: var(--ad-surface-2);
+    color: var(--brand-primary, #1b4332);
+    border-color: var(--brand-primary, #1b4332);
+    text-decoration: none;
+    transform: translateX(-2px);
+  }
+  .ad-crumbs a i { font-size: 11px; color: var(--brand-primary, #1b4332); transition: transform 0.18s ease; }
+  .ad-crumbs a:hover i { transform: translateX(-2px); }
+
+  /* ── Hero ─────────────────────────────────────── */
+  .ad-hero {
+    position: relative;
+    background: var(--ad-surface);
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius);
+    padding: 28px 32px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  /* Soft brand atmosphere in the corner — color-mixed off --ad-accent
+     so the ambient glow follows the type accent. */
+  .ad-hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 280px; height: 280px;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--ad-accent, #1b4332) 18%, transparent),
+      transparent 65%
+    );
+    pointer-events: none;
+  }
+  /* All hero type variants resolve to --brand-primary now (set on
+     .ad-page). The type pill below the hero already labels the activity
+     type, so the hero atmosphere stays uniform across exam / quiz /
+     assignment / special / coding / default — one cohesive brand color
+     per tenant. */
+
+  .ad-hero-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: flex-start;
+    position: relative;
+  }
+  .ad-hero-icon {
+    width: 64px; height: 64px;
+    flex-shrink: 0;
+    border-radius: var(--ad-radius-sm);
+    background: color-mix(in srgb, var(--ad-accent, #1b4332) 12%, var(--ad-surface));
+    border: 1px solid color-mix(in srgb, var(--ad-accent, #1b4332) 28%, transparent);
+    display: grid;
+    place-items: center;
+    font-size: 26px;
+    color: var(--ad-accent, #1b4332);
+    animation: ad-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes ad-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ad-accent, #1b4332) 22%, transparent); }
+    50%      { box-shadow: 0 0 0 10px transparent; }
+  }
+  .ad-hero-info { flex: 1; min-width: 0; }
+  .ad-hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-family: var(--ad-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: color-mix(in srgb, var(--ad-accent, #1b4332) 10%, var(--ad-surface));
+    border: 1px solid var(--ad-accent, #1b4332);
+    color: var(--ad-accent, #1b4332);
+    margin-bottom: 10px;
+  }
+  .ad-hero-chip i { color: var(--ad-accent, #1b4332); }
+  /* The page title follows the canonical .page-title + <em> brand
+     pattern. We keep the .ad-hero-title class for backward markup
+     compatibility but the accent <em> within it tracks brand. */
+  .ad-hero-title {
+    font-family: var(--ad-display);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ad-text);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 0 0 8px;
+    word-break: break-word;
+  }
+  .ad-hero-title em {
+    font-style: italic;
+    color: var(--brand-primary, #1b4332);
+    font-weight: 600;
+  }
+  .ad-hero-sub {
+    color: var(--ad-text-dim);
+    font-size: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 0;
+  }
+  .ad-hero-sub span { display: inline-flex; align-items: center; gap: 6px; }
+  .ad-hero-sub i { color: var(--brand-primary, #1b4332); }
+
+  /* ── Stat strip ───────────────────────────────── */
+  .ad-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--ad-border);
+    position: relative;
+  }
+  .ad-stat {
+    background: var(--ad-surface-2);
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ad-stat:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--brand-primary, #1b4332) 30%, var(--ad-border));
+    box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--brand-primary, #1b4332) 25%, transparent);
+  }
+  .ad-stat-ico {
+    width: 38px; height: 38px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: var(--brand-primary-soft);
+    border: 1px solid color-mix(in srgb, var(--brand-primary, #1b4332) 16%, transparent);
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    color: var(--brand-primary, #1b4332);
+  }
+  .ad-stat-label {
+    font-family: var(--ad-display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ad-text-muted);
+    margin-bottom: 2px;
+  }
+  .ad-stat-value {
+    font-family: var(--ad-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ad-text);
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  /* ── Section card ─────────────────────────────── */
+  .ad-card {
+    background: var(--ad-surface);
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius);
+    padding: 22px 26px;
+    margin-bottom: 16px;
+  }
+  .ad-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--ad-display);
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ad-text);
+    margin-bottom: 14px;
+  }
+  .ad-card-head i {
+    color: var(--brand-primary, #1b4332);
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--brand-primary-soft);
+    display: inline-grid;
+    place-items: center;
+    font-size: 12px;
+  }
+  .ad-instruction {
+    color: var(--ad-text);
+    font-size: 14.5px;
+    line-height: 1.65;
+    margin: 0;
+  }
+  .ad-instruction.empty {
+    color: var(--ad-text-muted);
+    font-style: italic;
+  }
+
+  /* ── Lesson chips ─────────────────────────────── */
+  .ad-lesson-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .ad-lesson-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 100px;
+    background: var(--ad-surface-2);
+    border: 1px solid var(--ad-border);
+    color: var(--ad-text);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                background 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ad-lesson-chip i { color: var(--brand-primary, #1b4332); }
+  .ad-lesson-chip:hover {
+    border-color: var(--brand-primary, #1b4332);
+    color: var(--brand-primary, #1b4332);
+    background: var(--brand-primary-soft);
+    transform: translateY(-1px);
+  }
+  .ad-lesson-chip:hover i { color: var(--brand-primary, #1b4332); }
+
+  /* ── Action bar ───────────────────────────────── */
+  .ad-action {
+    background: var(--ad-surface);
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius);
+    padding: 22px 26px;
+    text-align: center;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  /* Top accent strip always tracks --brand-primary so it matches the
+     rest of the page atmosphere regardless of activity type. */
+  .ad-action::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--brand-primary, #1b4332);
+    opacity: 0.9;
+  }
+
+  .ad-action-msg {
+    color: var(--ad-text-dim);
+    font-size: 14px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .ad-action-msg i { color: var(--brand-primary, #1b4332); }
+  .ad-action-msg.warn { color: var(--ad-coral); }
+  .ad-action-msg.warn i { color: var(--ad-coral); }
+  .ad-action-msg.info { color: var(--brand-primary, #1b4332); }
+  .ad-action-msg.info i { color: var(--brand-primary, #1b4332); }
+
+  .ad-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  /* ── Buttons ──────────────────────────────────── */
+  /* Visual hierarchy:
+       .ad-btn          → neutral ghost (View results, Open editor)
+       .ad-btn.primary  → solid brand fill (Start, Resume, View details)
+       .ad-btn.success  → solid brand fill (Grade submissions — same
+                           weight as primary; we don't ship a green
+                           variant because actions stay on-brand) */
+  .ad-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 100px;
+    font-family: var(--ad-body);
+    font-size: 13.5px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid var(--ad-border-strong);
+    background: var(--ad-surface);
+    color: var(--ad-text);
+    transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ad-btn i { color: var(--brand-primary, #1b4332); }
+  .ad-btn:hover {
+    border-color: var(--brand-primary, #1b4332);
+    color: var(--brand-primary, #1b4332);
+    background: var(--brand-primary-soft);
+    transform: translateY(-1px);
+  }
+
+  /* Primary action button — solid brand fill. To stay legible across
+     ALL tenant brand colors (dark forest, mid blue, light gold), the
+     text is forced #fff and given a subtle text-shadow + an inner
+     dark vignette via inset box-shadow that nudges the brand tone
+     darker behind the label. The selector list also targets the
+     inner <span> and <i> explicitly so no cascade quirk can leak a
+     gold label color onto a gold background. */
+  .ad-btn.primary,
+  .ad-btn.primary span,
+  .ad-btn.primary i {
+    color: #ffffff;
+  }
+  .ad-btn.primary {
+    background: var(--brand-primary, #1b4332);
+    border-color: var(--brand-primary, #1b4332);
+    box-shadow:
+      0 6px 18px -8px var(--brand-primary-soft),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+    min-height: 42px;
+    min-width: 160px;
+    justify-content: center;
+  }
+  .ad-btn.primary:hover,
+  .ad-btn.primary:hover span,
+  .ad-btn.primary:hover i {
+    color: #ffffff;
+  }
+  .ad-btn.primary:hover {
+    background: color-mix(in srgb, var(--brand-primary, #1b4332), black 12%);
+    border-color: color-mix(in srgb, var(--brand-primary, #1b4332), black 12%);
+    transform: translateY(-1px);
+  }
+
+  .ad-btn.success {
+    background: var(--brand-primary-soft);
+    border-color: color-mix(in srgb, var(--brand-primary, #1b4332) 40%, transparent);
+    color: var(--brand-primary, #1b4332);
+  }
+  .ad-btn.success:hover {
+    background: var(--brand-primary, #1b4332);
+    border-color: var(--brand-primary, #1b4332);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+  .ad-btn.success:hover i { color: #fff; }
+
+  /* ── Instruction file button ──────────────────── */
+  .ad-instr-file { margin-top: 12px; }
+  .ad-instr-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #1b4332);
+    border: 1px solid color-mix(in srgb, var(--brand-primary, #1b4332) 40%, transparent);
+    border-radius: 100px;
+    font-size: 13.5px; font-weight: 700;
+    text-decoration: none;
+    transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ad-instr-btn i { color: var(--brand-primary, #1b4332); }
+  .ad-instr-btn:hover {
+    background: var(--brand-primary, #1b4332);
+    border-color: var(--brand-primary, #1b4332);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+  .ad-instr-btn:hover i { color: #fff; }
+  .ad-instr-btn .fa-arrow-right { font-size: 11px; opacity: 0.85; }
+
+  /* ── Attempt history table ────────────────────── */
+  .ad-attempts { overflow-x: auto; }
+  .ad-attempts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .ad-attempts-table th,
+  .ad-attempts-table td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--ad-border);
+  }
+  .ad-attempts-table th {
+    font-family: var(--ad-display);
+    font-weight: 700;
+    color: var(--ad-text-muted);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+  .ad-attempts-table tr:last-child td { border-bottom: 0; }
+  .ad-attempts-table tr:hover td { background: var(--ad-surface-2); }
+
+  /* Attempt status pills — categorical (success / error / progress
+     colors stay locked so the visual meaning is immune to tenant
+     repainting). */
+  .ad-attempt-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: capitalize;
+  }
+  .ad-attempt-status.s-submitted { background: rgba(46, 204, 113, 0.15); color: #1f9d55; }
+  .ad-attempt-status.s-expired   { background: rgba(231, 76, 60, 0.15);  color: #c0392b; }
+  .ad-attempt-status.s-in_progress,
+  .ad-attempt-status.s-ongoing   { background: rgba(241, 196, 15, 0.18); color: #b8860b; }
+
+  /* ── Responsive ───────────────────────────────── */
+  @media (max-width: 768px) {
+    .ad-hero { padding: 22px 20px; }
+    .ad-hero-title { font-size: 22px; }
+    .ad-card, .ad-action { padding: 18px 20px; }
+    .ad-hero-icon { width: 52px; height: 52px; font-size: 22px; }
+    .ad-hero-row { gap: 14px; }
+    .ad-stats { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+    .ad-action-buttons { gap: 8px; }
+    .ad-action-buttons .ad-btn {
+      padding: 9px 16px;
+      font-size: 13px;
+      flex: 0 0 auto;
+    }
+    .ad-btn.primary {
+      min-width: 0;
+      min-height: 0;
+    }
+  }
+  @media (max-width: 480px) {
+    .ad-action-buttons { flex-direction: column; }
+    .ad-action-buttons .ad-btn { width: 100%; justify-content: center; }
+  }
+
+  /* ── Reduced motion ───────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .ad-hero-icon { animation: none; }
+    .ad-stat:hover,
+    .ad-lesson-chip:hover,
+    .ad-btn:hover,
+    .ad-instr-btn:hover { transform: none; }
+    .ad-crumbs a:hover { transform: none; }
+    .ad-crumbs a:hover i { transform: none; }
+  }
+
+/* ── Attempt History: "View Details" button (brand green) ── */
+.ad-attempt-details-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  background: var(--brand-primary-soft, #e8f1ec);
+  color: var(--brand-primary, #1b4332);
+  border: 1px solid rgba(27, 67, 50, 0.22);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(27, 67, 50, 0.08);
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease,
+    box-shadow 0.18s ease, border-color 0.18s ease;
+  white-space: nowrap;
+}
+.ad-attempt-details-btn:hover {
+  background: var(--brand-primary, #1b4332);
+  color: #fff;
+  border-color: var(--brand-primary, #1b4332);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(27, 67, 50, 0.28);
+}
+.ad-attempt-details-btn i {
+  font-size: 0.88rem;
+}

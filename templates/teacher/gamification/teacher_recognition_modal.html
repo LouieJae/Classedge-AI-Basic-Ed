@@ -1,0 +1,321 @@
+<!-- Recognition Modal -->
+<div id="recognition-modal" class="modal-overlay" style="display:none;"
+     role="dialog" aria-modal="true" aria-labelledby="recognition-modal-title" aria-hidden="true">
+  <div class="modal-card rec-modal-card">
+    <div class="modal-header rec-modal-header">
+      <div>
+        <div class="rec-modal-eyebrow">For <span id="rec-student-name"></span></div>
+        <h3 id="recognition-modal-title" class="rec-modal-title">Send <em>Recognition</em></h3>
+      </div>
+      <button type="button" onclick="closeRecognitionModal()" class="modal-close" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="modal-body rec-modal-body">
+      <div class="rec-step-label">1 &middot; Choose an award</div>
+      <div class="rec-award-grid" id="rec-award-grid">
+        {% for p in award_presets %}
+          <button type="button" class="rec-award-card" data-award-key="{{ p.key }}" data-xp="{{ p.xp }}" data-icon="{{ p.icon }}" data-color="{{ p.color }}" data-label="{{ p.label }}">
+            <span class="rec-award-icon" style="background:{{ p.color }}1A;color:{{ p.color }};"><i class="{{ p.icon }}"></i></span>
+            <span class="rec-award-label">{{ p.label }}</span>
+            <span class="rec-award-xp">+{{ p.xp }} XP</span>
+          </button>
+        {% endfor %}
+      </div>
+
+      <div class="rec-step-label" style="margin-top:18px;">2 &middot; Add a personal note</div>
+      <div class="rec-textarea-wrap">
+        <textarea id="rec-message" maxlength="300" rows="3" placeholder="What did they do well?" class="rec-textarea"></textarea>
+        <div class="rec-charcount"><span id="rec-charcount">0</span>/300</div>
+      </div>
+
+      <div class="rec-preview" id="rec-preview" hidden>
+        <div class="rec-preview-icon" id="rec-preview-icon"><i class="fa-solid fa-star"></i></div>
+        <div class="rec-preview-body">
+          <div class="rec-preview-label" id="rec-preview-label">Outstanding Work</div>
+          <div class="rec-preview-xp" id="rec-preview-xp">+50 XP</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer rec-modal-footer">
+      <button type="button" onclick="closeRecognitionModal()" class="rec-btn rec-btn--ghost">Cancel</button>
+      <button type="button" id="rec-send-btn" onclick="sendRecognition()" class="rec-btn rec-btn--primary" disabled>
+        <i class="fa-solid fa-paper-plane"></i> Send Recognition
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Darker backdrop with stronger blur — scoped to this modal */
+  #recognition-modal.modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw; height: 100vh; height: 100dvh;
+    background: rgba(20, 28, 36, 0.62);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    align-items: center; justify-content: center;
+    z-index: 99999;
+  }
+
+  .rec-modal-card {
+    max-width: 680px; width: 100%;
+    border-radius: 16px;
+    box-shadow: 0 32px 80px -24px rgba(15, 23, 32, 0.55);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  /* Header: gradient band with subtle ornament */
+  .rec-modal-header {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    padding: 22px 26px 18px;
+    background: linear-gradient(135deg, var(--forest) 0%, #2d5a40 100%);
+    border-bottom: none;
+    color: var(--cream);
+    position: relative; overflow: hidden;
+  }
+  .rec-modal-header::after {
+    content:''; position:absolute; top:-60px; right:-40px;
+    width:180px; height:180px; border-radius:50%;
+    background: radial-gradient(circle, rgba(212, 163, 115, 0.18), transparent 70%);
+    pointer-events:none;
+  }
+  .rec-modal-eyebrow { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.7); font-family:var(--body); }
+  .rec-modal-eyebrow span { color:#fff; font-weight:600; }
+  .rec-modal-title { font-family:var(--display); font-weight:500; color:#fff; margin:6px 0 0; font-size:22px; position:relative; z-index:1; }
+  .rec-modal-title em { color:#f3d8a8; font-style:italic; }
+  #recognition-modal .modal-close { color: rgba(255,255,255,0.85); position:relative; z-index:1; }
+  #recognition-modal .modal-close:hover { background: rgba(255,255,255,0.15); color:#fff; }
+
+  .rec-modal-body { padding: 22px 26px; }
+  .rec-step-label {
+    font-size:11px; text-transform:uppercase; letter-spacing:0.1em;
+    color:var(--ink-muted); margin-bottom:12px; font-family:var(--body); font-weight:700;
+    display:flex; align-items:center; gap:8px;
+  }
+  .rec-step-label::after {
+    content:''; flex:1; height:1px; background:var(--border);
+  }
+
+  .rec-award-grid {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+    gap:10px;
+  }
+  .rec-award-card {
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    padding:16px 10px 12px; border:1.5px solid var(--border); border-radius:12px;
+    background:var(--paper); cursor:pointer; transition:all .18s ease;
+    font-family:var(--body); text-align:center;
+    position:relative;
+  }
+  .rec-award-card:hover {
+    border-color:var(--forest);
+    transform:translateY(-2px);
+    box-shadow:0 8px 18px -8px rgba(27, 67, 50, 0.25);
+  }
+  .rec-award-card.is-selected {
+    border-color:var(--forest);
+    background:linear-gradient(180deg, var(--cream-2) 0%, var(--paper) 100%);
+    box-shadow:0 0 0 3px rgba(27, 67, 50, 0.12), 0 8px 18px -8px rgba(27, 67, 50, 0.3);
+  }
+  .rec-award-card.is-selected::before {
+    content:'\f00c'; font-family:'Font Awesome 6 Free'; font-weight:900;
+    position:absolute; top:6px; right:8px; font-size:10px;
+    color:var(--forest);
+  }
+  .rec-award-icon {
+    width:44px; height:44px; border-radius:50%;
+    display:grid; place-items:center; font-size:19px;
+  }
+  .rec-award-label { font-size:12px; font-weight:600; color:var(--ink); line-height:1.25; }
+  .rec-award-xp {
+    font-size:10px; color:var(--gold); font-weight:700;
+    background: rgba(183, 146, 90, 0.12); padding:2px 8px; border-radius:999px;
+    letter-spacing:0.04em;
+  }
+
+  .rec-textarea-wrap { position:relative; }
+  .rec-textarea {
+    width:100%; padding:14px 16px; border:1.5px solid var(--border-strong); border-radius:10px;
+    font-family:var(--body); font-size:14px; resize:vertical; background:var(--paper); color:var(--ink);
+    min-height:88px; transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .rec-textarea:focus {
+    outline:none; border-color:var(--forest);
+    box-shadow:0 0 0 3px rgba(27, 67, 50, 0.12);
+  }
+  .rec-charcount { text-align:right; font-size:11px; color:var(--ink-muted); margin-top:6px; }
+
+  .rec-preview {
+    display:flex; align-items:center; gap:14px;
+    margin-top:16px; padding:14px 16px;
+    background:linear-gradient(135deg, var(--cream-2) 0%, rgba(243, 216, 168, 0.25) 100%);
+    border:1px solid rgba(183, 146, 90, 0.3); border-radius:10px;
+  }
+  .rec-preview-icon {
+    width:48px; height:48px; border-radius:50%; display:grid; place-items:center;
+    background:var(--paper); border:1.5px solid var(--gold); font-size:20px; color:var(--gold);
+    flex-shrink:0;
+  }
+  .rec-preview-label { font-family:var(--body); font-weight:600; color:var(--forest); font-size:14px; }
+  .rec-preview-xp { font-size:12px; color:var(--gold); font-weight:600; margin-top:2px; }
+
+  .rec-modal-footer {
+    display:flex; gap:10px; justify-content:flex-end;
+    padding:16px 26px; background:var(--cream-2);
+    border-top:1px solid var(--border);
+  }
+  .rec-btn {
+    padding:11px 22px; border-radius:10px; cursor:pointer;
+    font-family:var(--body); font-weight:600; font-size:14px;
+    display:inline-flex; align-items:center; gap:8px; border:1.5px solid transparent;
+    transition: all .15s ease;
+  }
+  .rec-btn--ghost { background:transparent; border-color:var(--border-strong); color:var(--ink); }
+  .rec-btn--ghost:hover { background:var(--paper); border-color:var(--ink-muted); }
+  .rec-btn--primary {
+    background:var(--forest); color:var(--cream); border-color:var(--forest);
+    box-shadow:0 4px 12px -4px rgba(27, 67, 50, 0.4);
+  }
+  .rec-btn--primary:hover:not(:disabled) {
+    background:#2d5a40; transform:translateY(-1px);
+    box-shadow:0 6px 16px -4px rgba(27, 67, 50, 0.5);
+  }
+  .rec-btn--primary:disabled { opacity:.4; cursor:not-allowed; box-shadow:none; }
+</style>
+
+<script>
+// Re-parent modal to <body> so position:fixed escapes any ancestor stacking
+// context (transforms, filters, etc.) that would constrain it to the content area.
+(function () {
+  var modal = document.getElementById('recognition-modal');
+  if (modal && modal.parentNode !== document.body) {
+    document.body.appendChild(modal);
+  }
+})();
+
+let currentStudentId = null;
+let selectedAward = null;
+
+function openRecognitionModal(studentId, studentName) {
+  currentStudentId = studentId;
+  selectedAward = null;
+  document.getElementById('rec-student-name').textContent = studentName;
+  document.getElementById('rec-message').value = '';
+  document.getElementById('rec-charcount').textContent = '0';
+  document.getElementById('rec-preview').hidden = true;
+  document.getElementById('rec-send-btn').disabled = true;
+  document.querySelectorAll('.rec-award-card.is-selected').forEach(function (el) {
+    el.classList.remove('is-selected');
+  });
+  const modal = document.getElementById('recognition-modal');
+  modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+}
+
+function closeRecognitionModal() {
+  const modal = document.getElementById('recognition-modal');
+  modal.style.display = 'none';
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+  currentStudentId = null;
+  selectedAward = null;
+}
+
+function refreshSendState() {
+  const hasMessage = document.getElementById('rec-message').value.trim().length > 0;
+  document.getElementById('rec-send-btn').disabled = !(selectedAward && hasMessage);
+}
+
+document.getElementById('rec-message').addEventListener('input', function () {
+  document.getElementById('rec-charcount').textContent = this.value.length;
+  refreshSendState();
+});
+
+document.querySelectorAll('#rec-award-grid .rec-award-card').forEach(function (card) {
+  card.addEventListener('click', function () {
+    document.querySelectorAll('.rec-award-card.is-selected').forEach(function (el) {
+      el.classList.remove('is-selected');
+    });
+    card.classList.add('is-selected');
+    selectedAward = {
+      key: card.dataset.awardKey,
+      xp: parseInt(card.dataset.xp, 10),
+      icon: card.dataset.icon,
+      color: card.dataset.color,
+      label: card.dataset.label,
+    };
+    const preview = document.getElementById('rec-preview');
+    preview.hidden = false;
+    const iconEl = document.getElementById('rec-preview-icon');
+    iconEl.innerHTML = '<i class="' + selectedAward.icon + '"></i>';
+    iconEl.style.color = selectedAward.color;
+    iconEl.style.background = selectedAward.color + '1A';
+    document.getElementById('rec-preview-label').textContent = selectedAward.label;
+    document.getElementById('rec-preview-xp').textContent = '+' + selectedAward.xp + ' XP';
+    refreshSendState();
+  });
+});
+
+document.getElementById('recognition-modal').addEventListener('click', function (e) {
+  if (e.target === this) closeRecognitionModal();
+});
+
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  const modal = document.getElementById('recognition-modal');
+  if (modal && modal.style.display !== 'none') closeRecognitionModal();
+});
+
+function sendRecognition() {
+  const message = document.getElementById('rec-message').value.trim();
+  if (!selectedAward || !message) return;
+
+  fetch('/gamification/recognition/send/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content,
+    },
+    body: JSON.stringify({
+      student_id: currentStudentId,
+      message: message,
+      award_type: selectedAward.key,
+    }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      const xp = selectedAward.xp;
+      closeRecognitionModal();
+      Swal.fire({
+        icon: 'success',
+        title: 'Recognition sent',
+        text: '+' + xp + ' XP awarded.',
+        timer: 1800,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+      });
+      setTimeout(function () { window.location.reload(); }, 900);
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not send',
+        text: data.error || 'Something went wrong. Please try again.',
+        confirmButtonColor: '#1b4332',
+      });
+    }
+  })
+  .catch(() => {
+    Swal.fire({
+      icon: 'error',
+      title: 'Network error',
+      text: 'Could not reach the server. Please check your connection.',
+      confirmButtonColor: '#1b4332',
+    });
+  });
+}
+</script>

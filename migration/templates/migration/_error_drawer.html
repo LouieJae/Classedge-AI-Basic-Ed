@@ -1,0 +1,212 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+
+{% block title %}Error #{{ err.id }} — {{ err.category }}{% endblock %}
+
+{% block content %}
+<style>
+  .mig-detail-page {
+    --mig-radius: 14px;
+    --mig-bg: var(--paper, #ffffff);
+    --mig-bg-alt: var(--cream-2, #f3ede2);
+    --mig-border: var(--border, rgba(45,49,66,0.08));
+    --mig-border-strong: var(--border-strong, rgba(45,49,66,0.14));
+    --mig-text: var(--ink, #2d3142);
+    --mig-muted: var(--ink-dim, #6c7080);
+    --mig-success: #10b981;
+    --mig-danger: #ef4444;
+    --mig-warning: #f59e0b;
+    --mig-info: #3b82f6;
+    --mig-running: #6366f1;
+    color: var(--mig-text);
+    padding: 0 4px;
+  }
+  body[data-theme="dark"] .mig-detail-page {
+    --mig-success: #34d399;
+    --mig-danger: #f87171;
+    --mig-warning: #fbbf24;
+    --mig-info: #60a5fa;
+    --mig-running: #a5b4fc;
+  }
+
+  .mig-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .mig-detail-header h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .mig-detail-header p { margin: 4px 0 0; color: var(--mig-muted); font-size: 13px; }
+
+  .mig-btn {
+    border: 1px solid var(--mig-border); background: var(--mig-bg); color: inherit;
+    border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+    text-decoration: none;
+    transition: transform .08s ease, box-shadow .12s ease;
+  }
+  .mig-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-hover, 0 4px 12px rgba(0,0,0,.06)); }
+  body[data-theme="dark"] .mig-btn { color: var(--mig-text); }
+  .mig-btn-ghost { background: transparent; }
+  .mig-btn-primary { background: var(--mig-info); color: #fff; border-color: transparent; }
+  .mig-btn-success { background: var(--mig-success); color: #fff; border-color: transparent; }
+
+  .mig-cat-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+    background: var(--mig-bg-alt); color: var(--mig-muted);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  body[data-theme="dark"] .mig-cat-pill { background: rgba(255,255,255,.06); }
+  .mig-cat-pill[data-cat="mapper_error"]    { background: rgba(99,102,241,.12); color: var(--mig-running); }
+  .mig-cat-pill[data-cat="missing_fk"],
+  .mig-cat-pill[data-cat="validation"],
+  .mig-cat-pill[data-cat="throttled"]       { background: rgba(245,158,11,.14); color: var(--mig-warning); }
+  .mig-cat-pill[data-cat="db_error"],
+  .mig-cat-pill[data-cat="transport_error"],
+  .mig-cat-pill[data-cat="auth_error"]      { background: rgba(239,68,68,.12); color: var(--mig-danger); }
+
+  .mig-sections { display: grid; gap: 16px; }
+  .mig-section {
+    background: var(--mig-bg); border: 1px solid var(--mig-border); border-radius: var(--mig-radius);
+    overflow: hidden;
+  }
+  .mig-section-head {
+    padding: 12px 18px; border-bottom: 1px solid var(--mig-border);
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--mig-muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mig-section-body { padding: 16px 18px; }
+
+  .mig-kv-grid { display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; font-size: 13px; }
+  .mig-kv-grid dt { color: var(--mig-muted); font-weight: 600; }
+  .mig-kv-grid dd { margin: 0; color: var(--mig-text); word-break: break-word; }
+  .mig-mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; }
+
+  .mig-code-block {
+    margin: 0; padding: 14px; border-radius: 8px; overflow: auto;
+    background: var(--mig-bg-alt); color: var(--mig-text);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px; line-height: 1.55;
+    max-height: 400px; white-space: pre-wrap; word-break: break-word;
+  }
+  body[data-theme="dark"] .mig-code-block { background: rgba(255,255,255,.04); }
+  .mig-code-block.is-error { background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.16); color: var(--mig-danger); }
+  body[data-theme="dark"] .mig-code-block.is-error { background: rgba(248,113,113,.08); color: #fca5a5; }
+
+  details.mig-collapse summary {
+    cursor: pointer; padding: 12px 18px; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--mig-muted);
+    list-style: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  details.mig-collapse summary::after {
+    content: '\f078'; font-family: 'Font Awesome 6 Free', 'FontAwesome'; font-weight: 900;
+    margin-left: auto; transition: transform .15s ease; font-size: 11px;
+  }
+  details.mig-collapse[open] summary::after { transform: rotate(180deg); }
+  details.mig-collapse summary::-webkit-details-marker { display: none; }
+  details.mig-collapse .mig-section-body { padding-top: 0; }
+  details.mig-collapse[open] .mig-section-body { padding-top: 16px; border-top: 1px solid var(--mig-border); }
+
+  .mig-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mig-resolved-banner {
+    background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.2);
+    color: var(--mig-success);
+    padding: 10px 14px; border-radius: 10px; font-size: 13px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  body[data-theme="dark"] .mig-resolved-banner { background: rgba(52,211,153,.1); color: #34d399; }
+
+  .mig-vscode-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--mig-info); text-decoration: none; font-weight: 600;
+    margin-left: 8px;
+  }
+  .mig-vscode-link:hover { text-decoration: underline; }
+</style>
+
+<div class="mig-detail-page">
+  <div class="mig-detail-header">
+    <div>
+      <h2><span class="mig-cat-pill" data-cat="{{ err.category }}">{{ err.category }}</span> Error #{{ err.id }}</h2>
+      <p>{{ err.message }}</p>
+    </div>
+    <div class="mig-actions">
+      <a class="mig-btn mig-btn-ghost" href="{% url 'migration:errors' %}?job={{ err.job_id }}"><i class="fas fa-arrow-left"></i> Back to errors</a>
+      {% if not err.resolved %}
+        <form method="post" action="{% url 'migration:action-error-retry' err.id %}" style="display:inline">{% csrf_token %}
+          <button class="mig-btn mig-btn-primary" type="submit"><i class="fas fa-rotate-right"></i> Retry this row</button>
+        </form>
+        <form method="post" action="{% url 'migration:action-error-resolve' err.id %}" style="display:inline">{% csrf_token %}
+          <button class="mig-btn mig-btn-success" type="submit"><i class="fas fa-check"></i> Mark resolved</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if err.resolved %}
+  <div class="mig-resolved-banner" style="margin-bottom: 16px;">
+    <i class="fas fa-check-circle"></i>
+    <div>
+      <b>Resolved</b> {{ err.resolved_at|date:"M d, Y H:i" }}{% if err.resolution_note %} — {{ err.resolution_note }}{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="mig-sections">
+    <div class="mig-section">
+      <div class="mig-section-head"><i class="fas fa-crosshairs"></i> Where in source data</div>
+      <div class="mig-section-body">
+        <dl class="mig-kv-grid">
+          <dt>Job</dt>            <dd>{{ err.job.app_label }}.{{ err.job.model_name }} <span class="mig-mono" style="color: var(--mig-muted)">(#{{ err.job_id }})</span></dd>
+          <dt>Old PK</dt>         <dd><span class="mig-mono">{{ err.old_pk|default:"(none)" }}</span></dd>
+          <dt>Batch cursor</dt>   <dd><span class="mig-mono">{{ err.batch_cursor|default:"—" }}</span></dd>
+          <dt>Batch index</dt>    <dd><span class="mig-mono">{{ err.batch_index|default:"—" }}</span></dd>
+          <dt>Occurred at</dt>    <dd><span class="mig-mono">{{ err.occurred_at|date:"M d, Y H:i:s" }}</span></dd>
+        </dl>
+      </div>
+    </div>
+
+    {% if err.field or err.expected or err.actual %}
+    <div class="mig-section">
+      <div class="mig-section-head"><i class="fas fa-bullseye"></i> Diagnosis</div>
+      <div class="mig-section-body">
+        <dl class="mig-kv-grid">
+          {% if err.field %}<dt>Field</dt><dd><span class="mig-mono">{{ err.field }}</span></dd>{% endif %}
+          {% if err.expected %}<dt>Expected</dt><dd><span class="mig-mono">{{ err.expected }}</span></dd>{% endif %}
+          {% if err.actual %}<dt>Actual</dt><dd><span class="mig-mono">{{ err.actual }}</span></dd>{% endif %}
+        </dl>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="mig-section">
+      <div class="mig-section-head"><i class="fas fa-code"></i> Source location</div>
+      <div class="mig-section-body">
+        {% if err.source_file %}
+          <div class="mig-mono" style="font-size: 13px; word-break: break-all;">
+            {{ err.source_file }}<b style="color: var(--mig-info)">:{{ err.source_line }}</b>
+            in <b>{{ err.source_function }}</b>
+            <a class="mig-vscode-link" href="vscode://file{{ err.source_file }}:{{ err.source_line }}">
+              <i class="fas fa-up-right-from-square"></i> Open in VS Code
+            </a>
+          </div>
+        {% else %}
+          <div class="mig-mono" style="color: var(--mig-muted)">(no source frame captured)</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <details class="mig-section mig-collapse" open>
+      <summary><i class="fas fa-file-code"></i> Payload excerpt</summary>
+      <div class="mig-section-body">
+        <pre class="mig-code-block">{{ err.payload_excerpt|pprint }}</pre>
+      </div>
+    </details>
+
+    <details class="mig-section mig-collapse">
+      <summary><i class="fas fa-bug"></i> Traceback</summary>
+      <div class="mig-section-body">
+        <pre class="mig-code-block is-error">{{ err.traceback|default:"(no traceback captured)" }}</pre>
+      </div>
+    </details>
+  </div>
+</div>
+{% endblock %}

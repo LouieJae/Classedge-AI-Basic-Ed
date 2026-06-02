@@ -1,0 +1,147 @@
+{% comment %}
+[Classedge LMS] Shared standalone-page wrapper for admin/registrar profile edits.
+Pass `page_title`, `page_sub`, `back_url`, `back_label` via `with` when including.
+Canonicalised on the operations cl-page / cl-header / cl-back-btn system so all four
+admin_update_*_profile pages share the same chrome.
+{% endcomment %}
+{% load static %}
+
+{% include "includes/_list_page_theme.html" %}
+
+<style>
+  .pp-page { animation: ppFade 0.5s ease both; }
+  @keyframes ppFade { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+
+  .pp-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    box-shadow: var(--shadow);
+  }
+
+  .pp-identity {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pp-avatar {
+    width: 64px; height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--ink), var(--brand-primary, #b7925a));
+    color: var(--cream);
+    display: grid; place-items: center;
+    font-family: var(--display);
+    font-size: 22px; font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 6px 18px -6px var(--brand-primary-soft);
+  }
+  .pp-identity-text { min-width: 0; flex: 1; }
+  .pp-identity-name {
+    font-family: var(--display);
+    font-size: 20px; font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .pp-identity-meta {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--ink-dim);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .pp-pill {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px;
+    border-radius: 100px;
+    background: var(--gold-bg, rgba(183,146,90,0.14));
+    color: var(--brand-primary, #b7925a);
+    border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent);
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .pp-id {
+    font-weight: 700; color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 12px;
+    background: var(--cream-2);
+    padding: 3px 9px;
+    border-radius: 100px;
+  }
+  .pp-email { color: var(--ink-dim); font-size: 12.5px; }
+
+  /* Form-side restyle so legacy form fields fit the operations look */
+  .pp-card .form-control,
+  .pp-card .form-select,
+  .pp-card input[type="text"],
+  .pp-card input[type="email"],
+  .pp-card input[type="number"],
+  .pp-card input[type="date"],
+  .pp-card input[type="tel"],
+  .pp-card select,
+  .pp-card textarea {
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 9px 14px;
+    font-size: 14px; font-family: var(--body); color: var(--ink);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .pp-card .form-control:focus,
+  .pp-card .form-select:focus,
+  .pp-card input:focus,
+  .pp-card select:focus,
+  .pp-card textarea:focus {
+    outline: none;
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--gold-bg, rgba(183,146,90,0.15));
+  }
+  .pp-card label, .pp-card .form-label {
+    font-size: 11.5px; font-weight: 700; color: var(--ink-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+</style>
+
+<div class="cl-page pp-page">
+
+  <a href="{{ back_url|default:'javascript:history.back()' }}" class="cl-back-btn">
+    <i class="fas fa-arrow-left"></i> {{ back_label|default:"Back" }}
+  </a>
+
+  <div class="cl-header">
+    <div>
+      <h2>{{ page_title|safe|default:"Update <em>profile</em>" }}</h2>
+      <p>{{ page_sub|default:"Edit personal info, contact, and academic details." }}</p>
+    </div>
+    <div class="cl-actions">
+      <button type="button" class="cl-tour-replay" data-cl-tour="profile-edit">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+    </div>
+  </div>
+
+  <div class="pp-card">
+    <div class="pp-identity">
+      <div class="pp-avatar">
+        {{ profile.first_name|slice:":1"|upper }}{{ profile.last_name|slice:":1"|upper }}
+      </div>
+      <div class="pp-identity-text">
+        <h2 class="pp-identity-name">{{ profile.first_name }} {{ profile.last_name }}</h2>
+        <div class="pp-identity-meta">
+          {% if profile.role %}<span class="pp-pill">{{ profile.role.name }}</span>{% endif %}
+          {% if profile.id_number %}<span class="pp-id">{{ profile.id_number }}</span>{% endif %}
+          <span class="pp-email">{{ profile.user.email|default:"" }}</span>
+        </div>
+      </div>
+    </div>
+
+    {% include "accounts/admin_update/_profile_form.html" %}
+  </div>
+</div>
+
+<script src="{% static 'js/tours/cl-tour-profile-edit.js' %}" defer></script>

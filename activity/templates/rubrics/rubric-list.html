@@ -1,0 +1,100 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Rubrics{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'activity/rubric-list.css' %}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+{% endblock %}
+
+{% block content %}
+  <div class="rb-shell">
+    <div class="rb-header">
+      <div>
+        <h1 class="page-title">Rubr<em>ics</em></h1>
+        <div class="rb-sub">Reusable scoring criteria for essays, document submissions, and graded activities</div>
+      </div>
+      <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="cl-tour-replay" data-cl-tour="rubric-list">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        {% if perms.activity.add_rubrics %}
+        <a href="{% url 'create-rubric' %}" class="rb-add-btn">
+          <i class="fas fa-plus"></i> New Rubric
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="rb-toolbar">
+      <div class="rb-search">
+        <span class="ico"><i class="fas fa-search" aria-hidden="true"></i></span>
+        <input id="rbSearch" type="text" placeholder="Search rubric or course" autocomplete="off" />
+      </div>
+      <div class="rb-summary" id="rbSummary">{{ rubrics|length }} rubric{{ rubrics|length|pluralize }}</div>
+    </div>
+
+    <div class="rb-card">
+      {% if rubrics %}
+        <div class="rb-table-wrap">
+          <table class="rb-table" id="rbTable">
+            <thead>
+              <tr>
+                <th style="width:40px;">#</th>
+                <th>Course</th>
+                <th>Rubric Name</th>
+                <th>Description</th>
+                <th style="width:60px; text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rbBody">
+              {% for rubric in rubrics %}
+                <tr class="rb-row" data-name="{{ rubric.rubric_name|lower }} {{ rubric.subject.subject_name|default:''|lower }}">
+                  <td><span class="counter">{{ forloop.counter }}</span></td>
+                  <td>
+                    {% if rubric.subject %}
+                      <span class="rb-subject">{{ rubric.subject.subject_name }}</span>
+                    {% else %}
+                      <span class="rb-subject" style="opacity:0.6;">No subject</span>
+                    {% endif %}
+                  </td>
+                  <td><span class="rb-name">{{ rubric.rubric_name }}</span></td>
+                  <td><div class="rb-desc" title="{{ rubric.description }}">{{ rubric.description|default:"—" }}</div></td>
+                  <td>
+                    <div class="rb-actions">
+                      <button type="button" class="rb-actions-btn" aria-label="Actions" aria-haspopup="menu">
+                        <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
+                      </button>
+                      <div class="rb-actions-menu" role="menu">
+                        <a href="{% url 'update-rubric' rubric.id %}" role="menuitem">
+                          <i class="fas fa-pen"></i> Edit
+                        </a>
+                        <form method="post" action="{% url 'delete-rubric' rubric.id %}" data-confirm="Delete rubric '{{ rubric.rubric_name|escapejs }}'? This cannot be undone.">
+                          {% csrf_token %}
+                          <button type="submit" class="danger" role="menuitem">
+                            <i class="fas fa-trash"></i> Delete
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="rb-no-match" id="rbNoMatch" style="display:none;">No rubrics match your search.</div>
+      {% else %}
+        <div class="rb-empty">
+          <div class="ico"><i class="fas fa-list-ol"></i></div>
+          <div class="lead">No rubrics yet</div>
+          <div class="sub">Create your first rubric to start grading essays and document submissions.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script src="{% static 'activity/rubric-list.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-rubric-list.js' %}" defer></script>
+{% endblock %}

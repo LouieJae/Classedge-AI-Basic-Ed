@@ -1,0 +1,112 @@
+{% comment %}
+[Classedge LMS] Question-picker behavior — mirrors checkbox-card UI to the
+hidden ModelMultipleChoiceField <select multiple>. The select stays the
+form's source of truth so server-side validation and POST handling are
+unchanged.
+{% endcomment %}
+<script>
+function evfInitQuestionPicker() {
+  // Hidden <select multiple name="questions"> — source of truth
+  const select = document.getElementById('id_questions_picker')
+              || document.querySelector('select[name="questions"]');
+  const cards = Array.from(document.querySelectorAll('.evf-q-card'));
+  const search = document.getElementById('evfQSearch');
+  const selectAllBtn = document.getElementById('evfQSelectAll');
+  const clearBtn = document.getElementById('evfQClear');
+  const countEl = document.getElementById('evfQSelectedCount');
+  const errorEl = document.getElementById('evfQError');
+
+  // Picker UI is still useful (search/select-all/visual feedback) even if the
+  // hidden select is missing — only mirroring is skipped in that case.
+
+  // Build a map: question id -> <option> element (only if select exists)
+  const optionByValue = new Map();
+  if (select) {
+    Array.from(select.options).forEach(opt => optionByValue.set(String(opt.value), opt));
+
+    // Hydrate checkbox state from the underlying select
+    cards.forEach(card => {
+      const cb = card.querySelector('.evf-q-checkbox');
+      if (!cb) return;
+      const id = String(cb.dataset.qId);
+      const opt = optionByValue.get(id);
+      if (opt && opt.selected) cb.checked = true;
+    });
+  }
+
+  function syncOptionsFromCards() {
+    if (select) {
+      cards.forEach(card => {
+        const cb = card.querySelector('.evf-q-checkbox');
+        if (!cb) return;
+        const opt = optionByValue.get(String(cb.dataset.qId));
+        if (opt) opt.selected = cb.checked;
+      });
+    }
+    updateCount();
+  }
+
+  function updateCount() {
+    const n = cards.filter(c => c.querySelector('.evf-q-checkbox')?.checked).length;
+    if (countEl) countEl.textContent = n;
+    if (errorEl) errorEl.style.display = (n === 0) ? '' : 'none';
+  }
+
+  // Initial count
+  updateCount();
+
+  // Per-card toggle keeps the underlying select in sync
+  cards.forEach(card => {
+    const cb = card.querySelector('.evf-q-checkbox');
+    if (!cb) return;
+    cb.addEventListener('change', syncOptionsFromCards);
+  });
+
+  // Search filter
+  if (search) {
+    search.addEventListener('input', () => {
+      const term = search.value.trim().toLowerCase();
+      cards.forEach(card => {
+        const text = card.dataset.qText || '';
+        card.style.display = (!term || text.includes(term)) ? '' : 'none';
+      });
+    });
+  }
+
+  // Quick actions
+  selectAllBtn?.addEventListener('click', () => {
+    cards.forEach(card => {
+      if (card.style.display === 'none') return; // respect search filter
+      const cb = card.querySelector('.evf-q-checkbox');
+      if (cb) cb.checked = true;
+    });
+    syncOptionsFromCards();
+  });
+  clearBtn?.addEventListener('click', () => {
+    cards.forEach(card => {
+      const cb = card.querySelector('.evf-q-checkbox');
+      if (cb) cb.checked = false;
+    });
+    syncOptionsFromCards();
+  });
+
+  // Block submit if zero selected and surface the inline error
+  const form = document.getElementById('evfForm');
+  form?.addEventListener('submit', e => {
+    const n = cards.filter(c => c.querySelector('.evf-q-checkbox')?.checked).length;
+    if (n === 0) {
+      e.preventDefault();
+      if (errorEl) {
+        errorEl.style.display = '';
+        errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', evfInitQuestionPicker);
+} else {
+  evfInitQuestionPicker();
+}
+</script>

@@ -1,0 +1,226 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Schedules{% endblock %}
+
+{% block content %}
+{% include "includes/_list_page_theme.html" %}
+
+<div class="cl-page">
+  <div class="cl-header">
+    <div>
+      <h2><i class="fas fa-calendar-week me-2"></i>Schedule <em>Management</em></h2>
+      <p>Class meeting times — by subject, day, and room. Add, edit, or remove meeting blocks below.</p>
+    </div>
+    <div class="cl-actions">
+      <button type="button" class="cl-tour-replay" data-cl-tour="schedule-list">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      {% if perms.subject.add_schedule or perms.subject.add_subject %}
+        <a href="{% url 'createSchedule' %}" class="cl-btn cl-btn-primary">
+          <i class="fas fa-plus"></i> New Schedule
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="cl-toolbar">
+    <form method="get" class="cl-search" style="margin: 0;">
+      <i class="fas fa-search"></i>
+      <input type="text" name="search" placeholder="Search by subject, teacher, room, type…" value="{{ search_query }}" autocomplete="off">
+      {% if items_per_page %}<input type="hidden" name="per_page" value="{{ items_per_page }}">{% endif %}
+    </form>
+    <div class="cl-filter-group">
+      {% if search_query %}
+        <a href="{% url 'schedule' %}{% if items_per_page %}?per_page={{ items_per_page }}{% endif %}" class="cl-btn">
+          <i class="fas fa-times"></i> Clear
+        </a>
+      {% endif %}
+      <form method="get" class="cl-perpage" style="margin: 0;">
+        <span>Show</span>
+        <select name="per_page" onchange="this.form.submit()">
+          <option value="10" {% if items_per_page == 10 %}selected{% endif %}>10</option>
+          <option value="25" {% if items_per_page == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if items_per_page == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if items_per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+        <span>per page</span>
+        {% if search_query %}<input type="hidden" name="search" value="{{ search_query }}">{% endif %}
+      </form>
+    </div>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-warning" role="alert">{{ error }}</div>
+  {% endif %}
+
+  <div class="cl-card">
+    <div class="cl-card-header">
+      <span><i class="fas fa-list me-2"></i>Schedule Master Data</span>
+      {% if page_obj %}
+        <span class="cl-badge">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</span>
+      {% endif %}
+    </div>
+
+    <div class="cl-card-body">
+      <div class="table-responsive">
+        <table class="cl-table">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Time</th>
+              <th>Days</th>
+              <th>Type</th>
+              <th>Room</th>
+              <th>Teacher</th>
+              {% if perms.subject.add_schedule or perms.schedule.add_schedule %}
+                <th style="width: 80px; text-align: right;">Actions</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for schedule in page_obj %}
+              <tr>
+                <td data-label="Subject"><strong>{{ schedule.subject }}</strong></td>
+                <td data-label="Time">
+                  <span class="cl-time">
+                    {{ schedule.schedule_start_time }} - {{ schedule.schedule_end_time }}
+                  </span>
+                </td>
+                <td data-label="Days">
+                  {% if schedule.days_of_week %}
+                    {% for day in schedule.days_of_week %}
+                      <span class="cl-status cl-status-info" style="margin-right:4px;">{{ day|slice:":3" }}</span>
+                    {% endfor %}
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td data-label="Type">
+                  {% if schedule.schedule_type %}
+                    <span class="cl-status cl-status-warning">{{ schedule.schedule_type }}</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td data-label="Room">{{ schedule.room_number|default:"—" }}</td>
+                <td data-label="Teacher">{{ schedule.assign_teacher|default:"—" }}</td>
+                {% if perms.subject.add_schedule or perms.schedule.add_schedule %}
+                  <td data-label="Actions" style="text-align: right;">
+                    <div class="dropdown">
+                      <button class="cl-action-btn dropdown-toggle" type="button"
+                              id="dropdown-sched-{{ schedule.id }}"
+                              data-bs-toggle="dropdown"
+                              data-bs-boundary="viewport"
+                              data-bs-strategy="fixed"
+                              aria-expanded="false">
+                        <i class="fas fa-ellipsis-h"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="dropdown-sched-{{ schedule.id }}">
+                        <li>
+                          <a class="dropdown-item" href="{% url 'updateSchedule' schedule.id %}">
+                            <i class="fas fa-pen me-2"></i>Edit
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="confirmDelete({{ schedule.id }})">
+                            <i class="fas fa-trash me-2"></i>Delete
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </td>
+                {% endif %}
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="{% if perms.subject.add_schedule %}7{% else %}6{% endif %}" style="text-align: center; padding: 48px 16px;">
+                  <i class="fas fa-calendar-times" style="font-size: 36px; color: var(--brand-primary, #b7925a); opacity: 0.6; display: block; margin-bottom: 10px;"></i>
+                  <div style="font-weight: 600; color: var(--ink-dim);">
+                    {% if search_query %}No schedules match "{{ search_query }}".{% else %}No schedules yet.{% endif %}
+                  </div>
+                  <div style="color: var(--ink-muted); font-size: 13px; margin-top: 4px;">
+                    {% if not search_query and perms.subject.add_schedule %}Click "New Schedule" to create one.{% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if page_obj.has_other_pages %}
+        <nav aria-label="Page navigation" class="px-3 py-3 d-flex justify-content-end">
+          <ul class="pagination mb-0 flex-wrap">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">
+                  <i class="fas fa-chevron-left"></i>
+                </a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-left"></i></span></li>
+            {% endif %}
+
+            {% for page_num in page_range %}
+              {% if page_num == page_obj.number %}
+                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+              {% else %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ page_num }}</a></li>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-right"></i></span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{% static 'subject/schedule_list.css' %}" />
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  function confirmDelete(scheduleId) {
+    Swal.fire({
+      title: 'Delete this schedule?',
+      text: 'This action cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#b02a37',
+      cancelButtonColor: '#6c7080',
+      confirmButtonText: 'Yes, delete it',
+      reverseButtons: true,
+    }).then(function (result) {
+      if (!result.isConfirmed) return;
+      var fd = new FormData();
+      fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+      fetch('/deleteSchedule/' + scheduleId + '/', { method: 'POST', body: fd })
+        .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function (data) {
+          if (data.status === 'success') {
+            Swal.fire({ title: 'Deleted', text: 'The schedule has been removed.', icon: 'success' })
+              .then(function () { location.reload(); });
+          } else if (data.error_type === 'ProtectedError') {
+            Swal.fire({ title: 'Cannot delete', text: data.message || 'This schedule is in use.', icon: 'error' });
+          } else {
+            Swal.fire({ title: 'Error', text: 'Could not delete the schedule.', icon: 'error' });
+          }
+        })
+        .catch(function () { Swal.fire({ title: 'Error', text: 'Network error. Please try again.', icon: 'error' }); });
+    });
+  }
+</script>
+
+<script src="{% static 'js/tours/cl-tour-schedule-list.js' %}" defer></script>
+{% endblock %}

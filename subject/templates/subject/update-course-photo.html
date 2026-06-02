@@ -1,0 +1,172 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Update Course Photo · {{ subject.subject_name }}{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'subject/update-course-photo.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="ph-shell">
+  <a class="ph-back" href="{% url 'course-list' %}">
+    <i class="fas fa-arrow-left"></i> Back to courses
+  </a>
+
+  <div class="ph-hero">
+    <span class="ph-eyebrow"><i class="fas fa-camera"></i> Course photo</span>
+    <h1 class="ph-title">Update <em>{{ subject.subject_name }}</em></h1>
+    <p class="ph-sub">
+      Pick a cover image for this course. It appears on the course card and at the top of the material list.
+    </p>
+  </div>
+
+  <div class="ph-grid">
+    <!-- Current photo card -->
+    <section class="ph-card">
+      <div class="ph-card-head">
+        <h3><i class="fas fa-image"></i> Current photo</h3>
+      </div>
+      <div class="ph-card-body">
+        <div class="ph-photo-frame">
+          {% if subject.subject_photo %}
+            <img src="{{ subject.subject_photo.url }}" alt="{{ subject.subject_name }}">
+          {% else %}
+            <div class="ph-photo-empty">
+              <div>
+                <i class="fas fa-book"></i>
+                <div class="label">No photo set yet</div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+        {% if subject.subject_photo %}
+          <div class="ph-photo-actions">
+            <button type="button" class="ph-btn ph-btn-danger" onclick="confirmClearPhoto({{ subject.id }})">
+              <i class="fas fa-trash-alt"></i> Remove photo
+            </button>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Upload form card -->
+    <section class="ph-card">
+      <div class="ph-card-head">
+        <h3><i class="fas fa-cloud-arrow-up"></i> Upload new photo</h3>
+      </div>
+      <div class="ph-card-body">
+        <form method="post" enctype="multipart/form-data" action="{% url 'update-course-photo' subject.id %}" novalidate
+              data-cl-loading data-cl-loading-label="Uploading…">
+          {% csrf_token %}
+
+          <label class="ph-drop" id="ph-drop">
+            <input type="file"
+                   name="{{ form.subject_photo.name }}"
+                   id="{{ form.subject_photo.id_for_label }}"
+                   accept="image/*"
+                   onchange="previewImage(this)">
+            <div class="ph-drop-icon"><i class="fas fa-cloud-arrow-up"></i></div>
+            <p class="ph-drop-title">Drop an image, or <em>browse</em></p>
+            <p class="ph-drop-hint">Recommended 800×600 px · PNG, JPG, WebP · up to 5 MB</p>
+          </label>
+
+          <div class="ph-preview" id="ph-preview">
+            <div class="ph-preview-head">
+              <span class="ph-preview-label">New photo preview</span>
+              <button type="button" class="ph-preview-clear" id="ph-preview-clear">
+                <i class="fas fa-times"></i> Clear
+              </button>
+            </div>
+            <img class="ph-preview-img" id="ph-preview-img" alt="Preview">
+          </div>
+
+          <div class="ph-toggle">
+            {{ form.allow_substitute_teacher }}
+            <div class="ph-toggle-body">
+              <label class="ph-toggle-label" for="{{ form.allow_substitute_teacher.id_for_label }}">
+                {{ form.allow_substitute_teacher.label }}
+              </label>
+              <div class="ph-toggle-hint">
+                Let substitute teachers access this subject when enabled.
+              </div>
+            </div>
+          </div>
+
+          <div class="ph-actions">
+            <a href="{% url 'course-list' %}" class="ph-btn ph-btn-ghost">
+              <i class="fas fa-xmark"></i> Cancel
+            </a>
+            <button type="submit" class="ph-btn ph-btn-primary">
+              <i class="fas fa-check"></i> Save photo
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const drop = document.getElementById('ph-drop');
+    const input = document.getElementById('{{ form.subject_photo.id_for_label }}');
+    const preview = document.getElementById('ph-preview');
+    const previewImg = document.getElementById('ph-preview-img');
+    const clearBtn = document.getElementById('ph-preview-clear');
+
+    ['dragenter', 'dragover'].forEach(evt =>
+      drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.add('is-dragover'); })
+    );
+    ['dragleave', 'drop'].forEach(evt =>
+      drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.remove('is-dragover'); })
+    );
+    drop.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+        input.files = e.dataTransfer.files;
+        previewImage(input);
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      preview.classList.remove('is-active');
+      previewImg.removeAttribute('src');
+    });
+  })();
+
+  function previewImage(input) {
+    const preview = document.getElementById('ph-preview');
+    const previewImg = document.getElementById('ph-preview-img');
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        previewImg.src = e.target.result;
+        preview.classList.add('is-active');
+      };
+      reader.readAsDataURL(input.files[0]);
+    } else {
+      preview.classList.remove('is-active');
+      previewImg.removeAttribute('src');
+    }
+  }
+
+  function confirmClearPhoto(subjectId) {
+    Swal.fire({
+      title: 'Remove photo?',
+      text: 'This will delete the current cover image for this course.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#7a3e3e',
+      cancelButtonColor: '#6c7080',
+      confirmButtonText: 'Yes, remove',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = "{% url 'clear_subject_photo' 0 %}".replace('0', subjectId);
+      }
+    });
+  }
+</script>
+{% endblock %}

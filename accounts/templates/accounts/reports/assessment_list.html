@@ -1,0 +1,175 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+
+{% block title %}
+  Assessments
+{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'accounts/reports/assessment_list.css' %}" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+{% endblock %}
+
+{% block content %}
+  <div class="act-shell">
+    <div class="act-header">
+      <div>
+        <h1 class="page-title">Assessment <em>list</em></h1>
+        <div class="page-sub">Browse all assessments across your subjects &middot; click a type counter to jump straight to that filter</div>
+
+      </div>
+      <div class="act-add" id="actAddDropdown">
+        <button type="button" class="act-add-trigger" id="actAddTrigger" aria-haspopup="menu" aria-expanded="false">
+          <i class="fas fa-plus" aria-hidden="true"></i>
+          New activity
+          <i class="fas fa-chevron-down caret" aria-hidden="true"></i>
+        </button>
+        <div class="act-add-menu" role="menu">
+          {% for t in activity_types %}
+            <button type="button" class="act-add-item act-add-btn"
+                    role="menuitem"
+                    data-slug="{{ t.name|slugify }}"
+                    data-type-id="{{ t.id }}"
+                    data-type-name="{{ t.name }}">
+              <span class="dot"></span>
+              {{ t.name }}
+            </button>
+          {% empty %}
+            <div style="padding:10px 12px; color:var(--ink-muted); font-size:12px; font-style:italic;">No activity types configured.</div>
+          {% endfor %}
+        </div>
+
+      </div>
+    </div>
+
+    <div class="act-toolbar">
+      <div class="act-search">
+        <span class="ico"><i class="fas fa-search" aria-hidden="true"></i></span>
+        <input id="actSearch" type="text" placeholder="Search activities" autocomplete="off" />
+      </div>
+      <div class="act-summary" id="actSummary">{{ total_activities }} activit{{ total_activities|pluralize:"y,ies" }}</div>
+    </div>
+
+    <div class="act-chips" id="actChips">
+      <button type="button" class="act-chip is-active" data-type-id="">
+        All <span class="num">{{ total_activities }}</span>
+      </button>
+      {% for tc in type_counts %}
+        <button type="button" class="act-chip" data-type-id="{{ tc.type.id }}">
+          {{ tc.type.name }} <span class="num">{{ tc.count }}</span>
+        </button>
+      {% endfor %}
+    </div>
+
+    <div class="act-card">
+      {% if activities %}
+        <div class="act-table-wrap">
+          <table class="act-table" id="actTable">
+            <thead>
+              <tr>
+                <th style="width:40px;">#</th>
+                <th>Assessment</th>
+                <th>Type</th>
+                <th>Subject</th>
+                <th>Term</th>
+                <th>Start</th>
+                <th>End</th>
+                <th style="width:60px; text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="actBody">
+              {% for activity in activities %}
+                {% with type_slug=activity.activity_type.name|default:"untyped"|slugify %}
+                  <tr class="act-row"
+                      data-name="{{ activity.activity_name|lower }} {{ activity.subject.subject_name|lower }}"
+                      data-type-id="{{ activity.activity_type.id|default_if_none:'' }}">
+                    <td><span class="counter">{{ forloop.counter }}</span></td>
+                    <td>
+                      <a class="act-name" href="{% url 'assessment-details' activity.id %}">
+                        {{ activity.activity_name }}
+                      </a>
+                    </td>
+                    <td>
+                      {% if activity.activity_type %}
+                        <span class="act-pill" data-slug="{{ type_slug }}">{{ activity.activity_type.name }}</span>
+                      {% else %}
+                        <span class="act-pill">Untyped</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <a href="{% url 'subject-assessment-list' activity.subject.id %}" class="act-subject">
+                        {{ activity.subject.subject_name }}
+                      </a>
+                    </td>
+                    <td>{{ activity.term.term_name|default:"—" }}</td>
+                    <td>{{ activity.start_time|date:"d M Y, h:i A"|default:"—" }}</td>
+                    <td>{{ activity.end_time|date:"d M Y, h:i A"|default:"—" }}</td>
+                    <td>
+                      <div class="act-actions">
+                        <button type="button" class="act-actions-btn" aria-label="Actions" aria-haspopup="menu">
+                          <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
+                        </button>
+                        <div class="act-actions-menu" role="menu">
+                          <a href="{% url 'assessment-details' activity.id %}" role="menuitem">
+                            <i class="fas fa-eye"></i> View
+                          </a>
+                          <a href="{% url 'update-assessment' activity.id %}" role="menuitem">
+                            <i class="fas fa-pen"></i> Edit
+                          </a>
+                          <form method="post" action="{% url 'delete-assessment' activity.id %}" data-confirm="Delete '{{ activity.activity_name|escapejs }}'? This cannot be undone.">
+                            {% csrf_token %}
+                            <button type="submit" class="danger" role="menuitem">
+                              <i class="fas fa-trash"></i> Delete
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="act-no-match" id="actNoMatch" style="display:none;">No activities match your filters.</div>
+      {% else %}
+        <div class="act-empty">
+          <div class="ico"><i class="fas fa-clipboard-list" aria-hidden="true"></i></div>
+          <div class="lead">No activities yet</div>
+          <div class="sub">Use the buttons above to create your first activity.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Subject picker modal -->
+  <div class="act-modal-backdrop" id="actSubjectPicker" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="act-modal" role="document">
+      <div class="act-modal-head">
+        <h3 class="act-modal-title">Pick a <em id="actModalType">subject</em></h3>
+        <button type="button" class="act-modal-close" data-close-picker aria-label="Close">
+          <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="act-modal-body">
+        {% if teacher_subjects %}
+          <ul class="act-subject-list" id="actSubjectList">
+            {% for s in teacher_subjects %}
+              <li>
+                <a href="#" data-subject-id="{{ s.id }}" data-base-url="{% url 'add-assessment' s.id %}">
+                  <span class="name">{{ s.subject_name }}</span>
+                  <span class="code">{{ s.subject_code|default:'' }}</span>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="act-modal-empty">You have no subjects assigned. Activities can only be created within a subject you teach.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'accounts/reports/assessment_list.js' %}"></script>
+{% endblock %}

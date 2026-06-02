@@ -1,0 +1,97 @@
+
+{% extends is_student_role|yesno:"student_base.html,base.html" %}
+{% load static %}
+
+{% block title %} Student Grade {% endblock %}
+
+{% block content %}
+    <!-- Filter Grades Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header d-flex align-items-center">
+            <h5 class="m-0"><i class="fas fa-filter me-2"></i> Filter Grades</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="semester" class="form-label fw-bold mb-2">
+                        <i class="fas fa-calendar-alt me-1"></i> Select Semester:
+                    </label>
+                    <select id="semester" name="semester" class="form-select select2">
+                        <option value="" selected disabled>Select Semester</option>
+                        {% for semester in semesters %}
+                            <option value="{{ semester.id }}"
+                                    {% if current_semester and semester.id == current_semester.id %}selected{% endif %}>
+                                {% if semester.semester_name == "First Semester" %}1st Sem -
+                                {% elif semester.semester_name == "Second Semester" %}2nd Sem -
+                                {% elif semester.semester_name == "Third Semester" %}3rd Sem -
+                                {% elif semester.semester_name == "Fourth Semester" %}4th Sem -
+                                {% else %}{{ semester.semester_name }} -
+                                {% endif %}
+                                SY. {{ semester.get_academic_year }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="subject" class="form-label fw-bold mb-2">
+                        <i class="fas fa-book me-1"></i> Select Course:
+                    </label>
+                    <select id="subject" name="subject" class="form-select select2">
+                        <option value="" selected disabled>Select Course</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" id="user-role" value="{{ user_role }}">
+    <input type="hidden" id="user-id" value="{{ user_id }}">
+
+    <!-- Grades Table Card -->
+    <div class="card mt-4 shadow-sm border-0">
+        <div class="card-header d-flex align-items-center flex-wrap gap-2">
+            <h5 class="m-0"><i class="fas fa-table me-2"></i> Grades</h5>
+            <div class="ms-auto d-flex gap-2 align-items-center" id="grades-toolbar">
+                <input type="search" id="custom-search" class="form-control form-control-sm" placeholder="Search students..." style="max-width: 220px;">
+                {% if user_role == 'teacher' or user_role == 'admin' %}
+                    <button id="download-excel" class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel"></i> Export to Excel
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body p-3">
+            <div id="grades-empty" class="text-center text-muted py-5" style="display:none;">
+                <i class="fas fa-info-circle fa-2x mb-3"></i>
+                <h5 class="mb-1">Select a semester and subject</h5>
+                <small>Pick a semester and subject above to see student grades.</small>
+            </div>
+
+            <div id="grades-hidden" class="text-center text-muted py-5" style="display:none;">
+                <i class="fas fa-eye-slash fa-2x mb-3"></i>
+                <h5 class="mb-1">Grades are currently hidden</h5>
+                <small>Your teacher hasn't released grades for this subject yet.</small>
+            </div>
+
+            <div id="grades-no-data" class="text-center text-muted py-5" style="display:none;">
+                <i class="fas fa-inbox fa-2x mb-3"></i>
+                <h5 class="mb-1">No grade data available</h5>
+                <small>No students or activities found for this semester and subject.</small>
+            </div>
+
+            <div class="table-responsive">
+                <table id="grades-table" class="table table-hover table-bordered align-middle text-center mb-0" style="display:none;">
+                    <thead class="table-light"></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="{% static 'gradebookcomponent/activityGrade/student_grades.css' %}" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{% static 'gradebookcomponent/activityGrade/student_grades.js' %}"></script>
+{% endblock %}

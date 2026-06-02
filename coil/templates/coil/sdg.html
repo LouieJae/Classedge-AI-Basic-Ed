@@ -1,0 +1,91 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+
+{% block title %}SDG 4{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'coil/sdg.css' %}" />
+
+<div class="container">
+    <div class="card shadow-md">
+        <div class="card-body p-4 p-md-5">
+            <!-- SDG Header -->
+            <div class="row g-3 g-md-4 mb-4">
+                <div class="col-auto">
+                  {% if sdg.photo %}  
+                    <img src="{{ sdg.photo.url }}" alt="SDG 4" class="img-fluid" style="width: 110px; height: 110px; object-fit: contain;">
+                  {% else %}
+                    <img src="{% static 'assets/img/sdg4-logo.png' %}" alt="SDG 4" class="img-fluid" style="width: 110px; height: 110px; object-fit: contain;">
+                  {% endif %}
+                </div>
+                <div class="col">
+                    <h3 class="fw-bold mb-2 mb-md-3">{{ sdg.name }}</h3>
+                    <p class="small mb-0" style="line-height: 1.6;">{{ sdg.description }}</p>
+                </div>
+            </div>
+            
+            <!-- Encounter Title -->
+            <h5 class="fw-bold mt-4 mb-3">Encounter: {{ student_SDG.count }}</h5>
+            
+            <!-- Certificate Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" class="fw-semibold small">Course Title</th>
+                            <th scope="col" class="fw-semibold small">Duration</th>
+                            <th scope="col" class="fw-semibold small">Description</th>
+                            <th scope="col" class="fw-semibold small">Partner University</th>
+                            <th scope="col" class="fw-semibold small">Issued By</th>
+                            <th scope="col" class="fw-semibold small">Issued on</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                      {% for subject in subjects %}
+                        <tr>
+                            <td class="small">{{ subject.subject_name }}</td>
+                            <td class="small">{{ subject.duration }}</td>
+                            <td class="small">{{ subject.subject_description }}</td>
+                            <td class="small">{{ subject.industry_partners }}</td>
+                            <td class="small">{{ subject.issued_by }}</td>
+                            <td class="small">{{ subject.issued_on }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Issued By Section -->
+            <div class="mt-5 pt-3">
+                <div class="row g-3 align-items-center">
+                    <div class="col-12 col-md-7">
+                        <p class="fw-bold mb-2">Issued by:</p>
+                        <p class="small fst-italic mb-1">{{ sdg.issued_under }}</p>
+                    </div>
+                    <div class="col-12 col-md-5 text-center text-md-end">
+                        <img src="{% static 'assets/img/orbit-logos.png' %}" alt="ORBIT Logos" class="img-fluid" style="max-height: 70px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Buttons -->
+    <div class="d-flex justify-content-between mt-4 no-print">
+        <a href="javascript:history.back()" class="btn btn-secondary btn-lg">
+            <i class="fas fa-arrow-left me-2"></i>Back
+        </a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'sdg_certificate_standalone' student_SDG.id %}" class="btn btn-success btn-lg" target="_blank">
+                <i class="fas fa-external-link-alt me-2"></i>View Standalone
+            </a>
+            <button onclick="window.print()" class="btn btn-primary btn-lg">
+                <i class="fas fa-print me-2"></i>Print Certificate
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'coil/sdg.js' %}"></script>
+{% endblock %}

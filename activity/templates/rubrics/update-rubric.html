@@ -1,0 +1,12 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Update Rubric{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+{% endblock %}
+
+{% block content %}
+  {% include "rubrics/_rubric_form.html" with form_title="Update <em>rubric</em>" form_sub=rubric.rubric_name submit_label="Save Changes" %}
+{% endblock %}

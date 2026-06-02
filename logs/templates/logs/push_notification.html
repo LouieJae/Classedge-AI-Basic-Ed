@@ -1,0 +1,187 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+
+{% block title %}
+  Push Notification
+{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+  <link rel="stylesheet" href="{% static 'logs/push_notification.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="content-wrapper">
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row align-items-center mb-2">
+          <div class="col-sm-7">
+            <h1 class="m-0 fw-bold">Push Notification Console</h1>
+            <p class="text-muted mb-0">Send announcements through the OneSignal integration.</p>
+          </div>
+          <div class="col-sm-5 text-sm-right mt-3 mt-sm-0">
+            <span class="status-pill bg-light text-muted" id="status-pill">Idle</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="content pb-5">
+      <div class="container-fluid">
+        <div class="push-card p-4 p-md-5">
+          <form id="pushForm" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="row g-4">
+              <div class="col-12">
+                <label class="form-label fw-semibold">Title / Heading *</label>
+                <input type="text" class="form-control form-control-lg" name="heading" placeholder="Campus Alert" required>
+                <div class="invalid-feedback">Heading is required.</div>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold">Message *</label>
+                <textarea class="form-control" name="message" rows="4" placeholder="Brief description of the announcement" required></textarea>
+                <div class="invalid-feedback">Message is required.</div>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold">Segments <span>(comma-separated)</span></label>
+                <input type="text" class="form-control" name="segments" placeholder="Total Subscriptions, Active Students">
+                <p class="helper-text mt-1">Target user segments. Example: Total Subscriptions</p>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold">Custom Payload (JSON)</label>
+                <textarea class="form-control font-monospace" name="data" rows="4" placeholder='{"type": "alert", "priority": "high"}'></textarea>
+                <p class="helper-text mt-1">Optional metadata delivered with the notification.</p>
+              </div>
+
+              <div class="col-lg-8">
+                <div class="json-preview" id="previewBox">{
+                "heading": "",
+                "message": "",
+                "targets": "segments"
+                }</div>
+              </div>
+              <div class="col-lg-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
+                  <span class="spinner-border spinner-border-sm me-2 d-none" id="submitSpinner"></span>
+                  Send Notification
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <div class="alert mt-4 d-none" id="responseAlert"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    const pushForm = document.getElementById('pushForm');
+    const responseAlert = document.getElementById('responseAlert');
+    const statusPil = document.getElementById('status-pill');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitSpinner = document.getElementById('submitSpinner');
+    const previewBox = document.getElementById('previewBox');
+
+    function updatePreview() {
+      const heading = pushForm.heading.value;
+      const message = pushForm.message.value;
+      const segments = pushForm.segments.value.split(',').map(seg => seg.trim()).filter(Boolean);
+      
+      let dataPreview = null;
+      const dataRaw = pushForm.data.value.trim();
+      if (dataRaw) {
+        try {
+          dataPreview = JSON.parse(dataRaw);
+        } catch (e) {
+          dataPreview = 'Invalid JSON';
+        }
+      }
+
+      const payload = {
+        heading: heading || '(empty)',
+        message: message || '(empty)',
+        segments: segments.length ? segments : ['(none)'],
+        data: dataPreview
+      };
+
+      previewBox.textContent = JSON.stringify(payload, null, 2);
+    }
+
+    function toggleSubmitting(isSubmitting) {
+      submitBtn.disabled = isSubmitting;
+      submitSpinner.classList.toggle('d-none', !isSubmitting);
+      statusPil.textContent = isSubmitting ? 'Sending...' : 'Idle';
+      statusPil.className = `status-pill ${isSubmitting ? 'bg-primary text-white' : 'bg-light text-muted'}`;
+    }
+
+    function showAlert(type, message) {
+      responseAlert.className = `alert alert-${type} mt-4`;
+      responseAlert.textContent = message;
+      responseAlert.classList.remove('d-none');
+    }
+
+    async function submitPushNotification(event) {
+      event.preventDefault();
+      if (!pushForm.checkValidity()) {
+        pushForm.classList.add('was-validated');
+        return;
+      }
+
+      toggleSubmitting(true);
+      showAlert('info', 'Sending notification...');
+
+      try {
+        let payloadData = null;
+        const dataRaw = pushForm.data.value.trim();
+        if (dataRaw) {
+          payloadData = JSON.parse(dataRaw);
+        }
+
+        const body = {
+          heading: pushForm.heading.value,
+          message: pushForm.message.value,
+          segments: pushForm.segments.value.split(',').map(seg => seg.trim()).filter(Boolean),
+          data: payloadData,
+        };
+
+        const response = await fetch("{% url 'send_push_notification_api' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+          },
+          body: JSON.stringify(body),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          showAlert('success', `Notification sent. Recipients: ${result.recipients || 'unknown'}`);
+          pushForm.reset();
+          pushForm.classList.remove('was-validated');
+          updatePreview();
+        } else {
+          throw new Error(result.error || 'Unable to send notification.');
+        }
+      } catch (error) {
+        console.error('[Push Notification] error', error);
+        showAlert('danger', error.message || 'Unexpected error occurred.');
+      } finally {
+        toggleSubmitting(false);
+      }
+    }
+
+    pushForm.addEventListener('input', updatePreview);
+    pushForm.addEventListener('submit', submitPushNotification);
+    updatePreview();
+  </script>
+{% endblock %}
+
+
+

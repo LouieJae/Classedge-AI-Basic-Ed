@@ -1,0 +1,348 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Grade Finalization{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'subject/grade_finalization.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="gfin-page">
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Grade <em>finalization</em></h1>
+      <p class="page-sub">Lock or unlock grade visibility per subject and semester.</p>
+    </div>
+    <div class="gfin-stats" aria-label="Finalization summary">
+      <div class="gfin-stat ok">
+        <span class="num" id="statFinalized">{{ stat_finalized|default:0 }}</span>
+        <span class="lab">Finalized</span>
+      </div>
+      <div class="gfin-stat-divider" aria-hidden="true"></div>
+      <div class="gfin-stat warn">
+        <span class="num" id="statPending">{{ stat_pending|default:0 }}</span>
+        <span class="lab">Pending</span>
+      </div>
+      <div class="gfin-stat-divider" aria-hidden="true"></div>
+      <div class="gfin-stat">
+        <span class="num" id="statTotal">{{ stat_total|default:0 }}</span>
+        <span class="lab">Total</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Semester selector -->
+  <form method="get" class="gfin-semester-card">
+    <div class="gfin-semester-grid">
+      <div class="gfin-field">
+        <label for="semesterSelect">Select semester</label>
+        <select id="semesterSelect" name="semester" onchange="this.form.submit()">
+          <option value="">— Select semester —</option>
+          {% for semester in semesters %}
+            <option value="{{ semester.id }}" {% if semester.id == selected_semester.id %}selected{% endif %}>
+              {{ semester.semester_name }} · {{ semester.start_date|date:"M d, Y" }} – {{ semester.end_date|date:"M d, Y" }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" id="loadSubjectsBtn" class="gfin-btn primary">
+        <i class="fas fa-sync-alt"></i> Load courses
+      </button>
+    </div>
+  </form>
+
+  <!-- Bulk actions bar -->
+  {% if subject_rows %}
+  <div id="bulkActions" class="gfin-bulk-bar">
+    <div class="gfin-bulk-left">
+      <input type="checkbox" id="selectAll" class="gfin-checkbox">
+      <label for="selectAll" class="gfin-bulk-label">Select all</label>
+      <span id="selectedCount" class="gfin-bulk-count">(0 selected)</span>
+    </div>
+    <div class="gfin-bulk-right">
+      <button id="bulkFinalizeBtn" class="gfin-btn success sm" disabled>
+        <i class="fas fa-check"></i> Finalize selected
+      </button>
+      <button id="bulkUnfinalizeBtn" class="gfin-btn danger sm" disabled>
+        <i class="fas fa-times"></i> Unfinalize selected
+      </button>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Subject list -->
+  <div id="subjectsList">
+    {% if not selected_semester %}
+      <div class="gfin-empty">
+        <i class="fas fa-calendar-check"></i>
+        <div class="lead">Select a semester</div>
+        <div class="sub">Choose a semester above to load and manage subject grade finalization.</div>
+      </div>
+    {% elif not subject_rows %}
+      <div class="gfin-empty">
+        <i class="fas fa-inbox"></i>
+        <div class="lead">No courses found</div>
+        <div class="sub">There are no courses with a gradebook set up for this semester.</div>
+      </div>
+    {% else %}
+      <div class="gfin-subjects-grid">
+        {% for row in subject_rows %}
+          <div class="gfin-subject-card {% if row.is_finalized %}finalized{% else %}not-finalized{% endif %}"
+               data-subject-id="{{ row.id }}" data-finalization-id="{{ row.finalization_id|default_if_none:'' }}">
+            <input type="checkbox" class="gfin-checkbox subject-checkbox" data-subject-id="{{ row.id }}" aria-label="Select course">
+            <div class="gfin-subj-head">
+              <h3 class="gfin-subj-title" title="{{ row.subject_name }}">{{ row.subject_name }}</h3>
+              <span class="gfin-subj-status {% if row.is_finalized %}finalized{% else %}not-finalized{% endif %}">
+                {% if row.is_finalized %}<i class="fas fa-check"></i> Finalized{% else %}<i class="fas fa-clock"></i> Pending{% endif %}
+              </span>
+            </div>
+            <div class="gfin-subj-meta">
+              <span><strong>{{ row.subject_code|default:"—" }}</strong></span>
+              <span class="sep">·</span>
+              <span>{{ row.teacher_name }}</span>
+            </div>
+            {% if row.is_finalized and row.finalized_by_name %}
+              <div class="gfin-subj-audit">
+                Finalized by <strong>{{ row.finalized_by_name }}</strong>
+                {% if row.finalized_at %} on {{ row.finalized_at|date:"M d, Y g:i A" }}{% endif %}
+              </div>
+            {% endif %}
+            <div class="gfin-subj-foot">
+              {% if row.is_finalized %}
+                <button class="gfin-btn danger sm" onclick="unfinalizeSubject({{ row.id }}, {{ row.finalization_id|default_if_none:'null' }})">
+                  <i class="fas fa-lock-open"></i> Unfinalize
+                </button>
+              {% else %}
+                <button class="gfin-btn success sm" onclick="finalizeSubject({{ row.id }}, {{ row.finalization_id|default_if_none:'null' }})">
+                  <i class="fas fa-lock"></i> Finalize
+                </button>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  const API_BASE = '/api/grade-finalization/';
+  const currentSemester = {{ selected_semester.id|default:'null' }};
+  let selectedSubjects = new Set();
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function reloadPage() { window.location.reload(); }
+
+  function handleCheckboxChange(e) {
+    const subjectId = parseInt(e.target.dataset.subjectId);
+    if (e.target.checked) selectedSubjects.add(subjectId);
+    else selectedSubjects.delete(subjectId);
+    updateSelectedCount();
+    updateSelectAllCheckbox();
+  }
+
+  function updateSelectedCount() {
+    const count = selectedSubjects.size;
+    document.getElementById('selectedCount').textContent = `(${count} selected)`;
+    document.getElementById('bulkFinalizeBtn').disabled = count === 0;
+    document.getElementById('bulkUnfinalizeBtn').disabled = count === 0;
+  }
+
+  function updateSelectAllCheckbox() {
+    const allCheckboxes = document.querySelectorAll('.subject-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (allCheckboxes.length === 0) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+      return;
+    }
+    const checkedCount = Array.from(allCheckboxes).filter(cb => cb.checked).length;
+    if (checkedCount === 0) { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = false; }
+    else if (checkedCount === allCheckboxes.length) { selectAllCheckbox.checked = true; selectAllCheckbox.indeterminate = false; }
+    else { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = true; }
+  }
+
+  function attachSelectAllListener() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (!selectAllCheckbox) return;
+    selectAllCheckbox.addEventListener('change', function(e) {
+      const checkboxes = document.querySelectorAll('.subject-checkbox');
+      selectedSubjects.clear();
+      checkboxes.forEach(cb => {
+        cb.checked = e.target.checked;
+        if (e.target.checked) selectedSubjects.add(parseInt(cb.dataset.subjectId));
+      });
+      updateSelectedCount();
+    });
+  }
+
+  async function finalizeSubject(subjectId, finalizationId) {
+    try {
+      let response;
+      if (finalizationId) {
+        response = await fetch(`${API_BASE}${finalizationId}/finalize/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' }
+        });
+      } else {
+        response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject: subjectId, semester: currentSemester, is_finalized: true })
+        });
+      }
+      if (response.ok) {
+        Swal.fire({ title: 'Finalized', text: 'Grades finalized successfully.', icon: 'success', confirmButtonColor: '#1b4332' });
+        reloadPage();
+      } else {
+        const error = await response.json();
+        Swal.fire('Error', error.message || 'Failed to finalize grades', 'error');
+      }
+    } catch (error) {
+      console.error('Error finalizing subject:', error);
+      Swal.fire('Error', 'Failed to finalize grades', 'error');
+    }
+  }
+
+  async function unfinalizeSubject(subjectId, finalizationId) {
+    if (!finalizationId) return;
+    const result = await Swal.fire({
+      title: 'Unfinalize this subject?',
+      text: 'This will hide grades from students again.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#c08479',
+      cancelButtonColor: '#a0a4b8',
+      confirmButtonText: 'Yes, unfinalize'
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      const response = await fetch(`${API_BASE}${finalizationId}/unfinalize/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        Swal.fire({ title: 'Unfinalized', text: 'Grades are no longer visible to students.', icon: 'success', confirmButtonColor: '#1b4332' });
+        reloadPage();
+      } else {
+        const error = await response.json();
+        Swal.fire('Error', error.message || 'Failed to unfinalize grades', 'error');
+      }
+    } catch (error) {
+      console.error('Error unfinalizing subject:', error);
+      Swal.fire('Error', 'Failed to unfinalize grades', 'error');
+    }
+  }
+
+  function attachBulkFinalizeListener() {
+    const bulkFinalizeBtn = document.getElementById('bulkFinalizeBtn');
+    if (!bulkFinalizeBtn) return;
+    bulkFinalizeBtn.addEventListener('click', async function() {
+      if (selectedSubjects.size === 0) return;
+      const result = await Swal.fire({
+        title: 'Finalize selected courses?',
+        text: `This will finalize ${selectedSubjects.size} subject(s).`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#1b4332',
+        cancelButtonColor: '#a0a4b8',
+        confirmButtonText: 'Yes, finalize'
+      });
+      if (!result.isConfirmed) return;
+
+      try {
+        const response = await fetch(`${API_BASE}bulk-finalize/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject_ids: Array.from(selectedSubjects), semester_id: currentSemester })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          Swal.fire({ title: 'Done', text: data.message, icon: 'success', confirmButtonColor: '#1b4332' });
+          selectedSubjects.clear();
+          reloadPage();
+        } else {
+          const error = await response.json();
+          Swal.fire('Error', error.error || 'Failed to finalize courses', 'error');
+        }
+      } catch (error) {
+        console.error('Error bulk finalizing:', error);
+        Swal.fire('Error', 'Failed to finalize courses', 'error');
+      }
+    });
+  }
+
+  function attachBulkUnfinalizeListener() {
+    const bulkUnfinalizeBtn = document.getElementById('bulkUnfinalizeBtn');
+    if (!bulkUnfinalizeBtn) return;
+    bulkUnfinalizeBtn.addEventListener('click', async function() {
+      if (selectedSubjects.size === 0) return;
+      const result = await Swal.fire({
+        title: 'Unfinalize selected courses?',
+        text: `This will unfinalize ${selectedSubjects.size} subject(s).`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#c08479',
+        cancelButtonColor: '#a0a4b8',
+        confirmButtonText: 'Yes, unfinalize'
+      });
+      if (!result.isConfirmed) return;
+
+      const promises = Array.from(selectedSubjects).map(async subjectId => {
+        const item = document.querySelector(`[data-subject-id="${subjectId}"]`);
+        const finalizationId = item?.dataset.finalizationId;
+        if (finalizationId && finalizationId !== 'null') {
+          return fetch(`${API_BASE}${finalizationId}/unfinalize/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' }
+          });
+        }
+      });
+
+      try {
+        await Promise.all(promises);
+        Swal.fire({ title: 'Done', text: 'Courses unfinalized successfully.', icon: 'success', confirmButtonColor: '#1b4332' });
+        selectedSubjects.clear();
+        reloadPage();
+      } catch (error) {
+        console.error('Error bulk unfinalizing:', error);
+        Swal.fire('Error', 'Failed to unfinalize some courses', 'error');
+      }
+    });
+  }
+
+  attachSelectAllListener();
+  attachBulkFinalizeListener();
+  attachBulkUnfinalizeListener();
+
+  document.querySelectorAll('.subject-checkbox').forEach(cb => {
+    cb.addEventListener('change', handleCheckboxChange);
+  });
+</script>
+{% endblock %}

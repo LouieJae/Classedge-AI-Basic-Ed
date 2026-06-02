@@ -1,0 +1,750 @@
+  /* Full-width override: the shared assessment shell caps width at 1280px;
+     the quiz-type page benefits from using the full page width. */
+  .activity-shell { max-width: none; width: 100%; }
+
+  /* Picker tiles — themed against the operations palette (forest / gold / cream)
+     instead of Falcon defaults. Lives on this page only. */
+  .qc-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .qc-picker-grid + .qc-picker-group-label { margin-top: 18px; }
+  .qc-picker-group-label {
+    display: block;
+    font-family: var(--body);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brand-primary, #b7925a);
+    font-weight: 700;
+    margin: 0 0 10px;
+  }
+  .qc-picker-tile {
+    appearance: none;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    padding: 14px 16px;
+    background: var(--cream);
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
+  }
+  .qc-picker-tile:hover {
+    border-color: var(--brand-primary, #1b4332);
+    background: var(--paper);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px -10px var(--brand-primary-soft);
+  }
+  .qc-picker-tile:focus-visible {
+    outline: 0;
+    border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .qc-tile-icon {
+    flex-shrink: 0;
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    font-size: 16px;
+  }
+  /* Manual-graded section uses rose accent so the two groups read distinctly. */
+  .qc-picker-grid.is-manual .qc-tile-icon {
+    background: rgba(192, 132, 121, 0.16);
+    color: var(--rose);
+  }
+  .qc-tile-body { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+  .qc-tile-name { font-weight: 600; font-size: 14px; line-height: 1.25; color: var(--ink); }
+  .qc-tile-desc { font-size: 12.5px; color: var(--ink-dim); line-height: 1.35; }
+
+  /* Side panel — progress + tools */
+  .qc-side-stat {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+  }
+  .qc-side-stat:last-child { margin-bottom: 0; }
+  .qc-side-stat .qc-stat-label {
+    font-size: 12px; color: var(--ink-dim); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .qc-side-stat .qc-stat-value {
+    font-size: 18px; font-weight: 700; color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .qc-side-stat.is-on-target .qc-stat-value { color: var(--ink); }
+  .qc-side-stat.is-under .qc-stat-value { color: var(--brand-primary, #b7925a); }
+  .qc-side-stat.is-over .qc-stat-value { color: var(--rose); }
+  .qc-side-stat .qc-stat-target {
+    font-size: 12px; color: var(--ink-muted);
+    margin-left: 4px; font-weight: 500;
+  }
+
+  /* Empty-state for the question list */
+  .qc-empty {
+    padding: 28px 20px;
+    text-align: center;
+    background: var(--cream-2);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink-dim);
+  }
+  .qc-empty .qc-empty-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: var(--paper);
+    color: var(--brand-primary, #b7925a);
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  .qc-empty .qc-empty-title { font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+  .qc-empty .qc-empty-help { font-size: 12.5px; }
+  /* Hide the empty state once at least one card has been added */
+  #question-cards:not(:empty) + .qc-empty { display: none; }
+
+  /* Centered add-question button */
+  .qc-add-row { display: flex; justify-content: center; margin-top: 14px; }
+
+  /* Import modal — light overrides so it reads against the palette */
+  #importModal .modal-content {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  #importModal .modal-header,
+  #importModal .modal-footer { border-color: var(--border); }
+  #importModal .modal-title { color: var(--ink); font-weight: 600; }
+
+  /* ─────────────────────────────────────────────────────────────────
+     Question cards (rendered by question-cards.js).
+     The JS emits Bootstrap markup — .card / .card-header / .form-control
+     / .btn-outline-* / .alert-info — so we restyle them here, scoped to
+     #question-cards, to match the operations palette instead of vanilla
+     Bootstrap defaults.
+     ───────────────────────────────────────────────────────────────── */
+  #question-cards .card.qc-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  #question-cards .card.qc-card + .card.qc-card { margin-top: 14px; }
+
+  /* Inline validation banner inside an offending question card. */
+  .qc-card-error {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin: 14px 14px 0 !important;
+    padding: 12px 16px !important;
+    border-radius: 10px !important;
+    background: rgba(231, 76, 60, 0.14) !important;
+    border: 1.5px solid #e74c3c !important;
+    color: #b3261e !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    line-height: 1.4 !important;
+  }
+  .qc-card-error > i {
+    flex: 0 0 auto !important;
+    font-size: 17px !important;
+    color: #e74c3c !important;
+  }
+  body[data-theme="dark"] .qc-card-error {
+    background: rgba(255, 107, 107, 0.22) !important;
+    border-color: #ff8a82 !important;
+    color: #ffe0db !important;
+  }
+  body[data-theme="dark"] .qc-card-error > i {
+    color: #ff8a82 !important;
+  }
+
+  /* Full red border + glow on the invalid question card. */
+  .qc-card-invalid {
+    border: 2px solid #e74c3c !important;
+    box-shadow: 0 0 0 4px rgba(231, 76, 60, 0.18) !important;
+  }
+  body[data-theme="dark"] .qc-card-invalid {
+    border-color: #ff8a82 !important;
+    box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.24) !important;
+  }
+
+  /* Empty-state validation when the user clicks save with no questions. */
+  .qc-empty.qc-empty-invalid {
+    border: 2px dashed #e74c3c !important;
+    background: rgba(231, 76, 60, 0.10) !important;
+    color: #b3261e !important;
+    font-weight: 600 !important;
+  }
+  body[data-theme="dark"] .qc-empty.qc-empty-invalid {
+    border-color: #ff8a82 !important;
+    background: rgba(255, 107, 107, 0.18) !important;
+    color: #ffe0db !important;
+  }
+
+  /* Header (drag handle, Q number, type select, points, actions) */
+  #question-cards .card-header {
+    background: var(--cream-2) !important;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px !important;
+    gap: 10px !important;
+    flex-wrap: wrap !important;
+    row-gap: 8px !important;
+  }
+  /* Override the inline `style.width = "220px"` set by question-cards.js so
+     the type select shrinks gracefully on narrow screens. */
+  #question-cards .qc-type-wrap {
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+  #question-cards .qc-type-select.form-select {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  /* Same for the inline `style.width = "78px"` on the points input. */
+  #question-cards .qc-points-wrap {
+    flex: 0 0 auto;
+  }
+  #question-cards .qc-points-wrap .points-input.form-control {
+    width: 78px !important;
+    max-width: 100% !important;
+  }
+  /* Actions (duplicate / delete) keep right-alignment but allow wrapping. */
+  #question-cards .card-header .ms-auto {
+    margin-left: auto !important;
+    flex: 0 0 auto;
+  }
+  #question-cards .qc-grip {
+    color: var(--ink-muted);
+    cursor: grab;
+    padding: 4px 2px;
+    transition: color 0.15s;
+  }
+  #question-cards .qc-grip:hover { color: var(--ink); }
+  #question-cards .qc-num.q-number {
+    display: inline-flex; align-items: center;
+    height: 28px;
+    padding: 0 12px;
+    background: var(--brand-primary, #1b4332);
+    color: var(--cream);
+    border-radius: 100px;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  #question-cards .qc-type-select.form-select,
+  #question-cards .points-input.form-control {
+    background: var(--paper) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--ink) !important;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    height: auto !important;
+    min-height: 36px;
+    box-shadow: none !important;
+  }
+  #question-cards .qc-type-select.form-select:focus,
+  #question-cards .points-input.form-control:focus {
+    border-color: var(--brand-primary, #1b4332) !important;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+  }
+  #question-cards .qc-points-wrap .small.text-600 {
+    color: var(--ink-dim);
+    font-size: 12px;
+  }
+  /* Header buttons (duplicate / delete) */
+  #question-cards .card-header .btn-outline-secondary,
+  #question-cards .card-header .btn-outline-danger {
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--paper);
+    color: var(--ink-dim);
+    padding: 6px 10px;
+    transition: all 0.15s;
+  }
+  #question-cards .card-header .btn-outline-secondary:hover {
+    border-color: var(--brand-primary, #1b4332);
+    color: var(--ink);
+    background: var(--cream);
+  }
+  #question-cards .card-header .btn-outline-danger {
+    color: var(--rose);
+    border-color: rgba(192, 132, 121, 0.35);
+  }
+  #question-cards .card-header .btn-outline-danger:hover {
+    background: var(--rose-soft, rgba(192, 132, 121, 0.18));
+    border-color: var(--rose);
+    color: var(--rose);
+  }
+
+  /* Body */
+  #question-cards .card-body {
+    background: var(--paper);
+    padding: 18px 20px !important;
+  }
+  /* Section labels inside cards (Question / Choices / etc.) */
+  #question-cards .form-label.text-uppercase {
+    color: var(--brand-primary, #b7925a) !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.14em !important;
+    font-weight: 700 !important;
+    margin-bottom: 8px !important;
+  }
+  /* All inputs / selects / textareas inside the card body */
+  #question-cards .card-body .form-control,
+  #question-cards .card-body .form-select,
+  #question-cards .card-body textarea.form-control,
+  #question-cards .card-body input.form-control {
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    padding: 10px 14px;
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  #question-cards .card-body .form-control:focus,
+  #question-cards .card-body .form-select:focus,
+  #question-cards .card-body textarea.form-control:focus {
+    outline: none;
+    border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  #question-cards .card-body textarea.form-control { min-height: 80px; resize: vertical; }
+  /* Smaller controls in nested rows (choice rows, rubric rows, matching) */
+  #question-cards .form-control.form-control-sm,
+  #question-cards .form-select.form-select-sm {
+    padding: 7px 10px !important;
+    font-size: 13px !important;
+    min-height: 34px;
+  }
+  #question-cards .is-invalid {
+    border-color: var(--rose) !important;
+    box-shadow: 0 0 0 3px rgba(192, 132, 121, 0.15) !important;
+  }
+
+  /* Multiple-choice rows.
+     The card has 6 children in this order: radio, text input, file input,
+     image thumb, "Correct" flag, remove button. Lay them out on a single
+     row that wraps tightly on narrow screens. */
+  #question-cards .mc-choices { display: flex; flex-direction: column; gap: 8px; }
+  #question-cards .qc-choice.choice-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  #question-cards .qc-choice.choice-row.is-correct {
+    background: var(--brand-primary-soft);
+    border-color: var(--brand-primary-soft);
+  }
+  @media (max-width: 720px) {
+    #question-cards .qc-choice.choice-row {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-auto-flow: row;
+    }
+  }
+  #question-cards .qc-choice-radio { accent-color: var(--ink); width: 18px; height: 18px; }
+
+  /* The text input for a choice does NOT have .form-control — style it
+     explicitly so it matches the rest of the form. */
+  #question-cards .qc-choice-text,
+  #question-cards .qc-choice-text.choice-text {
+    width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.4;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  #question-cards .qc-choice-text:focus {
+    outline: none;
+    border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+
+  /* Per-choice image upload — constrain width so the picker doesn't dominate
+     the row, and tone its text down. */
+  #question-cards .qc-choice-file.form-control,
+  #question-cards .qc-choice-file.form-control.form-control-sm {
+    width: 170px;
+    padding: 0 !important;
+    font-size: 12px !important;
+    min-height: 32px;
+    background: var(--paper) !important;
+    color: var(--ink-dim) !important;
+    overflow: hidden;
+  }
+  /* Hide the thumb's empty box when no image is uploaded (handled by the
+     inline style display:none, but tone it when shown). */
+  #question-cards .qc-choice-thumb {
+    max-height: 32px; max-width: 56px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    object-fit: cover;
+  }
+  /* "Correct" flag is only visually meaningful when the row is the chosen
+     answer — show only on .is-correct rows. */
+  #question-cards .qc-correct-flag {
+    display: none;
+    align-items: center; gap: 4px;
+    padding: 3px 10px;
+    background: var(--brand-primary, #1b4332);
+    color: var(--cream);
+    border-radius: 100px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  #question-cards .qc-choice.is-correct .qc-correct-flag { display: inline-flex; }
+  /* Add-choice link */
+  #question-cards .link-primary {
+    color: var(--ink) !important;
+    font-weight: 600;
+    padding: 6px 0;
+  }
+  #question-cards .link-primary:hover { color: var(--brand-primary, #b7925a) !important; }
+
+  /* True / False toggle group. The JS toggles .is-correct on the option
+     label whose radio is checked (refreshStates()), so we drive the active
+     visual from that class — works in older browsers without :has(). */
+  #question-cards .qc-tf.tf-toggle {
+    display: inline-flex;
+    gap: 0;
+    background: var(--cream-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    padding: 4px;
+  }
+  #question-cards .qc-tf-opt {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 18px;
+    border-radius: 100px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    transition: all 0.15s;
+    margin: 0;
+  }
+  #question-cards .qc-tf-opt input { display: none; }
+  #question-cards .qc-tf-opt:hover { color: var(--ink); }
+  #question-cards .qc-tf-opt.is-correct {
+    background: var(--brand-primary, #1b4332);
+    color: var(--cream);
+  }
+  #question-cards .qc-tf-opt.is-correct .qc-tf-icon { color: var(--cream); }
+  #question-cards .qc-tf-icon { font-size: 14px; }
+
+  /* Fill-in-the-blank */
+  #question-cards .fitb-answer.form-control { font-family: var(--body); }
+
+  /* Matching rows */
+  #question-cards .matching-pairs,
+  #question-cards .matching-distractors {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 6px;
+  }
+  #question-cards .qc-pair-row.matching-pair-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  #question-cards .qc-distractor-row.distractor-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  #question-cards .qc-arrow {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--brand-primary, #b7925a);
+    font-size: 11px;
+    border: 1px solid var(--border);
+  }
+  /* Override the 'auto' flex from inline style:flex on matching inputs so
+     they collapse into the grid track rather than fighting it. */
+  #question-cards .matching-left.form-control,
+  #question-cards .matching-right.form-control,
+  #question-cards .extra-right.form-control {
+    background: var(--paper) !important;
+    flex: unset !important;
+    width: 100% !important;
+  }
+
+  /* Calculated numeric preview */
+  #question-cards .calc-preview {
+    background: var(--cream-2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--ink-dim);
+    font-family: ui-monospace, SFMono-Regular, monospace;
+  }
+
+  /* Rubric rows */
+  #question-cards .rubric-rows { display: flex; flex-direction: column; gap: 8px; }
+  #question-cards .qc-pair-row.rubric-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  #question-cards .qc-pair-row.rubric-row > div:first-child {
+    /* The JS wraps the <select> in a div with inline flex:1 1 200px; reset
+       so it occupies the grid track cleanly. */
+    flex: unset !important;
+    width: 100%;
+  }
+  #question-cards .rubric-points-input.form-control {
+    width: 90px !important;
+    text-align: right;
+  }
+  #question-cards .rubric-total-display {
+    color: var(--ink);
+    font-weight: 600;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  #question-cards .rubric-total-display.text-success { color: var(--ink) !important; }
+  #question-cards .rubric-total-display.text-danger  { color: var(--rose) !important; }
+
+  /* Info / warning notes */
+  #question-cards .alert {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    font-size: 12.5px;
+    margin-bottom: 14px;
+  }
+  #question-cards .alert-info {
+    background: var(--brand-primary-soft);
+    color: var(--ink);
+    border-color: var(--brand-primary-soft);
+  }
+  #question-cards .alert-warning {
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 32%, transparent);
+  }
+
+  /* Footer (type-help note) */
+  #question-cards .card-footer {
+    background: var(--cream) !important;
+    border-top: 1px solid var(--border);
+    padding: 10px 16px !important;
+  }
+  #question-cards .card-footer .small.text-600,
+  #question-cards .qc-type-note,
+  #question-cards .qc-type-note-text {
+    color: var(--ink-dim) !important;
+    font-size: 12px;
+  }
+  #question-cards .qc-type-note i { color: var(--brand-primary, #b7925a); }
+
+  /* Re-hide our standalone empty state once cards are present
+     (question-cards.js also injects its own .qc-empty inside the container) */
+  #question-cards:not(:empty) + .qc-empty { display: none !important; }
+
+  /* ─── File inputs — themed "Browse" button ───────────────────────────
+     The native <input type="file"> renders an unstyled OS button. Style
+     its ::file-selector-button pseudo so it reads as a gold pill that
+     matches the rest of the form, and tone the trailing filename text. */
+  #question-cards input[type="file"],
+  #importModal input[type="file"] {
+    cursor: pointer;
+  }
+  #question-cards input[type="file"]::file-selector-button,
+  #question-cards input[type="file"]::-webkit-file-upload-button,
+  #importModal input[type="file"]::file-selector-button,
+  #importModal input[type="file"]::-webkit-file-upload-button {
+    appearance: none;
+    -webkit-appearance: none;
+    margin: 0 12px 0 0;
+    padding: 8px 14px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 32%, transparent);
+    border-right: 1px solid var(--border);
+    border-radius: 0;
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  #question-cards input[type="file"]:hover::file-selector-button,
+  #question-cards input[type="file"]:hover::-webkit-file-upload-button,
+  #importModal input[type="file"]:hover::file-selector-button,
+  #importModal input[type="file"]:hover::-webkit-file-upload-button {
+    background: var(--brand-primary, #b7925a);
+    color: var(--cream);
+  }
+
+  /* Compact variant for the per-choice image picker (narrow, inline). */
+  #question-cards .qc-choice-file::file-selector-button,
+  #question-cards .qc-choice-file::-webkit-file-upload-button {
+    margin: 0 8px 0 0;
+    padding: 6px 10px;
+    font-size: 11.5px;
+    border-radius: 0;
+  }
+
+  /* Choice/instruction-file filename text colour after a file is picked */
+  #question-cards input[type="file"] { color: var(--ink-dim) !important; }
+
+  /* The standalone instruction-file row label + status helper text */
+  #question-cards .instr-file-row { padding: 12px 14px; background: var(--cream-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  #question-cards .instr-file-status.small { font-size: 12px !important; padding-top: 2px; }
+  #question-cards .instr-file-status.text-success { color: var(--ink) !important; }
+  #question-cards .instr-file-status.text-danger  { color: var(--rose) !important; }
+
+  /* Import-modal file picker — full-width with the same themed button */
+  #importModal input[type="file"].form-control {
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink-dim);
+    padding: 0;
+    overflow: hidden;
+    height: 40px;
+    line-height: 40px;
+  }
+
+  /* SweetAlert confirm dialog — themed to operations palette (forest/cream/gold). */
+  .qc-swal-popup {
+    background: var(--paper) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: 0 24px 60px -20px var(--brand-primary-soft) !important;
+    font-family: var(--body) !important;
+  }
+  .qc-swal-title {
+    color: var(--ink) !important;
+    font-family: var(--display, var(--body)) !important;
+    font-weight: 700 !important;
+    font-size: 20px !important;
+  }
+  .qc-swal-text {
+    color: var(--ink-dim) !important;
+    font-size: 13.5px !important;
+  }
+  .qc-swal-confirm,
+  .qc-swal-cancel {
+    border-radius: 100px !important;
+    padding: 10px 22px !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    letter-spacing: 0.02em !important;
+    box-shadow: none !important;
+  }
+  .qc-swal-confirm {
+    background: var(--brand-primary, #1b4332) !important;
+    color: var(--cream) !important;
+  }
+  .qc-swal-confirm:focus { box-shadow: 0 0 0 3px var(--brand-primary-soft) !important; }
+  .qc-swal-cancel {
+    background: var(--paper) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--border-strong) !important;
+  }
+  .qc-swal-cancel:focus { box-shadow: 0 0 0 3px rgba(192, 132, 121, 0.18) !important; }
+
+  /* ─────────────────────────────────────────────────────────────────
+     Responsive — main column gets narrow when the side panel is showing
+     (form-grid is 1.7fr / 1fr until 1100px). At those widths the question
+     card internals (choice rows, matching pairs, rubric rows) need to
+     collapse earlier than the default 720px breakpoint.
+     ───────────────────────────────────────────────────────────────── */
+  @media (max-width: 1100px) {
+    .qc-picker-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  }
+  @media (max-width: 960px) {
+    #question-cards .card-body { padding: 14px 14px !important; }
+    #question-cards .qc-choice.choice-row {
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      grid-auto-flow: row;
+    }
+    #question-cards .qc-choice-file.form-control {
+      width: 100%;
+      grid-column: 1 / -1;
+    }
+    #question-cards .qc-pair-row.matching-pair-row {
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      grid-auto-flow: row;
+    }
+    #question-cards .qc-pair-row.matching-pair-row > .qc-row-remove,
+    #question-cards .qc-pair-row.matching-pair-row > [data-remove] {
+      grid-column: 1 / -1;
+      justify-self: end;
+    }
+    #question-cards .qc-pair-row.rubric-row {
+      grid-template-columns: minmax(0, 1fr) auto auto;
+    }
+  }
+  @media (max-width: 720px) {
+    .qc-picker-grid,
+    .qc-picker-grid.is-manual { grid-template-columns: 1fr; }
+    #question-cards .card-header { padding: 10px 12px !important; }
+    #question-cards .qc-type-wrap { flex: 1 1 100%; order: 4; }
+    #question-cards .qc-points-wrap { order: 3; }
+    #question-cards .card-header .ms-auto { order: 5; margin-left: auto !important; }
+    #question-cards .card-body { padding: 12px !important; }
+    #question-cards .qc-choice.choice-row {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+    #question-cards .qc-pair-row.rubric-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    #question-cards .rubric-points-input.form-control { width: 76px !important; }
+    .activity-shell { padding-left: 14px; padding-right: 14px; }
+  }
+  @media (max-width: 480px) {
+    #question-cards .qc-tf.tf-toggle { width: 100%; justify-content: stretch; }
+    #question-cards .qc-tf-opt { flex: 1; justify-content: center; padding: 8px 10px; }
+    #question-cards .qc-choice-file.form-control { width: 100%; }
+    .qc-side-stat { padding: 8px 10px; }
+    .qc-side-stat .qc-stat-value { font-size: 16px; }
+  }

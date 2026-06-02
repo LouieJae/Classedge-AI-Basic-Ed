@@ -1,0 +1,978 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% comment %}[Classedge LMS] Time Keeper dashboard — teacher-attendance-first operations view.{% endcomment %}
+
+{% block title %}Time Keeper{% endblock %}
+
+{% block content %}
+  {% include "includes/_list_page_theme.html" %}
+
+  <style>
+    .cl-page.tk-page {
+      --gap-row: 20px;
+      --gap-col: 20px;
+      --gap-tile: 14px;
+      --pad-card: 22px 24px;
+    }
+    .cl-page.tk-page .cl-card { margin-bottom: var(--gap-row); }
+    .cl-page.tk-page .cl-card .cl-card-body { padding: var(--pad-card); }
+    .cl-page.tk-page .cl-card .cl-card-body.flush { padding: 0; }
+    .cl-page.tk-page .cl-header { margin-bottom: 24px; }
+
+    /* ── Header band ───────────────────────────────────────── */
+    .tk-role-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+    .tk-role-tag i { color: var(--brand-primary, #b7925a); font-size: 11px; }
+    .tk-asof {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-dim);
+      letter-spacing: 0.02em;
+    }
+    .tk-asof::before {
+      content: ""; width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--brand-primary, #1b4332);
+      box-shadow: 0 0 0 4px var(--brand-primary-soft);
+      animation: tk-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes tk-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+    /* ── KPI tiles ─────────────────────────────────────────── */
+    .tk-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--gap-tile);
+      margin-bottom: var(--gap-row);
+    }
+    @media (max-width: 1100px) { .tk-kpis { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px)  { .tk-kpis { grid-template-columns: 1fr; } }
+
+    .tk-kpi {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 22px 20px;
+      box-shadow: var(--shadow);
+      position: relative;
+      transition: border-color .18s ease, box-shadow .18s ease;
+      display: flex; flex-direction: column;
+    }
+    .tk-kpi:hover {
+      border-color: var(--border-strong);
+      box-shadow: 0 8px 24px -16px rgba(45, 49, 66, 0.18);
+    }
+    .tk-kpi-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .tk-kpi-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      line-height: 1.2;
+    }
+    .tk-kpi-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--cream-2);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 12px; flex-shrink: 0;
+    }
+    .tk-kpi.ok    .tk-kpi-icon { background: var(--brand-primary-soft); color: var(--ink); }
+    .tk-kpi.warn  .tk-kpi-icon { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); }
+    .tk-kpi.live  .tk-kpi-icon { background: rgba(192, 57, 43, 0.12); color: #c0392b; position: relative; }
+    .tk-kpi.live  .tk-kpi-icon::after {
+      content: "";
+      position: absolute; top: -2px; right: -2px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #c0392b;
+      box-shadow: 0 0 0 3px var(--paper);
+      animation: tk-live-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes tk-live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .tk-kpi-value {
+      font-family: var(--display);
+      font-size: 32px; font-weight: 600;
+      color: var(--ink);
+      line-height: 1;
+      letter-spacing: -0.025em;
+      font-variant-numeric: tabular-nums;
+    }
+    .tk-kpi-foot {
+      margin-top: 12px;
+      font-size: 11.5px; color: var(--ink-muted);
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    /* ── Attention strip ───────────────────────────────────── */
+    .tk-attn {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--brand-primary, #1b4332);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin-bottom: var(--gap-row);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .tk-attn.is-warn { border-top-color: var(--brand-primary, #b7925a); }
+    .tk-attn::before {
+      content: "";
+      position: absolute; top: -120px; right: -100px;
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, var(--brand-primary-soft), transparent 65%);
+      pointer-events: none;
+    }
+    .tk-attn.is-warn::before { background: radial-gradient(circle, rgba(183, 146, 90, 0.14), transparent 65%); }
+    .tk-attn-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .tk-attn-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      text-transform: uppercase; letter-spacing: 0.16em;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink);
+    }
+    .tk-attn.is-warn .tk-attn-eyebrow { color: var(--brand-primary, #b7925a); }
+    .tk-attn-title {
+      font-family: var(--display);
+      font-size: 20px; font-weight: 600;
+      color: var(--ink);
+      margin: 4px 0 0;
+      letter-spacing: -0.015em;
+    }
+    .tk-attn-title em { font-style: italic; color: var(--brand-primary, #b7925a); font-weight: 500; }
+    .tk-attn-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 10px;
+      position: relative;
+    }
+    .tk-attn-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--brand-primary, #b7925a);
+      border-radius: var(--radius-sm);
+    }
+    .tk-attn-ico {
+      width: 32px; height: 32px;
+      border-radius: 10px;
+      background: var(--brand-primary-soft);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 12.5px;
+      flex-shrink: 0;
+    }
+    .tk-attn-body { min-width: 0; flex: 1; line-height: 1.35; }
+    .tk-attn-label {
+      font-family: var(--display);
+      font-size: 14px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+      display: block;
+    }
+    .tk-attn-detail { font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; }
+    .tk-attn-clear {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 18px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--brand-primary, #1b4332);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      font-family: var(--display);
+      font-size: 14px;
+    }
+    .tk-attn-clear i {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      display: grid; place-items: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .tk-attn-clear strong { font-weight: 600; color: var(--ink); }
+    .tk-attn-clear .sub { display: block; font-size: 12px; color: var(--ink-dim); margin-top: 2px; font-style: italic; }
+
+    /* ── Two-col grid ──────────────────────────────────────── */
+    .tk-two {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: var(--gap-col);
+      margin-bottom: var(--gap-row);
+      align-items: stretch;     /* explicit — both columns reach the same bottom */
+    }
+    @media (max-width: 1100px) { .tk-two { grid-template-columns: 1fr; } }
+
+    /* Each column fills the grid row height end-to-end. The left card and
+       the right column both terminate at the same y so their bottom edges
+       line up. */
+    .tk-two > * {
+      display: flex; flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+    .tk-two .cl-card {
+      margin-bottom: 0;
+      display: flex; flex-direction: column;
+      height: 100%;
+    }
+    .tk-two .cl-card .cl-card-body {
+      flex: 1 1 auto; min-height: 0;
+      display: flex; flex-direction: column;
+    }
+    /* Right column: top card hugs its content; bottom card stretches so its
+       bottom aligns with the left card. */
+    .tk-side { gap: var(--gap-row); }
+    .tk-side > .cl-card:first-child { flex: 0 0 auto; height: auto; }
+    .tk-side > .cl-card:last-child  { flex: 1 1 auto; height: auto; }
+    /* Empty states center themselves vertically when the card body has
+       extra height — prevents the "floating message" look on otherwise
+       blank cards. */
+    .tk-two .cl-card .cl-card-body > .tk-empty {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+
+    /* ── Card heads ────────────────────────────────────────── */
+    .tk-card-head {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 10px; flex-wrap: wrap;
+    }
+    .tk-card-title {
+      font-family: var(--display);
+      font-size: 16px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+    .tk-card-title em { color: var(--brand-primary, #b7925a); font-style: italic; font-weight: 500; }
+    .tk-card-sub {
+      font-size: 12px;
+      color: var(--ink-dim);
+      margin-top: 2px;
+    }
+    .tk-card-link {
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-dim);
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 5px;
+      align-self: center;
+    }
+    .tk-card-link i { font-size: 9px; }
+    .tk-card-link:hover { color: var(--ink); text-decoration: none; }
+
+    /* ── Active-now ribbon ─────────────────────────────────── */
+    .tk-active-ribbon {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px;
+      background: linear-gradient(90deg, rgba(192, 57, 43, 0.10), transparent 80%);
+      border-bottom: 1px solid var(--border);
+    }
+    .tk-live-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #c0392b;
+      box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18);
+      animation: tk-live-pulse 1.6s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    .tk-active-text {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .tk-active-text strong { font-weight: 700; color: #8a261a; }
+    .tk-active-list {
+      display: flex; flex-direction: column;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .tk-active-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tk-active-row:last-child { border-bottom: none; }
+    .tk-active-row .who {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
+    }
+    .tk-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      display: grid; place-items: center;
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 11.5px;
+      flex-shrink: 0;
+      border: 1px solid var(--brand-primary-soft);
+    }
+    .tk-name {
+      font-family: var(--display);
+      font-weight: 600; color: var(--ink);
+      font-size: 13.5px;
+      letter-spacing: -0.005em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tk-active-row .subj {
+      color: var(--ink-dim);
+      font-size: 12.5px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tk-time-since {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      background: rgba(192, 57, 43, 0.12);
+      color: #8a261a;
+      font-size: 11px; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .tk-time-since::before {
+      content: ""; width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #c0392b;
+      box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.2);
+    }
+    .tk-started {
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    /* ── Roster table ──────────────────────────────────────── */
+    .tk-roster {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .tk-roster thead th {
+      text-align: left;
+      padding: 12px 22px;
+      font-size: 10.5px; font-weight: 700;
+      color: var(--ink-muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      border-bottom: 1px solid var(--border);
+      background: var(--cream-2);
+    }
+    .tk-roster thead th.right { text-align: right; }
+    .tk-roster tbody td {
+      padding: 12px 22px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--ink);
+      vertical-align: middle;
+    }
+    .tk-roster tbody tr:hover td { background: var(--cream); }
+    .tk-roster tbody tr:last-child td { border-bottom: none; }
+    .tk-roster td.right { text-align: right; }
+    .tk-roster .teacher-cell {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .tk-time-range {
+      font-variant-numeric: tabular-nums;
+      color: var(--ink-dim);
+      font-size: 12.5px;
+      white-space: nowrap;
+    }
+    .tk-time-range .sep { color: var(--ink-muted); margin: 0 4px; }
+    .tk-duration {
+      font-family: var(--display);
+      font-weight: 600; color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .tk-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 10.5px; font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: var(--cream-2); color: var(--ink-dim);
+    }
+    .tk-pill::before {
+      content: ""; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--ink-muted);
+    }
+    .tk-pill.ok::before   { background: var(--brand-primary, #1b4332); }
+    .tk-pill.ok           { background: var(--brand-primary-soft); color: var(--ink); }
+    .tk-pill.warn::before { background: var(--brand-primary, #b7925a); }
+    .tk-pill.warn         { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); }
+    .tk-pill.live         { background: rgba(192, 57, 43, 0.12); color: #8a261a; }
+    .tk-pill.live::before {
+      background: #c0392b;
+      animation: tk-live-pulse 1.6s ease-in-out infinite;
+    }
+
+    /* ── Top teachers bars ─────────────────────────────────── */
+    .tk-bars { display: flex; flex-direction: column; gap: 12px; }
+    .tk-bar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2px 12px;
+    }
+    .tk-bar .name {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      min-width: 0;
+    }
+    .tk-bar .hrs {
+      font-family: var(--display);
+      font-size: 13px; font-weight: 600;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+    .tk-bar .meta {
+      font-size: 11px;
+      color: var(--ink-muted);
+      grid-column: 1 / -1;
+      margin-bottom: 4px;
+    }
+    .tk-bar .track {
+      grid-column: 1 / -1;
+      height: 6px;
+      background: var(--cream-2);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .tk-bar .fill {
+      height: 100%; border-radius: 100px;
+      background: linear-gradient(90deg, var(--ink), var(--brand-primary, #b7925a));
+      transition: width 0.4s ease;
+    }
+
+    /* ── Holidays sidebar ──────────────────────────────────── */
+    .tk-hol-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tk-hol-row:last-child { border-bottom: none; }
+    .tk-date-chip {
+      width: 46px;
+      flex-shrink: 0;
+      text-align: center;
+      padding: 6px 4px;
+      border-radius: 9px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+    }
+    .tk-date-chip .day {
+      font-family: var(--display);
+      font-size: 16px; font-weight: 600;
+      color: var(--ink);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .tk-date-chip .mon {
+      display: block;
+      font-size: 9.5px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 3px;
+    }
+    .tk-hol-body { flex: 1; min-width: 0; }
+    .tk-hol-title {
+      font-family: var(--display);
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 13.5px;
+      line-height: 1.25;
+      letter-spacing: -0.005em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tk-hol-meta {
+      font-size: 11px;
+      color: var(--ink-muted);
+      margin-top: 2px;
+    }
+    .tk-hol-when {
+      flex-shrink: 0;
+      padding: 3px 9px;
+      border-radius: 100px;
+      background: var(--cream-2);
+      color: var(--ink-dim);
+      font-size: 10.5px; font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    /* ── Term progress mini ────────────────────────────────── */
+    .tk-term-mini { padding: 16px 22px; border-bottom: 1px solid var(--border); }
+    .tk-term-mini-label {
+      font-size: 10.5px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .tk-term-mini-title {
+      font-family: var(--display);
+      font-size: 15px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+    }
+    .tk-term-mini-bar {
+      height: 6px;
+      background: var(--cream-2);
+      border-radius: 100px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .tk-term-mini-bar > span {
+      display: block; height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--ink), var(--brand-primary, #b7925a));
+      transition: width 0.4s ease;
+    }
+    .tk-term-mini-foot {
+      font-size: 11px;
+      color: var(--ink-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Quick actions ─────────────────────────────────────── */
+    .tk-quick { display: flex; flex-wrap: wrap; gap: 10px; }
+    .tk-quick-btn {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 11px 18px;
+      border-radius: 100px;
+      border: 1px solid var(--border-strong);
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 13px; font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tk-quick-btn i { color: var(--brand-primary, #b7925a); }
+    .tk-quick-btn:hover {
+      background: var(--cream-2);
+      border-color: var(--brand-primary, #b7925a);
+      color: var(--ink);
+      transform: translateY(-1px);
+      text-decoration: none;
+      box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--brand-primary, #b7925a) 35%, transparent);
+    }
+    .tk-quick-btn:hover i { color: var(--ink); }
+    .tk-quick-btn.primary {
+      background: var(--brand-primary, #1b4332);
+      border-color: var(--brand-primary, #1b4332);
+      color: var(--cream);
+    }
+    .tk-quick-btn.primary i { color: var(--brand-primary, #b7925a); }
+    .tk-quick-btn.primary:hover {
+      background: var(--brand-primary, #1b4332);
+      border-color: var(--brand-primary, #1b4332);
+      color: var(--cream);
+    }
+
+    /* ── Empty states ──────────────────────────────────────── */
+    .tk-empty {
+      padding: 36px 20px;
+      text-align: center;
+      color: var(--ink-dim);
+      font-family: var(--display);
+      font-style: italic;
+      font-size: 13px;
+    }
+    .tk-empty i {
+      display: block; font-size: 24px; color: var(--brand-primary, #b7925a);
+      margin-bottom: 8px; font-style: normal;
+    }
+
+    /* ── Responsive ────────────────────────────────────────── */
+    /* Tablet — 3-KPI columns no longer make sense; drop to 2 + tighten
+       attention strip a notch. */
+    @media (max-width: 1100px) {
+      .cl-page.tk-page .cl-header h2 { font-size: 28px; }
+      .tk-attn { padding: 20px 22px; }
+    }
+
+    /* Intermediate phone — keep 2 KPI cols, shrink hero, attention, kpi values. */
+    @media (max-width: 900px) {
+      .cl-page.tk-page { --gap-row: 16px; --gap-col: 16px; }
+      .cl-page.tk-page .cl-header { margin-bottom: 18px; }
+      .cl-page.tk-page .cl-header h2 { font-size: 26px; }
+      .cl-page.tk-page .cl-header p { font-size: 13px; }
+      .tk-role-tag { font-size: 10.5px; padding: 3px 9px; margin-bottom: 8px; }
+      .tk-asof { font-size: 11.5px; }
+      .tk-attn-title { font-size: 18px; }
+    }
+
+    /* Large phone — table starts trimming, active rows compact. */
+    @media (max-width: 720px) {
+      .cl-page.tk-page .cl-card .cl-card-body { padding: 18px 18px; }
+      .cl-page.tk-page .cl-header h2 { font-size: 23px; }
+      .tk-attn { padding: 18px 16px; }
+      .tk-attn-eyebrow { font-size: 10.5px; letter-spacing: 0.14em; }
+      .tk-attn-title { font-size: 17px; }
+      .tk-kpi { padding: 18px 18px 16px; }
+      .tk-kpi-value { font-size: 28px; }
+      .tk-kpi-label { font-size: 10.5px; }
+      .tk-active-ribbon { padding: 12px 16px; }
+      .tk-active-row { grid-template-columns: 1fr auto; gap: 10px; padding: 12px 16px; }
+      .tk-active-row .subj, .tk-active-row .tk-started { display: none; }
+      .tk-roster thead th, .tk-roster tbody td { padding: 10px 14px; font-size: 12.5px; }
+      .tk-roster .tk-time-range { font-size: 11.5px; }
+      .tk-card-head { padding: 14px 16px; }
+      .tk-card-title { font-size: 15px; }
+      .tk-hol-row { padding: 10px 16px; }
+      .tk-quick-btn { padding: 9px 14px; font-size: 12.5px; }
+    }
+
+    /* Phone — drop the Window column from roster; tighten cards further. */
+    @media (max-width: 480px) {
+      .cl-page.tk-page { --pad-card: 16px 18px; }
+      .cl-page.tk-page .cl-header h2 { font-size: 21px; }
+      .cl-page.tk-page .cl-header p { font-size: 12.5px; }
+      /* Move "As of" to its own line under the greeting so the header never
+         splits awkwardly with a wrapping h2 on one side and a chip on the other. */
+      .cl-page.tk-page .cl-header { gap: 8px; flex-direction: column; align-items: flex-start; }
+      .tk-attn { padding: 16px 14px; }
+      .tk-attn-grid { gap: 8px; }
+      .tk-attn-item { padding: 12px 13px; gap: 10px; }
+      .tk-attn-ico { width: 30px; height: 30px; }
+      .tk-kpi { padding: 16px 16px 14px; }
+      .tk-kpi-value { font-size: 26px; }
+      .tk-card-head { padding: 12px 14px; }
+      .tk-card-sub { font-size: 11.5px; }
+      .tk-card-link { font-size: 11.5px; }
+      .tk-active-row { padding: 11px 14px; }
+      .tk-avatar { width: 28px; height: 28px; font-size: 10.5px; }
+      .tk-name { font-size: 12.5px; }
+      .tk-time-since { font-size: 10px; padding: 3px 8px; }
+      /* Drop Subject + Window so only Teacher · Duration · Status survive on phones. */
+      .tk-roster thead th:nth-child(2), .tk-roster tbody td:nth-child(2),
+      .tk-roster thead th:nth-child(3), .tk-roster tbody td:nth-child(3) { display: none; }
+      .tk-roster thead th, .tk-roster tbody td { padding: 10px 14px; }
+      .tk-pill { font-size: 9.5px; padding: 2px 8px; }
+      .tk-hol-row { padding: 10px 14px; gap: 10px; }
+      .tk-date-chip { width: 42px; padding: 5px 4px; }
+      .tk-date-chip .day { font-size: 14px; }
+      .tk-date-chip .mon { font-size: 9px; }
+      .tk-hol-title { font-size: 13px; }
+      .tk-hol-when { font-size: 9.5px; padding: 2px 7px; }
+      .tk-term-mini { padding: 14px 16px; }
+      .tk-quick-btn { padding: 9px 13px; font-size: 12px; flex: 1 1 calc(50% - 5px); justify-content: center; }
+      .tk-quick-btn.primary { flex: 1 1 100%; }
+    }
+
+    /* Tiny phone — squeeze every column. */
+    @media (max-width: 360px) {
+      .cl-page.tk-page .cl-header h2 { font-size: 20px; }
+      .tk-kpi-value { font-size: 24px; }
+      .tk-attn-title { font-size: 16px; }
+      .tk-active-row { grid-template-columns: 1fr auto; gap: 8px; padding: 10px 12px; }
+      .tk-active-row .who { gap: 8px; }
+      .tk-avatar { width: 26px; height: 26px; font-size: 10px; }
+      .tk-roster thead th, .tk-roster tbody td { padding: 9px 12px; }
+      .tk-quick-btn { font-size: 11.5px; gap: 7px; }
+    }
+  </style>
+
+  <div class="cl-page tk-page">
+
+    <!-- Header -->
+    <div class="cl-header">
+      <div>
+        <span class="tk-role-tag"><i class="fas fa-stopwatch"></i> {{ role_tag }}</span>
+        <h2 style="margin-bottom: 4px;">
+          Good {{ time_of_day }}, <em>{{ request.user.first_name|default:request.user.username }}</em>
+        </h2>
+        <p style="margin: 0;">
+          Track the teaching day in real time — who's in class, who hasn't started, and how the school's time is being spent.
+        </p>
+      </div>
+      <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="cl-tour-replay" data-cl-tour="time-keeper-dashboard">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <div class="tk-asof">As of {{ as_of }}</div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="tk-kpis">
+      {% for k in kpis %}
+        <div class="tk-kpi {{ k.tone }}">
+          <div class="tk-kpi-head">
+            <div class="tk-kpi-label">{{ k.label }}</div>
+            <div class="tk-kpi-icon"><i class="fas {{ k.icon }}"></i></div>
+          </div>
+          <div class="tk-kpi-value">{{ k.value }}</div>
+          {% if k.sub %}<div class="tk-kpi-foot">{{ k.sub }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Needs your attention -->
+    <div class="tk-attn {% if attention_status == 'warn' %}is-warn{% endif %}">
+      <div class="tk-attn-head">
+        <div>
+          <div class="tk-attn-eyebrow">
+            <i class="fas {% if attention_status == 'warn' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+            {% if attention_status == 'warn' %}Needs your attention{% else %}All clear{% endif %}
+          </div>
+          <h3 class="tk-attn-title">
+            {% if attention_status == 'warn' %}
+              A few <em>teacher sessions</em> need a look
+            {% else %}
+              The teaching day is <em>on track</em>
+            {% endif %}
+          </h3>
+        </div>
+      </div>
+      {% if attention_items %}
+        <div class="tk-attn-grid">
+          {% for item in attention_items %}
+            <div class="tk-attn-item">
+              <div class="tk-attn-ico"><i class="fas {{ item.icon }}"></i></div>
+              <div class="tk-attn-body">
+                <span class="tk-attn-label">{{ item.label }}</span>
+                <div class="tk-attn-detail">{{ item.detail }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="tk-attn-clear">
+          <i class="fas fa-check"></i>
+          <div>
+            <strong>All sessions are accounted for.</strong>
+            <span class="sub">No active sessions running unusually long, no missed start times.</span>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Active right now -->
+    <div class="cl-card">
+      <div class="tk-card-head">
+        <div>
+          <h3 class="tk-card-title">Active <em>right now</em></h3>
+          <div class="tk-card-sub">Teachers currently in a class session.</div>
+        </div>
+        <a href="{% url 'teacher_attendance_list' %}" class="tk-card-link">
+          See all sessions <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+      <div class="cl-card-body flush">
+        {% if active_rows %}
+          <div class="tk-active-ribbon">
+            <span class="tk-live-dot" aria-hidden="true"></span>
+            <span class="tk-active-text">
+              <strong>{{ active_rows|length }}</strong> teacher{{ active_rows|length|pluralize }} live · combined sessions still running
+            </span>
+          </div>
+          <div class="tk-active-list">
+            {% for a in active_rows %}
+              <div class="tk-active-row">
+                <div class="who">
+                  <span class="tk-avatar">{{ a.teacher_name|slice:":2"|upper }}</span>
+                  <span class="tk-name">{{ a.teacher_name }}</span>
+                </div>
+                <div class="subj">{{ a.subject }}</div>
+                <span class="tk-started">started {{ a.started_at }}</span>
+                <span class="tk-time-since">{{ a.duration }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="tk-empty">
+            <i class="fas fa-pause-circle"></i>
+            No teacher is in class right now.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Two columns: Today's roster · Sidebar (hours + holidays + term) -->
+    <div class="tk-two">
+
+      <!-- Today's roster -->
+      <div class="cl-card">
+        <div class="tk-card-head">
+          <div>
+            <h3 class="tk-card-title">Today's <em>sessions</em></h3>
+            <div class="tk-card-sub">{{ sessions_completed_today }} done · {{ roster_rows|length }} shown</div>
+          </div>
+          <a href="{% url 'teacher_timesheet_report' %}" class="tk-card-link">
+            Timesheet report <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+        <div class="cl-card-body flush">
+          {% if roster_rows %}
+            <div style="overflow-x:auto;">
+              <table class="tk-roster">
+                <thead>
+                  <tr>
+                    <th>Teacher</th>
+                    <th>Subject</th>
+                    <th>Window</th>
+                    <th class="right">Duration</th>
+                    <th class="right">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for r in roster_rows %}
+                    <tr>
+                      <td>
+                        <div class="teacher-cell">
+                          <span class="tk-avatar">{{ r.teacher|slice:":2"|upper }}</span>
+                          <span class="tk-name">{{ r.teacher }}</span>
+                        </div>
+                      </td>
+                      <td>{{ r.subject }}</td>
+                      <td><span class="tk-time-range">{{ r.started }}{% if r.ended %}<span class="sep">→</span>{{ r.ended }}{% else %}<span class="sep">→</span>—{% endif %}</span></td>
+                      <td class="right"><span class="tk-duration">{{ r.duration }}</span></td>
+                      <td class="right"><span class="tk-pill {{ r.status_tone }}">{{ r.status }}</span></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="tk-empty">
+              <i class="fas fa-chalkboard"></i>
+              No teacher sessions recorded today yet.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Sidebar — top teachers + holidays + term -->
+      <div class="tk-side">
+
+        <!-- Top teachers this week -->
+        <div class="cl-card" style="margin-bottom: 0;">
+          <div class="tk-card-head">
+            <div>
+              <h3 class="tk-card-title">Most hours <em>this week</em></h3>
+              <div class="tk-card-sub">{{ week_start|date:"M j" }} – {{ week_end|date:"M j" }}</div>
+            </div>
+          </div>
+          <div class="cl-card-body">
+            {% if top_teachers_rows %}
+              <div class="tk-bars">
+                {% for t in top_teachers_rows %}
+                  <div class="tk-bar">
+                    <span class="name">{{ t.name }}</span>
+                    <span class="hrs">{{ t.hours_display }}</span>
+                    <span class="meta">{{ t.sessions }} session{{ t.sessions|pluralize }}</span>
+                    <div class="track"><div class="fill" style="width: {{ t.bar_pct }}%;"></div></div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="tk-empty">
+                <i class="fas fa-clock"></i>
+                No completed sessions this week yet.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Upcoming holidays + term progress -->
+        <div class="cl-card" style="margin-bottom: 0;">
+          {% if term_progress %}
+            <div class="tk-term-mini">
+              <div class="tk-term-mini-label">Current Semester · {{ term_progress.academic_year }}</div>
+              <h4 class="tk-term-mini-title">{{ term_progress.name }}</h4>
+              <div class="tk-term-mini-bar"><span style="width: {{ term_progress.pct }}%;"></span></div>
+              <div class="tk-term-mini-foot">{{ term_progress.pct }}% complete · {{ term_progress.days_left }} day{{ term_progress.days_left|pluralize }} left</div>
+            </div>
+          {% endif %}
+          <div class="tk-card-head" style="border-bottom: 0; padding-bottom: 0;">
+            <div>
+              <h3 class="tk-card-title">Upcoming <em>holidays</em></h3>
+              <div class="tk-card-sub">Days the school is closed.</div>
+            </div>
+          </div>
+          {% if holiday_rows %}
+            <div>
+              {% for h in holiday_rows %}
+                <div class="tk-hol-row">
+                  <div class="tk-date-chip">
+                    <div class="day">{{ h.date|date:"j" }}</div>
+                    <span class="mon">{{ h.date|date:"M" }}</span>
+                  </div>
+                  <div class="tk-hol-body">
+                    <div class="tk-hol-title">{{ h.title }}</div>
+                    <div class="tk-hol-meta">{{ h.date|date:"l" }} · {{ h.holiday_type }}</div>
+                  </div>
+                  <span class="tk-hol-when">{{ h.label }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="tk-empty">
+              <i class="fas fa-umbrella-beach"></i>
+              No upcoming holidays on file.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quick actions -->
+    <div class="cl-card">
+      <div class="tk-card-head" style="border-bottom: 1px solid var(--border);">
+        <div>
+          <h3 class="tk-card-title">Quick <em>actions</em></h3>
+          <div class="tk-card-sub">Jump straight to the screens you use most.</div>
+        </div>
+      </div>
+      <div class="cl-card-body">
+        <div class="tk-quick">
+          {% for a in quick_actions %}
+            <a href="{% url a.url %}" class="tk-quick-btn {% if a.primary %}primary{% endif %}">
+              <i class="fas {{ a.icon }}"></i> {{ a.label }}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="{% static 'js/tours/cl-tour-time-keeper-dashboard.js' %}" defer></script>
+{% endblock %}

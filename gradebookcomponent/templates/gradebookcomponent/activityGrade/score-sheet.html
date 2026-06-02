@@ -1,0 +1,272 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}{{ activity.activity_name }} · Score Sheet{% endblock %}
+
+{% block content %}
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="ss-shell">
+
+    <!-- Print-only masthead. Hidden on screen via .ss-print-only; the print
+         stylesheet shows it and the screen header/back button are hidden. -->
+    <div class="ss-print-only ss-print-masthead">
+      <div class="ss-print-school">{{ SCHOOL_NAME|default:'ClassEdge LMS' }}</div>
+      <div class="ss-print-doctype">Official Score Sheet</div>
+      <div class="ss-print-meta">
+        <div class="ss-print-meta-row">
+          <span class="ss-print-meta-label">Assessment</span>
+          <span class="ss-print-meta-value">{{ activity.activity_name }}</span>
+        </div>
+        {% if activity.subject %}
+        <div class="ss-print-meta-row">
+          <span class="ss-print-meta-label">Subject</span>
+          <span class="ss-print-meta-value">{{ activity.subject.subject_name|default:activity.subject }}</span>
+        </div>
+        {% endif %}
+        <div class="ss-print-meta-row">
+          <span class="ss-print-meta-label">Type</span>
+          <span class="ss-print-meta-value">{{ activity.activity_type.name|default:'Activity' }}</span>
+        </div>
+        {% if activity.end_time %}
+        <div class="ss-print-meta-row">
+          <span class="ss-print-meta-label">Due</span>
+          <span class="ss-print-meta-value">{{ activity.end_time|date:'F d, Y · h:i A' }}</span>
+        </div>
+        {% endif %}
+        <div class="ss-print-meta-row">
+          <span class="ss-print-meta-label">Max Score</span>
+          <span class="ss-print-meta-value">{{ activity.max_score|default:0|floatformat:'0' }} pts</span>
+        </div>
+        <div class="ss-print-meta-row">
+          <span class="ss-print-meta-label">Passing</span>
+          <span class="ss-print-meta-value">{{ passing_points|floatformat:'0' }}{% if activity.passing_score_type == 'percentage' %}%{% else %} pts{% endif %}</span>
+        </div>
+        <div class="ss-print-meta-row">
+          <span class="ss-print-meta-label">Teacher</span>
+          <span class="ss-print-meta-value">{{ request.user.get_full_name|default:request.user.username }}</span>
+        </div>
+        <div class="ss-print-meta-row">
+          <span class="ss-print-meta-label">Prepared</span>
+          <span class="ss-print-meta-value">{% now "F d, Y · h:i A" %}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="ss-header">
+      <div class="ss-header-left">
+        <a class="ss-back" href="{% url 'assessment-details' activity.local_id %}">
+          <i class="fas fa-arrow-left"></i> Back to assessment
+        </a>
+        <h1 class="ss-title">{{ activity.activity_name }}<em> · Score Sheet</em></h1>
+        <div class="ss-sub">
+          {% if activity.subject %}{{ activity.subject.subject_name|default:activity.subject }}{% else %}—{% endif %}
+          &middot; {{ activity.activity_type.name|default:'Activity' }}
+          {% if activity.end_time %} &middot; Due {{ activity.end_time|date:'M d, Y' }}{% endif %}
+        </div>
+      </div>
+      <div class="ss-header-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="score-sheet">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <button type="button" class="ss-btn-ghost" onclick="window.print()">
+          <i class="fas fa-print"></i> Print
+        </button>
+        <button type="button" class="ss-btn-primary" id="ssExportBtn">
+          <i class="fas fa-file-csv"></i> Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary stats -->
+    <section class="ss-stats">
+      <div class="ss-stat-card">
+        <div class="ss-stat-label">Max Score</div>
+        <div class="ss-stat-value">{{ activity.max_score|default:0|floatformat:'0' }}<span class="ss-stat-unit">pts</span></div>
+      </div>
+      <div class="ss-stat-card ss-stat-card--gold">
+        <div class="ss-stat-label">Passing Score</div>
+        <div class="ss-stat-value">
+          {{ passing_points|floatformat:'0' }}<span class="ss-stat-unit">{% if activity.passing_score_type == 'percentage' %}pts{% else %}pts{% endif %}</span>
+        </div>
+      </div>
+      <div class="ss-stat-card">
+        <div class="ss-stat-label">Students</div>
+        <div class="ss-stat-value" id="ssTotalStudents">{{ student_scores|length }}</div>
+      </div>
+      <div class="ss-stat-card">
+        <div class="ss-stat-label">Class Average</div>
+        <div class="ss-stat-value" id="ssClassAvg">—</div>
+      </div>
+      <div class="ss-stat-card">
+        <div class="ss-stat-label">Pass Rate</div>
+        <div class="ss-stat-value" id="ssPassRate">—</div>
+      </div>
+      <div class="ss-stat-card">
+        <div class="ss-stat-label">Submissions</div>
+        <div class="ss-stat-value" id="ssSubmitted">—</div>
+      </div>
+    </section>
+
+    <!-- Toolbar -->
+    <section class="ss-toolbar">
+      <div class="ss-toolbar-left">
+        <div class="ss-search">
+          <i class="fas fa-search"></i>
+          <input id="ssSearch" type="text" placeholder="Search student name or email" />
+        </div>
+        <div class="ss-filters" role="group" aria-label="Filter by status">
+          <button type="button" class="ss-chip is-active" data-filter="all">All</button>
+          <button type="button" class="ss-chip" data-filter="pass">Passed</button>
+          <button type="button" class="ss-chip" data-filter="fail">Failed</button>
+          <button type="button" class="ss-chip" data-filter="pending">Pending</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <div class="t-table-wrap">
+      <table class="ss-table" id="ssTable">
+        <colgroup>
+          <col class="col-no">
+          <col class="col-name">
+          <col class="col-status">
+          <col class="col-date">
+          <col class="col-raw">
+          <col class="col-pct">
+          <col class="col-grade">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="ss-th-no">#</th>
+            <th>Student</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th class="ss-center">Score</th>
+            <th class="ss-center">%</th>
+            <th class="ss-center">Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in student_scores %}
+            {% with score=entry.total_score|default:0 max=entry.max_score|default:1 passing=entry.passing_score_value|default:0 %}
+              <tr class="ss-row"
+                  data-name="{{ entry.student.first_name }} {{ entry.student.last_name }}"
+                  data-email="{{ entry.student.email|default:'' }}"
+                  data-score="{{ score }}"
+                  data-max="{{ max }}"
+                  data-passing="{{ passing }}"
+                  data-submitted="{% if entry.is_submitted %}1{% else %}0{% endif %}">
+                <td class="ss-td-no">{{ forloop.counter }}</td>
+                <td>
+                  <div class="ss-student">
+                    <div class="ss-avatar">
+                      <span>{{ entry.student.first_name|slice:':1'|upper }}{{ entry.student.last_name|slice:':1'|upper }}</span>
+                    </div>
+                    <div class="ss-student-text">
+                      <div class="ss-student-name">{{ entry.student.last_name }}, {{ entry.student.first_name }}</div>
+                      {% if entry.student.email %}
+                        <div class="ss-student-email">{{ entry.student.email }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  {% if activity.classroom_mode %}
+                    {% if entry.is_submitted %}
+                      <span class="t-badge t-badge--forest"><i class="fas fa-door-open"></i> In room</span>
+                    {% elif activity_ended %}
+                      <span class="t-badge t-badge--rose"><i class="fas fa-times-circle"></i> Missed</span>
+                    {% else %}
+                      <span class="t-badge t-badge--gold"><i class="fas fa-hourglass-half"></i> Pending</span>
+                    {% endif %}
+                  {% else %}
+                    {% if entry.is_submitted %}
+                      <span class="t-badge t-badge--forest"><i class="fas fa-check-circle"></i> Submitted</span>
+                    {% elif activity_ended %}
+                      <span class="t-badge t-badge--rose"><i class="fas fa-times-circle"></i> Missed</span>
+                    {% else %}
+                      <span class="t-badge t-badge--gold"><i class="fas fa-hourglass-half"></i> Pending</span>
+                    {% endif %}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if entry.submission_date %}
+                    <div class="ss-date">
+                      <span class="ss-date-d">{{ entry.submission_date|date:'M d, Y' }}</span>
+                      <span class="ss-date-t">{{ entry.submission_date|date:'h:i A' }}</span>
+                    </div>
+                  {% else %}
+                    <span class="ss-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="ss-center">
+                  <span class="ss-raw">
+                    <span class="ss-raw-score">{{ score|floatformat:'0' }}</span>
+                    <span class="ss-raw-sep">/</span>
+                    <span class="ss-raw-max">{{ max|floatformat:'0' }}</span>
+                  </span>
+                </td>
+                <td class="ss-center">
+                  <div class="ss-bar">
+                    <div class="ss-bar-fill" data-score="{{ score }}" data-max="{{ max }}" data-passing="{{ passing }}"></div>
+                    <span class="ss-bar-text">—</span>
+                  </div>
+                </td>
+                <td class="ss-center">
+                  <span class="ss-grade-pill" data-score="{{ score }}" data-passing="{{ passing }}" data-submitted="{% if entry.is_submitted %}1{% else %}0{% endif %}">—</span>
+                </td>
+              </tr>
+            {% endwith %}
+          {% empty %}
+            <tr class="ss-empty-row">
+              <td colspan="7">
+                <div class="ss-empty">
+                  <div class="ss-empty-ico"><i class="fas fa-inbox"></i></div>
+                  <div class="ss-empty-lead">No submissions yet</div>
+                  <div class="ss-empty-sub">Once students complete this activity, their scores will appear here.</div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="ss-empty-filter" id="ssEmptyFilter" hidden>
+        <div class="ss-empty-ico"><i class="fas fa-filter"></i></div>
+        <div class="ss-empty-sub">No students match the current filter.</div>
+      </div>
+    </div>
+
+    <!-- Print-only summary line + signatures. Hidden on screen. -->
+    <div class="ss-print-only ss-print-summary">
+      <div class="ss-print-summary-row">
+        <span><strong>Students:</strong> <span data-print-total>{{ student_scores|length }}</span></span>
+        <span><strong>Submissions:</strong> <span data-print-submitted>—</span></span>
+        <span><strong>Class Average:</strong> <span data-print-avg>—</span></span>
+        <span><strong>Pass Rate:</strong> <span data-print-passrate>—</span></span>
+      </div>
+    </div>
+
+    <div class="ss-print-only ss-print-signatures">
+      <div class="ss-print-sig">
+        <div class="ss-print-sig-line"></div>
+        <div class="ss-print-sig-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+        <div class="ss-print-sig-role">Prepared by · Subject Teacher</div>
+      </div>
+      <div class="ss-print-sig">
+        <div class="ss-print-sig-line"></div>
+        <div class="ss-print-sig-name">&nbsp;</div>
+        <div class="ss-print-sig-role">Verified by · Program Head / Dean</div>
+      </div>
+    </div>
+
+  </div>
+
+  <link rel="stylesheet" href="{% static 'gradebookcomponent/activityGrade/score-sheet.css' %}" />
+
+  <script src="{% static 'gradebookcomponent/activityGrade/score-sheet.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-score-sheet.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends is_student_role|yesno:'student_base.html,base_operation.html' %}
+{% load static %}
+{% block title %}Archive — Past Semesters{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'accounts/archive/archive_index.css' %}" />
+
+<div class="arc-shell">
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Course <em>Archive</em></h1>
+      <p class="page-sub">Browse courses you've completed in previous semesters. Scores, modules, and rosters stay frozen exactly as they were.</p>
+    </div>
+  </div>
+
+  {% if semester_groups %}
+    {% for group in semester_groups %}
+    <div class="arc-semester">
+      <div class="arc-semester-head">
+        <div class="arc-semester-icon"><i class="fas fa-calendar"></i></div>
+        <h2 class="arc-semester-title">{{ group.semester.semester_name|default:group.semester }}</h2>
+        <span class="arc-semester-dates">
+          {{ group.semester.start_date|date:"M Y" }} &ndash; {{ group.semester.end_date|date:"M Y" }}
+        </span>
+        <span class="arc-semester-count">{{ group.subjects|length }} subject{{ group.subjects|length|pluralize }}</span>
+      </div>
+      <div class="arc-grid">
+        {% for subject in group.subjects %}
+        <a class="arc-card" href="{% url 'archive-subject' subject.id group.semester.id %}">
+          <div class="arc-card-inner">
+            <div class="arc-card-icon"><i class="fas fa-book"></i></div>
+            <div class="arc-card-title">{{ subject.subject_name }}</div>
+            {% if subject.subject_code %}<div class="arc-card-code">{{ subject.subject_code }}</div>{% endif %}
+            <div class="arc-card-cta">Open archive <i class="fas fa-arrow-right"></i></div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="arc-empty">
+      <div class="arc-empty-icon"><i class="fas fa-box-archive"></i></div>
+      <div class="arc-empty-title">Nothing archived yet</div>
+      <div class="arc-empty-body">You have no past-semester courses yet. Completed terms will appear here.</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

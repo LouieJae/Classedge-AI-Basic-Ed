@@ -1,0 +1,295 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Grade · {{ sa.activity.activity_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gradebookcomponent/grade_submission.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="gs-shell">
+
+  <!-- Header -->
+  <div class="gs-header" style="position:relative;">
+    <a class="gs-back" href="{% url 'gradebook_queue' %}">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to queue
+    </a>
+
+    <div class="gs-title-row">
+      <div class="gs-avatar" aria-hidden="true">
+        {{ sa.student.first_name|slice:':1'|upper }}{{ sa.student.last_name|slice:':1'|upper }}
+      </div>
+      <div class="gs-title-block">
+        <h1 class="gs-title">{{ sa.student.last_name }}, <em>{{ sa.student.first_name }}</em></h1>
+        <div class="gs-sub">Grading {{ sa.activity.activity_name }} &middot; {{ sa.activity.subject.subject_name }}</div>
+      </div>
+    </div>
+
+    <button type="button" class="cl-tour-replay" data-cl-tour="grade-submission" style="position:absolute; top:0; right:0;">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <!-- Submission meta strip -->
+  <div class="gs-meta">
+    <div class="gs-meta-item">
+      <div class="gs-meta-icon"><i class="fas fa-book" aria-hidden="true"></i></div>
+      <div class="gs-meta-text">
+        <div class="gs-meta-label">Subject</div>
+        <div class="gs-meta-value">{{ sa.activity.subject.subject_name }}</div>
+      </div>
+    </div>
+    <div class="gs-meta-item">
+      <div class="gs-meta-icon"><i class="fas fa-clipboard-list" aria-hidden="true"></i></div>
+      <div class="gs-meta-text">
+        <div class="gs-meta-label">Activity type</div>
+        <div class="gs-meta-value">{{ sa.activity.activity_type.name|default:'Activity' }}</div>
+      </div>
+    </div>
+    <div class="gs-meta-item">
+      <div class="gs-meta-icon"><i class="fas fa-clock" aria-hidden="true"></i></div>
+      <div class="gs-meta-text">
+        <div class="gs-meta-label">Submitted</div>
+        <div class="gs-meta-value">
+          {% if sa.end_time %}{{ sa.end_time|date:'M d, Y h:i A' }}{% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="gs-meta-item">
+      <div class="gs-meta-icon"><i class="fas fa-rotate" aria-hidden="true"></i></div>
+      <div class="gs-meta-text">
+        <div class="gs-meta-label">Attempt</div>
+        <div class="gs-meta-value">{{ sa.retake_count|default:1 }}</div>
+      </div>
+    </div>
+    <div class="gs-meta-item is-score">
+      <div class="gs-meta-icon"><i class="fas fa-bullseye" aria-hidden="true"></i></div>
+      <div class="gs-meta-text">
+        <div class="gs-meta-label">Out of</div>
+        <div class="gs-meta-value">{{ sa.activity.max_score|floatformat:'0' }} pts</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workspace -->
+  <div class="gs-split">
+
+    <!-- LEFT: Student's answers -->
+    <section class="gs-panel gs-panel--answer">
+      <div class="gs-panel-head">
+        <h2 class="gs-panel-title"><i class="fas fa-file-lines"></i> Student's Submission</h2>
+        <span class="gs-helper">{{ answers|length }} answer{{ answers|length|pluralize }}</span>
+      </div>
+      <div class="gs-panel-body">
+        {% for a in answers %}
+          <div class="gs-q">
+            <div class="gs-q-head">
+              <span class="gs-q-num">{{ forloop.counter }}</span>
+              <span class="gs-q-label">Question {{ forloop.counter }}</span>
+            </div>
+            <p class="gs-q-text">{{ a.activity_question.question_text }}</p>
+
+            <div class="gs-a-card">
+              <div class="gs-a-label">
+                <i class="fas fa-pen"></i> Student's answer
+              </div>
+              {% if a.student_answer %}
+                <div class="gs-a-text">{{ a.student_answer }}</div>
+              {% else %}
+                {% if not a.uploaded_file %}
+                  <div class="gs-a-text gs-a-text--empty">No written answer provided.</div>
+                {% endif %}
+              {% endif %}
+
+              {% if a.uploaded_file %}
+                {% with name=a.uploaded_file.name|lower %}
+                  {% if name|slice:'-4:' == '.jpg' or name|slice:'-5:' == '.jpeg' or name|slice:'-4:' == '.png' or name|slice:'-4:' == '.gif' or name|slice:'-5:' == '.webp' %}
+                    <a href="{{ a.uploaded_file.url }}" target="_blank" rel="noopener">
+                      <img src="{{ a.uploaded_file.url }}" alt="Student attachment" class="gs-image-preview" />
+                    </a>
+                  {% endif %}
+                {% endwith %}
+                <a class="gs-attachment" href="{{ a.uploaded_file.url }}" target="_blank" rel="noopener">
+                  <i class="fas fa-paperclip" aria-hidden="true"></i>
+                  <span class="gs-attach-name">{{ a.uploaded_file.name }}</span>
+                  <i class="fas fa-up-right-from-square" aria-hidden="true"></i>
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <div class="gs-no-answers">
+            <i class="fas fa-inbox" aria-hidden="true"></i>
+            <p>No answer recorded for this submission.</p>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- RIGHT: Grading form -->
+    <section class="gs-panel gs-panel--grade">
+      <div class="gs-panel-head">
+        <h2 class="gs-panel-title"><i class="fas fa-pen-nib"></i> Grade Submission</h2>
+      </div>
+      <div class="gs-panel-body">
+        <form class="gs-form" method="post" id="gsForm" data-cl-loading data-cl-loading-label="Saving…">
+          {% csrf_token %}
+
+          <div class="gs-field">
+            <div class="gs-label-row">
+              <label class="gs-label" for="gs-score">Score</label>
+              <span class="gs-helper" id="gs-score-help">
+                <span id="gsScorePct">—</span> · out of {{ sa.activity.max_score }}
+              </span>
+            </div>
+            <div class="gs-score-wrap">
+              <input id="gs-score" name="score" type="number" min="0"
+                     max="{{ sa.activity.max_score }}" step="0.01"
+                     value="{{ sa.total_score }}"
+                     class="gs-score-input"
+                     aria-describedby="gs-score-help" required>
+              <span class="gs-score-suffix">/ {{ sa.activity.max_score|floatformat:'0' }}</span>
+            </div>
+
+            <div class="gs-quick">
+              <button type="button" class="gs-quick-btn" data-quick="0">0
+                <small>None</small>
+              </button>
+              <button type="button" class="gs-quick-btn" data-quick="half">Half
+                <small id="gsHalfLabel">—</small>
+              </button>
+              <button type="button" class="gs-quick-btn" data-quick="max">Full
+                <small>{{ sa.activity.max_score|floatformat:'0' }}</small>
+              </button>
+            </div>
+          </div>
+
+          <div class="gs-field">
+            <div class="gs-label-row">
+              <label class="gs-label" for="gs-feedback">Feedback</label>
+              <span class="gs-helper" id="gsFeedbackCount">0 chars</span>
+            </div>
+            <textarea id="gs-feedback" name="feedback" class="gs-textarea"
+                      placeholder="Leave a comment for the student… (optional)">{{ sa.feedback }}</textarea>
+            <div class="gs-feedback-foot">
+              <div class="gs-feedback-chips">
+                <button type="button" class="gs-feedback-chip" data-snippet="Great work! ">Great work</button>
+                <button type="button" class="gs-feedback-chip" data-snippet="Please review the rubric and try again. ">Review rubric</button>
+                <button type="button" class="gs-feedback-chip" data-snippet="Strong argument, but support with more evidence. ">Needs evidence</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="gs-btn-row">
+            <button class="gs-btn gs-btn--primary" type="submit" id="gsSaveBtn">
+              <i class="fas fa-save" aria-hidden="true"></i> Save
+            </button>
+            {% if has_next %}
+              <button class="gs-btn gs-btn--secondary" type="submit" name="save_and_next" value="1" id="gsSaveNextBtn">
+                Save &amp; Next <i class="fas fa-arrow-right" aria-hidden="true"></i>
+              </button>
+            {% endif %}
+          </div>
+
+          <div class="gs-shortcuts">
+            <kbd>Ctrl</kbd>+<kbd>Enter</kbd> save{% if has_next %} · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd> save &amp; next{% endif %}
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  (function () {
+    'use strict'
+
+    const scoreInput = document.getElementById('gs-score')
+    const scorePct = document.getElementById('gsScorePct')
+    const scoreHelp = document.getElementById('gs-score-help')
+    const feedback = document.getElementById('gs-feedback')
+    const feedbackCount = document.getElementById('gsFeedbackCount')
+    const halfLabel = document.getElementById('gsHalfLabel')
+    const form = document.getElementById('gsForm')
+    const saveBtn = document.getElementById('gsSaveBtn')
+    const saveNextBtn = document.getElementById('gsSaveNextBtn')
+
+    const MAX = parseFloat('{{ sa.activity.max_score|default:0 }}') || 0
+    const halfVal = MAX > 0 ? +(MAX / 2).toFixed(2) : 0
+
+    if (halfLabel) halfLabel.textContent = halfVal % 1 === 0 ? halfVal : halfVal.toFixed(1)
+
+    function updateScorePct() {
+      if (!scoreInput || !scorePct) return
+      const v = parseFloat(scoreInput.value)
+      if (isNaN(v) || MAX <= 0) {
+        scorePct.textContent = '—'
+        scoreHelp.classList.remove('is-pass', 'is-fail')
+        return
+      }
+      const pct = Math.max(0, Math.min(100, (v / MAX) * 100))
+      scorePct.textContent = pct.toFixed(0) + '%'
+      // Color cue: ≥ 50% green-ish (passing), < 50% rose-ish
+      scoreHelp.classList.toggle('is-pass', pct >= 50)
+      scoreHelp.classList.toggle('is-fail', pct < 50)
+    }
+
+    function updateFeedbackCount() {
+      if (!feedback || !feedbackCount) return
+      const n = feedback.value.length
+      feedbackCount.textContent = n + ' char' + (n === 1 ? '' : 's')
+    }
+
+    if (scoreInput) scoreInput.addEventListener('input', updateScorePct)
+    if (feedback) feedback.addEventListener('input', updateFeedbackCount)
+    updateScorePct()
+    updateFeedbackCount()
+
+    // Quick score buttons
+    document.querySelectorAll('.gs-quick-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const kind = btn.dataset.quick
+        let val
+        if (kind === '0') val = 0
+        else if (kind === 'half') val = halfVal
+        else if (kind === 'max') val = MAX
+        else return
+        scoreInput.value = val
+        updateScorePct()
+        scoreInput.focus()
+      })
+    })
+
+    // Feedback snippets
+    document.querySelectorAll('.gs-feedback-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        const snippet = chip.dataset.snippet || ''
+        if (!feedback) return
+        // Insert at cursor / append
+        const start = feedback.selectionStart || feedback.value.length
+        const end = feedback.selectionEnd || feedback.value.length
+        const cur = feedback.value
+        feedback.value = cur.slice(0, start) + snippet + cur.slice(end)
+        const newPos = start + snippet.length
+        feedback.focus()
+        feedback.setSelectionRange(newPos, newPos)
+        updateFeedbackCount()
+      })
+    })
+
+    // Keyboard shortcuts: Ctrl+Enter = Save · Ctrl+Shift+Enter = Save & Next
+    document.addEventListener('keydown', function (e) {
+      if (!(e.ctrlKey || e.metaKey)) return
+      if (e.key !== 'Enter') return
+      e.preventDefault()
+      if (e.shiftKey && saveNextBtn) {
+        saveNextBtn.click()
+      } else if (saveBtn) {
+        saveBtn.click()
+      }
+    })
+  })()
+</script>
+<script src="{% static 'js/tours/cl-tour-grade-submission.js' %}" defer></script>
+{% endblock %}

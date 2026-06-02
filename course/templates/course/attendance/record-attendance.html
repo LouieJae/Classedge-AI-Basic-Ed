@@ -1,0 +1,152 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Attendance · {{ subject.subject_name }}{% endblock %}
+
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'course/attendance/record-attendance.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="ta-shell">
+
+  <a href="{% url 'attendance-report' %}" class="ta-back">
+    <i class="fas fa-arrow-left"></i> Back to Attendance Report
+  </a>
+
+  <div class="ta-header">
+    <div>
+      <h1 class="page-title">Take <em>attendance</em></h1>
+      <div class="page-sub">{{ subject.subject_name }}{% if subject.subject_type %} &middot; {{ subject.subject_type }}{% endif %} &middot; click each student's status</div>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="record-attendance">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+    <form method="post" action="{% url 'toggle_self_attendance' subject.id %}" class="ta-self-form">
+      {% csrf_token %}
+      <button type="submit" class="ta-self-toggle" data-on="{{ subject.self_attendance_enabled|yesno:'true,false' }}"
+              title="{% if subject.self_attendance_enabled %}Students can self-mark right now &mdash; click to disable{% else %}Self-attendance is off &mdash; click to let students mark themselves{% endif %}">
+        <span class="ta-self-dot"></span>
+        <span class="ta-self-label">
+          <span class="ta-self-name">Self-attendance</span>
+          <span class="ta-self-state">{% if subject.self_attendance_enabled %}On{% else %}Off{% endif %}</span>
+        </span>
+        <i class="fas {% if subject.self_attendance_enabled %}fa-toggle-on{% else %}fa-toggle-off{% endif %}" aria-hidden="true"></i>
+      </button>
+    </form>
+  </div>
+
+  <div class="ta-card">
+    <form method="post" action="{% url 'record-attendance' subject.id %}" id="attendanceForm"
+          data-cl-loading data-cl-loading-label="Saving…">
+      {% csrf_token %}
+
+      <div class="ta-card-head">
+        <h2 class="ta-card-title">Roster &amp; <em>statuses</em></h2>
+      </div>
+
+      <!-- Toolbar: date · graded · quick actions -->
+      <div class="ta-toolbar">
+        <div class="ta-field">
+          <label for="id_date">Date <span class="req">*</span></label>
+          {{ form.date }}
+        </div>
+        <label class="ta-graded">
+          <input type="checkbox" id="graded" name="graded" checked />
+          <span>Mark as Graded</span>
+        </label>
+        {% if students and attendance_statuses %}
+        <div class="ta-quick">
+          <span class="ta-quick-label">Quick mark all as</span>
+          {% for status in attendance_statuses %}
+            <button type="button" class="ta-chip selectAll" data-status="{{ status.id }}">
+              <i class="fas fa-bolt"></i><span class="status-text">{{ status.status }}</span>
+            </button>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Search + summary -->
+      {% if students %}
+      <div class="ta-search-row">
+        <div class="ta-search">
+          <i class="fas fa-search" aria-hidden="true"></i>
+          <input id="taFilter" type="text" placeholder="Search student name" autocomplete="off" />
+        </div>
+        <div class="ta-summary"><b id="taMarkedCount">0</b> of <b id="taTotalCount">{{ students|length }}</b> marked</div>
+      </div>
+      {% endif %}
+
+      <div id="taAlert" class="ta-alert" role="alert">
+        <i class="fas fa-circle-exclamation"></i> Please mark a status for every student before submitting.
+      </div>
+
+      {% if students %}
+        <div class="ta-table-wrap">
+          <table class="ta-table" id="taTable">
+            <thead>
+              <tr>
+                <th class="center" style="width:48px;">#</th>
+                <th>Student</th>
+                {% for status in attendance_statuses %}
+                  <th class="center"><span class="status-text">{{ status.status }}</span></th>
+                {% endfor %}
+                <th style="width:280px;">Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in students %}
+                <tr id="student-row-{{ student.id }}" class="ta-row" data-name="{{ student.last_name|lower }} {{ student.first_name|lower }}">
+                  <td class="center ta-cell-num">{{ forloop.counter }}</td>
+                  <td>
+                    <div class="ta-cell-name">{{ student.last_name }}, {{ student.first_name }}</div>
+                    <input type="hidden" name="students" value="{{ student.id }}" />
+                  </td>
+                  {% for status in attendance_statuses %}
+                    <td class="ta-status-cell" data-status-name="{{ status.status|lower }}">
+                      <input type="radio"
+                             id="status-{{ student.id }}-{{ status.id }}"
+                             class="status-{{ status.id }}"
+                             name="status_{{ student.id }}"
+                             value="{{ status.id }}" />
+                      <label for="status-{{ student.id }}-{{ status.id }}" class="ta-status-pill">
+                        <span class="status-text">{{ status.status }}</span>
+                        <span class="pts">{{ status.points }}pt</span>
+                      </label>
+                    </td>
+                  {% endfor %}
+                  <td>
+                    <textarea id="remark_{{ student.id }}"
+                              class="ta-remark"
+                              name="remark_{{ student.id }}"
+                              rows="1"
+                              placeholder="Remarks (optional)"></textarea>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="ta-empty">
+          <div class="ico"><i class="fas fa-users-slash"></i></div>
+          <div class="lead">No students enrolled</div>
+          <div class="sub">Enroll students into this subject to start recording attendance.</div>
+        </div>
+      {% endif %}
+
+      <div class="ta-footer">
+        <a href="{% url 'attendance-report' %}" class="ta-btn">Cancel</a>
+        <button type="submit" class="ta-btn ta-btn--primary" id="submitAttendance" {% if not students %}disabled{% endif %}>
+          <i class="fas fa-check"></i> Submit Attendance
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="{% static 'course/attendance/record-attendance.js' %}"></script>
+<script src="{% static 'js/tours/cl-tour-record-attendance.js' %}" defer></script>
+{% endblock %}

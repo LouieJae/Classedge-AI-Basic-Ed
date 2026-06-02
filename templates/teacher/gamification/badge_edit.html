@@ -1,0 +1,106 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Edit · {{ badge.name }}{% endblock %}
+
+{% block content %}
+{% include "termbook/_form_styles.html" %}
+
+<link rel="stylesheet" href="{% static 'gamification/teacher/badge_edit.css' %}" />
+
+<div class="gbf-page">
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Edit <em>badge</em></h1>
+      <p class="page-sub">Adjust the look, name, and tier of <strong style="color: var(--ink); font-weight: 600;">{{ badge.name }}</strong>.</p>
+    </div>
+    <a href="{% url 'badge_management' %}" class="gbf-btn">
+      <i class="fas fa-arrow-left"></i> Back to badges
+    </a>
+  </div>
+
+  <div class="be-grid">
+
+    <!-- Form -->
+    <div class="gbf-card" style="max-width: none;">
+      <form method="post" class="gbf-form" novalidate>
+        {% csrf_token %}
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+          <div class="form-group">
+            <label>Code</label>
+            <input type="text" class="form-control" value="{{ badge.code }}" disabled style="background: var(--cream-2); color: var(--ink-muted);" />
+            <div class="be-form-help">Internal identifier — read-only.</div>
+          </div>
+          <div class="form-group">
+            <label for="id_tier">Tier</label>
+            <select name="tier" id="id_tier" class="form-select">
+              {% for val, label in tier_choices %}
+                <option value="{{ val }}"{% if val == badge.tier %} selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="id_name">Name</label>
+          <input type="text" name="name" id="id_name" class="form-control" value="{{ badge.name }}" required />
+        </div>
+
+        <div class="form-group">
+          <label for="id_description">Description</label>
+          <textarea name="description" id="id_description" class="form-control" rows="3" required>{{ badge.description }}</textarea>
+          <div class="be-form-help">A short blurb shown to students on their badge collection.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="id_icon">Icon (emoji)</label>
+          <input type="text" name="icon" id="id_icon" class="form-control be-icon-input" value="{{ badge.icon }}" maxlength="6" required />
+          <div class="be-form-help">Any single emoji works. The preview on the right updates as you type.</div>
+        </div>
+
+        <div class="gbf-actions">
+          <button type="submit" class="gbf-btn gbf-btn--primary">
+            <i class="fas fa-check"></i> Save changes
+          </button>
+          <a href="{% url 'badge_management' %}" class="gbf-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Preview + criteria -->
+    <div>
+      <div class="be-preview">
+        <div class="be-preview-icon" id="bePreviewIcon">{{ badge.icon }}</div>
+        <h2 class="be-preview-name" id="bePreviewName">{{ badge.name }}</h2>
+        <p class="be-preview-desc" id="bePreviewDesc">{{ badge.description }}</p>
+        <span class="be-preview-tier {{ badge.tier|lower }}" id="bePreviewTier">{{ badge.tier|upper }}</span>
+
+        <div class="be-preview-meta">
+          <div>
+            <span class="label">Code</span>
+            <span class="val"><code>{{ badge.code }}</code></span>
+          </div>
+          <div>
+            <span class="label">Status</span>
+            <span class="val">{% if badge.is_active %}Active{% else %}Inactive{% endif %}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="be-criteria">
+        <h3 class="be-criteria-head">
+          <i class="fas fa-list-check"></i> Award criteria
+          <span class="pill">read-only</span>
+        </h3>
+        <pre>{{ criteria_display }}</pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="{% static 'gamification/teacher/badge_edit.js' %}"></script>
+{% endblock %}

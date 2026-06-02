@@ -1,0 +1,649 @@
+/* Migration UI — matches ClassEdge operation chrome (Inter, forest/cream/gold tokens). */
+
+.mig-page {
+  --mig-radius: 14px;
+  --mig-radius-sm: 10px;
+  --mig-bg: var(--paper, #ffffff);
+  --mig-bg-alt: var(--cream-2, #f3ede2);
+  --mig-border: var(--border, rgba(45, 49, 66, 0.08));
+  --mig-border-strong: var(--border-strong, rgba(45, 49, 66, 0.14));
+  --mig-text: var(--ink, #2d3142);
+  --mig-muted: var(--ink-dim, #6c7080);
+  /* Decorative accent (primary button + active tab indicator) tracks
+     the tenant brand. Categorical semantics (success/warning/danger)
+     stay locked so success-green and failure-red read consistently
+     across all tenants. "Running" is a non-terminal state — keep it
+     purple so it visually differs from completed and looks like
+     activity rather than a brand action. */
+  --mig-info: var(--brand-primary, #3b82f6);
+  --mig-info-soft: var(--brand-primary-soft, rgba(59, 130, 246, 0.12));
+  --mig-success: var(--success, #10b981);
+  --mig-success-soft: var(--success-soft, rgba(16, 185, 129, 0.12));
+  --mig-danger: var(--danger, #ef4444);
+  --mig-danger-soft: var(--danger-soft, rgba(239, 68, 68, 0.12));
+  --mig-warning: var(--warning, #f59e0b);
+  --mig-warning-soft: var(--warning-soft, rgba(245, 158, 11, 0.14));
+  --mig-running: #6366f1;
+  color: var(--mig-text);
+  padding: 4px;
+}
+
+body[data-theme="dark"] .mig-page {
+  --mig-running: #a5b4fc;
+}
+
+/* ── Header / action rows ───────────────────────────────
+   The page header now lives in .cl-header (from _list_page_theme.html)
+   so this file only needs to wire the inline action button row used
+   inside the Overview tab. Header typography + button styling come
+   from the canonical operations chrome — they already track the
+   tenant brand. */
+.mig-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+/* ── Tabs ─────────────────────────────────────────── */
+.mig-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--mig-border);
+  margin-bottom: 18px;
+}
+.mig-tab {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mig-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color .12s ease, border-color .12s ease;
+}
+.mig-tab:hover { color: var(--mig-text); }
+.mig-tab.is-active {
+  color: var(--brand-primary, var(--mig-text));
+  border-bottom-color: var(--brand-primary, var(--mig-info));
+}
+
+/* ── Source strip ─────────────────────────────────── */
+.mig-source-strip {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--brand-primary-soft) 55%, var(--mig-bg-alt)),
+    var(--mig-bg-alt));
+  border: 1px solid var(--mig-border);
+  border-radius: var(--mig-radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  font-size: 12.5px;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.mig-source-strip b { color: var(--mig-text); font-weight: 600; }
+.mig-source-strip span { color: var(--mig-muted); }
+.mig-source-strip code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--mig-text);
+  background: var(--mig-bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--mig-border);
+}
+body[data-theme="dark"] .mig-source-strip { background: rgba(255, 255, 255, 0.04); }
+
+/* ── Buttons ──────────────────────────────────────── */
+.mig-btn {
+  border: 1px solid var(--mig-border);
+  background: var(--mig-bg);
+  color: inherit;
+  border-radius: var(--mig-radius-sm);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: transform .08s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+}
+.mig-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover, 0 4px 12px rgba(0, 0, 0, 0.06));
+  border-color: var(--mig-border-strong);
+}
+body[data-theme="dark"] .mig-btn { color: var(--mig-text); }
+.mig-btn-primary {
+  background: var(--brand-primary, var(--mig-info));
+  color: #ffffff;
+  border-color: var(--brand-primary, var(--mig-info));
+  box-shadow: 0 4px 14px -4px var(--brand-primary-soft);
+}
+.mig-btn-primary:hover {
+  background: color-mix(in srgb, var(--brand-primary, var(--mig-info)), black 12%);
+  border-color: color-mix(in srgb, var(--brand-primary, var(--mig-info)), black 12%);
+  color: #ffffff;
+}
+.mig-btn-success { background: var(--mig-success); color: #fff; border-color: transparent; }
+.mig-btn-warning { background: var(--mig-warning); color: #fff; border-color: transparent; }
+.mig-btn-danger  { background: var(--mig-danger);  color: #fff; border-color: transparent; }
+.mig-btn-ghost   { background: transparent; }
+.mig-btn-sm { padding: 5px 9px; font-size: 12px; border-radius: 8px; }
+.mig-btn-icon { padding: 6px 8px; font-size: 12px; }
+.mig-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* Inline forms hold a button each — eliminate default margins/spacing. */
+.action-form { display: inline; margin: 0; }
+
+/* ── KPI strip ────────────────────────────────────── */
+.mig-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.mig-kpi {
+  background: var(--mig-bg);
+  border: 1px solid var(--mig-border);
+  border-radius: var(--mig-radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mig-kpi-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mig-muted);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mig-kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.mig-kpi.is-running .mig-kpi-value { color: var(--mig-running); }
+.mig-kpi.is-completed .mig-kpi-value { color: var(--mig-success); }
+.mig-kpi.is-failed .mig-kpi-value { color: var(--mig-danger); }
+.mig-kpi.is-errors .mig-kpi-value { color: var(--mig-danger); }
+@media (max-width: 900px) {
+  .mig-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Table card ───────────────────────────────────── */
+.mig-card {
+  background: var(--mig-bg);
+  border: 1px solid var(--mig-border);
+  border-radius: var(--mig-radius);
+  overflow: hidden;
+}
+.mig-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--mig-border);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--brand-primary-soft) 50%, var(--mig-bg-alt)),
+    var(--mig-bg));
+}
+.mig-card-head h2 i { color: var(--brand-primary, #b7925a); margin-right: 6px; }
+.mig-card-head h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.mig-card-head .mig-meta { color: var(--mig-muted); font-size: 12px; }
+
+.mig-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.mig-table thead th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mig-muted);
+  background: var(--mig-bg-alt);
+  border-bottom: 1px solid var(--mig-border);
+  white-space: nowrap;
+}
+body[data-theme="dark"] .mig-table thead th { background: rgba(255, 255, 255, 0.03); }
+.mig-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--mig-border);
+  vertical-align: middle;
+}
+.mig-table tbody tr:last-child td { border-bottom: 0; }
+.mig-table tbody tr:hover td { background: rgba(99, 102, 241, 0.03); }
+.mig-table .mig-model {
+  font-weight: 600;
+  color: var(--mig-text);
+}
+.mig-table .mig-model small {
+  display: block;
+  font-weight: 400;
+  color: var(--mig-muted);
+  font-size: 11.5px;
+}
+.mig-table .mig-numeric {
+  font-variant-numeric: tabular-nums;
+  color: var(--mig-muted);
+  white-space: nowrap;
+}
+.mig-table .mig-actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+.mig-table .mig-actions-cell .mig-btn { margin-left: 4px; }
+
+/* ── Status pill ──────────────────────────────────── */
+.mig-status-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--mig-bg-alt);
+  color: var(--mig-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: capitalize;
+}
+body[data-theme="dark"] .mig-status-pill { background: rgba(255, 255, 255, 0.06); }
+.mig-status-pill[data-state="running"]   { background: rgba(99, 102, 241, 0.12); color: var(--mig-running); }
+.mig-status-pill[data-state="completed"] { background: rgba(16, 185, 129, 0.12); color: var(--mig-success); }
+.mig-status-pill[data-state="failed"]    { background: rgba(239, 68, 68, 0.12);  color: var(--mig-danger);  }
+.mig-status-pill[data-state="paused"]    { background: rgba(245, 158, 11, 0.14); color: var(--mig-warning); }
+.mig-status-pill[data-state="pending"]   { background: rgba(100, 116, 139, 0.14); color: #64748b; }
+
+.mig-status-pill[data-state="running"]::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; animation: mig-pulse 1.2s ease-in-out infinite;
+}
+@keyframes mig-pulse { 50% { opacity: .35; } }
+
+/* ── Progress ─────────────────────────────────────── */
+.mig-progress-cell { min-width: 160px; }
+.mig-progress-bar {
+  height: 6px;
+  background: var(--mig-bg-alt);
+  border-radius: 999px;
+  overflow: hidden;
+}
+body[data-theme="dark"] .mig-progress-bar { background: rgba(255, 255, 255, 0.06); }
+.mig-progress-bar > div {
+  background: var(--mig-info);
+  height: 100%;
+  transition: width .3s ease;
+}
+.mig-progress-bar[data-state="completed"] > div { background: var(--mig-success); }
+.mig-progress-bar[data-state="failed"]    > div { background: var(--mig-danger); }
+.mig-progress-bar[data-state="paused"]    > div { background: var(--mig-warning); }
+.mig-progress-cell .mig-progress-label {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--mig-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Error badge ──────────────────────────────────── */
+.mig-error-badge {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--mig-danger);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.mig-error-badge:hover { background: rgba(239, 68, 68, 0.18); }
+.mig-error-zero { color: var(--mig-muted); font-size: 12px; }
+
+/* ── Empty state ──────────────────────────────────── */
+.mig-empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--mig-muted);
+  font-size: 13px;
+}
+.mig-empty i { font-size: 28px; opacity: .5; display: block; margin-bottom: 10px; }
+
+/* ── Drawer (errors page) ─────────────────────────── */
+.drawer {
+  border: 1px solid var(--mig-border);
+  border-radius: var(--mig-radius);
+  padding: 16px;
+  margin-top: 16px;
+  background: var(--mig-bg);
+}
+.drawer pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 24em;
+  overflow: auto;
+  background: var(--mig-bg-alt);
+  padding: 10px;
+  border-radius: var(--mig-radius-sm);
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.drawer details { margin: .5em 0; }
+
+/* ── Legacy class shims (other templates still use these) ── */
+.migration-shell { padding: 0; }
+.migration-table { width: 100%; border-collapse: collapse; }
+.migration-table th, .migration-table td { padding: 8px 10px; border-bottom: 1px solid var(--mig-border); text-align: left; vertical-align: top; font-size: 13px; }
+.status-pill { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; display: inline-block; }
+.status-pending   { background: rgba(100,116,139,0.14); color: #64748b; }
+.status-running   { background: rgba(99,102,241,0.12); color: var(--mig-running); }
+.status-paused    { background: rgba(245,158,11,0.14); color: var(--mig-warning); }
+.status-completed { background: rgba(16,185,129,0.12); color: var(--mig-success); }
+.status-failed    { background: rgba(239,68,68,0.12);  color: var(--mig-danger); }
+.progress { background: var(--mig-bg-alt); height: 6px; border-radius: 999px; overflow: hidden; min-width: 100px; display: inline-block; vertical-align: middle; }
+.progress > div { background: var(--mig-info); height: 100%; }
+.error-badge { background: var(--mig-danger); color: #fff; padding: 1px 7px; border-radius: 999px; font-size: 11px; }
+
+/* ──────────────────────────────────────────────────────────
+   Settings page — connection form + effective-config readout.
+   Replaces the embedded <style> block that used to live in
+   settings.html. All accents track --brand-primary via
+   --mig-info (which is brand-tracked at the top of this file).
+   ────────────────────────────────────────────────────────── */
+.mig-form { max-width: 720px; }
+.mig-form .mig-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.mig-form label { font-size: 13px; font-weight: 600; color: var(--mig-text); }
+.mig-form .mig-help { font-size: 12px; color: var(--mig-muted); }
+.mig-form .mig-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: var(--mig-radius-sm);
+  border: 1px solid var(--mig-border);
+  background: var(--mig-bg);
+  color: var(--mig-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.mig-form .mig-input:focus {
+  outline: none;
+  border-color: var(--brand-primary, var(--mig-info));
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+.mig-form-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+.mig-effective {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--brand-primary-soft) 45%, var(--mig-bg-alt)),
+    var(--mig-bg-alt));
+  border: 1px solid var(--mig-border);
+  border-radius: var(--mig-radius-sm);
+  padding: 12px 14px;
+  margin-top: 18px;
+  font-size: 12.5px;
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 6px 14px;
+}
+.mig-effective dt { color: var(--mig-muted); font-weight: 600; }
+.mig-effective dd { color: var(--mig-text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0; }
+
+.mig-messages { margin-bottom: 16px; }
+.mig-messages .mig-msg {
+  padding: 10px 14px;
+  border-radius: var(--mig-radius-sm);
+  font-size: 13px;
+  background: var(--mig-success-soft);
+  color: var(--mig-success);
+  margin-bottom: 8px;
+}
+
+.mig-source { display: flex; align-items: center; gap: 6px; }
+.mig-source-tag {
+  font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.mig-source-tag.is-db  {
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary, var(--mig-running));
+}
+.mig-source-tag.is-env { background: rgba(100, 116, 139, 0.14); color: #64748b; }
+
+/* ──────────────────────────────────────────────────────────
+   Errors page — filter row + category pill + source path
+   styling. Mirrors the dynamic-design treatment of the rest
+   of the migration UI.
+   ────────────────────────────────────────────────────────── */
+.mig-filter {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.mig-filter label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 12px; color: var(--mig-muted); font-weight: 600;
+}
+.mig-filter select, .mig-filter input[type="text"] {
+  border: 1px solid var(--mig-border);
+  background: var(--mig-bg);
+  color: var(--mig-text);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  min-width: 160px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.mig-filter select:focus, .mig-filter input:focus {
+  outline: none;
+  border-color: var(--brand-primary, var(--mig-info));
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+body[data-theme="dark"] .mig-filter select,
+body[data-theme="dark"] .mig-filter input[type="text"] { background: rgba(255, 255, 255, 0.04); }
+
+.mig-cat {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: var(--mig-bg-alt); color: var(--mig-muted);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+body[data-theme="dark"] .mig-cat { background: rgba(255, 255, 255, 0.06); }
+.mig-cat[data-cat="mapper_error"]    { background: rgba(99, 102, 241, 0.12); color: var(--mig-running); }
+.mig-cat[data-cat="missing_fk"]      { background: var(--mig-warning-soft); color: var(--mig-warning); }
+.mig-cat[data-cat="validation"]      { background: var(--mig-warning-soft); color: var(--mig-warning); }
+.mig-cat[data-cat="db_error"]        { background: var(--mig-danger-soft); color: var(--mig-danger); }
+.mig-cat[data-cat="transport_error"] { background: var(--mig-danger-soft); color: var(--mig-danger); }
+.mig-cat[data-cat="auth_error"]      { background: var(--mig-danger-soft); color: var(--mig-danger); }
+.mig-cat[data-cat="throttled"]       { background: var(--mig-warning-soft); color: var(--mig-warning); }
+
+.mig-src {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--mig-muted);
+  word-break: break-all;
+}
+.mig-msg {
+  color: var(--mig-text);
+  max-width: 540px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mig-resolved-tag {
+  font-size: 10.5px; font-weight: 700;
+  color: var(--mig-success);
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mig-page-sub { color: var(--mig-muted); font-size: 13.5px; margin: -8px 0 16px; }
+
+.mig-pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 14px; padding: 0 4px;
+  color: var(--mig-muted); font-size: 12.5px;
+}
+.mig-pagination .cl-btn { padding: 6px 12px; font-size: 12.5px; }
+
+/* ──────────────────────────────────────────────────────────
+   Sequence page (default /operations/migration/) — card-grid
+   of migration jobs + recent-activity log. Replaces the
+   embedded <style> block that used to live in sequence.html.
+   ────────────────────────────────────────────────────────── */
+.mig-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.mig-seq-card {
+  background: var(--mig-bg);
+  border: 1px solid var(--mig-border);
+  border-radius: var(--mig-radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: visible;
+  position: relative;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.mig-seq-card:hover {
+  border-color: var(--mig-border-strong);
+  box-shadow: var(--shadow, 0 6px 16px rgba(0, 0, 0, 0.04));
+  transform: translateY(-1px);
+}
+.mig-seq-card-head { display: flex; align-items: center; gap: 12px; }
+.mig-card-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary, #b7925a);
+  flex-shrink: 0;
+}
+/* Per-category icon colors are categorical (visually distinguish
+   model types), so they stay locked. */
+.mig-seq-card[data-color="emerald"] .mig-card-icon { background: var(--mig-success-soft); color: var(--mig-success); }
+.mig-seq-card[data-color="sky"]     .mig-card-icon { background: rgba(59, 130, 246, 0.12); color: var(--mig-running); }
+.mig-seq-card[data-color="amber"]   .mig-card-icon { background: var(--mig-warning-soft); color: var(--mig-warning); }
+.mig-seq-card[data-color="slate"]   .mig-card-icon { background: rgba(100, 116, 139, 0.14); color: #64748b; }
+
+.mig-card-title { font-weight: 700; font-size: 15px; color: var(--mig-text); }
+.mig-card-desc {
+  color: var(--mig-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+  flex: 1;
+}
+.mig-card-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px;
+  color: var(--mig-muted);
+}
+.mig-card-meta b { color: var(--mig-text); font-weight: 600; }
+.mig-errors-link { color: var(--mig-danger); font-weight: 600; text-decoration: none; }
+.mig-errors-link:hover { text-decoration: underline; }
+
+.mig-progress {
+  height: 6px;
+  background: var(--mig-bg-alt);
+  border-radius: 999px;
+  overflow: hidden;
+}
+body[data-theme="dark"] .mig-progress { background: rgba(255, 255, 255, 0.06); }
+.mig-progress > div {
+  background: var(--brand-primary, var(--mig-info));
+  height: 100%; width: 0%;
+  transition: width .3s ease;
+}
+.mig-seq-card[data-state="completed"] .mig-progress > div { background: var(--mig-success); }
+.mig-seq-card[data-state="failed"]    .mig-progress > div { background: var(--mig-danger); }
+.mig-seq-card[data-state="paused"]    .mig-progress > div { background: var(--mig-warning); }
+
+.mig-card-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+
+.mig-spinner {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: mig-spin .7s linear infinite;
+}
+@keyframes mig-spin { to { transform: rotate(360deg); } }
+
+/* ── Activity log panel ──────────────────────────────────── */
+.mig-log-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 460px;
+  overflow-y: auto;
+}
+.mig-log-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--mig-muted);
+  font-size: 13px;
+}
+.mig-log-entry {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--mig-border);
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  gap: 12px;
+  font-size: 13px;
+}
+.mig-log-entry:last-child { border-bottom: 0; }
+.mig-log-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-top: 5px;
+  background: var(--mig-muted);
+}
+.mig-log-entry[data-result="completed"] .mig-log-dot { background: var(--mig-success); }
+.mig-log-entry[data-result="failed"]    .mig-log-dot { background: var(--mig-danger); }
+.mig-log-entry[data-result="paused"]    .mig-log-dot { background: var(--mig-warning); }
+.mig-log-entry[data-result="running"]   .mig-log-dot {
+  background: var(--brand-primary, var(--mig-running));
+  animation: mig-pulse 1s ease-in-out infinite;
+}
+.mig-log-title {
+  font-weight: 600;
+  color: var(--mig-text);
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.mig-log-meta { color: var(--mig-muted); font-size: 12px; margin-top: 2px; }
+.mig-log-counts {
+  display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; font-size: 12px;
+}
+.mig-log-counts span { color: var(--mig-muted); }
+.mig-log-counts b { color: var(--mig-text); font-weight: 600; }
+.mig-log-time {
+  color: var(--mig-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

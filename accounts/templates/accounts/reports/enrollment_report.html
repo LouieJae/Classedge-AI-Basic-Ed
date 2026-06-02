@@ -1,0 +1,98 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Enrolment report · {{ student_profile.first_name }} {{ student_profile.last_name }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'accounts/reports/enrollment_report.css' %}" />
+
+<div class="er-page">
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">{{ student_profile.first_name }} <em>{{ student_profile.last_name }}</em></h1>
+      <p class="page-sub">Enrolment report — subjects and semester load.</p>
+      <div class="er-meta">
+        {% if student_profile.id_number %}<strong>{{ student_profile.id_number }}</strong> · {% endif %}
+        {% if student_profile.course %}{{ student_profile.course.name }}{% else %}No course assigned{% endif %}
+        {% if student_profile.user.email %} · {{ student_profile.user.email }}{% endif %}
+      </div>
+    </div>
+
+    <div class="er-stats">
+      <button type="button" class="cl-tour-replay" data-cl-tour="enrollment-report" style="margin-right:6px;">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      <div class="er-stat">
+        <div class="num">{{ enrolled_subjects|length }}</div>
+        <div class="lab">Subjects</div>
+      </div>
+      <div class="er-stat-divider"></div>
+      <div class="er-stat">
+        <div class="num">{{ enrolled_subjects.0.subject.unit|default:"—" }}</div>
+        <div class="lab">Units / subj</div>
+      </div>
+      <div class="er-stat-divider"></div>
+      <div class="er-stat">
+        <div class="num">
+          {% if enrolled_subjects %}
+            {% if enrolled_subjects.0.semester.semester_name == "First Semester" %}1st
+            {% elif enrolled_subjects.0.semester.semester_name == "Second Semester" %}2nd
+            {% elif enrolled_subjects.0.semester.semester_name == "Third Semester" %}3rd
+            {% elif enrolled_subjects.0.semester.semester_name == "Fourth Semester" %}4th
+            {% else %}—{% endif %}
+          {% else %}—{% endif %}
+        </div>
+        <div class="lab">Semester</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div class="er-card">
+    <div class="er-card-head">
+      <h2 class="er-card-title"><i class="fas fa-book-open"></i>Enrolled <em>subjects</em></h2>
+      {% if enrolled_subjects %}
+        <span class="er-semester-pill">
+          <i class="fas fa-calendar-day"></i>
+          {{ enrolled_subjects.0.semester.semester_name }} · SY {{ enrolled_subjects.0.semester.start_date|date:"Y" }}
+        </span>
+      {% endif %}
+    </div>
+
+    {% if enrolled_subjects %}
+      <div class="er-grid">
+        {% for enrollment in enrolled_subjects %}
+          <div class="er-subj">
+            <div class="er-subj-icon">{{ enrollment.subject.subject_name|slice:":1"|upper }}</div>
+            <div class="er-subj-body">
+              <div class="er-subj-name">{{ enrollment.subject.subject_name }}</div>
+              <div class="er-subj-meta">
+                {% if enrollment.subject.subject_code %}
+                  <i class="fas fa-hashtag"></i> {{ enrollment.subject.subject_code }}
+                {% else %}
+                  <i class="fas fa-circle-dot"></i> No code
+                {% endif %}
+              </div>
+            </div>
+            <span class="er-subj-status">Enrolled</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="er-empty">
+        <i class="fas fa-inbox"></i>
+        <div class="lead">No enrolled subjects</div>
+        <div class="sub">This student has no active subject enrolments.</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <a href="javascript:history.back()" class="er-back">
+    <i class="fas fa-arrow-left"></i> Back
+  </a>
+</div>
+
+<script src="{% static 'js/tours/cl-tour-enrollment-report.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% block extra_css %}
+  {% include 'teacher/_legacy_stack.html' %}
+{% endblock %}
+
+{% block title %}
+  Status Points · ClassEdge
+{% endblock %}
+
+{% block content %}
+  {% include 'termbook/_form_styles.html' %}
+
+  <link rel="stylesheet" href="{% static 'course/status/status-list.css' %}" />
+
+  <div class="gbf-page">
+
+  <a href="{% url 'grade-book' %}" class="ll-back">
+    <i class="fas fa-arrow-left"></i> Back to gradebook
+  </a>
+
+    <!-- Header -->
+    <div class="topbar">
+      <div>
+        <h1 class="page-title">Attendance <em>status points</em></h1>
+        <p class="page-sub">Configure how each attendance status contributes to the gradebook.</p>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a href="{% url 'add-points' %}" class="gbf-btn gbf-btn--primary"><i class="fas fa-plus"></i> Add points</a>
+      </div>
+    </div>
+
+    {% if status_points %}
+      <!-- Stats summary -->
+      <div class="sp-stats">
+        <div class="sp-stat-card">
+          <div class="sp-stat-label">Statuses configured</div>
+          <div class="sp-stat-value" data-stat="count">{{ status_points|length }}</div>
+          <div class="sp-stat-sub">total entries</div>
+        </div>
+        <div class="sp-stat-card">
+          <div class="sp-stat-label">Highest</div>
+          <div class="sp-stat-value" data-stat="max">—</div>
+          <div class="sp-stat-sub">points awarded</div>
+        </div>
+        <div class="sp-stat-card">
+          <div class="sp-stat-label">Average</div>
+          <div class="sp-stat-value" data-stat="avg">—</div>
+          <div class="sp-stat-sub">across all statuses</div>
+        </div>
+        <div class="sp-stat-card">
+          <div class="sp-stat-label">Maximum cap</div>
+          <div class="sp-stat-value">10.0</div>
+          <div class="sp-stat-sub">points per status</div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Toolbar -->
+    <div class="sp-toolbar">
+      <div class="sp-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" id="spSearchInput" placeholder="Search by status name…" autocomplete="off" />
+      </div>
+    </div>
+
+    <!-- Table card -->
+    <div class="sp-card">
+      <div class="sp-card-head">
+        <h2 class="sp-card-title">Your <em>status weights</em></h2>
+        <span class="sp-count" id="spCount">{{ status_points|length }} entr{{ status_points|length|pluralize:'y,ies' }}</span>
+      </div>
+
+      <table class="sp-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th style="width: 220px;">Points</th>
+            <th style="width: 220px;">Weight</th>
+            <th style="width: 180px;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="spTbody">
+          {% for sp in status_points %}
+            {% with status_lower=sp.status|stringformat:'s'|lower %}
+              <tr class="sp-row" data-name="{{ sp.status|stringformat:'s'|lower }}">
+                <td>
+                  <div class="sp-status-cell">
+                    <div class="sp-status-dot
+                    {% if 'absent' in status_lower %}
+                        
+                        
+                        
+                        
+                        absent
+
+
+
+
+
+                      {% elif 'late' in status_lower or 'tardy' in status_lower %}
+                        
+                        
+                        
+                        
+                        late
+
+
+
+
+
+                      {% endif %}">{{ sp.status|stringformat:'s'|slice:':1'|upper }}</div>
+                    <div>
+                      <div class="sp-status-name">{{ sp.status }}</div>
+                      <div class="sp-status-sub">attendance status</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="sp-points-cell">
+                    <span class="sp-points-num">{{ sp.points }}</span>
+                    <span class="sp-points-of">/ 10</span>
+                  </span>
+                </td>
+                <td>
+                  <div class="sp-points-bar">
+                    <div class="sp-points-fill" style="width: {% widthratio sp.points 10 100 %}%;"></div>
+                  </div>
+                </td>
+                <td>
+                  <div class="sp-actions">
+                    <a href="{% url 'update-points' sp.id %}" class="gbf-btn" title="Edit" style="padding: 10px 14px;"><i class="fas fa-pen"></i></a>
+                    <button type="button" onclick="confirmDelete({{ sp.id }})" class="gbf-btn gbf-btn--danger" title="Delete" style="padding: 10px 14px;"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            {% endwith %}
+          {% empty %}
+            <tr>
+              <td colspan="4">
+                <div class="sp-empty">
+                  <i class="fas fa-clipboard-list"></i>
+                  <div class="lead">No status points configured</div>
+                  <div>
+                    Click <strong>Add status points</strong> above to begin.
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="{% static 'course/status/status-list.js' %}"></script>
+{% endblock %}

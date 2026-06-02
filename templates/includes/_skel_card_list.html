@@ -1,0 +1,14 @@
+{% with count=count|default:4 label=label|default:"Loading" %}
+<div class="cl-skel-list" aria-busy="true" aria-label="{{ label }}">
+  {% for _ in ""|center:count %}
+    <div class="cl-skel-card">
+      <div class="cl-skel cl-skel-circle"></div>
+      <div class="cl-skel-card-body">
+        <div class="cl-skel cl-skel-line lg" style="width:62%"></div>
+        <div class="cl-skel cl-skel-line" style="width:88%"></div>
+        <div class="cl-skel cl-skel-line" style="width:74%"></div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endwith %}

@@ -1,0 +1,66 @@
+{% load static %}
+{% comment %}Typing test / drill — JS-driven, included by side_activity_play.html{% endcomment %}
+
+<div id="typing-drill-container">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <span style="font-size:.9rem;color:var(--muted);">Type the text below as accurately as you can.</span>
+    <span id="td-wpm" style="font-size:1.1rem;font-weight:700;color:var(--primary);font-variant-numeric:tabular-nums;">0 WPM</span>
+  </div>
+
+  <div id="td-display"
+       style="padding:1.25rem;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);font-family:monospace;font-size:1.05rem;line-height:1.8;color:var(--text);margin-bottom:1rem;white-space:pre-wrap;word-break:break-word;"></div>
+
+  <textarea id="td-input" rows="5" placeholder="Start typing here..."
+            style="width:100%;padding:1rem;font-family:monospace;font-size:1.05rem;line-height:1.6;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);resize:vertical;box-sizing:border-box;"></textarea>
+
+  <div style="margin-top:1rem;text-align:center;">
+    <button type="button" id="td-submit-btn"
+            style="padding:.75rem 2rem;font-size:1rem;border:none;border-radius:8px;background:var(--primary);color:#fff;cursor:pointer;">Finish</button>
+  </div>
+</div>
+
+<script src="{% static 'js/side_activities/submit.js' %}"></script>
+<script>
+(function() {
+  var sa = window.SIDE_ACTIVITY;
+  var content = sa.content;
+  var targetText = content.text || '';
+  var startTime = null;
+
+  var displayEl = document.getElementById('td-display');
+  var inputEl = document.getElementById('td-input');
+  var wpmEl = document.getElementById('td-wpm');
+
+  displayEl.textContent = targetText;
+
+  inputEl.addEventListener('input', function() {
+    if (!startTime) startTime = Date.now();
+    var typed = inputEl.value;
+    var elapsed = (Date.now() - startTime) / 1000 / 60; // minutes
+    var wordCount = typed.trim().split(/\s+/).filter(function(w) { return w.length > 0; }).length;
+    var wpm = elapsed > 0 ? Math.round(wordCount / elapsed) : 0;
+    wpmEl.textContent = wpm + ' WPM';
+  });
+
+  document.getElementById('td-submit-btn').addEventListener('click', function() {
+    var elapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+    var typed = inputEl.value;
+
+    // Calculate accuracy
+    var targetWords = targetText.split(/\s+/);
+    var typedWords = typed.trim().split(/\s+/);
+    var correctWords = 0;
+    var compareLen = Math.min(targetWords.length, typedWords.length);
+    for (var i = 0; i < compareLen; i++) {
+      if (typedWords[i] === targetWords[i]) correctWords++;
+    }
+    var accuracy = targetWords.length > 0 ? correctWords / targetWords.length : 0;
+
+    var totalElapsedMin = elapsed / 60;
+    var wpm = totalElapsedMin > 0 ? Math.round(typedWords.length / totalElapsedMin) : 0;
+
+    // Score is accuracy
+    submitAttempt(sa.id, accuracy, elapsed, {wpm: wpm, accuracy: Math.round(accuracy * 100), correct_words: correctWords, total_words: targetWords.length});
+  });
+})();
+</script>

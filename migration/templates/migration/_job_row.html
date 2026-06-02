@@ -1,0 +1,63 @@
+<tbody hx-get="{% url 'migration:overview-rows' %}"
+       hx-trigger="every {{ poll_seconds|default:3 }}s"
+       hx-select="tbody"
+       hx-swap="outerHTML">
+{% for row in jobs %}
+  {% with j=row.job %}
+  <tr>
+    <td class="mig-model">
+      {{ j.model_name }}
+      <small>{{ j.app_label }}</small>
+    </td>
+    <td>
+      <span class="mig-status-pill" data-state="{{ j.status }}">{{ j.status }}</span>
+    </td>
+    <td class="mig-progress-cell">
+      <div class="mig-progress-bar" data-state="{{ j.status }}"><div style="width:{{ row.percent }}%"></div></div>
+      <div class="mig-progress-label">{{ row.percent }}%</div>
+    </td>
+    <td class="mig-numeric">{{ j.rows_written }} / {{ j.total_estimated }}</td>
+    <td class="mig-numeric">{{ row.rpm }}</td>
+    <td class="mig-numeric">{% if row.eta %}{{ row.eta }}s{% else %}—{% endif %}</td>
+    <td>
+      {% if row.error_count %}
+        <a class="mig-error-badge" href="{% url 'migration:errors' %}?job={{ j.id }}">{{ row.error_count }}</a>
+      {% else %}
+        <span class="mig-error-zero">0</span>
+      {% endif %}
+    </td>
+    <td class="mig-actions-cell">
+      <a class="mig-btn mig-btn-sm mig-btn-ghost" href="{% url 'migration:job-detail' j.id %}" title="Detail">
+        <i class="fas fa-up-right-from-square"></i>
+      </a>
+      <form method="post" action="{% url 'migration:action-job-pause' j.id %}" class="action-form">{% csrf_token %}
+        <button class="mig-btn mig-btn-sm mig-btn-icon" type="submit" title="Pause (graceful — finishes current batch)"><i class="fas fa-pause"></i></button>
+      </form>
+      <form method="post" action="{% url 'migration:action-job-stop' j.id %}" class="action-form"
+            onsubmit="return confirm('Stop the running job immediately? The current batch will be terminated. Progress so far is preserved and you can Resume later.');">{% csrf_token %}
+        <button class="mig-btn mig-btn-sm mig-btn-icon" type="submit" title="Stop (terminate task now)"><i class="fas fa-stop"></i></button>
+      </form>
+      <form method="post" action="{% url 'migration:action-job-resume' j.id %}" class="action-form">{% csrf_token %}
+        <button class="mig-btn mig-btn-sm mig-btn-icon" type="submit" title="Resume"><i class="fas fa-play"></i></button>
+      </form>
+      <form method="post" action="{% url 'migration:action-job-verify' j.id %}" class="action-form">{% csrf_token %}
+        <button class="mig-btn mig-btn-sm mig-btn-icon" type="submit" title="Verify"><i class="fas fa-circle-check"></i></button>
+      </form>
+      {% if row.has_files %}
+      <form method="post" action="{% url 'migration:action-job-backfill-files' j.id %}" class="action-form"
+            onsubmit="return confirm('Start fetching files for this model? Runs in the background; safe to leave the page.');">{% csrf_token %}
+        <button class="mig-btn mig-btn-sm mig-btn-icon" type="submit" title="Fetch files (downloads images / PDFs the row migration skipped)"><i class="fas fa-download"></i></button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endwith %}
+{% empty %}
+  <tr>
+    <td colspan="8" class="mig-empty">
+      <i class="fas fa-inbox"></i>
+      No migration jobs yet — click <strong>Start pipeline</strong> to create them.
+    </td>
+  </tr>
+{% endfor %}
+</tbody>

@@ -1,0 +1,60 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}New Term{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+  {% include "includes/_form_card.html" %}
+
+  <div class="cl-page">
+        <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-calendar-week me-2"></i>New Term</h2>
+        <p>Add a grading period under a semester. Start/end dates must fit inside that semester's window.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="term-form">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+      </div>
+    </div>
+
+    <div class="cl-form-card">
+      <form method="post" action="{% url 'create-term' %}" data-cl-autosave="create-term" data-cl-loading data-cl-loading-label="Creating…">
+        {% csrf_token %}
+        <div class="cl-form-section">
+          <h6><i class="fas fa-calendar"></i> Term Details</h6>
+          <div class="cl-form-grid">
+            <div class="cl-field">
+              <label for="{{ form.semester.id_for_label }}">Semester <span class="req">*</span></label>
+              {{ form.semester }}
+              {% if form.semester.errors %}<div class="err">{{ form.semester.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field">
+              <label for="{{ form.term_name.id_for_label }}">Term Name <span class="req">*</span></label>
+              {{ form.term_name }}
+              {% if form.term_name.errors %}<div class="err">{{ form.term_name.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field">
+              <label for="{{ form.start_date.id_for_label }}">Start Date <span class="req">*</span></label>
+              {{ form.start_date }}
+              {% if form.start_date.errors %}<div class="err">{{ form.start_date.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field">
+              <label for="{{ form.end_date.id_for_label }}">End Date <span class="req">*</span></label>
+              {{ form.end_date }}
+              {% if form.end_date.errors %}<div class="err">{{ form.end_date.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="cl-form-actions">
+          <button type="submit" class="cl-btn cl-btn-primary"><i class="fas fa-save"></i> Create Term</button>
+          <a href="{% url 'term-list' %}" class="cl-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'js/tours/cl-tour-term-form.js' %}" defer></script>
+{% endblock %}

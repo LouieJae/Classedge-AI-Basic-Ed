@@ -1,0 +1,35 @@
+{% extends "student_base.html" %}
+
+{% block title %}Create Side Activity — {{ subject.name }}{% endblock %}
+
+{% block content %}
+<section class="hero" style="padding-bottom:1rem;">
+  <h1>Create Side Activity &mdash; {{ subject.name }}</h1>
+</section>
+
+<div style="max-width:640px;padding:0 1rem 2rem;">
+  <form method="post">
+    {% csrf_token %}
+
+    {% for field in form %}
+    <div style="margin-bottom:1rem;">
+      <label for="{{ field.id_for_label }}" style="display:block;font-weight:600;margin-bottom:.25rem;color:var(--text);">
+        {{ field.label }}
+      </label>
+      {{ field }}
+      {% if field.help_text %}
+      <small style="color:var(--muted);">{{ field.help_text }}</small>
+      {% endif %}
+      {% for error in field.errors %}
+      <div style="color:#e74c3c;font-size:.85rem;margin-top:.25rem;">{{ error }}</div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <div style="display:flex;gap:1rem;align-items:center;margin-top:1.5rem;">
+      <button type="submit" class="btn btn-primary">Create Assessment</button>
+      <a href="{% url 'side_activity_list' subject.pk %}" style="color:var(--primary);">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

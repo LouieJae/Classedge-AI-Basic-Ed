@@ -1,0 +1,15 @@
+{% extends "central_content/base.html" %}
+{% block title %}School token{% endblock %}
+{% block content %}
+<div class="max-w-lg">
+  <h1 class="text-2xl font-semibold mb-4">
+    {% if regenerated %}Token regenerated{% else %}School created{% endif %}
+  </h1>
+  <p class="mb-4">
+    Copy this token into the school's <code>.env</code> as
+    <code>CENTRAL_INGEST_TOKEN</code>. This is the only time it will be shown.
+  </p>
+  <pre class="bg-gray-100 p-3 select-all rounded">{{ school.api_token }}</pre>
+  <a href="{% url 'school_list' %}" class="bg-blue-600 text-white px-4 py-2 rounded mt-4 inline-block">Done</a>
+</div>
+{% endblock %}

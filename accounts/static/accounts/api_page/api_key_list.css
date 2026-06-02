@@ -1,0 +1,56 @@
+  .api-key-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+  }
+  .api-key-code {
+    font-family: 'Courier New', monospace;
+    background: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    display: inline-block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .status-badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+    font-weight: 600;
+  }
+  .action-btn-group {
+    display: flex;
+    gap: 0.25rem;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+  .empty-state-icon {
+    font-size: 4rem;
+    color: #dee2e6;
+    margin-bottom: 1rem;
+  }
+  .card-stats {
+    border-left: 4px solid #667eea;
+  }
+  .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  .modal-header .btn-close {
+    filter: brightness(0) invert(1);
+  }
+  .info-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+  }
+  .copy-btn-success {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+    color: white !important;
+  }

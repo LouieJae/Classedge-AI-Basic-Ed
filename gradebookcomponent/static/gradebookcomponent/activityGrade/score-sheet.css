@@ -1,0 +1,744 @@
+    /* ───────── Layout ───────── */
+    .ss-shell { padding: 8px 0; }
+
+    /* Header */
+    .ss-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+    .ss-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+    .ss-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      background: transparent;
+      color: var(--ink-dim);
+      font-family: var(--body);
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      align-self: flex-start;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .ss-back:hover { border-color: var(--ink-dim); color: var(--ink); }
+
+    .ss-title {
+      font-family: var(--display);
+      font-size: 32px;
+      font-weight: 400;
+      letter-spacing: -0.025em;
+      color: var(--ink);
+      line-height: 1.1;
+      margin: 0;
+    }
+    .ss-title em {
+      font-style: italic;
+      color: var(--brand-primary, #b7925a);
+      font-weight: 300;
+    }
+    .ss-sub {
+      color: var(--ink-dim);
+      font-size: 14px;
+      font-family: var(--display);
+      font-style: italic;
+    }
+
+    .ss-header-actions {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .ss-btn-ghost, .ss-btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      font-family: var(--body);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .ss-btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      color: var(--ink-dim);
+    }
+    .ss-btn-ghost:hover { border-color: var(--brand-primary, #b7925a); color: var(--ink); }
+    .ss-btn-primary {
+      background: var(--brand-primary, #1b4332);
+      border: 1px solid var(--brand-primary, #1b4332);
+      color: var(--cream);
+    }
+    .ss-btn-primary:hover { background: var(--brand-primary, #1b4332); border-color: var(--brand-primary, #1b4332); }
+
+    /* ───────── Stats Grid ───────── */
+    .ss-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .ss-stat-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+      border-left: 4px solid var(--brand-primary, #1b4332);
+    }
+    .ss-stat-card--gold { border-left-color: var(--brand-primary, #b7925a); }
+    .ss-stat-label {
+      font-family: var(--display);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-muted);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .ss-stat-value {
+      font-family: var(--display);
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--ink);
+      line-height: 1.1;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .ss-stat-card--gold .ss-stat-value { color: var(--brand-primary, #b7925a); }
+    .ss-stat-unit {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      letter-spacing: 0.02em;
+      font-style: italic;
+    }
+
+    /* ───────── Toolbar ───────── */
+    .ss-toolbar {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 18px;
+      margin-bottom: 18px;
+    }
+    .ss-toolbar-left {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ss-search {
+      position: relative;
+      flex: 0 1 320px;
+      min-width: 200px;
+    }
+    .ss-search i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--ink-muted);
+      font-size: 12px;
+    }
+    .ss-search input {
+      width: 100%;
+      padding: 9px 14px 9px 34px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .ss-search input:focus { border-color: var(--brand-primary, #b7925a); }
+
+    .ss-filters {
+      display: inline-flex;
+      gap: 4px;
+      background: var(--cream);
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .ss-chip {
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-family: var(--display);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: transparent;
+      color: var(--ink-dim);
+      border: none;
+      cursor: pointer;
+      transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                  color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    /* Idle-hover gets a soft brand wash + brand text — telegraphs
+       "this is selectable" before the click. */
+    .ss-chip:hover {
+      color: var(--brand-primary, #1b4332);
+      background: var(--brand-primary-soft);
+    }
+    /* Active tab — solid brand fill so the selected filter reads
+       loud and clear. Matches the canonical primary-button paint
+       used across the app. */
+    .ss-chip.is-active {
+      background: var(--brand-primary, #1b4332);
+      color: #fff;
+      box-shadow: 0 4px 12px -6px var(--brand-primary-soft);
+    }
+    .ss-chip.is-active:hover {
+      background: color-mix(in srgb, var(--brand-primary, #1b4332), black 12%);
+      color: #fff;
+    }
+
+    /* ───────── Table ───────── */
+    .t-table-wrap {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+    .ss-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper);
+      font-family: var(--body);
+    }
+    .ss-table thead th {
+      background: var(--cream-2);
+      color: var(--ink);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      text-align: left;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .ss-table thead th.ss-center { text-align: center; }
+    .ss-table tbody td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--ink);
+      vertical-align: middle;
+    }
+    .ss-table tbody td.ss-center { text-align: center; }
+    .ss-table tbody tr:hover td { background: var(--cream); }
+    .ss-table tbody tr:last-child td { border-bottom: none; }
+
+    .col-no     { width: 56px; }
+    .col-status { width: 150px; }
+    .col-date   { width: 150px; }
+    .col-raw    { width: 110px; }
+    .col-pct    { width: 180px; }
+    .col-grade  { width: 120px; }
+    .ss-th-no   { text-align: center !important; }
+    .ss-td-no {
+      text-align: center;
+      font-family: var(--display);
+      font-variant-numeric: tabular-nums;
+      color: var(--ink-muted);
+      font-weight: 500;
+    }
+
+    /* Student cell */
+    .ss-student {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 200px;
+    }
+    .ss-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--brand-primary, #1b4332);
+      color: var(--cream);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 12px;
+      flex-shrink: 0;
+      letter-spacing: 0.04em;
+    }
+    .ss-student-name {
+      font-family: var(--display);
+      font-weight: 500;
+      color: var(--ink);
+      line-height: 1.2;
+      font-size: 14px;
+    }
+    .ss-student-email {
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin-top: 2px;
+      font-style: italic;
+      font-family: var(--display);
+    }
+
+    /* Date */
+    .ss-date {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+      font-family: var(--display);
+    }
+    .ss-date-d { color: var(--ink); font-weight: 500; font-size: 13px; }
+    .ss-date-t { color: var(--ink-muted); font-size: 12px; font-style: italic; }
+    .ss-muted { color: var(--ink-muted); }
+
+    /* Raw score */
+    .ss-raw {
+      font-family: var(--display);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--ink);
+      display: inline-flex;
+      align-items: baseline;
+    }
+    .ss-raw-sep { color: var(--ink-muted); margin: 0 4px; font-weight: 400; }
+    .ss-raw-max { color: var(--ink-muted); font-weight: 500; font-size: 13px; }
+
+    /* Progress bar */
+    .ss-bar {
+      position: relative;
+      height: 22px;
+      width: 100%;
+      max-width: 160px;
+      margin: 0 auto;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .ss-bar-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      background: var(--brand-primary, #1b4332);
+      transition: width 0.5s ease;
+    }
+    .ss-bar-text {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-family: var(--display);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      mix-blend-mode: difference;
+      filter: invert(1) grayscale(1) contrast(9);
+    }
+
+    /* Badges (shared kit shape) */
+    .t-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .t-badge i { font-size: 0.9em; }
+    .t-badge--gold {
+      background: var(--brand-primary-soft);
+      color: var(--brand-primary, #b7925a);
+      border: 1px solid var(--brand-primary-soft);
+    }
+    .t-badge--rose {
+      background: var(--rose-soft);
+      color: var(--rose);
+      border: 1px solid var(--rose-soft);
+    }
+    .t-badge--forest {
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      border: 1px solid var(--brand-primary-soft);
+    }
+
+    /* Result pill (uses same kit shape) */
+    .ss-grade-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: var(--radius-sm);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: var(--cream);
+      color: var(--ink-muted);
+      border: 1px solid var(--border);
+      min-width: 78px;
+      justify-content: center;
+    }
+    .ss-grade-pill.is-pass {
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      border-color: var(--brand-primary-soft);
+    }
+    .ss-grade-pill.is-fail {
+      background: var(--rose-soft);
+      color: var(--rose);
+      border-color: var(--rose-soft);
+    }
+    .ss-grade-pill.is-pending {
+      background: var(--brand-primary-soft);
+      color: var(--brand-primary, #b7925a);
+      border-color: var(--brand-primary-soft);
+    }
+
+    /* Empty states */
+    .ss-empty-row td { padding: 0; }
+    .ss-empty, .ss-empty-filter {
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--ink-dim);
+    }
+    .ss-empty-ico {
+      font-size: 32px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+      color: var(--brand-primary, #b7925a);
+    }
+    .ss-empty-lead {
+      font-family: var(--display);
+      font-size: 16px;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .ss-empty-sub {
+      font-family: var(--display);
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    /* Responsive */
+    @media (max-width: 720px) {
+      .ss-header { flex-direction: column; align-items: stretch; }
+      .ss-header-actions { flex-wrap: wrap; }
+      .ss-title { font-size: 24px; }
+      .ss-toolbar-left { flex-direction: column; align-items: stretch; }
+      .ss-search { flex: 1 1 auto; }
+      .ss-filters { overflow-x: auto; }
+    }
+
+    /* Print-only elements — hidden on screen, revealed by @media print below. */
+    .ss-print-only { display: none; }
+
+    /* ───────── Print ───────── */
+    @media print {
+      /* Page setup — A4 portrait with generous margins. The score sheet
+         is a 7-column table that fits portrait comfortably; landscape would
+         leave too much whitespace. */
+      @page {
+        size: A4 portrait;
+        margin: 14mm 12mm 16mm 12mm;
+      }
+
+      /* Strip the app chrome: sidebar, mobile burger, global topbar, theme
+         toggle, notification panel, modals, scrollbars, footers. The score
+         sheet should print as a standalone academic document with no LMS
+         navigation visible. */
+      html, body {
+        background: #ffffff !important;
+        color: #000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        /* Force black ink so brand-color decorative accents don't print as
+           pale ghosts (printers' color-adjust defaults can drop tinted
+           text below visibility). */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .app .sidebar,
+      .app .sidebar-backdrop,
+      .app main > .topbar,
+      .legal-modal,
+      .notif-panel,
+      .cmdk-overlay,
+      .toast-stack,
+      .mobile-burger { display: none !important; }
+
+      .app, .app main, .app main .page-content {
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+      }
+
+      /* Reveal print-only blocks. */
+      .ss-print-only { display: block !important; }
+
+      /* Hide screen-only chrome inside the page itself. */
+      .ss-back,
+      .ss-header-actions,
+      .ss-toolbar,
+      .ss-stats,
+      .ss-empty-filter { display: none !important; }
+
+      /* Page title still appears on screen above the table; keep the row
+         but compact it — the masthead carries the canonical "Score Sheet"
+         label, so this is just a tighter secondary line. Actually hide it
+         to avoid duplication with the print masthead. */
+      .ss-header { display: none !important; }
+
+      .ss-shell {
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+
+      /* ─── Print masthead ─── */
+      .ss-print-masthead {
+        text-align: center;
+        margin-bottom: 8mm;
+        padding-bottom: 4mm;
+        border-bottom: 1pt solid #000;
+      }
+      .ss-print-school {
+        font-family: var(--display, Georgia, serif);
+        font-size: 18pt;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #000;
+      }
+      .ss-print-doctype {
+        font-family: var(--display, Georgia, serif);
+        font-size: 12pt;
+        font-style: italic;
+        font-weight: 400;
+        margin-top: 2pt;
+        margin-bottom: 6pt;
+        color: #000;
+      }
+      .ss-print-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2pt 24pt;
+        margin: 0 auto;
+        max-width: 160mm;
+        text-align: left;
+        font-size: 9.5pt;
+        color: #000;
+      }
+      .ss-print-meta-row {
+        display: flex;
+        gap: 6pt;
+        align-items: baseline;
+      }
+      .ss-print-meta-label {
+        flex: 0 0 24mm;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 8pt;
+        letter-spacing: 0.06em;
+      }
+      .ss-print-meta-value {
+        flex: 1;
+        font-weight: 500;
+      }
+
+      /* ─── Table ─── */
+      .t-table-wrap {
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        overflow: visible !important;
+        margin: 0 !important;
+      }
+      .ss-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 9.5pt;
+        color: #000 !important;
+      }
+      .ss-table thead { display: table-header-group; }
+      .ss-table tfoot { display: table-footer-group; }
+      .ss-table thead th {
+        background: #f0f0f0 !important;
+        color: #000 !important;
+        border: 0.6pt solid #000 !important;
+        padding: 4pt 5pt !important;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 8pt;
+        letter-spacing: 0.04em;
+        text-align: left;
+      }
+      .ss-table thead th.ss-center,
+      .ss-table thead th.ss-th-no { text-align: center; }
+      .ss-table tbody td {
+        border: 0.4pt solid #000 !important;
+        padding: 3pt 5pt !important;
+        color: #000 !important;
+        vertical-align: top;
+      }
+      .ss-table tbody td.ss-center { text-align: center; }
+      .ss-row { page-break-inside: avoid; }
+
+      /* Student cell — strip avatar, keep "Last, First" + email on one line
+         to save vertical space. */
+      .ss-avatar { display: none !important; }
+      .ss-student {
+        display: block !important;
+        gap: 0 !important;
+      }
+      .ss-student-name {
+        color: #000 !important;
+        font-weight: 600 !important;
+        font-size: 9.5pt;
+      }
+      .ss-student-email {
+        color: #333 !important;
+        font-size: 8pt;
+      }
+
+      /* Status badges — print as flat black-bordered chips, no color fills
+         (looks cleaner under a B/W printer). */
+      .t-badge {
+        background: transparent !important;
+        color: #000 !important;
+        border: 0.4pt solid #000 !important;
+        padding: 1pt 4pt !important;
+        font-size: 8pt !important;
+        font-weight: 600 !important;
+        box-shadow: none !important;
+      }
+      .t-badge i { color: #000 !important; }
+
+      /* Date column — stack tight. */
+      .ss-date { line-height: 1.15; }
+      .ss-date-d { font-weight: 600; font-size: 9pt; }
+      .ss-date-t { font-size: 8pt; color: #333; }
+
+      /* Score / percent / result columns — replace the visual progress bar
+         with the % text alone (the bar uses JS-injected colors that don't
+         render reliably on B/W printers). */
+      .ss-raw { font-weight: 600; }
+      .ss-bar {
+        background: transparent !important;
+        border: none !important;
+        height: auto !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+      }
+      .ss-bar-fill { display: none !important; }
+      .ss-bar-text {
+        position: static !important;
+        color: #000 !important;
+        font-weight: 600 !important;
+        font-size: 9.5pt !important;
+        display: inline !important;
+      }
+
+      .ss-grade-pill {
+        background: transparent !important;
+        color: #000 !important;
+        border: 0.4pt solid #000 !important;
+        padding: 1pt 6pt !important;
+        font-size: 8pt !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        box-shadow: none !important;
+      }
+      .ss-grade-pill i { color: #000 !important; }
+
+      /* ─── Summary line ─── */
+      .ss-print-summary {
+        margin-top: 6mm;
+        padding-top: 3mm;
+        border-top: 0.6pt solid #000;
+        font-size: 9.5pt;
+        color: #000;
+      }
+      .ss-print-summary-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4mm 10mm;
+      }
+
+      /* ─── Signatures ─── */
+      .ss-print-signatures {
+        margin-top: 18mm;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14mm;
+        page-break-inside: avoid;
+      }
+      .ss-print-sig { text-align: center; color: #000; }
+      .ss-print-sig-line {
+        border-top: 0.6pt solid #000;
+        margin-bottom: 3pt;
+      }
+      .ss-print-sig-name {
+        font-size: 10pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        min-height: 12pt;
+      }
+      .ss-print-sig-role {
+        font-size: 8pt;
+        font-style: italic;
+        color: #333;
+      }
+
+      /* Hide the screen empty-state if no rows — masthead + summary still
+         convey context. */
+      .ss-empty-row td { border: 0.4pt solid #000 !important; padding: 6pt !important; }
+      .ss-empty-ico, .ss-empty-sub { display: none !important; }
+      .ss-empty-lead {
+        font-style: italic;
+        color: #333 !important;
+        text-align: center;
+      }
+    }
+  

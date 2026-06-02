@@ -1,0 +1,121 @@
+  .ss-page { animation: ssFade 0.4s ease both; }
+  @keyframes ssFade { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: none;} }
+
+  .ss-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ss-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm, 8px);
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--border-strong);
+    background: var(--paper);
+    color: var(--ink-dim);
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .ss-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -10px rgba(45,49,66,0.25); color: var(--ink); }
+  .ss-btn.primary { background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332); }
+  .ss-btn.primary:hover { background: var(--brand-primary, #1b4332); border-color: var(--brand-primary, #1b4332); color: var(--cream); }
+
+  /* Summary strip */
+  .ss-summary {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    background: var(--paper);
+    border: 1px solid var(--cream-2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+  }
+  .ss-summary .label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--ink-muted); font-weight: 600;
+  }
+  .ss-summary .value {
+    font-family: var(--display, "Fraunces", serif);
+    font-size: 18px; color: var(--ink); font-weight: 500;
+  }
+  .ss-summary .count {
+    margin-left: auto;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  /* Screenshot grid */
+  .ss-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  @media (max-width: 480px) { .ss-grid { grid-template-columns: 1fr 1fr; gap: 10px; } }
+
+  .ss-card {
+    display: block;
+    background: var(--paper);
+    border: 1px solid var(--cream-2);
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .ss-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px -14px rgba(45,49,66,0.22);
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .ss-thumb-wrap {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background: var(--cream-2);
+    overflow: hidden;
+  }
+  .ss-thumb-wrap img {
+    width: 100%; height: 100%; object-fit: cover;
+    display: block;
+    transition: transform .25s ease;
+  }
+  .ss-card:hover .ss-thumb-wrap img { transform: scale(1.04); }
+  .ss-thumb-wrap::after {
+    content: "\f00e"; /* search-plus */
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free";
+    font-weight: 900;
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(0,0,0,0.45);
+    color: #fff;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 12px;
+    opacity: 0; transition: opacity .18s ease;
+  }
+  .ss-card:hover .ss-thumb-wrap::after { opacity: 1; }
+  .ss-meta {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--ink-dim);
+    border-top: 1px solid var(--cream-2);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ss-meta i { color: var(--brand-primary, #b7925a); font-size: 11px; }
+
+  /* Empty state */
+  .ss-empty {
+    background: var(--paper);
+    border: 1px dashed var(--cream-2);
+    border-radius: 14px;
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--ink-dim);
+    font-family: var(--display, "Fraunces", serif);
+  }
+  .ss-empty i { color: var(--brand-primary, #b7925a); font-size: 36px; display: block; margin-bottom: 14px; opacity: 0.7; }
+  .ss-empty .lead { font-size: 18px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+  .ss-empty .sub { font-size: 13px; font-style: italic; }

@@ -1,0 +1,21 @@
+<!-- central_content/templates/central_content/login.html -->
+{% extends "central_content/base.html" %}
+{% block title %}Login - Central Content{% endblock %}
+{% block content %}
+<div class="max-w-sm mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-xl font-semibold mb-4">Central Content Portal</h1>
+    {% if error %}<p class="text-red-600 mb-3">{{ error }}</p>{% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <label class="block mb-3">
+            <span class="block text-sm">Email</span>
+            <input type="email" name="email" class="w-full border rounded p-2" required>
+        </label>
+        <label class="block mb-3">
+            <span class="block text-sm">Password</span>
+            <input type="password" name="password" class="w-full border rounded p-2" required>
+        </label>
+        <button type="submit" class="w-full bg-blue-600 text-white rounded py-2">Sign in</button>
+    </form>
+</div>
+{% endblock %}

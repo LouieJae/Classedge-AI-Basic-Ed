@@ -1,0 +1,35 @@
+{% load static %}
+{% comment %}Geography / image-click map — JS-driven, included by side_activity_play.html{% endcomment %}
+
+<div id="geo-map-container" style="text-align:center;">
+  <div class="geo-prompt" style="font-size:1.1rem;color:var(--text);font-weight:600;margin-bottom:1rem;"></div>
+
+  <div style="position:relative;display:inline-block;max-width:100%;">
+    <img class="geo-image" src="" alt="Map"
+         style="max-width:100%;border-radius:8px;border:1px solid var(--border);cursor:crosshair;">
+  </div>
+
+  <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;">Click on the map to identify the location.</p>
+</div>
+
+<script src="{% static 'js/side_activities/geo_map.js' %}"></script>
+<script src="{% static 'js/side_activities/submit.js' %}"></script>
+<script>
+(function() {
+  var sa = window.SIDE_ACTIVITY;
+  var content = sa.content;
+  var targets = content.targets || [];
+  var imageUrl = content.image_url || '';
+  var startTime = Date.now();
+
+  var container = document.getElementById('geo-map-container');
+  var imageEl = container.querySelector('.geo-image');
+  if (imageUrl) imageEl.src = imageUrl;
+
+  initGeoMap(container, targets, function(correctClicks) {
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+    var score = targets.length > 0 ? correctClicks / targets.length : 0;
+    submitAttempt(sa.id, score, elapsed, {correct: correctClicks, total: targets.length});
+  });
+})();
+</script>

@@ -1,0 +1,45 @@
+{% load static %}
+{% comment %}
+Legacy stack for student pages still wearing Bootstrap admin chrome.
+Include this inside extra_css when extending student_base.html.
+student_base already loads Bootstrap, jQuery, DataTables, Select2,
+SweetAlert2, GLightbox, FontAwesome — this just fills the gaps.
+{% endcomment %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta2/css/bootstrap-select.min.css" />
+<link rel="stylesheet" href="{% static 'assets/css/custom_modal.css' %}" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta2/js/bootstrap-select.min.js"></script>
+
+<style>
+  main, main p, main span, main td, main th, main label, main li {
+    font-family: var(--body);
+    color: var(--text);
+  }
+  main h1, main h2, main h3, main h4, main h5, main h6 {
+    font-family: var(--display);
+    color: var(--text);
+  }
+  main .card {
+    background: var(--surface);
+    border-color: var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+  }
+  main .table { color: var(--text); }
+  main .table thead th {
+    background: var(--surface-2);
+    color: var(--text);
+    border-bottom-color: var(--border);
+  }
+  main .btn-primary {
+    background-color: var(--gold);
+    border-color: var(--gold);
+    color: #1a1a2e;
+  }
+  main .btn-primary:hover, main .btn-primary:focus { filter: brightness(0.95); }
+  main a:not(.btn):not(.dropdown-item):not(.nav-link):not(.page-link) { color: var(--gold); }
+
+  .custom-modal, .custom-modal-backdrop { z-index: 1080; }
+  .modal { z-index: 1080; }
+  .modal-backdrop { z-index: 1075; }
+  .swal2-container { z-index: 2000; }
+</style>

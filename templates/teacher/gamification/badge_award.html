@@ -1,0 +1,70 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Award · {{ badge.name }}{% endblock %}
+
+{% block content %}
+{% include "termbook/_form_styles.html" %}
+
+<link rel="stylesheet" href="{% static 'gamification/teacher/badge_award.css' %}" />
+
+<div class="gbf-page">
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Award <em>{{ badge.icon }} {{ badge.name }}</em></h1>
+      <p class="page-sub">Manually grant this badge to a specific student.</p>
+    </div>
+    <a href="{% url 'badge_management' %}" class="gbf-btn">
+      <i class="fas fa-arrow-left"></i> Back to badges
+    </a>
+  </div>
+
+  <div class="ba-grid">
+    <div class="gbf-card" style="max-width: none;">
+      {% if error %}
+        <div class="ba-error">
+          <i class="fas fa-circle-exclamation"></i>
+          <span>{{ error }}</span>
+        </div>
+      {% endif %}
+
+      <form method="post" class="gbf-form" novalidate>
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label for="id_student">Student</label>
+          <select name="student" id="id_student" class="selectpicker" data-live-search="true" data-none-selected-text="Choose a student…" required>
+            <option value="" disabled selected hidden>Choose a student…</option>
+            {% for s in students %}
+              <option value="{{ s.pk }}">{{ s.get_full_name|default:s.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="id_reason">Reason</label>
+          <textarea name="reason" id="id_reason" class="form-control" rows="3" placeholder="Why is this badge being awarded?"></textarea>
+        </div>
+
+        <div class="gbf-actions">
+          <button type="submit" class="gbf-btn gbf-btn--primary">
+            <i class="fas fa-medal"></i> Award badge
+          </button>
+          <a href="{% url 'badge_management' %}" class="gbf-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <div>
+      <div class="ba-preview">
+        <div class="ba-preview-icon">{{ badge.icon }}</div>
+        <h2 class="ba-preview-name">{{ badge.name }}</h2>
+        <p class="ba-preview-desc">{{ badge.description }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'gamification/teacher/badge_award.js' %}"></script>
+{% endblock %}

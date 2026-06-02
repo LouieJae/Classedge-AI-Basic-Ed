@@ -1,0 +1,653 @@
+{% load static %}
+{% comment %}
+  Shared script bundle for standalone Classroom Mode pages.
+  Loads jQuery, BS4, Select2, SweetAlert2, html2canvas + the
+  classroom-mode JS modules.
+{% endcomment %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'vendors/select2/select2.min.js' %}"></script>
+<script src="{% static 'vendors/choices/choices.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="{% static 'js/classroom-mode-spa.js' %}"></script>
+
+{% comment %}
+  Wire the global submit-lock + spinner helper so the same data-cl-loading
+  attributes used in base_operation pages also work in Classroom Mode.
+  Without this include, every <form data-cl-loading> in a CM template
+  is a silent no-op.
+{% endcomment %}
+<script src="{% static 'js/cl-form-loading.js' %}" defer></script>
+<script src="{% static 'js/cl-form-validation.js' %}" defer></script>
+<script src="{% static 'js/cl-form-autosave.js' %}" defer></script>
+<script src="{% static 'js/cl-select2.js' %}" defer></script>
+<script src="{% static 'js/cl-stepper.js' %}" defer></script>
+<script src="{% static 'js/cl-media-skeleton.js' %}" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js" defer></script>
+<script src="{% static 'js/cl-tour.js' %}" defer></script>
+
+<script>
+  // ── Inline field-level validation for Classroom Mode forms ──────────
+  // CM forms use Bootstrap's `needs-validation novalidate` pattern. This
+  // surfaces validation errors as red borders + inline messages directly
+  // under each invalid field — the experience the rest of the app gets
+  // from Bootstrap's `.invalid-feedback` blocks, but rebuilt in JS so
+  // we don't have to add `.invalid-feedback` markup to every CM template.
+  //
+  // Capture-phase listener so we run before cl-form-loading.js (which
+  // locks the button) — if we preventDefault, the lock skips.
+  (function () {
+    if (window.__cmInlineValidationBound) return;
+    window.__cmInlineValidationBound = true;
+
+    var ERR_CLASS = 'cm-field-error';
+    var INVALID_CLASS = 'cm-is-invalid';
+    var STYLE_ID = 'cm-inline-validation-styles';
+
+    // Inject minimal styling once. We don't depend on Bootstrap's
+    // .is-invalid because CM templates style fields locally.
+    if (!document.getElementById(STYLE_ID)) {
+      var s = document.createElement('style');
+      s.id = STYLE_ID;
+      s.textContent =
+        '.' + INVALID_CLASS + '{border-color:#c0392b !important;box-shadow:0 0 0 3px rgba(192,57,43,0.14) !important;outline-color:#c0392b !important;}' +
+        '.' + ERR_CLASS + '{color:#c0392b;font-size:12.5px;margin-top:5px;display:flex;align-items:center;gap:6px;font-weight:500;line-height:1.3;}' +
+        '.' + ERR_CLASS + '::before{content:"\\f06a";font-family:"Font Awesome 6 Free","Font Awesome 5 Free";font-weight:900;font-size:12px;flex-shrink:0;}' +
+        '.' + INVALID_CLASS + '.select2-container--default .select2-selection{border-color:#c0392b !important;box-shadow:0 0 0 3px rgba(192,57,43,0.14) !important;}';
+      document.head.appendChild(s);
+    }
+
+    function isHidden(el) {
+      if (!el || !el.getClientRects) return true;
+      if (el.getClientRects().length === 0) return true;
+      var cs = window.getComputedStyle(el);
+      return cs.display === 'none' || cs.visibility === 'hidden';
+    }
+    function fieldLabel(form, field) {
+      var label = '';
+      if (field.id) {
+        var lbl = form.querySelector('label[for="' + CSS.escape(field.id) + '"]');
+        if (lbl) label = lbl.textContent.replace(/\*/g, '').trim();
+      }
+      return label || field.name || 'This field';
+    }
+    function errorMessage(field, label) {
+      var v = field.validity || {};
+      if (v.valueMissing) return label + ' is required.';
+      if (v.typeMismatch) return label + ' has an invalid format.';
+      if (v.patternMismatch) return label + ' doesn’t match the expected pattern.';
+      if (v.tooShort) return label + ' is too short.';
+      if (v.tooLong) return label + ' is too long.';
+      if (v.rangeUnderflow) return label + ' is below the minimum.';
+      if (v.rangeOverflow) return label + ' is above the maximum.';
+      if (v.stepMismatch) return label + ' isn’t a valid step.';
+      if (v.badInput) return label + ' value can’t be read.';
+      return field.validationMessage || (label + ' is invalid.');
+    }
+    // The element we paint the red border on — for Select2-wrapped
+    // selects that's the visible `.select2-container` next to the
+    // hidden <select>; for everything else it's the field itself.
+    function visualFor(field) {
+      var next = field.nextElementSibling;
+      if (next && next.classList && next.classList.contains('select2-container')) return next;
+      return field;
+    }
+    function clearErrors(form) {
+      form.querySelectorAll('.' + ERR_CLASS).forEach(function (el) { el.remove(); });
+      form.querySelectorAll('.' + INVALID_CLASS).forEach(function (el) {
+        el.classList.remove(INVALID_CLASS);
+      });
+    }
+
+    // Auto-clear a field's error as the user fixes it.
+    document.addEventListener('input', function (e) {
+      var field = e.target;
+      if (!field || !field.form) return;
+      var visual = visualFor(field);
+      if (!visual.classList.contains(INVALID_CLASS)) return;
+      if (typeof field.checkValidity === 'function' && field.checkValidity()) {
+        visual.classList.remove(INVALID_CLASS);
+        var sib = visual.nextElementSibling;
+        if (sib && sib.classList && sib.classList.contains(ERR_CLASS)) sib.remove();
+      }
+    });
+    document.addEventListener('change', function (e) {
+      var field = e.target;
+      if (!field || !field.form) return;
+      var visual = visualFor(field);
+      if (!visual.classList.contains(INVALID_CLASS)) return;
+      if (typeof field.checkValidity === 'function' && field.checkValidity()) {
+        visual.classList.remove(INVALID_CLASS);
+        var sib = visual.nextElementSibling;
+        if (sib && sib.classList && sib.classList.contains(ERR_CLASS)) sib.remove();
+      }
+    });
+
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form || form.tagName !== 'FORM') return;
+      if (!form.classList || !form.classList.contains('needs-validation')) return;
+      if (typeof form.checkValidity !== 'function') return;
+
+      clearErrors(form);
+
+      if (form.checkValidity()) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      form.classList.add('was-validated');
+
+      var invalids = Array.prototype.slice.call(form.querySelectorAll(':invalid'));
+      if (!invalids.length) return;
+
+      var first = null;
+      invalids.forEach(function (field) {
+        var visual = visualFor(field);
+        visual.classList.add(INVALID_CLASS);
+
+        // Insert the error message right after the visual element
+        // (skipping any existing one for this field).
+        var msg = document.createElement('div');
+        msg.className = ERR_CLASS;
+        msg.textContent = errorMessage(field, fieldLabel(form, field));
+        if (visual.parentNode) {
+          visual.parentNode.insertBefore(msg, visual.nextSibling);
+        }
+
+        if (!first && !isHidden(visual)) first = visual;
+      });
+
+      // Scroll/focus the first visible invalid field.
+      if (first) {
+        try { first.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+        var focusable = first;
+        if (first.classList.contains('select2-container')) {
+          focusable = first.querySelector('.select2-selection') || first;
+        }
+        setTimeout(function () {
+          if (focusable && typeof focusable.focus === 'function') {
+            try { focusable.focus({ preventScroll: true }); } catch (_) { focusable.focus(); }
+          }
+        }, 260);
+      }
+
+      // Summary toast — quick "look at the form" cue.
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'warning',
+          title: invalids.length === 1 ? 'Please fix 1 field' : 'Please fix ' + invalids.length + ' fields',
+          showConfirmButton: false,
+          timer: 3500,
+          timerProgressBar: true
+        });
+      }
+    }, true);
+  })();
+
+  // ── Flush Django messages as SweetAlert toasts ───────────────────────
+  // base_operation pages render server-side messages into a toast
+  // container; CM pages didn't, so error messages from the redirect-
+  // after-POST flow piled up until the next normal-mode visit. Render
+  // them inline here as SweetAlert toasts.
+  (function () {
+    if (window.__cmFlashedMessages) return;
+    window.__cmFlashedMessages = true;
+    {% if messages %}
+      var msgs = [
+        {% for m in messages %}
+          { text: "{{ m|escapejs }}", level: "{{ m.tags|escapejs }}" },
+        {% endfor %}
+      ];
+      if (typeof Swal !== 'undefined') {
+        var Toast = Swal.mixin({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 4500,
+          timerProgressBar: true,
+          didOpen: function (t) {
+            t.addEventListener('mouseenter', Swal.stopTimer);
+            t.addEventListener('mouseleave', Swal.resumeTimer);
+          }
+        });
+        msgs.forEach(function (m) {
+          var icon = 'info';
+          var lvl = (m.level || '').toLowerCase();
+          if (lvl.indexOf('error') !== -1 || lvl.indexOf('danger') !== -1) icon = 'error';
+          else if (lvl.indexOf('warning') !== -1) icon = 'warning';
+          else if (lvl.indexOf('success') !== -1) icon = 'success';
+          Toast.fire({ icon: icon, title: m.text });
+        });
+      }
+    {% endif %}
+  })();
+</script>
+
+<script>
+  // Centralized exit confirmation for Classroom Mode pages.
+  // Intercepts any link that leaves Classroom Mode (back to /course/list/
+  // or any anchor flagged with [data-cm-exit]) and asks the teacher to
+  // confirm before navigating away.
+
+  function __cmIsExitLink(el) {
+    if (!el || el.tagName !== 'A') return false;
+    if (el.hasAttribute('data-no-cm-exit-prompt')) return false;
+    if (el.hasAttribute('data-cm-exit')) return true;
+    var href = el.getAttribute('href') || '';
+    return href.indexOf('/course/list') !== -1;
+  }
+
+  // Tag every exit link with data-cm-no-spa so the SPA navigator defers
+  // to the browser. Otherwise the SPA's capture-phase handler fires
+  // before ours and starts navigating before the confirm dialog resolves.
+  // Runs on every script execution (the SPA re-runs <body> scripts on
+  // each swap, so newly loaded exit links get tagged too).
+  (function __cmTagExitLinks() {
+    document.querySelectorAll('a[href]').forEach(function (a) {
+      if (__cmIsExitLink(a)) a.setAttribute('data-cm-no-spa', 'true');
+    });
+  })();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('a[href]').forEach(function (a) {
+        if (__cmIsExitLink(a)) a.setAttribute('data-cm-no-spa', 'true');
+      });
+    });
+  }
+
+  (function () {
+    if (window.__cmExitPromptBound) return;
+    window.__cmExitPromptBound = true;
+
+    document.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a') : null;
+      if (!__cmIsExitLink(a)) return;
+      // Modifier-click → let browser do its thing (open in new tab, etc.)
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var href = a.getAttribute('href');
+      if (typeof Swal === 'undefined') {
+        window.location.href = href;
+        return;
+      }
+
+      Swal.fire({
+        title: 'Exit Classroom Mode?',
+        text: 'You are about to leave Classroom Mode. Any unsaved changes will be lost.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, exit',
+        cancelButtonText: 'Stay',
+        confirmButtonColor: '#c0392b',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        focusCancel: true,
+        allowOutsideClick: false
+      }).then(function (result) {
+        if (result.isConfirmed) window.location.href = href;
+      });
+    }, true);
+  })();
+</script>
+
+<script>
+  // ── SPA-aware widget re-init ────────────────────────────────────────
+  // classroom-mode-spa.js swaps document.body.innerHTML on in-CM nav and
+  // dispatches a synthetic DOMContentLoaded, but Select2 / Choices.js
+  // need to be re-applied to the new <select> elements because:
+  //   1. The previous instance was attached to a DOM node that no longer
+  //      exists (instance is GC'd, but our defensive `dataset.choicesInit`
+  //      flag is lost too because it was on the old DOM).
+  //   2. Defer-loaded vendor scripts on the initial page can race the
+  //      form-assets DOMContentLoaded handler — sometimes the init fires
+  //      before Choices.js global is defined, leaving the select bare.
+  //
+  // This handler:
+  //   • Runs on initial load AND on every cm:navigated event
+  //   • Polls until both jQuery+Select2 (operations) and Choices (asset
+  //     pages) are available, then re-inits any uninitialised widget
+  //   • Skips widgets that have already been wired by the form-assets
+  //     init (avoids double-init that fires hidden duplicate dropdowns)
+  (function () {
+    if (window.__cmWidgetReinitBound) return;
+    window.__cmWidgetReinitBound = true;
+
+    function isVisible(el) {
+      if (!el) return false;
+      return !!el.offsetParent || el === document.body;
+    }
+
+    function initSelect2(scope) {
+      if (typeof window.jQuery === 'undefined' || !jQuery.fn.select2) return false;
+      var $root = jQuery(scope || document);
+
+      function safeInit($sel, opts) {
+        if (!isVisible($sel[0])) return;
+        if ($sel.hasClass('js-choice') || $sel[0].dataset.choicesInit) return;
+        if ($sel.hasClass('select2-hidden-accessible')) {
+          var $container = $sel.next('.select2-container');
+          var w = $container.length ? $container.outerWidth() : 0;
+          if (w > 0) return;
+          try { $sel.select2('destroy'); } catch (_) {}
+        }
+        $sel.select2(opts);
+      }
+
+      // Target ops-page (.field) and CM-page (.cm-col-*, .cm-form-body)
+      // form selects, including multi-selects so the audience picker
+      // matches the Select2 design used everywhere else. Only skip
+      // selects explicitly opted-out via .js-choice (Choices.js still
+      // handles those targeted use cases).
+      $root.find('.field select, .cm-col-3 select, .cm-col-6 select, .cm-col-12 select, .cm-form-body select')
+           .not('.js-choice')
+           .each(function () {
+        var $this = jQuery(this);
+        var isAudience = $this.attr('id') === 'id_display_lesson_for_selected_users';
+        var opts = {
+          theme: 'bootstrap-5',
+          width: '100%',
+          minimumResultsForSearch: 8,
+          placeholder: $this.find('option[value=""]').text() || 'Select…',
+        };
+        if (isAudience) {
+          // Match the ops-page audience picker (Select2 multi with
+          // closeOnSelect: false so the dropdown stays open while
+          // ticking multiple students). Placeholder is kept short —
+          // the field label already carries the "leave empty for all"
+          // hint so the chip area doesn't truncate the text.
+          opts.placeholder = 'Pick students…';
+          opts.allowClear = true;
+          opts.closeOnSelect = false;
+        }
+        safeInit($this, opts);
+      });
+      return true;
+    }
+
+    function initChoices(scope) {
+      if (typeof Choices === 'undefined') return false;
+      var root = scope || document;
+      // Only target selects explicitly opted-in via .js-choice. The
+      // audience picker (#id_display_lesson_for_selected_users) used to
+      // be force-targeted here — but ops pages init it as Select2 via
+      // _material-form-assets.html, so doing the same in CM keeps the
+      // multi-select widget consistent everywhere in the app.
+      var nodes = Array.prototype.slice.call(root.querySelectorAll('.js-choice'));
+      nodes.forEach(function (el) {
+        if (el.dataset.choicesInit) return;
+        if (!isVisible(el)) return;
+        try {
+          new Choices(el, {
+            removeItemButton: true,
+            placeholder: true,
+            placeholderValue: 'Select…',
+            shouldSort: false,
+          });
+          el.dataset.choicesInit = '1';
+        } catch (_) {}
+      });
+      return true;
+    }
+
+    function runAll(scope) {
+      initSelect2(scope);
+      initChoices(scope);
+    }
+
+    function tryInit(retries) {
+      var jqOk = typeof window.jQuery !== 'undefined' && !!jQuery.fn.select2;
+      var chOk = typeof Choices !== 'undefined';
+      if (jqOk || chOk) {
+        runAll(document);
+        if (!jqOk || !chOk) {
+          setTimeout(function () { runAll(document); }, 120);
+        }
+        return;
+      }
+      if ((retries || 0) > 25) return;
+      setTimeout(function () { tryInit((retries || 0) + 1); }, 60);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { tryInit(0); });
+    } else {
+      tryInit(0);
+    }
+    window.addEventListener('cm:navigated', function () { tryInit(0); });
+
+    document.addEventListener('cl-stepper:change', function () {
+      requestAnimationFrame(function () {
+        var active = document.querySelector('.cl-step.is-active');
+        if (active) runAll(active);
+      });
+    });
+
+    function initTooltips(scope) {
+      if (!window.jQuery || typeof jQuery.fn.tooltip !== 'function') return false;
+      var $ = jQuery;
+      var $root = $(scope || document);
+      $root.find('[data-bs-toggle="tooltip"], [data-toggle="tooltip"]').each(function () {
+        var $el = $(this);
+        if ($el.data('bs.tooltip') || $el.data('cl-tt-init')) return;
+        $el.tooltip({ html: true, container: 'body' });
+        $el.data('cl-tt-init', 1);
+      });
+      return true;
+    }
+    function tryInitTooltips(retries) {
+      if (initTooltips(document)) return;
+      if ((retries || 0) > 25) return;
+      setTimeout(function () { tryInitTooltips((retries || 0) + 1); }, 60);
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { tryInitTooltips(0); });
+    } else {
+      tryInitTooltips(0);
+    }
+    window.addEventListener('cm:navigated', function () { tryInitTooltips(0); });
+    document.addEventListener('cl-stepper:change', function () {
+      requestAnimationFrame(function () {
+        var active = document.querySelector('.cl-step.is-active');
+        if (active) initTooltips(active);
+      });
+    });
+
+    var swalQueue = [];
+    function flushSwal() {
+      if (typeof Swal === 'undefined' || !Swal.fire) return;
+      while (swalQueue.length) {
+        var item = swalQueue.shift();
+        Swal.fire(item.opts).then(item.resolve, item.reject);
+      }
+    }
+    window.clSwal = function (opts) {
+      return new Promise(function (resolve, reject) {
+        if (typeof Swal !== 'undefined' && Swal.fire) {
+          Swal.fire(opts).then(resolve, reject);
+          return;
+        }
+        swalQueue.push({ opts: opts, resolve: resolve, reject: reject });
+        var t = 0;
+        var iv = setInterval(function () {
+          if (typeof Swal !== 'undefined' && Swal.fire) {
+            clearInterval(iv);
+            flushSwal();
+          } else if (++t > 25) {
+            clearInterval(iv);
+          }
+        }, 60);
+      });
+    };
+  })();
+
+  // ── Force textarea.select2-search__field to rows=1 ─────────────────
+  // Select2 v4 renders the inline search field as <textarea rows="1">,
+  // but some browsers / themes still render it with default
+  // multi-line intrinsic sizing. CSS `height: 22px !important` handles
+  // most cases; this JS belt-and-suspenders also sets the `rows`
+  // attribute + `style.height` directly so the rendered box is
+  // unambiguous.
+  (function () {
+    if (window.__cmSelect2TextareaPinBound) return;
+    window.__cmSelect2TextareaPinBound = true;
+
+    function pinAll() {
+      // Scope to CM pages only.
+      if (!document.querySelector('.cm-shell')) return;
+      document.querySelectorAll('textarea.select2-search__field').forEach(function (ta) {
+        if (ta.rows !== 1) ta.rows = 1;
+        // Inline style as the highest-specificity guarantee.
+        if (ta.style.height !== '22px') ta.style.height = '22px';
+        if (!ta._cmSelect2Pinned) {
+          ta._cmSelect2Pinned = true;
+          // If Select2 mutates the height (it sometimes resizes width
+          // by setting style.width which can reset other inline styles),
+          // re-clamp the height.
+          ta.addEventListener('input', function () {
+            if (ta.style.height !== '22px') ta.style.height = '22px';
+          });
+        }
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', pinAll);
+    } else {
+      pinAll();
+    }
+    window.addEventListener('cm:navigated', pinAll);
+
+    // Select2 inserts the textarea lazily after init. A MutationObserver
+    // catches any new ones added later.
+    if ('MutationObserver' in window) {
+      var mo = new MutationObserver(function (records) {
+        for (var i = 0; i < records.length; i++) {
+          var r = records[i];
+          for (var j = 0; j < r.addedNodes.length; j++) {
+            var n = r.addedNodes[j];
+            if (n.nodeType !== 1) continue;
+            if (n.matches && n.matches('textarea.select2-search__field')) { pinAll(); return; }
+            if (n.querySelector && n.querySelector('textarea.select2-search__field')) { pinAll(); return; }
+          }
+        }
+      });
+      function startObs() {
+        try { mo.observe(document.body, { childList: true, subtree: true }); } catch (_) {}
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startObs);
+      } else {
+        startObs();
+      }
+    }
+  })();
+
+  // ── Stepper rebind on SPA swap ──────────────────────────────────────
+  // cl-stepper.js is the only helper without a MutationObserver, so it
+  // doesn't auto-rebind when the SPA replaces document.body.innerHTML.
+  // The script exposes window.ClStepper.rebind() — call it on every
+  // cm:navigated event (and once on initial load to cover the case
+  // where this script ran before cl-stepper.js finished loading).
+  (function () {
+    if (window.__cmStepperRebindBound) return;
+    window.__cmStepperRebindBound = true;
+    function rebindStepper(retries) {
+      if (window.ClStepper && typeof window.ClStepper.rebind === 'function') {
+        window.ClStepper.rebind();
+        return;
+      }
+      if ((retries || 0) > 25) return;
+      setTimeout(function () { rebindStepper((retries || 0) + 1); }, 60);
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { rebindStepper(0); });
+    } else {
+      rebindStepper(0);
+    }
+    window.addEventListener('cm:navigated', function () { rebindStepper(0); });
+  })();
+
+  // ── Re-render Select2 / Choices when a step becomes visible ─────────
+  // When the stepper hides a section with `display: none`, any Select2
+  // or Choices instance inside renders with a 0-width container. When
+  // the user clicks Next, the section becomes visible but the widgets
+  // still have the wrong width / broken internal layout. Listen for the
+  // stepper's `cl-stepper:change` event and trigger a layout pass on
+  // every Select2 inside the newly-active step.
+  (function () {
+    if (window.__cmStepperLayoutBound) return;
+    window.__cmStepperLayoutBound = true;
+
+    function relayout(step) {
+      if (!step) return;
+      // Select2: trigger a no-op change so Select2 recomputes its
+      // selection box width based on the now-visible parent.
+      if (window.jQuery && jQuery.fn.select2) {
+        jQuery(step).find('select.select2-hidden-accessible').each(function () {
+          try {
+            jQuery(this).trigger('change.select2');
+            // Force a width recalc by toggling the container's width style.
+            var $cnt = jQuery(this).next('.select2-container');
+            if ($cnt.length) {
+              $cnt.css('width', '');
+              $cnt.css('width', '100%');
+            }
+          } catch (_) {}
+        });
+      }
+      // Choices.js exposes no public re-layout API, but reading the
+      // selected-items wrapper's offsetWidth forces a synchronous
+      // reflow which fixes inline-search overflow.
+      step.querySelectorAll('.choices').forEach(function (el) {
+        void el.offsetWidth;
+      });
+    }
+
+    // cl-stepper dispatches its custom events with `bubbles: false`, so
+    // a normal bubble-phase listener on document never sees them. Use
+    // capture phase, which DOES intercept non-bubbling events on their
+    // way down from root to target.
+    document.addEventListener('cl-stepper:change', function (e) {
+      var form = e.target;
+      if (!form || typeof form.querySelector !== 'function') return;
+      var activeStep = form.querySelector('.cl-step.is-active');
+      // Small delay so the section's display:block applies before we
+      // measure widths.
+      setTimeout(function () { relayout(activeStep); }, 30);
+    }, true);
+
+    // Safety net: if the stepper init event is also missed, observe
+    // attribute changes on .cl-step (the engine toggles .is-active)
+    // and relayout whenever a step becomes active.
+    if ('MutationObserver' in window) {
+      var stepObs = new MutationObserver(function (records) {
+        records.forEach(function (r) {
+          var target = r.target;
+          if (!target || !target.classList) return;
+          if (r.attributeName !== 'class') return;
+          if (target.classList.contains('cl-step') && target.classList.contains('is-active')) {
+            setTimeout(function () { relayout(target); }, 30);
+          }
+        });
+      });
+      function startObserve() {
+        document.querySelectorAll('.cl-step').forEach(function (s) {
+          stepObs.observe(s, { attributes: true, attributeFilter: ['class'] });
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startObserve);
+      } else {
+        startObserve();
+      }
+      window.addEventListener('cm:navigated', startObserve);
+    }
+  })();
+</script>

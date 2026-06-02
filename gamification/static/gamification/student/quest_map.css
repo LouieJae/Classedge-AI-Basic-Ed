@@ -1,0 +1,124 @@
+  .qm-shell {
+    --qm-surface: var(--surface, #171a21);
+    --qm-surface-2: var(--surface-2, #1f232b);
+    --qm-border: var(--border, rgba(255,255,255,0.08));
+    --qm-text: var(--text, #e6e8ec);
+    --qm-text-dim: var(--text-dim, #9aa3b2);
+    --qm-text-muted: var(--text-muted, #6b7280);
+    --qm-gold: var(--gold, #f5c84c);
+    --qm-coral: var(--coral, #ff6b6b);
+    --qm-mint: var(--mint, #4ade80);
+    --qm-accent: var(--accent, #7c9aff);
+    padding: 24px 32px 48px;
+  }
+  .qm-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+  /* Page-level title uses canonical .page-title / .page-sub from student_theme.css */
+  .qm-back { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; background:var(--qm-surface); border:1px solid var(--qm-border); border-radius:10px; color:var(--qm-text-dim); font-size:13px; font-weight:600; text-decoration:none; transition:.15s; }
+  .qm-back:hover { color:var(--qm-text); border-color:var(--qm-text-muted); }
+
+  .qm-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:24px; }
+  .qm-stat { background:var(--qm-surface); border:1px solid var(--qm-border); border-radius:14px; padding:18px 20px; display:flex; align-items:center; gap:14px; }
+  .qm-stat-icon { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .qm-stat-icon.done { background:rgba(74,222,128,0.12); color:var(--qm-mint); }
+  .qm-stat-icon.active { background:rgba(255,107,107,0.12); color:var(--qm-coral); }
+  .qm-stat-icon.locked { background:rgba(155,160,180,0.12); color:var(--qm-text-muted); }
+  .qm-stat-icon.total { background:rgba(245,200,76,0.12); color:var(--qm-gold); }
+  .qm-stat-val { font-size:22px; font-weight:700; line-height:1; color:var(--qm-text); font-family:var(--display); }
+  .qm-stat-lbl { font-size:11px; color:var(--qm-text-dim); text-transform:uppercase; letter-spacing:0.06em; margin-top:4px; }
+
+  .qm-progress-bar { background:var(--qm-surface); border:1px solid var(--qm-border); border-radius:14px; padding:18px 24px; margin-bottom:24px; }
+  .qm-progress-bar-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .qm-progress-bar-head .label { font-size:13px; font-weight:600; color:var(--qm-text); }
+  .qm-progress-bar-head .pct { font-size:13px; color:var(--qm-gold); font-weight:700; font-family:var(--display); }
+  .qm-progress-track { height:10px; background:var(--qm-surface-2); border-radius:100px; overflow:hidden; }
+  .qm-progress-fill { height:100%; background:linear-gradient(90deg, var(--qm-mint), var(--qm-gold)); border-radius:100px; transition:width .8s ease; }
+
+  .qm-map-wrap { background:var(--qm-surface); border:1px solid var(--qm-border); border-radius:16px; padding:24px; margin-bottom:24px; position:relative; overflow:hidden; }
+  .qm-map-wrap::before { content:""; position:absolute; inset:0; background: radial-gradient(circle at 20% 20%, rgba(124,154,255,0.08), transparent 40%), radial-gradient(circle at 80% 80%, rgba(245,200,76,0.06), transparent 40%); pointer-events:none; }
+  .qm-svg { width:100%; height:auto; display:block; position:relative; z-index:1; }
+
+  .qm-node circle.bg { fill: var(--qm-surface-2); stroke: var(--qm-border); stroke-width: 2; }
+  .qm-node.done circle.bg { fill: var(--qm-mint); stroke: var(--qm-mint); }
+  .qm-node.active circle.bg { fill: var(--qm-coral); stroke: var(--qm-coral); }
+  .qm-node.locked circle.bg { opacity: 0.55; }
+  .qm-node.active circle.bg { animation: qm-pulse 1.6s ease-in-out infinite; }
+  @keyframes qm-pulse {
+    0%, 100% { r: 28; }
+    50% { r: 32; }
+  }
+  .qm-node text.idx { text-anchor:middle; font-family:var(--display); font-weight:700; font-size:18px; fill:#fff; dominant-baseline:central; }
+  .qm-node.locked text.idx { fill: var(--qm-text-muted); }
+  .qm-node text.lbl { text-anchor:middle; font-size:11px; fill: var(--qm-text-dim); font-family:var(--body); font-weight:500; }
+  .qm-node.done text.lbl { fill: var(--qm-text); font-weight:600; }
+  .qm-node.active text.lbl { fill: var(--qm-coral); font-weight:700; }
+  .qm-node:hover { cursor: pointer; }
+  .qm-node:hover circle.bg { filter: brightness(1.15); }
+
+  .qm-cta { background:var(--qm-surface); border:1px solid var(--qm-border); border-radius:14px; padding:20px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+  .qm-cta .meta { display:flex; align-items:center; gap:14px; }
+  .qm-cta .meta .pin { width:42px; height:42px; border-radius:12px; background:rgba(255,107,107,0.12); color:var(--qm-coral); display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .qm-cta .meta .info .ttl { font-size:11px; color:var(--qm-text-dim); text-transform:uppercase; letter-spacing:0.08em; }
+  .qm-cta .meta .info .val { font-size:15px; font-weight:600; color:var(--qm-text); margin-top:2px; }
+  .qm-cta-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .qm-btn { display:inline-flex; align-items:center; gap:8px; background:var(--qm-coral); color:#fff !important; border:none; border-radius:10px; padding:11px 22px; font-weight:600; font-size:14px; text-decoration:none; transition:.15s; }
+  .qm-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 16px -4px rgba(255,107,107,0.4); color:#fff; }
+  .qm-btn.secondary { background:rgba(74,222,128,0.12); color:var(--qm-mint) !important; border:1px solid rgba(74,222,128,0.35); }
+  .qm-btn.secondary:hover { background:rgba(74,222,128,0.2); color:var(--qm-mint) !important; border-color:var(--qm-mint); box-shadow:0 8px 16px -4px rgba(74,222,128,0.35); }
+
+  .qm-empty { text-align:center; padding:80px 20px; color:var(--qm-text-dim); background:var(--qm-surface); border:1px solid var(--qm-border); border-radius:16px; }
+  .qm-empty i { font-size:54px; opacity:0.35; margin-bottom:18px; display:block; color:var(--qm-gold); }
+  .qm-empty p { font-size:15px; }
+
+  /* ─── Typography normalization handled by canonical .page-title ─── */
+
+  /* ─── Responsive: tablet ───────────────────────────── */
+  @media (max-width: 900px) {
+    .qm-shell { padding: 20px 22px 40px; }
+    .qm-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .qm-stat { padding: 14px 16px; }
+    .qm-stat-val { font-size: 20px; }
+    .qm-map-wrap { padding: 18px; }
+  }
+
+  /* ─── Responsive: phone ────────────────────────────── */
+  @media (max-width: 640px) {
+    .qm-shell { padding: 16px 14px 36px; }
+    .qm-head { gap: 10px; }
+    .qm-head .sub { font-size: 13px; }
+    .qm-back { padding: 7px 12px; font-size: 12px; }
+
+    .qm-stats { gap: 10px; margin-bottom: 18px; }
+    .qm-stat { padding: 12px 14px; gap: 10px; border-radius: 12px; }
+    .qm-stat-icon { width: 36px; height: 36px; font-size: 15px; border-radius: 10px; }
+    .qm-stat-val { font-size: 18px; }
+    .qm-stat-lbl { font-size: 10px; letter-spacing: 0.04em; }
+
+    .qm-progress-bar { padding: 14px 16px; margin-bottom: 18px; border-radius: 12px; }
+    .qm-progress-bar-head .label,
+    .qm-progress-bar-head .pct { font-size: 12px; }
+
+    /* Map gets a bit more vertical room on phones since the SVG path
+       is vertical-heavy. */
+    .qm-map-wrap { padding: 14px; margin-bottom: 18px; border-radius: 14px; }
+
+    /* Make node labels readable on small canvases. */
+    .qm-node text.idx { font-size: 16px; }
+    .qm-node text.lbl { font-size: 13px; }
+
+    .qm-cta { padding: 14px 16px; flex-direction: column; align-items: stretch; gap: 14px; border-radius: 12px; }
+    .qm-cta .meta { width: 100%; }
+    .qm-cta .meta .pin { width: 38px; height: 38px; font-size: 15px; border-radius: 10px; }
+    .qm-cta .meta .info .val { font-size: 14px; }
+    .qm-cta-actions { width: 100%; flex-direction: column; }
+    .qm-btn { width: 100%; justify-content: center; padding: 12px 18px; }
+
+    .qm-empty { padding: 56px 18px; border-radius: 14px; }
+    .qm-empty i { font-size: 40px; margin-bottom: 12px; }
+    .qm-empty p { font-size: 13px; }
+  }
+
+  /* ─── Tiny: <420px ─────────────────────────────────── */
+  @media (max-width: 420px) {
+    .qm-stats { grid-template-columns: 1fr 1fr; }
+    .qm-shell { padding: 14px 10px 32px; }
+  }

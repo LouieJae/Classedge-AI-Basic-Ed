@@ -1,0 +1,242 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}{{ module.file_name|default:"Lesson" }} · {{ subject.subject_name }}{% endblock %}
+
+{% block content %}
+{% include "includes/_list_page_theme.html" %}
+
+<div class="cl-page">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'material-list' subject.id %}">{{ subject.subject_name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ module.file_name|default:"Lesson" }}</li>
+    </ol>
+  </nav>
+
+  <div class="cl-header">
+    <div>
+      <h2><i class="fas fa-book-open me-2"></i>{{ module.file_name|default:"Lesson" }}</h2>
+      <p>
+        {{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %}
+        {% if module.start_date %} · Published {{ module.start_date|date:"M d, Y" }}{% endif %}
+      </p>
+    </div>
+    <div class="cl-actions">
+      {% if user.profile.role.name == 'Teacher' %}
+      <a href="{% url 'quest_mode_select' module.id %}" class="cl-btn"><i class="fas fa-puzzle-piece"></i> Add quests</a>
+      {% endif %}
+      <a href="{% url 'classroom_mode' subject.id %}" class="cl-btn"><i class="fas fa-chalkboard"></i> Classroom</a>
+      <a href="{% url 'material-list' subject.id %}" class="cl-btn"><i class="fas fa-arrow-left"></i> Back to subject</a>
+    </div>
+  </div>
+
+  <div class="lesson-grid">
+    <!-- Left: lesson content -->
+    <div class="lesson-main">
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-file-lines me-2"></i>Material content</span>
+          <span class="cl-badge">
+            {% if is_pdf %}PDF
+            {% elif is_image %}Image
+            {% elif is_video %}Video
+            {% elif is_youtube %}YouTube
+            {% elif is_vimeo %}Vimeo
+            {% elif is_sway %}Sway
+            {% elif is_video_url %}Video link
+            {% elif is_url %}External link
+            {% elif module.iframe_code %}Embed
+            {% else %}Material{% endif %}
+          </span>
+        </div>
+
+        {% if module.description %}
+          <div class="lesson-desc">{{ module.description|linebreaksbr }}</div>
+        {% endif %}
+
+        <div class="lesson-body">
+          {% if module.iframe_code %}
+            <div class="lesson-frame" id="iframe-container">
+              {{ module.iframe_code|safe }}
+              <button class="lesson-fs-btn" onclick="enterFs('iframe-container', this)"><i class="fas fa-expand"></i></button>
+            </div>
+          {% endif %}
+
+          {% if is_pdf and module.file %}
+            <div class="lesson-frame" id="pdf-container">
+              <iframe id="pdf-file" src="{{ module.file.url }}"></iframe>
+              <button class="lesson-fs-btn" onclick="enterFs('pdf-container', this)"><i class="fas fa-expand"></i></button>
+            </div>
+          {% endif %}
+
+          {% if is_image and module.file %}
+            <div class="lesson-image" id="image-container">
+              <img src="{{ module.file.url }}" alt="{{ module.file_name }}" />
+              <button class="lesson-fs-btn" onclick="enterFs('image-container', this)"><i class="fas fa-expand"></i></button>
+            </div>
+          {% endif %}
+
+          {% if is_video and module.file %}
+            <div class="lesson-video">
+              <video controls>
+                <source src="{{ module.file.url }}" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          {% endif %}
+
+          {% if is_video_url %}
+            <div class="lesson-video">
+              <video controls><source src="{{ module.url }}" type="video/mp4"></video>
+            </div>
+          {% endif %}
+
+          {% if is_youtube or is_vimeo %}
+            <div class="lesson-frame ratio-16-9" id="ext-container">
+              <iframe src="{{ embed_url }}" allowfullscreen></iframe>
+              <button class="lesson-fs-btn" onclick="enterFs('ext-container', this)"><i class="fas fa-expand"></i></button>
+            </div>
+          {% endif %}
+
+          {% if is_sway %}
+            <div class="lesson-frame" id="sway-container">
+              <iframe src="{{ sway_embed_url }}" allowfullscreen></iframe>
+              <button class="lesson-fs-btn" onclick="enterFs('sway-container', this)"><i class="fas fa-expand"></i></button>
+            </div>
+          {% endif %}
+
+          {% if is_url %}
+            <div class="lesson-link">
+              <i class="fas fa-up-right-from-square link-icon"></i>
+              <div class="link-meta">
+                <div class="link-title">{{ module.file_name|default:"External resource" }}</div>
+                <div class="link-url">{{ module.url|truncatechars:80 }}</div>
+              </div>
+              <a href="{{ module.url }}" target="_blank" rel="noopener" class="cl-btn cl-btn-primary">
+                <i class="fas fa-external-link-alt me-1"></i> Open link
+              </a>
+            </div>
+          {% endif %}
+
+          {% if is_unknown %}
+            <div class="lesson-empty">
+              <i class="fas fa-file-circle-exclamation"></i>
+              <div class="lead">Unsupported format</div>
+              <div class="hint">This file type can't be previewed inline. Download it to view.</div>
+              {% if module.file %}
+                <a href="{{ module.file.url }}" download class="cl-btn cl-btn-primary mt-3">
+                  <i class="fas fa-download me-1"></i> Download file
+                </a>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {% if module.allow_download and module.file %}
+            <div class="lesson-download">
+              <a href="{{ module.file.url }}" download class="cl-btn">
+                <i class="fas fa-download me-1"></i> Download
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: activities rail -->
+    <aside class="lesson-side">
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-tasks me-2"></i>Linked activities</span>
+        </div>
+        <div class="lesson-activities">
+          {% with total=activity_counts.exam_count|add:activity_counts.assignment_count|add:activity_counts.special_activity_count|add:activity_counts.quiz_count %}
+            {% if total == 0 %}
+              <div class="lesson-empty small">
+                <i class="fas fa-list-check"></i>
+                <div class="lead">No activities yet</div>
+                <div class="hint">Activities linked to this material will appear here.</div>
+              </div>
+            {% endif %}
+          {% endwith %}
+
+          {% if exams %}
+            <div class="act-section">
+              <h4 class="act-title"><i class="fas fa-file-pen"></i> Exams <span class="act-count">{{ activity_counts.exam_count }}</span></h4>
+              {% for a in exams %}
+                <a href="{% url 'assessment-detail-cm' a.id %}" class="act-row">
+                  <span class="dot dot-exam"></span>
+                  <span class="act-name">{{ a.activity_name }}</span>
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% if quiz %}
+            <div class="act-section">
+              <h4 class="act-title"><i class="fas fa-circle-question"></i> Quizzes <span class="act-count">{{ activity_counts.quiz_count }}</span></h4>
+              {% for a in quiz %}
+                <a href="{% url 'assessment-detail-cm' a.id %}" class="act-row">
+                  <span class="dot dot-quiz"></span>
+                  <span class="act-name">{{ a.activity_name }}</span>
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% if assignment %}
+            <div class="act-section">
+              <h4 class="act-title"><i class="fas fa-pen-nib"></i> Assignments <span class="act-count">{{ activity_counts.assignment_count }}</span></h4>
+              {% for a in assignment %}
+                <a href="{% url 'assessment-detail-cm' a.id %}" class="act-row">
+                  <span class="dot dot-assign"></span>
+                  <span class="act-name">{{ a.activity_name }}</span>
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% if special_activity %}
+            <div class="act-section">
+              <h4 class="act-title"><i class="fas fa-star"></i> Special activities <span class="act-count">{{ activity_counts.special_activity_count }}</span></h4>
+              {% for a in special_activity %}
+                <a href="{% url 'assessment-detail-cm' a.id %}" class="act-row">
+                  <span class="dot dot-special"></span>
+                  <span class="act-name">{{ a.activity_name }}</span>
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if module.start_date or module.end_date %}
+        <div class="cl-card mt-3">
+          <div class="cl-card-header"><span><i class="fas fa-calendar-day me-2"></i>Window</span></div>
+          <div class="lesson-window">
+            <div class="win-row">
+              <span class="win-label">Starts</span>
+              <span class="win-value">{% if module.start_date %}{{ module.start_date|date:"M d, Y" }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="win-row">
+              <span class="win-label">Ends</span>
+              <span class="win-value">{% if module.end_date %}{{ module.end_date|date:"M d, Y" }}{% else %}—{% endif %}</span>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </aside>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{% static 'module/view-subject-module.css' %}" />
+
+<script src="{% static 'module/view-subject-module.js' %}"></script>
+{% endblock %}

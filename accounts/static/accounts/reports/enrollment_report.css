@@ -1,0 +1,179 @@
+  /* ── Enrolment Report — design-token redesign ─────────────────────── */
+  .er-page { animation: erFade 0.5s ease both; }
+  @keyframes erFade { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+
+  /* Stat strip — sits in topbar's right slot */
+  .er-stats {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 16px;
+    align-items: center;
+    background: var(--paper);
+    border: 1px solid var(--cream-2);
+    border-radius: 12px;
+    padding: 12px 20px;
+    flex-shrink: 0;
+  }
+  .er-meta {
+    margin-top: 8px;
+    color: var(--ink-dim);
+    font-size: 13px;
+    font-family: var(--body);
+    font-style: normal;
+  }
+  .er-meta strong { color: var(--ink); font-weight: 600; }
+  .er-stat .num {
+    font-family: var(--display, "Fraunces", serif);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .er-stat .lab {
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .er-stat-divider { width: 1px; align-self: stretch; background: var(--cream-2); }
+
+  /* Card */
+  .er-card {
+    background: var(--paper);
+    border: 1px solid var(--cream-2);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.03);
+  }
+  .er-card-head {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--cream-2);
+    background: var(--cream-2);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .er-card-title {
+    font-family: var(--display, "Fraunces", serif);
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--ink);
+    margin: 0;
+    letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .er-card-title em { color: var(--brand-primary, #b7925a); font-style: italic; font-weight: 400; }
+  .er-card-title i { color: var(--brand-primary, #b7925a); }
+
+  .er-semester-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    border-radius: 100px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .er-semester-pill i { font-size: 11px; }
+
+  /* Subject grid */
+  .er-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    padding: 22px 24px;
+  }
+  .er-subj {
+    background: var(--cream);
+    border: 1px solid var(--cream-2);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 14px;
+    transition: all .18s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .er-subj::before {
+    content: ""; position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--brand-primary, #b7925a);
+    opacity: 0.6;
+  }
+  .er-subj:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 10px 24px -16px rgba(45,49,66,0.20);
+  }
+  .er-subj:hover::before { opacity: 1; }
+  .er-subj-icon {
+    flex-shrink: 0;
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--ink), var(--ink));
+    color: var(--cream);
+    display: grid; place-items: center;
+    font-family: var(--display, "Fraunces", serif);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .er-subj-body { flex: 1; min-width: 0; }
+  .er-subj-name {
+    font-family: var(--display, "Fraunces", serif);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+  }
+  .er-subj-meta {
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    margin-top: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .er-subj-meta i { color: var(--brand-primary, #b7925a); font-size: 10px; }
+  .er-subj-status {
+    display: inline-flex; align-items: center;
+    padding: 2px 9px;
+    border-radius: 100px;
+    background: var(--brand-primary-soft);
+    color: var(--ink);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  /* Empty state */
+  .er-empty {
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--ink-dim);
+    font-family: var(--display, "Fraunces", serif);
+    font-style: italic;
+  }
+  .er-empty i { color: var(--brand-primary, #b7925a); font-size: 36px; display: block; margin-bottom: 12px; opacity: 0.7; }
+  .er-empty .lead { font-size: 18px; font-weight: 500; color: var(--ink); margin-bottom: 4px; font-style: normal; }
+  .er-empty .sub { font-size: 13px; }
+
+  /* Back button */
+  .er-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 18px;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    color: var(--ink-dim);
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.18s ease;
+  }
+  .er-back:hover { background: var(--cream-2); color: var(--ink); border-color: var(--ink-dim); transform: translateY(-1px); }

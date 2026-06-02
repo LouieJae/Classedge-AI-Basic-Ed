@@ -1,0 +1,72 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Teacher Progress Report{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-chart-line me-2"></i>Teacher Progress Report</h2>
+        <p>Module completion progress for each teacher's subjects.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="teacher-progress-report">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+      </div>
+    </div>
+
+    <div class="cl-toolbar">
+      <div class="cl-search">
+        <i class="fas fa-search"></i>
+        <input type="text" id="tpr-search" placeholder="Search by subject or teacher..." autocomplete="off">
+      </div>
+      <div class="cl-filter-group">
+        <label for="teacherFilter">Teacher</label>
+        <select id="teacherFilter">
+          <option value="">All teachers</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cl-card">
+      <div class="cl-card-header">
+        <span><i class="fas fa-chart-line me-2"></i>Module Progress by Subject</span>
+        <span class="cl-badge" id="tpr-count">—</span>
+      </div>
+      <div class="cl-card-body">
+        <div class="table-responsive">
+          <table class="cl-table" id="dataTable">
+            <thead>
+              <tr>
+                <th style="width:60px;">#</th>
+                <th>Subject</th>
+                <th>Teacher</th>
+                <th style="min-width: 220px;">Total Progress</th>
+              </tr>
+            </thead>
+            <tbody id="progressTableBody">
+              <tr>
+                <td colspan="4">
+                  <div class="cl-empty">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <h6>Loading…</h6>
+                    <small>Fetching teacher progress data.</small>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="{% static 'accounts/reports/teacher_progress_report.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-teacher-progress-report.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,267 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Activities · {{ subject.subject_name }}{% endblock %}
+
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'activity/assessments/assessment-list.css' %}" />
+{% include "includes/_edit-inline.html" %}
+
+{% endblock %}
+
+{% block content %}
+<div class="al-shell">
+
+  <div class="al-header">
+    <div>
+      <h1 class="al-title">{{ subject.subject_name }} <em>assessments</em></h1>
+      <div class="al-sub">Manage quizzes, assignments, exams and major assessments for this subject</div>
+    </div>
+    <div class="al-actions">
+      <a href="{% url 'import-assessments-from-previous-semester' subject.id %}" class="al-btn al-btn--primary">
+        <i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Import from previous semester
+      </a>
+      <a href="{% url 'copy-assessments-from-subject' subject.id %}" class="al-btn al-btn--gold">
+        <i class="fas fa-copy" aria-hidden="true"></i> Import from subject
+      </a>
+    </div>
+  </div>
+
+  <!-- Type filter chips -->
+  <div class="al-chips" id="alChips">
+    <button type="button" class="al-chip is-active" data-type-id="" data-slug="all">
+      All <span class="count" data-count-all>{{ activities|length }}</span>
+    </button>
+    {% for t in activity_types %}
+      <button type="button"
+              class="al-chip"
+              data-type-id="{{ t.id }}"
+              data-slug="{{ t|slugify }}">
+        {{ t }} <span class="count" data-count-type="{{ t.id }}">0</span>
+      </button>
+    {% endfor %}
+
+    <div class="al-search-inline">
+      <span class="ico"><i class="fas fa-search" aria-hidden="true"></i></span>
+      <input id="alSearch" type="text" placeholder="Search assessment name" autocomplete="off" />
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="al-card">
+    <div class="al-card-head">
+      <h2 class="al-card-title">Assessment <em>list</em></h2>
+      <span class="al-card-meta" id="alCardMeta">{{ activities|length }} activit{{ activities|length|pluralize:"y,ies" }}</span>
+    </div>
+
+    {% if activities %}
+      <div class="al-table-wrap">
+        <table class="al-table" id="alTable">
+          <thead>
+            <tr>
+              <th style="width: 36px;">#</th>
+              <th>Assessment Name</th>
+              <th>Type</th>
+              <th>Term</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Show Score</th>
+              <th class="al-action">Action</th>
+            </tr>
+          </thead>
+          <tbody id="alBody">
+            {% for activity in activities %}
+              {% with type_slug=activity.activity_type|default:"untyped"|slugify %}
+                <tr class="al-row"
+                    data-name="{{ activity.activity_name|lower }}"
+                    data-type-id="{{ activity.activity_type.id|default_if_none:'' }}"
+                    data-type-slug="{{ type_slug }}">
+                  <td><span class="al-row-counter"></span></td>
+                  <td>
+                    <span class="cl-edit al-name"
+                          data-endpoint="{% url 'rename-activity' activity.id %}"
+                          data-field="activity_name"
+                          data-label="Activity name"
+                          data-min="2"
+                          data-max="100">{{ activity.activity_name }}</span>
+                  </td>
+                  <td>
+                    {% if activity.activity_type %}
+                      <span class="al-pill al-pill--{{ type_slug }}">{{ activity.activity_type }}</span>
+                    {% else %}
+                      <span class="al-pill al-pill--default">Untyped</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ activity.term.term_name|default:"—" }}</td>
+                  <td>{{ activity.start_time|date:"d M Y, h:i A"|default:"—" }}</td>
+                  <td>{{ activity.end_time|date:"d M Y, h:i A"|default:"—" }}</td>
+                  <td>
+                    <label class="al-toggle" title="Toggle Show Score">
+                      <input type="checkbox" data-activity-id="{{ activity.id }}" class="show-score-checkbox" {% if activity.show_score %}checked{% endif %}>
+                      <span class="track"></span>
+                    </label>
+                  </td>
+                  <td class="al-action">
+                    <div class="font-sans-serif position-static d-inline-block">
+                      <button class="al-icon-btn dropdown-toggle" type="button"
+                              id="dropdown-act-{{ activity.id }}"
+                              data-bs-toggle="dropdown"
+                              data-boundary="window"
+                              aria-haspopup="true" aria-expanded="false"
+                              data-bs-reference="parent">
+                        <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                      </button>
+                      <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-act-{{ activity.id }}">
+                        <a class="dropdown-item" href="{% url 'viewStudentScore' activity.id %}">
+                          <i class="fas fa-eye"></i> View Student Score
+                        </a>
+                        <a class="dropdown-item" href="{% url 'update-assessment' activity.id %}">
+                          <i class="fas fa-edit"></i> Update
+                        </a>
+                        {% if not activity.has_submissions %}
+                          <form method="post" action="{% url 'delete-assessment' activity.id %}" class="delete-form d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item delete-btn" data-id="{{ activity.id }}">
+                              <i class="fas fa-trash"></i> Delete
+                            </button>
+                          </form>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="al-no-match" id="alNoMatch" style="display:none;">No assessments match your filter.</div>
+    {% else %}
+      <div class="al-empty">
+        <div class="ico"><i class="fas fa-clipboard-list" aria-hidden="true"></i></div>
+        <div class="lead">No assessments yet</div>
+        <div class="sub">Create or import assessments for this subject to see them here.</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="al-back">
+    <a href="{% url 'course-list' %}" class="al-btn al-btn--ghost">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to my courses
+    </a>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    // Show-score toggle
+    $('.show-score-checkbox').change(function() {
+      const activityId = $(this).data('activity-id');
+      $.ajax({
+        type: 'POST',
+        url: '{% url "toggleShowScore" 0 %}'.replace('0', activityId),
+        data: { 'csrfmiddlewaretoken': '{{ csrf_token }}' },
+        success: function() {},
+        error: function() {}
+      });
+    });
+
+    // Delete with SweetAlert2
+    $('.delete-btn').on('click', function(event) {
+      event.preventDefault();
+      const form = $(this).closest('form');
+      Swal.fire({
+        title: "Are you sure?",
+        text: "You won't be able to revert this!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#1b4332",
+        cancelButtonColor: "#c08479",
+        confirmButtonText: "Yes, delete it!"
+      }).then((result) => {
+        if (result.isConfirmed) form.submit();
+      });
+    });
+  });
+
+  // Type filter chips + search
+  (function() {
+    var chipsEl = document.getElementById('alChips');
+    var bodyEl = document.getElementById('alBody');
+    var searchEl = document.getElementById('alSearch');
+    var noMatchEl = document.getElementById('alNoMatch');
+    var metaEl = document.getElementById('alCardMeta');
+    if (!chipsEl || !bodyEl) return;
+
+    var rows = Array.prototype.slice.call(bodyEl.querySelectorAll('.al-row'));
+    var chips = Array.prototype.slice.call(chipsEl.querySelectorAll('.al-chip'));
+
+    // Per-type counts
+    var counts = {};
+    rows.forEach(function(r) {
+      var id = r.getAttribute('data-type-id') || '';
+      counts[id] = (counts[id] || 0) + 1;
+    });
+    chips.forEach(function(c) {
+      var id = c.getAttribute('data-type-id') || '';
+      var span = c.querySelector('[data-count-type="' + id + '"]');
+      if (span) span.textContent = counts[id] || 0;
+    });
+
+    function pluralize(n, singular, plural) {
+      return n === 1 ? singular : plural;
+    }
+
+    function apply() {
+      var activeChip = chipsEl.querySelector('.al-chip.is-active');
+      var typeId = activeChip ? activeChip.getAttribute('data-type-id') : '';
+      var q = (searchEl && searchEl.value || '').trim().toLowerCase();
+
+      var visible = 0, idx = 0;
+      var qRaw = (searchEl && searchEl.value || '').trim();
+      rows.forEach(function(r) {
+        var rType = r.getAttribute('data-type-id') || '';
+        var rName = r.getAttribute('data-name') || '';
+        var matchType = !typeId || rType === typeId;
+        var matchSearch = !q || rName.indexOf(q) !== -1;
+        var show = matchType && matchSearch;
+        r.style.display = show ? '' : 'none';
+        if (show) {
+          idx++;
+          var c = r.querySelector('.al-row-counter');
+          if (c) c.textContent = idx;
+          visible++;
+          if (window.ClHighlight) window.ClHighlight.wrap(r, qRaw);
+        } else if (window.ClHighlight) {
+          window.ClHighlight.clear(r);
+        }
+      });
+      if (metaEl) {
+        metaEl.textContent = visible + ' ' + pluralize(visible, 'assessment', 'assessments') + ' shown';
+      }
+      if (noMatchEl) noMatchEl.style.display = visible === 0 ? '' : 'none';
+    }
+
+    chips.forEach(function(c) {
+      c.addEventListener('click', function() {
+        chips.forEach(function(x) { x.classList.remove('is-active'); });
+        c.classList.add('is-active');
+        apply();
+      });
+    });
+    if (searchEl) searchEl.addEventListener('input', apply);
+
+    // Pre-select chip from ?type=ID
+    var preselect = "{{ selected_type_id|escapejs }}";
+    if (preselect) {
+      var pre = chipsEl.querySelector('.al-chip[data-type-id="' + preselect + '"]');
+      if (pre) {
+        chips.forEach(function(x) { x.classList.remove('is-active'); });
+        pre.classList.add('is-active');
+      }
+    }
+    apply();
+  })();
+</script>
+{% endblock %}

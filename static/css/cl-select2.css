@@ -1,0 +1,280 @@
+/* ─────────────────────────────────────────────────────────────
+   cl-select2.css — Classedge Select2 (bootstrap-5 theme) skin
+   Reusable styling for any page that loads jQuery + Select2 +
+   the select2-bootstrap-5 theme. Tracks the active brand via
+   --brand-primary / --brand-primary-soft and survives light +
+   dark themes via --paper / --ink / --cream tokens.
+
+   Paired with /static/js/cl-select2.js, which rewrites the
+   default chip-remove (×) and clear-all (×) buttons into our
+   own markup so we don't fight the bootstrap-5 theme's
+   btn-close SVG mask.
+   ───────────────────────────────────────────────────────────── */
+
+.select2-container--bootstrap-5 .select2-selection {
+  background-color: var(--paper) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--ink) !important;
+  min-height: 42px !important;
+  padding: 4px 10px !important;
+  font-family: var(--body) !important;
+  font-size: 14px !important;
+  position: relative;
+  padding-right: 56px !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection__rendered {
+  color: var(--ink) !important;
+  line-height: 32px !important;
+  padding-left: 4px !important;
+}
+.select2-container--bootstrap-5 .select2-selection__placeholder {
+  color: var(--ink-muted) !important;
+}
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+  height: 100% !important; top: 0 !important; right: 8px !important;
+}
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
+  border-color: var(--ink-dim) transparent transparent transparent !important;
+}
+.select2-container--bootstrap-5.select2-container--open .select2-selection--single .select2-selection__arrow b {
+  border-color: transparent transparent var(--ink-dim) transparent !important;
+}
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5.select2-container--open .select2-selection {
+  border-color: var(--brand-primary, #b7925a) !important;
+  box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+
+/* Multi-select chips */
+.select2-container--bootstrap-5 .select2-selection__choice {
+  background: var(--brand-primary-soft) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--brand-primary-soft) !important;
+  border-radius: 100px !important;
+  padding: 3px 12px 3px 6px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  margin-top: 4px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.select2-container--bootstrap-5 .select2-selection__choice__display {
+  padding: 0 !important;
+}
+
+/* Custom chip remove (×) button. The original __choice__remove is
+   kept hidden via [hidden]; our cl-select2.js engine inserts a
+   .cl-chip-x sibling and routes the click back through Select2's
+   API so removal logic + form sync still work. */
+.select2-container--bootstrap-5 .cl-chip-x {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: var(--brand-primary-soft) !important;
+  color: var(--ink) !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  transition: background 0.15s, color 0.15s !important;
+  flex-shrink: 0 !important;
+}
+.select2-container--bootstrap-5 .cl-chip-x i { font-size: 10px; }
+.select2-container--bootstrap-5 .cl-chip-x:hover,
+.select2-container--bootstrap-5 .cl-chip-x:focus {
+  background: var(--rose, #c08479) !important;
+  color: #fff !important;
+  outline: none !important;
+}
+.select2-container--bootstrap-5 .select2-selection__choice__remove[hidden] {
+  display: none !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-search--inline .select2-search__field {
+  color: var(--ink) !important;
+  font-family: var(--body) !important;
+}
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-search--inline .select2-search__field::placeholder {
+  color: var(--ink-muted) !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-search--inline,
+.select2-container--default .select2-selection--multiple .select2-search--inline {
+  display: inline-flex !important;
+  align-items: center !important;
+  margin: 4px 0 0 0 !important;
+  padding: 0 !important;
+  flex: 0 1 auto !important;
+  min-width: 160px !important;
+  max-width: 100% !important;
+}
+
+textarea.select2-search__field,
+.select2-container--bootstrap-5 .select2-selection--multiple textarea.select2-search__field,
+.select2-container--default .select2-selection--multiple textarea.select2-search__field {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-block !important;
+  width: 160px !important;
+  min-width: 160px !important;
+  max-width: 240px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  line-height: 22px !important;
+  padding: 3px 12px !important;
+  margin: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 100px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: var(--ink) !important;
+  caret-color: var(--brand-primary) !important;
+  font-family: var(--body) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+  resize: none !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease !important;
+}
+
+textarea.select2-search__field::placeholder {
+  color: var(--ink-muted) !important;
+  opacity: 1 !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+}
+
+textarea.select2-search__field:hover {
+  background-color: color-mix(in srgb, var(--ink) 5%, transparent) !important;
+  border-color: color-mix(in srgb, var(--ink) 12%, transparent) !important;
+}
+
+textarea.select2-search__field:focus {
+  background-color: var(--paper) !important;
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+  color: var(--ink) !important;
+}
+
+textarea.select2-search__field::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+textarea.select2-search__field { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+
+/* Dropdown popup */
+.select2-container--bootstrap-5 .select2-dropdown {
+  background: var(--paper) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 12px 32px -8px rgba(45, 49, 66, 0.25) !important;
+  overflow: hidden;
+}
+.select2-container--bootstrap-5 .select2-results__option {
+  color: var(--ink) !important;
+  padding: 9px 14px !important;
+  font-size: 13.5px !important;
+}
+.select2-container--bootstrap-5 .select2-results__option--highlighted,
+.select2-container--bootstrap-5 .select2-results__option[aria-selected="true"] {
+  background: var(--brand-primary, #1b4332) !important;
+  color: var(--cream) !important;
+}
+
+/* Optgroup labels (e.g. course names) */
+.select2-container--bootstrap-5 .select2-results__group {
+  color: var(--brand-primary, #b7925a) !important;
+  background: color-mix(in srgb, var(--brand-primary, #b7925a) 6%, transparent) !important;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 6px 14px !important;
+}
+.select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field {
+  background: var(--cream) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 8px 12px !important;
+  margin: 6px !important;
+}
+.select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field:focus {
+  outline: none !important;
+  border-color: var(--brand-primary, #b7925a) !important;
+  box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+
+/* Custom clear-all (×) button — replaces the theme's btn-close SVG. */
+.select2-container--bootstrap-5 .cl-select-clear {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  margin: 0 4px 0 0 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 50% !important;
+  background: var(--cream-2) !important;
+  color: var(--ink-dim) !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  transition: background 0.15s, color 0.15s, border-color 0.15s !important;
+  flex-shrink: 0 !important;
+  position: absolute !important;
+  top: 50% !important;
+  right: 28px !important;
+  transform: translateY(-50%) !important;
+  z-index: 1 !important;
+}
+.select2-container--bootstrap-5 .cl-select-clear:hover,
+.select2-container--bootstrap-5 .cl-select-clear:focus {
+  background: var(--rose-soft, rgba(192, 132, 121, 0.18)) !important;
+  color: var(--rose, #c08479) !important;
+  border-color: var(--rose, #c08479) !important;
+  outline: none !important;
+}
+body[data-theme="dark"] .select2-container--bootstrap-5 .cl-select-clear {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #d0d4dd !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Hide Select2's original clear glyph — our button replaces it.
+   Multiple guards because the bootstrap-5 theme's selector
+   specificity sometimes beats a single [hidden] rule. */
+.select2-container--bootstrap-5 .select2-selection__clear[hidden],
+.select2-container--bootstrap-5 .select2-selection .select2-selection__clear[hidden],
+.select2-container--bootstrap-5 .select2-selection__clear[data-cl-hidden="1"] {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+  pointer-events: none !important;
+}
+
+/* Note: previously had a .cm-shell-scoped compact variant here
+   (36px row, single-line chips, 22px textarea). Removed so CM pages
+   inherit the same Select2 design as ops pages — uniform across the
+   app. To restore compact CM Select2 in the future, scope the block
+   under .cm-shell. */

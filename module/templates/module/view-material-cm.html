@@ -1,0 +1,505 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Lesson" %}
+  <style>
+    /* Page-local — projector-friendly viewer chrome */
+    .cm-shell.wide { padding-bottom: 32px; }
+
+    .cm-viewer-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .cm-viewer-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      padding: 14px 22px;
+      background: linear-gradient(135deg, var(--cream-2), var(--cream));
+      border-bottom: 1px solid var(--border);
+    }
+    .cm-viewer-head .label {
+      font-weight: 700; color: var(--forest);
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 14px;
+    }
+    .cm-viewer-head .label .icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--brand-primary-soft);
+      color: var(--brand-primary, #1b4332);
+      display: grid; place-items: center; font-size: 12px;
+    }
+    .cm-viewer-head .badge-pill {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 4px 12px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-dim); letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .cm-viewer-body { padding: 0; }
+
+    /* PDF.js canvas */
+    #pdf-container {
+      position: relative;
+      background: var(--cream-2);
+      padding: 14px;
+      min-height: 70vh;
+    }
+    #pdf-canvas {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 18px -6px rgba(45,49,66,0.18);
+      display: block; margin: 0 auto;
+    }
+    .pdf-overlay-btn {
+      background: rgba(45, 49, 66, 0.85) !important;
+      color: #fff !important; border: none;
+      border-radius: 100px; width: 38px; height: 38px;
+      display: inline-grid; place-items: center;
+      cursor: pointer; transition: background 0.15s;
+      backdrop-filter: blur(6px);
+    }
+    .pdf-overlay-btn:hover { background: var(--forest) !important; }
+    .pdf-page-pill {
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      background: rgba(45, 49, 66, 0.85); color: #fff;
+      padding: 6px 16px; border-radius: 100px;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+      backdrop-filter: blur(6px);
+    }
+    .pdf-progress {
+      height: 4px; background: var(--border);
+      border-radius: 100px; overflow: hidden;
+    }
+    /* Progress fill — soft brand mix on the left, full brand on the
+       right so the gradient still reads as "progress filling" but
+       tracks the tenant brand instead of the gold→forest leak. */
+    .pdf-progress > div {
+      height: 100%;
+      background: linear-gradient(90deg, color-mix(in srgb, var(--brand-primary, #1b4332) 70%, white), var(--brand-primary, #1b4332));
+      transition: width 0.3s;
+    }
+
+    /* Image / video viewers */
+    .image-viewer {
+      background: var(--cream-2);
+      padding: 24px;
+      text-align: center;
+    }
+    .image-viewer img {
+      max-width: 100%; height: auto;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 4px 18px -6px rgba(45,49,66,0.18);
+      display: inline-block;
+    }
+    .video-viewer {
+      background: #000;
+      padding: 0;
+    }
+    .video-viewer video { width: 100%; display: block; max-height: 80vh; }
+
+    /* 16:9 iframe wrapper for embeds and external URLs */
+    .embed-responsive {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      background: var(--cream-2);
+    }
+    .embed-responsive iframe,
+    .embed-responsive embed,
+    .embed-responsive object,
+    .embed-responsive video {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      border: none;
+    }
+    .embed-tall { padding-bottom: 0; height: 75vh; }
+
+    .ext-link-strip {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 14px 22px;
+      background: var(--cream-2);
+      border-top: 1px solid var(--border);
+      font-size: 13px; color: var(--ink-dim);
+    }
+    .ext-link-strip .url {
+      flex: 1; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-size: 12px; color: var(--ink);
+      background: var(--paper);
+      padding: 6px 10px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+    }
+
+    .cm-empty {
+      padding: 60px 20px; text-align: center;
+      color: var(--ink-dim);
+    }
+    .cm-empty i { font-size: 38px; color: var(--brand-primary, #1b4332); display: block; margin-bottom: 12px; opacity: 0.6; }
+    .cm-empty .lead { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+
+    /* ── Skeleton loaders ──────────────────────────────────────────
+       Identical pattern to /material-progress-report/<n>/ — sits on
+       top of each iframe / video while it loads and fades out on the
+       embed's first paint. A 30s hard-fallback ensures it never sticks
+       (cross-origin iframes can swallow the load event). */
+    .cm-media-shell { position: relative; }
+    .cm-skeleton {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: var(--paper);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 22px 24px;
+      overflow: hidden;
+      transition: opacity 360ms ease;
+    }
+    .cm-media-shell.is-loaded .cm-skeleton {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .cm-skeleton-toolbar {
+      display: flex; align-items: center; gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px dashed var(--border);
+      margin-bottom: 4px;
+    }
+    .cm-skeleton-chip {
+      width: 80px; height: 14px; border-radius: 999px;
+    }
+    .cm-skeleton-chip.sm { width: 38px; }
+    .cm-skeleton-line,
+    .cm-skeleton-chip,
+    .cm-skeleton-block {
+      background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--ink-dim, #6c7080) 8%, transparent) 25%,
+        color-mix(in srgb, var(--ink-dim, #6c7080) 18%, transparent) 50%,
+        color-mix(in srgb, var(--ink-dim, #6c7080) 8%, transparent) 75%
+      );
+      background-size: 200% 100%;
+      animation: cmShimmer 1.4s ease-in-out infinite;
+      border-radius: 6px;
+    }
+    .cm-skeleton-line { height: 10px; }
+    .cm-skeleton-line.thick { height: 18px; border-radius: 8px; }
+    .cm-skeleton-line.w95 { width: 95%; }
+    .cm-skeleton-line.w90 { width: 90%; }
+    .cm-skeleton-line.w80 { width: 80%; }
+    .cm-skeleton-line.w70 { width: 70%; }
+    .cm-skeleton-line.w60 { width: 60%; }
+    .cm-skeleton-line.w50 { width: 50%; }
+    .cm-skeleton-block { height: 120px; border-radius: 10px; margin: 4px 0; }
+    .cm-skeleton-status {
+      margin-top: auto;
+      align-self: flex-start;
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 12px;
+      color: var(--ink-dim);
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--brand-primary, #b7925a) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 18%, transparent);
+    }
+    .cm-skeleton-spinner {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      border: 2px solid color-mix(in srgb, var(--brand-primary, #b7925a) 22%, transparent);
+      border-top-color: var(--brand-primary, #b7925a);
+      animation: cmSpin 0.85s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes cmShimmer {
+      from { background-position: 200% 0; }
+      to   { background-position: -200% 0; }
+    }
+    @keyframes cmSpin { to { transform: rotate(360deg); } }
+
+    /* Video-flavor skeleton — dark frame + pulsing play badge */
+    .cm-skeleton--video {
+      background: #14171f;
+      align-items: center;
+      justify-content: center;
+    }
+    .cm-skeleton--video .cm-skeleton-toolbar,
+    .cm-skeleton--video .cm-skeleton-line,
+    .cm-skeleton--video .cm-skeleton-block { display: none; }
+    .cm-skeleton-play {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(255,255,255,0.16);
+      display: grid; place-items: center;
+      color: rgba(255,255,255,0.7);
+      font-size: 22px;
+      animation: cmPulse 1.8s ease-in-out infinite;
+    }
+    .cm-skeleton-play i { margin-left: 4px; }
+    .cm-skeleton--video .cm-skeleton-status {
+      margin-top: 16px;
+      color: rgba(255,255,255,0.75);
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.14);
+    }
+    .cm-skeleton--video .cm-skeleton-spinner {
+      border-color: rgba(255,255,255,0.18);
+      border-top-color: rgba(255,255,255,0.7);
+    }
+    @keyframes cmPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.08); opacity: 0.7; }
+    }
+
+    /* "Still loading" copy swap after 6s */
+    .cm-media-shell.is-slow .cm-skeleton-status .cm-skeleton-msg-fast { display: none; }
+    .cm-skeleton-msg-slow { display: none; }
+    .cm-media-shell.is-slow .cm-skeleton-msg-slow { display: inline; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cm-skeleton-line,
+      .cm-skeleton-chip,
+      .cm-skeleton-block,
+      .cm-skeleton-play,
+      .cm-skeleton-spinner { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cm-shell wide">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode · Material</span>
+          <h1 class="cm-title"><em>{{ module.file_name }}</em></h1>
+          <div class="cm-subtitle">
+            {{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %}
+            {% if module.start_date %} · Published {{ module.start_date|date:"M d, Y" }}{% endif %}
+          </div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'classroom_mode' module.subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to classroom</a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-viewer-card">
+      <div class="cm-viewer-head">
+        <span class="label">
+          <span class="icon">
+            {% if is_pdf %}<i class="fas fa-file-pdf"></i>
+            {% elif is_image %}<i class="fas fa-image"></i>
+            {% elif is_video or is_video_url %}<i class="fas fa-video"></i>
+            {% elif is_youtube %}<i class="fab fa-youtube"></i>
+            {% elif is_vimeo %}<i class="fab fa-vimeo"></i>
+            {% elif is_office_embed %}<i class="fas fa-file-powerpoint"></i>
+            {% elif module.iframe_code %}<i class="fas fa-code"></i>
+            {% elif is_url %}<i class="fas fa-link"></i>
+            {% else %}<i class="fas fa-file"></i>{% endif %}
+          </span>
+          {{ module.file_name }}
+        </span>
+        <span class="badge-pill">
+          {% if is_pdf %}PDF document
+          {% elif is_image %}Image
+          {% elif is_video %}Video
+          {% elif is_video_url %}Streamed video
+          {% elif is_youtube %}YouTube
+          {% elif is_vimeo %}Vimeo
+          {% elif is_office_embed %}Office preview
+          {% elif module.iframe_code %}Embed
+          {% elif is_url %}Web link
+          {% else %}Material{% endif %}
+        </span>
+      </div>
+
+      <div class="cm-viewer-body">
+        {% if module.iframe_code %}
+          <div class="embed-responsive cm-media-shell" data-skeleton="doc">
+            {% include "module/_partials/_cm_skeleton_doc.html" %}
+            {{ module.iframe_code|safe }}
+          </div>
+        {% endif %}
+
+        {% if is_pdf and module.file %}
+          <div id="pdf-container" class="cm-media-shell" data-skeleton="doc">
+            {% include "module/_partials/_cm_skeleton_doc.html" %}
+            <canvas id="pdf-canvas"></canvas>
+            <button id="fullscreen-btn" class="pdf-overlay-btn" style="position: absolute; top: 22px; right: 22px;"><i class="fas fa-expand"></i></button>
+            <button id="prev-page" class="pdf-overlay-btn" style="position: absolute; bottom: 22px; left: 22px;"><i class="fas fa-chevron-left"></i></button>
+            <button id="next-page" class="pdf-overlay-btn" style="position: absolute; bottom: 22px; right: 22px;"><i class="fas fa-chevron-right"></i></button>
+            <div class="pdf-page-pill">Page <span id="page-num">1</span> / <span id="page-count">—</span></div>
+          </div>
+          <div class="pdf-progress"><div id="progress-bar" style="width: 0%;"></div></div>
+        {% endif %}
+
+        {% if is_image and module.file %}
+          <div class="image-viewer cm-media-shell" data-skeleton="doc">
+            {% include "module/_partials/_cm_skeleton_doc.html" %}
+            <img src="{{ module.file.url }}" alt="{{ module.file_name }}">
+          </div>
+        {% endif %}
+
+        {% if is_video and module.file %}
+          <div class="video-viewer cm-media-shell" data-skeleton="video">
+            {% include "module/_partials/_cm_skeleton_video.html" %}
+            <video controls preload="metadata">
+              <source src="{{ module.file.url }}" type="video/mp4">
+              Your browser does not support video playback.
+            </video>
+          </div>
+        {% endif %}
+
+        {% if is_video_url %}
+          <div class="video-viewer cm-media-shell" data-skeleton="video">
+            {% include "module/_partials/_cm_skeleton_video.html" %}
+            <video controls preload="metadata"><source src="{{ module.url }}"></video>
+          </div>
+        {% endif %}
+
+        {% if is_youtube or is_vimeo %}
+          <div class="embed-responsive cm-media-shell" data-skeleton="video">
+            {% include "module/_partials/_cm_skeleton_video.html" %}
+            <iframe src="{{ embed_url }}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"
+                    loading="eager" fetchpriority="high"></iframe>
+          </div>
+        {% endif %}
+
+        {% if is_url %}
+          <div class="embed-responsive embed-tall cm-media-shell" data-skeleton="doc">
+            {% include "module/_partials/_cm_skeleton_doc.html" %}
+            <iframe src="{{ module.url }}" allowfullscreen referrerpolicy="no-referrer-when-downgrade"
+                    loading="eager" fetchpriority="high"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"></iframe>
+          </div>
+          <div class="ext-link-strip">
+            <i class="fas fa-link" style="color: var(--brand-primary, #1b4332);"></i>
+            <span>This material links to an external site:</span>
+            <span class="url" title="{{ module.url }}">{{ module.url }}</span>
+            <a href="{{ module.url }}" target="_blank" rel="noopener" class="cm-btn primary"><i class="fas fa-up-right-from-square"></i> Open in new tab</a>
+          </div>
+        {% endif %}
+
+        {% if is_office_embed %}
+          {# `data-settle-delay="2400"` keeps the skeleton visible for 2.4s
+             AFTER the iframe's load event fires. OneDrive's PPT viewer is
+             itself a SPA that needs another beat to render its first slide
+             — without this delay the skeleton fades into a blank frame and
+             looks frozen. #}
+          <div class="embed-responsive embed-tall cm-media-shell" data-skeleton="doc" data-settle-delay="2400">
+            {% include "module/_partials/_cm_skeleton_doc.html" %}
+            <iframe src="{{ office_embed_url }}"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    loading="eager" fetchpriority="high"></iframe>
+          </div>
+        {% endif %}
+
+        {% if is_unknown %}
+          <div class="cm-empty">
+            <i class="fas fa-file-circle-question"></i>
+            <div class="lead">Unsupported format</div>
+            <div>This material can't be displayed inline.</div>
+            {% if module.file %}
+              <a href="{{ module.file.url }}" download class="cm-btn primary mt-3"><i class="fas fa-download"></i> Download file</a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Media-skeleton wiring is handled globally by cl-media-skeleton.js
+     (loaded via _cm_scripts.html). The pdf.js block below still calls
+     pdfContainer._cmMarkLoaded() once the first page renders — that
+     callback is exposed by the global engine on every [data-skeleton]
+     shell, including this PDF container that has no auto-observable
+     media. #}
+  {% include "includes/_cm_scripts.html" %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  {% if is_pdf and module.file %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var url = '{{ module.file.url }}';
+        var pdfDoc = null;
+        var pageNum = {{ last_page|default:1 }};
+        var canvas = document.getElementById('pdf-canvas');
+        var ctx = canvas.getContext('2d');
+        var fullscreenBtn = document.getElementById('fullscreen-btn');
+        var pdfContainer = document.getElementById('pdf-container');
+        var progressBar = document.getElementById('progress-bar');
+
+        function startModule() {
+          fetch("{% url 'start-module-session' %}", {
+            method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" }
+          }).catch(function () {});
+        }
+        function stopModule() {
+          fetch("{% url 'stop-module-session' %}", {
+            method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" }
+          }).catch(function () {});
+        }
+        window.addEventListener('beforeunload', stopModule);
+        startModule();
+
+        function renderPage(num) {
+          pdfDoc.getPage(num).then(function (page) {
+            var viewport = page.getViewport({ scale: 1.5 });
+            canvas.height = viewport.height; canvas.width = viewport.width;
+            page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function () {
+              document.getElementById('page-num').textContent = num;
+              updateProgress(num, pdfDoc.numPages);
+              // Fade the skeleton out once the first page is painted.
+              if (pdfContainer && typeof pdfContainer._cmMarkLoaded === 'function') {
+                pdfContainer._cmMarkLoaded();
+              }
+            });
+          });
+        }
+        function updateProgress(curr, total) {
+          var p = (curr / total) * 100;
+          progressBar.style.width = p + '%';
+          fetch("{% url 'module-progress' %}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+            body: JSON.stringify({ module_id: "{{ module.id }}", progress: p, last_page: curr })
+          }).catch(function () {});
+        }
+        pdfjsLib.getDocument(url).promise.then(function (doc) {
+          pdfDoc = doc;
+          document.getElementById('page-count').textContent = pdfDoc.numPages;
+          renderPage(pageNum);
+        });
+        document.getElementById('prev-page').addEventListener('click', function () {
+          if (pageNum > 1) { pageNum--; renderPage(pageNum); }
+        });
+        document.getElementById('next-page').addEventListener('click', function () {
+          if (pdfDoc && pageNum < pdfDoc.numPages) { pageNum++; renderPage(pageNum); }
+        });
+        fullscreenBtn.addEventListener('click', function () {
+          if (!document.fullscreenElement) {
+            (pdfContainer.requestFullscreen || pdfContainer.webkitRequestFullscreen || pdfContainer.msRequestFullscreen).call(pdfContainer);
+            fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+          } else {
+            document.exitFullscreen();
+            fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+          }
+        });
+      });
+    </script>
+  {% endif %}
+  <script src="{% static 'js/classroom-mode.js' %}"></script>
+</body>
+</html>

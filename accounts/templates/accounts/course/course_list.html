@@ -1,0 +1,55 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Programs{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+  {% include "includes/_centre_modal_theme.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-book-open me-2"></i>Program <em>catalog</em></h2>
+        <p>Define the programs offered by the institution.</p>
+      </div>
+      <div class="cl-actions">
+        {% if perms.course.add_course %}
+          <button type="button" class="cl-btn cl-btn-primary" id="openCourseModalBtn">
+            <i class="fas fa-plus"></i> New Program
+          </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="cl-course-wrapper" class="cl-table-wrapper" data-cl-async-table data-base-url="{% url 'program-list' %}">
+      {% include "includes/_list_table.html" %}
+    </div>
+  </div>
+
+  <!-- Create modal -->
+  <div id="courseModal" class="rl-modal" role="dialog" aria-labelledby="courseAddTitle" aria-modal="true">
+    <div class="rl-modal-head">
+      <h5 id="courseAddTitle"><i class="fas fa-plus-circle"></i> Add new <em>program</em></h5>
+      <button type="button" class="rl-modal-close" id="closeCourseModalBtn" aria-label="Close">&times;</button>
+    </div>
+    <div class="rl-modal-content">
+      {% include "accounts/course/_course_form.html" %}
+    </div>
+  </div>
+  <div id="courseModalBackdrop" class="rl-modal-backdrop"></div>
+
+  <!-- Edit modal (form fetched from /program/update//<id>/) -->
+  <div id="editCourseModal" class="rl-modal" role="dialog" aria-labelledby="courseEditTitle" aria-modal="true">
+    <div class="rl-modal-head">
+      <h5 id="courseEditTitle"><i class="fas fa-edit"></i> Edit <em>program</em></h5>
+      <button type="button" class="rl-modal-close" id="closeEditCourseModalBtn" aria-label="Close">&times;</button>
+    </div>
+    <div class="rl-modal-content" id="editCourseModalBody"></div>
+  </div>
+  <div id="editCourseModalBackdrop" class="rl-modal-backdrop"></div>
+
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script src="{% static 'accounts/course/course_list.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Add Lesson" %}
+  <style>
+    /* Dropzone (page-local) — track tenant brand. */
+    .cm-dropzone { position: relative; border: 2px dashed var(--brand-primary, #1b4332); border-radius: var(--radius-sm); padding: 28px; text-align: center; background: var(--brand-primary-soft); transition: all 0.2s ease; cursor: pointer; }
+    .cm-dropzone.dragover { background: var(--brand-primary-soft); border-color: var(--brand-primary, #1b4332); }
+    .cm-dropzone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .cm-dropzone .upload-icon { font-size: 32px; color: var(--brand-primary, #1b4332); margin-bottom: 8px; }
+    .cm-dropzone p { margin: 0; color: var(--ink-dim); font-size: 13px; }
+    .cm-dropzone strong { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="cm-shell">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Add new <em>material</em></h1>
+          <div class="cm-subtitle">{{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %}</div>
+        </div>
+        <div class="cm-hero-actions">
+          <button type="button" class="cl-tour-replay" data-cl-tour="create-material-cm">
+            <i class="fas fa-circle-question"></i> Show me how
+          </button>
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to classroom</a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-form-card">
+      <div class="cm-form-head">
+        <h2><span class="icon"><i class="fas fa-book"></i></span> Material details</h2>
+      </div>
+      <form method="post" action="{% url 'create-material-cm' subject.id %}" enctype="multipart/form-data" data-cl-autosave="create-material-cm" data-cl-loading data-cl-loading-label="Creating…">
+        {% csrf_token %}
+        <div class="cm-form-body">
+          <div class="cm-form-row">
+            <div class="cm-col-6">
+              <label for="file_name">Name</label>
+              {{ form.file_name }}
+            </div>
+            <div class="cm-col-6">
+              <label for="term">Term</label>
+              {{ form.term }}
+            </div>
+          </div>
+
+          <div class="cm-form-row">
+            <div class="cm-col-12">
+              <label>File</label>
+              <div id="dropzone" class="cm-dropzone">
+                <div id="filePreview">
+                  <div id="dropzone-text">
+                    <div class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></div>
+                    <p><strong>Drag and drop a file here</strong> or click to choose</p>
+                  </div>
+                </div>
+                <input type="file" id="fileInput" name="file" />
+              </div>
+              <small>Allowed types: PDF, JPG, JPEG, PNG, MP4, AVI, MOV, WMV, PPT, PPTX, DOC, DOCX, XLS, XLSX. Max size 30 MB.</small>
+              <div class="invalid-feedback" id="file-error" style="display: none;"></div>
+            </div>
+          </div>
+
+          <div class="cm-form-row">
+            <div class="cm-col-12">
+              <div class="cm-field-head">
+                <label for="display_lesson_for_selected_users">Display material for selected students <small style="display:inline; margin-left:4px;">(leave empty for all)</small></label>
+                <div class="cm-field-head-actions">
+                  <button type="button" id="selectAllStudents" class="cm-btn ghost cm-btn-sm">Select all</button>
+                  <button type="button" id="clearAllStudents" class="cm-btn ghost cm-btn-sm">Clear all</button>
+                </div>
+              </div>
+              {{ form.display_lesson_for_selected_users }}
+            </div>
+          </div>
+
+          <div class="cm-form-row">
+            <div class="cm-col-6">
+              <label for="start_date">Start date</label>
+              {{ form.start_date }}
+            </div>
+            <div class="cm-col-6">
+              <label for="end_date">End date</label>
+              {{ form.end_date }}
+            </div>
+          </div>
+
+          <div class="cm-form-row">
+            <div class="cm-col-12">
+              <label for="description">Description</label>
+              {{ form.description }}
+            </div>
+          </div>
+        </div>
+
+        <div class="cm-form-foot">
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost">Cancel</a>
+          <button type="submit" class="cm-btn primary"><i class="fas fa-check"></i> Save material</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script src="{% static 'js/tours/cl-tour-create-material-cm.js' %}" defer></script>
+
+  <script>
+    (function bindAudienceButtons() {
+      if (!(window.jQuery && window.jQuery.fn)) return setTimeout(bindAudienceButtons, 60);
+      var $ = window.jQuery;
+      var f = $('#id_display_lesson_for_selected_users');
+      if (!f.length) return;
+      $('#selectAllStudents').off('.cl').on('click.cl', function () {
+        f.find('option').prop('selected', true).end().trigger('change');
+      });
+      $('#clearAllStudents').off('.cl').on('click.cl', function () {
+        f.val(null).trigger('change');
+      });
+    })();
+    document.addEventListener('DOMContentLoaded', function () {
+      // Dropzone niceties
+      var dropzone = document.getElementById('dropzone');
+      var fileInput = document.getElementById('fileInput');
+      var preview = document.getElementById('dropzone-text');
+      if (dropzone && fileInput && preview) {
+        ['dragenter','dragover'].forEach(function (e) {
+          dropzone.addEventListener(e, function (ev) { ev.preventDefault(); dropzone.classList.add('dragover'); });
+        });
+        ['dragleave','drop'].forEach(function (e) {
+          dropzone.addEventListener(e, function (ev) { ev.preventDefault(); dropzone.classList.remove('dragover'); });
+        });
+        dropzone.addEventListener('drop', function (ev) {
+          if (ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files.length) {
+            fileInput.files = ev.dataTransfer.files;
+            showFile(ev.dataTransfer.files[0]);
+          }
+        });
+        fileInput.addEventListener('change', function () {
+          if (fileInput.files.length) showFile(fileInput.files[0]);
+        });
+        function showFile(f) {
+          preview.innerHTML = '<div class="upload-icon"><i class="fas fa-file-circle-check"></i></div>'
+            + '<p><strong>' + f.name + '</strong> (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)</p>'
+            + '<small style="margin-top:6px; display:block;">Click or drag again to change.</small>';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

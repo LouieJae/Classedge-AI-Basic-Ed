@@ -1,0 +1,231 @@
+  /* Local layout — consumes the global design tokens
+     (--paper, --cream, --cream-2, --forest, --gold, --ink, etc.). */
+  .ev-shell {
+    padding: 8px 0;
+    min-width: 0;
+  }
+  .ev-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--ink-dim);
+    font-size: 12.5px; font-weight: 600;
+    text-decoration: none;
+    margin-bottom: 18px;
+    transition: color 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .ev-back:hover {
+    color: var(--ink);
+    border-color: var(--brand-primary, #b7925a);
+    transform: translateX(-2px);
+  }
+  .ev-back i { font-size: 10px; transition: transform 0.15s ease; }
+  .ev-back:hover i { transform: translateX(-2px); }
+
+  /* Hero card — paper background, gold top-border accent, soft gold radial bleed. */
+  .ev-hero {
+    position: relative;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--brand-primary, #b7925a);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    margin-bottom: 22px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .ev-hero::before {
+    content: "";
+    position: absolute;
+    top: -140px; right: -120px;
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, var(--brand-primary-soft), transparent 65%);
+    pointer-events: none;
+    opacity: 0.9;
+  }
+  .ev-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 11px; font-weight: 700;
+    color: var(--brand-primary, #b7925a);
+    position: relative;
+  }
+  .ev-eyebrow i { font-size: 11px; }
+  .ev-title {
+    font-family: var(--display);
+    font-size: 30px; font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 8px 0 14px;
+    position: relative;
+  }
+  .ev-title em {
+    font-style: italic;
+    color: var(--brand-primary, #b7925a);
+    font-weight: 500;
+  }
+  .ev-meta {
+    display: flex; flex-wrap: wrap;
+    gap: 10px;
+    position: relative;
+  }
+  .ev-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px;
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 12.5px; font-weight: 600;
+    color: var(--ink);
+    font-family: var(--body);
+  }
+  .ev-pill i { color: var(--brand-primary, #b7925a); font-size: 11px; }
+  .ev-pill.primary {
+    background: var(--ink);
+    color: var(--cream);
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .ev-pill.primary i { color: var(--cream); }
+
+  /* Content grid */
+  .ev-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1024px) {
+    .ev-grid { grid-template-columns: 1fr; }
+  }
+
+  .ev-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .ev-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap;
+    padding: 16px 22px;
+    background: var(--cream-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .ev-card-title {
+    font-family: var(--display);
+    font-size: 16px; font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin: 0;
+    display: inline-flex; align-items: center; gap: 9px;
+  }
+  .ev-card-title em { color: var(--brand-primary, #b7925a); font-style: italic; font-weight: 500; }
+  .ev-card-title .ico {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--paper);
+    color: var(--brand-primary, #b7925a);
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+    font-size: 12px;
+  }
+  .ev-card-body { padding: 22px 24px; }
+
+  /* Description / location rich-text wrapper */
+  .ev-rt {
+    font-family: var(--body);
+    font-size: 14.5px;
+    color: var(--ink);
+    line-height: 1.65;
+  }
+  .ev-rt p { margin: 0 0 12px; }
+  .ev-rt p:last-child { margin-bottom: 0; }
+  .ev-rt strong { color: var(--ink); }
+  .ev-rt a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--brand-primary, #b7925a); text-underline-offset: 3px; }
+  .ev-rt a:hover { color: var(--brand-primary, #b7925a); }
+  .ev-rt ul, .ev-rt ol { margin: 0 0 12px; padding-left: 24px; }
+  .ev-rt li { margin-bottom: 4px; }
+  .ev-rt blockquote {
+    margin: 12px 0;
+    padding: 10px 16px;
+    border-left: 3px solid var(--brand-primary, #b7925a);
+    background: var(--cream);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--ink-dim);
+    font-style: italic;
+  }
+  .ev-rt img { max-width: 100%; height: auto; border-radius: var(--radius-sm); }
+
+  /* Empty state inside cards */
+  .ev-empty {
+    padding: 18px 0;
+    text-align: center;
+    color: var(--ink-muted);
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 13px;
+  }
+  .ev-empty i { display: block; color: var(--brand-primary, #b7925a); margin-bottom: 6px; font-size: 18px; font-style: normal; }
+
+  /* Sidebar — Details rail */
+  .ev-side { display: flex; flex-direction: column; gap: 14px; }
+  .ev-side .ev-card-body { padding: 0; }
+
+  .ev-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ev-row:last-child { border-bottom: none; }
+  .ev-row .ico {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: var(--cream-2);
+    color: var(--brand-primary, #b7925a);
+    display: grid; place-items: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .ev-row .body { min-width: 0; flex: 1; line-height: 1.4; }
+  .ev-row .label {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 3px;
+  }
+  .ev-row .value {
+    font-size: 13.5px;
+    color: var(--ink);
+    font-weight: 500;
+    word-break: break-word;
+  }
+  .ev-row .value.muted {
+    color: var(--ink-muted);
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  /* Avatar — for "Created by" row */
+  .ev-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--ink), var(--brand-primary, #b7925a));
+    color: var(--cream);
+    display: grid; place-items: center;
+    font-family: var(--display);
+    font-size: 12px; font-weight: 700;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+  }
+
+  @media (max-width: 720px) {
+    .ev-hero { padding: 22px 20px; }
+    .ev-title { font-size: 24px; }
+    .ev-card-body { padding: 18px 20px; }
+  }

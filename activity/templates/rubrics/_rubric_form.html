@@ -1,0 +1,182 @@
+{% load static %}
+<style>
+  .rb-form-shell { padding: 8px 0 32px; min-width: 0; width: 100%; }
+
+  .rb-form-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm, 12px);
+    color: var(--ink); font-size: 13px; font-weight: 600;
+    text-decoration: none; margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+    transition: all 0.18s ease;
+  }
+  .rb-form-back:hover {
+    background: var(--cream-2); color: var(--ink);
+    border-color: var(--brand-primary, #b7925a); text-decoration: none;
+    transform: translateX(-2px);
+  }
+  .rb-form-back i { font-size: 11px; transition: transform 0.18s ease; }
+  .rb-form-back:hover i { transform: translateX(-2px); }
+
+  .rb-form-header {
+    margin-bottom: 22px;
+  }
+  .rb-form-title {
+    font-family: var(--display);
+    font-size: 30px; font-weight: 400; letter-spacing: -0.025em;
+    color: var(--ink); line-height: 1.1; margin: 0 0 4px;
+  }
+  .rb-form-title em { font-style: italic; color: var(--brand-primary, #b7925a); font-weight: 300; }
+  .rb-form-sub {
+    font-family: var(--display); font-style: italic;
+    color: var(--ink-dim); font-size: 14px;
+  }
+
+  .rb-form-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 26px 28px;
+    animation: fadeUp .35s ease both;
+  }
+
+  .rb-field { margin-bottom: 18px; }
+  .rb-field:last-of-type { margin-bottom: 0; }
+  .rb-field label {
+    display: block; font-family: var(--body);
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    margin-bottom: 6px;
+  }
+  .rb-field input[type="text"],
+  .rb-field input[type="number"],
+  .rb-field textarea,
+  .rb-field select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    font-family: var(--body); font-size: 14px;
+    color: var(--ink);
+  }
+  .rb-field textarea { min-height: 110px; resize: vertical; line-height: 1.5; }
+  .rb-field input:focus, .rb-field textarea:focus, .rb-field select:focus {
+    outline: none; border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary, #b7925a) 12%, transparent);
+  }
+  .rb-field .helptext { font-size: 12px; color: var(--ink-muted); margin-top: 4px; display: block; }
+  .rb-field ul.errorlist {
+    margin: 6px 0 0; padding: 0; list-style: none;
+    color: #c0392b; font-size: 12px;
+  }
+
+  .rb-actions-row {
+    display: flex; justify-content: flex-end; gap: 10px;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .rb-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-family: var(--body); font-size: 13px; font-weight: 600;
+    text-decoration: none; cursor: pointer;
+    border: 1px solid transparent;
+    transition: background .15s, transform .15s, color .15s, border-color .15s;
+  }
+  .rb-btn--primary { background: var(--brand-primary, #b7925a); color: #fff; border-color: var(--brand-primary, #b7925a); }
+  .rb-btn--primary:hover { background: var(--brand-primary, #b7925a); border-color: var(--brand-primary, #b7925a); color: #fff; transform: translateY(-1px); }
+  .rb-btn--ghost { background: var(--paper); color: var(--ink); border-color: var(--border-strong); }
+  .rb-btn--ghost:hover { border-color: var(--brand-primary, #b7925a); color: var(--ink); }
+
+  /* Native <select> dropdown popup is painted by the browser, not by
+     our CSS. Use `color-scheme` so Chrome / Edge / Firefox pick the
+     correct native popup palette for the active theme. Falls back to
+     explicit option-element styling for the browsers that honor it. */
+  .rb-field select { color-scheme: light; }
+  body[data-theme="dark"] .rb-field select { color-scheme: dark; }
+  .rb-field select option,
+  .rb-field select optgroup {
+    background: var(--paper);
+    color: var(--ink);
+  }
+  body[data-theme="dark"] .rb-field select option,
+  body[data-theme="dark"] .rb-field select optgroup {
+    background: #1a2420;
+    color: #e8eaf0;
+  }
+
+  /* Dark-mode tweaks */
+  body[data-theme="dark"] .rb-field input,
+  body[data-theme="dark"] .rb-field textarea,
+  body[data-theme="dark"] .rb-field select {
+    background: rgba(255,255,255,0.03);
+    color: var(--ink);
+    border-color: var(--border-strong);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<div class="rb-form-shell">
+  <a href="{% url 'rubric-list' %}" class="rb-form-back">
+    <i class="fas fa-arrow-left"></i> Back to rubrics
+  </a>
+
+  <div class="rb-form-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+    <div>
+      <h1 class="rb-form-title">{{ form_title|safe }}</h1>
+      <div class="rb-form-sub">{{ form_sub }}</div>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="rubric-form">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <form method="post" class="rb-form-card" data-cl-loading data-cl-loading-label="Saving…">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <ul class="errorlist" style="color:#c0392b; font-size:12px; margin-bottom:12px;">
+        {% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
+    {% for field in form %}
+      <div class="rb-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small class="helptext">{{ field.help_text }}</small>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+
+    <div class="rb-actions-row">
+      <a href="{% url 'rubric-list' %}" class="rb-btn rb-btn--ghost">Cancel</a>
+      <button type="submit" class="rb-btn rb-btn--primary">
+        <i class="fas fa-check"></i> {{ submit_label|default:'Save Rubric' }}
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Apply consistent styling to Django-rendered form widgets.
+  document.querySelectorAll('.rb-field input, .rb-field select, .rb-field textarea').forEach(function (el) {
+    if (!el.classList.contains('form-control') && el.type !== 'checkbox' && el.type !== 'radio') {
+      // styles already applied via .rb-field selector — nothing extra needed
+    }
+  });
+</script>
+
+<script src="{% static 'js/tours/cl-tour-rubric-form.js' %}" defer></script>

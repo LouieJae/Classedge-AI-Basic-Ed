@@ -1,0 +1,72 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}{{ activity.activity_name }} · Major Assessment{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'course/participation/addParticipation.css' %}" />
+
+<div class="ma-shell">
+  <div class="ma-header">
+    <div>
+      <h1 class="page-title">Major <em>Assessment</em></h1>
+      <div class="page-sub">{{ activity.activity_name }} &middot; enter a score for each student</div>
+    </div>
+  </div>
+
+  <form method="post" id="maForm">
+    {% csrf_token %}
+    <div class="ma-card">
+      <div class="ma-card-head">
+        <h2 class="ma-card-title">Student <em>scores</em></h2>
+        <div class="ma-max-field">
+          <label for="ma-max-score">Max score</label>
+          <input id="ma-max-score" type="number" name="max_score"
+                 value="{{ activity.max_score|default:'100' }}" min="1" step="0.01" required>
+        </div>
+      </div>
+
+      {% if students %}
+        <div class="ma-table-wrap">
+          <table class="ma-table">
+            <thead>
+              <tr>
+                <th class="center" style="width:48px;">#</th>
+                <th>Student</th>
+                <th class="center" style="width:160px;">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in students %}
+                <tr>
+                  <td class="ma-cell-num">{{ forloop.counter }}</td>
+                  <td>
+                    <div class="ma-cell-name">{{ student.last_name }}, {{ student.first_name }}</div>
+                  </td>
+                  <td class="center">
+                    <input type="number" class="ma-score-input"
+                           name="score_{{ student.id }}"
+                           value="0" min="0" step="0.01" required>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="ma-empty">No students enrolled in this subject.</div>
+      {% endif %}
+
+      <div class="ma-footer">
+        <a href="{% url 'assessment-list' %}" class="ma-btn">Cancel</a>
+        <button type="submit" class="ma-btn ma-btn--primary" {% if not students %}disabled{% endif %}>
+          <i class="fas fa-save"></i> Save Scores
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script src="{% static 'course/participation/addParticipation.js' %}"></script>
+{% endblock %}

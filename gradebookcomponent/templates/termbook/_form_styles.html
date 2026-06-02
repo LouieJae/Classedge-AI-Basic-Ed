@@ -1,0 +1,358 @@
+<style>
+  .gbf-page { animation: gbfFade 0.6s ease both; }
+  @keyframes gbfFade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .gbf-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 36px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    max-width: 760px;
+  }
+  .gbf-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle at top right, rgba(183, 146, 90, 0.10), transparent 65%);
+    pointer-events: none;
+  }
+  .gbf-card > * { position: relative; z-index: 1; }
+
+  .gbf-form .form-group { margin-bottom: 18px; }
+  .gbf-form label, .gbf-form .form-label {
+    display: block;
+    font-family: var(--body);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+  }
+  .gbf-form input[type="text"],
+  .gbf-form input[type="number"],
+  .gbf-form input[type="date"],
+  .gbf-form input[type="email"],
+  .gbf-form input[type="password"],
+  .gbf-form select,
+  .gbf-form textarea,
+  .gbf-form .form-control,
+  .gbf-form .form-select {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 14px;
+    transition: all 0.18s ease;
+  }
+  .gbf-form input:focus,
+  .gbf-form select:focus,
+  .gbf-form textarea:focus,
+  .gbf-form .form-control:focus,
+  .gbf-form .form-select:focus {
+    outline: none;
+    background: var(--paper);
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+
+  /* ── Bootstrap-select integration ─────────────────────
+     The .selectpicker class auto-wraps the original <select> in a
+     <div class="bootstrap-select form-control"> with an inner <button>.
+     If we let .form-control style the wrapper AND the button, both
+     render as bordered/padded inputs (the "double form-control" bug).
+     The fixes below: neutralize the wrapper, hide the now-unused
+     <select>, style only the inner button. */
+  .gbf-form .bootstrap-select,
+  .gbf-form .bootstrap-select.form-control,
+  .gbf-form .bootstrap-select.form-select,
+  .gbf-form .bootstrap-select.dropdown {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+  }
+  .gbf-form select.selectpicker { display: none !important; }
+  .gbf-form .bootstrap-select > .btn,
+  .gbf-form .bootstrap-select > button.dropdown-toggle,
+  .gbf-form .dropdown-toggle.btn-outline-secondary {
+    width: 100% !important;
+    padding: 11px 14px !important;
+    background: var(--cream) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--ink) !important;
+    font-family: var(--body) !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    text-align: left !important;
+    box-shadow: none !important;
+    outline: none !important;
+    transition: all 0.18s ease !important;
+  }
+  .gbf-form .bootstrap-select > .btn:hover,
+  .gbf-form .bootstrap-select > button.dropdown-toggle:hover { background: var(--paper) !important; }
+  .gbf-form .bootstrap-select.show > .btn,
+  .gbf-form .bootstrap-select > .btn:focus,
+  .gbf-form .bootstrap-select > button.dropdown-toggle:focus,
+  .gbf-form .bootstrap-select > button.dropdown-toggle.focus {
+    background: var(--paper) !important;
+    border-color: var(--brand-primary, #b7925a) !important;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+    outline: none !important;
+  }
+  .gbf-form .bootstrap-select > .btn .filter-option,
+  .gbf-form .bootstrap-select > .btn .filter-option-inner-inner { color: var(--ink); }
+  .gbf-form .bootstrap-select > .btn .bs-placeholder,
+  .gbf-form .bootstrap-select > .btn .bs-placeholder .filter-option-inner-inner { color: var(--ink-muted); }
+
+  .gbf-form .bootstrap-select .dropdown-menu {
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 12px 32px -12px rgba(45,49,66,0.15);
+    padding: 6px;
+    margin-top: 4px;
+  }
+  .gbf-form .bootstrap-select .dropdown-menu li a,
+  .gbf-form .bootstrap-select .dropdown-menu .dropdown-item {
+    padding: 9px 12px;
+    border-radius: 6px;
+    font-family: var(--body);
+    font-size: 13.5px;
+    color: var(--ink);
+    transition: background 0.15s, color 0.15s;
+  }
+  .gbf-form .bootstrap-select .dropdown-menu li a:hover,
+  .gbf-form .bootstrap-select .dropdown-menu li a:focus,
+  .gbf-form .bootstrap-select .dropdown-menu .dropdown-item:hover {
+    background: var(--cream-2) !important;
+    color: var(--ink) !important;
+  }
+  .gbf-form .bootstrap-select .dropdown-menu li.selected > a,
+  .gbf-form .bootstrap-select .dropdown-menu .dropdown-item.active,
+  .gbf-form .bootstrap-select .dropdown-menu .dropdown-item.selected {
+    background: var(--brand-primary-soft) !important;
+    color: var(--ink) !important;
+    font-weight: 600;
+  }
+  .gbf-form .bootstrap-select .bs-searchbox { padding: 4px 6px 8px; }
+  .gbf-form .bootstrap-select .bs-searchbox input {
+    width: 100%;
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .gbf-form .bootstrap-select .bs-searchbox input:focus {
+    background: var(--paper);
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+    outline: none;
+  }
+  .gbf-form .bootstrap-select .no-results { color: var(--ink-muted); padding: 8px 12px; font-style: italic; }
+
+  /* Select2 (used by createGradeBook etc.) — same treatment */
+  .gbf-form .select2-container { width: 100% !important; }
+  .gbf-form .select2-container .select2-selection,
+  .gbf-form .select2-container--bootstrap-5 .select2-selection {
+    width: 100% !important;
+    min-height: 0 !important;
+    padding: 11px 14px !important;
+    background: var(--cream) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--ink) !important;
+    font-family: var(--body) !important;
+    font-size: 14px !important;
+    box-shadow: none !important;
+    line-height: 1.4 !important;
+  }
+  .gbf-form .select2-container--open .select2-selection,
+  .gbf-form .select2-container--focus .select2-selection {
+    background: var(--paper) !important;
+    border-color: var(--brand-primary, #b7925a) !important;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+  }
+  .gbf-form .select2-container .select2-selection__rendered { padding: 0 !important; color: var(--ink) !important; }
+  .gbf-form .select2-container .select2-selection__placeholder { color: var(--ink-muted) !important; }
+  .gbf-form .select2-container .select2-selection__arrow { height: 100% !important; right: 10px !important; }
+  .gbf-form .select2-dropdown {
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 12px 32px -12px rgba(45,49,66,0.15);
+  }
+  .gbf-form .select2-results__option { padding: 9px 12px; font-family: var(--body); font-size: 13.5px; color: var(--ink); }
+  .gbf-form .select2-results__option--highlighted,
+  .gbf-form .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background: var(--cream-2) !important;
+    color: var(--ink) !important;
+  }
+  .gbf-form .select2-results__option[aria-selected="true"] {
+    background: var(--brand-primary-soft) !important;
+    color: var(--ink) !important;
+  }
+  .gbf-form .select2-search--dropdown .select2-search__field {
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .gbf-actions {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .gbf-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-family: var(--body);
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--border-strong);
+    background: var(--paper);
+    color: var(--ink-dim);
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .gbf-btn:hover { background: var(--cream-2); color: var(--ink); transform: translateY(-1px); }
+  .gbf-btn--primary { background: var(--brand-primary, #b7925a); color: var(--cream); border-color: var(--brand-primary, #b7925a); }
+  .gbf-btn--primary:hover { background: var(--brand-primary, #b7925a); border-color: var(--brand-primary, #b7925a); color: var(--cream); }
+  .gbf-btn--danger { background: var(--rose); color: var(--cream); border-color: var(--rose); }
+  .gbf-btn--danger:hover { filter: brightness(0.95); transform: translateY(-1px); }
+
+  .gbf-help {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    margin-top: 6px;
+  }
+
+  .gbf-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px;
+    padding: 20px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 22px;
+  }
+  .gbf-summary-label {
+    font-family: var(--body);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-muted);
+    margin-bottom: 6px;
+  }
+  .gbf-summary-value {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .gbf-summary-sub {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 2px;
+  }
+
+  .gbf-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .gbf-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 100px;
+    background: var(--brand-primary-soft);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  /* ─── Dark mode tweaks for data display ─── */
+  body[data-theme="dark"] .gbf-form input,
+  body[data-theme="dark"] .gbf-form select,
+  body[data-theme="dark"] .gbf-form textarea,
+  body[data-theme="dark"] .gbf-form .form-control,
+  body[data-theme="dark"] .gbf-form .form-select,
+  body[data-theme="dark"] .gbf-form .bootstrap-select > .btn,
+  body[data-theme="dark"] .gbf-form .bootstrap-select > button.dropdown-toggle,
+  body[data-theme="dark"] .gbf-form .dropdown-toggle.btn-outline-secondary,
+  body[data-theme="dark"] .gbf-form .select2-container .select2-selection {
+    background: var(--cream) !important;
+    color: var(--ink) !important;
+    border-color: var(--border-strong) !important;
+  }
+  body[data-theme="dark"] .gbf-form input::placeholder,
+  body[data-theme="dark"] .gbf-form textarea::placeholder { color: var(--ink-muted); }
+
+  body[data-theme="dark"] .bootstrap-select .dropdown-menu,
+  body[data-theme="dark"] .select2-dropdown {
+    background: var(--paper) !important;
+    border-color: var(--border-strong) !important;
+    color: var(--ink) !important;
+  }
+  body[data-theme="dark"] .bootstrap-select .dropdown-menu li a,
+  body[data-theme="dark"] .bootstrap-select .dropdown-menu .dropdown-item,
+  body[data-theme="dark"] .select2-results__option {
+    color: var(--ink) !important;
+  }
+  body[data-theme="dark"] .bootstrap-select .dropdown-menu li a:hover,
+  body[data-theme="dark"] .bootstrap-select .dropdown-menu .dropdown-item:hover,
+  body[data-theme="dark"] .select2-results__option--highlighted {
+    background: var(--cream-2) !important;
+    color: var(--ink) !important;
+  }
+  body[data-theme="dark"] .bootstrap-select .dropdown-menu li.selected > a,
+  body[data-theme="dark"] .bootstrap-select .dropdown-menu .dropdown-item.selected,
+  body[data-theme="dark"] .bootstrap-select .dropdown-menu .dropdown-item.active {
+    background: var(--brand-primary-soft) !important;
+    color: var(--ink) !important;
+  }
+  body[data-theme="dark"] .bootstrap-select .bs-searchbox input,
+  body[data-theme="dark"] .select2-search--dropdown .select2-search__field {
+    background: var(--cream) !important;
+    color: var(--ink) !important;
+    border-color: var(--border-strong) !important;
+  }
+  body[data-theme="dark"] .bootstrap-select .no-results { color: var(--ink-muted) !important; }
+
+  body[data-theme="dark"] .gbf-guide-card .cgb-tips-body li { color: var(--ink); }
+  body[data-theme="dark"] .gbf-guide-card .cgb-tips-body li i { color: #7bc4a5; }
+  body[data-theme="dark"] .gbf-guide-card .cgb-tips-body li.warn i { color: #e2b765; }
+</style>

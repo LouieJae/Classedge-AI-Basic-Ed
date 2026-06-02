@@ -1,0 +1,1088 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en-US" class="cl-scrollbar-host">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="{{ csrf_token }}" />
+
+  <title>{% block title %}{{ SCHOOL_NAME }} | Student Dashboard{% endblock %}</title>
+  <style>
+    /* Hide every native scrollbar once the host class is applied. */
+    html.cl-scrollbar-host,
+    html.cl-scrollbar-host * {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    html.cl-scrollbar-host::-webkit-scrollbar,
+    html.cl-scrollbar-host *::-webkit-scrollbar {
+      width: 0 !important;
+      height: 0 !important;
+      display: none !important;
+      -webkit-appearance: none !important;
+      background: transparent !important;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       Custom overlay scrollbar — ported from base_operation.html.
+       The JS module at static/js/cl-scrollbar.js paints a 10px
+       overlay over each scroller (document body, anything tagged
+       [data-cl-scroll]). Thumb color tracks --brand-primary so the
+       student theater repaints with the tenant brand identically
+       to operations. Sized + spec'd to match base_operation 1:1.
+       ───────────────────────────────────────────────────────────── */
+    .cl-scrollbar {
+      position: fixed;
+      width: 10px;
+      z-index: 9999;
+      pointer-events: auto;
+      opacity: 0;
+      transition: opacity 180ms ease;
+      will-change: opacity, transform;
+    }
+    .cl-scrollbar.is-visible,
+    .cl-scrollbar.is-hover,
+    .cl-scrollbar.is-active        { opacity: 1; }
+    body:hover .cl-scrollbar--doc  { opacity: 1; }
+
+    .cl-scrollbar__thumb {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      top: 0;
+      height: 28px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      transition: background-color 160ms ease, transform 0ms;
+      cursor: pointer;
+    }
+    .cl-scrollbar:hover .cl-scrollbar__thumb,
+    .cl-scrollbar.is-hover .cl-scrollbar__thumb  { background: color-mix(in srgb, var(--brand-primary, #f4b740) 70%, transparent); }
+    .cl-scrollbar.is-active .cl-scrollbar__thumb { background: var(--brand-primary, #f4b740); }
+
+    /* Light-mode override — flip the resting tint dark enough to
+       read against light surfaces. Hover/active still track brand. */
+    body[data-theme="light"] .cl-scrollbar__thumb { background: rgba(0, 0, 0, 0.18); }
+
+    /* While dragging, kill text selection across the page. */
+    body.cl-scrollbar-dragging,
+    body.cl-scrollbar-dragging * { user-select: none !important; }
+
+    /* Mobile — hide every non-doc overlay so only the document
+       scrollbar shows (avoids collisions with the slide-in sidebar
+       drawer). Re-assert the native-bar hide for iOS / Android leaks. */
+    @media (max-width: 840px) {
+      .cl-scrollbar:not(.cl-scrollbar--doc) { display: none !important; }
+      html, body {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+      }
+      html::-webkit-scrollbar,
+      body::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
+    }
+
+    /* Print: hide the JS-painted overlay scrollbar so it doesn't rasterize
+       into the printed page (it's position:fixed at the viewport edge,
+       which the print engine snapshots onto every sheet otherwise). */
+    @media print {
+      .cl-scrollbar,
+      .cl-scrollbar__thumb { display: none !important; }
+    }
+  </style>
+
+  <link rel="icon" type="image/png" href="{{ MEDIA_URL }}logos/HCCCI-logo.png?{{ logo_update_time }}" />
+  <link rel="apple-touch-icon" href="{{ MEDIA_URL }}logos/HCCCI-logo.png?{{ logo_update_time }}" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/3.0.0/css/responsive.bootstrap5.min.css" />
+
+  <!-- Select2 CSS -->
+  <link rel="stylesheet" href="{% static 'vendors/select2/select2.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'vendors/select2-bootstrap-5-theme/select2-bootstrap-5-theme.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/cl-select2.css' %}" />
+
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+
+  <!-- GLightbox CSS -->
+  <link href="{% static 'vendors/glightbox/glightbox.min.css' %}" rel="stylesheet" />
+
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Student theme (AFTER Bootstrap to override) -->
+  <link rel="stylesheet" href="{% static 'css/student_theme.css' %}" />
+
+  <!-- ═══ Operations-palette bridge ════════════════════════════
+       Many shared partials (includes/_toast.html, message modals,
+       calendar/news pages, etc.) were authored against base_operation's
+       palette: --paper, --cream, --ink, --forest, --rose, etc. Those
+       names don't exist in student_theme.css, so on student pages the
+       partials render with unresolved CSS variables (invisible text,
+       missing borders). Map them to student-theme equivalents once,
+       at the body level, so every page extending student_base.html
+       inherits the bridge and shared partials work natively. -->
+  <style>
+    body[data-theme] {
+      --paper: var(--surface);
+      --cream: var(--bg-2);
+      --cream-2: var(--surface-2);
+      --forest: var(--gold);
+      --forest-2: var(--gold);
+      --forest-light: rgba(244, 183, 64, 0.18);
+      --gold-bg: rgba(244, 183, 64, 0.10);
+      --gold-soft: rgba(244, 183, 64, 0.22);
+      --rose: var(--coral);
+      --rose-soft: rgba(255, 107, 107, 0.16);
+      --rose-deep: var(--coral);
+      --ink: var(--text);
+      --ink-dim: var(--text-dim);
+      --ink-muted: var(--text-muted);
+      --shadow: 0 8px 32px -16px rgba(0, 0, 0, 0.45);
+      --shadow-hover: 0 14px 42px -12px rgba(0, 0, 0, 0.55);
+
+      --display: 'Inter', system-ui, -apple-system, sans-serif;
+      --body: 'Inter', system-ui, -apple-system, sans-serif;
+      --radius: 16px;
+      --radius-sm: 10px;
+
+      /* ── Semantic brand tokens (folds student into the same cascade
+         as operations + login). Note: in the student theater the
+         primary IS --gold (not --forest), so --brand-primary aliases
+         directly to --gold here. The dev shim below this <style>
+         block can override --brand-primary via ?brand=#hex without
+         touching --surface / --bg-2 / --text — keeping the dark
+         canvas, neutral card layouts, and typography fully locked. */
+      --brand-primary: var(--gold);
+      --brand-primary-soft: rgba(244, 183, 64, 0.18); /* fallback for browsers without color-mix() */
+      --brand-primary-soft: color-mix(in srgb, var(--brand-primary) 18%, transparent);
+
+      /* ── Guardrail token engine (Phase 4) ──────────────────────────
+         Mirrors base_operation.html. In the student theater the
+         primary IS gold, so --brand-secondary still aliases the
+         original --gold via the bridge (resolving to the student
+         palette's gold tone). --status-pending and --semantic-warning
+         stay categorical and immune to the tenant color picker. */
+      --brand-secondary: var(--gold);
+      --brand-secondary-soft: rgba(244, 183, 64, 0.18);
+      --brand-secondary-soft: color-mix(in srgb, var(--brand-secondary, #b7925a) 18%, transparent);
+      --surface-cream: var(--cream);
+      --status-pending: var(--gold);
+      --semantic-warning: #c47a00;
+
+      /* Semantic color system (Phase 5) — same token set as
+         base_operation.html. Universal status colors that don't track
+         the tenant brand by design. Soft + tint variants use
+         color-mix() so the base hue is the single source of truth. */
+      --success:        #3fc97c;
+      --success-soft:   color-mix(in srgb, var(--success) 18%, transparent);
+      --success-tint:   color-mix(in srgb, var(--success) 40%, transparent);
+      --warning:        #e0a93f;
+      --warning-soft:   color-mix(in srgb, var(--warning) 18%, transparent);
+      --warning-tint:   color-mix(in srgb, var(--warning) 40%, transparent);
+      --info:           #5b9dff;
+      --info-soft:      color-mix(in srgb, var(--info) 16%, transparent);
+      --info-tint:      color-mix(in srgb, var(--info) 40%, transparent);
+      --danger:         #e74c3c;
+      --danger-soft:    color-mix(in srgb, var(--danger) 18%, transparent);
+      --danger-tint:    color-mix(in srgb, var(--danger) 40%, transparent);
+    }
+    body[data-theme="light"] {
+      --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -12px rgba(0,0,0,0.10);
+      --shadow-hover: 0 2px 4px rgba(0,0,0,0.06), 0 20px 48px -16px rgba(0,0,0,0.14);
+      /* Light-mode overrides for the semantic foregrounds — darker
+         shades to maintain contrast against light surfaces. The soft +
+         tint variants above auto-rederive from these via color-mix(). */
+      --success:        #1f9d55;
+      --warning:        #c47a00;
+      --info:           #2c7be5;
+      --danger:         #c0392b;
+    }
+
+    html, body[data-theme] {
+      font-family: var(--body);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      font-feature-settings: "cv11", "ss01";
+    }
+    .growth-stat-label, .metric-label, .class-metric-label, .class-progress-label,
+    .topbar .greeting-meta, .sidebar .nav-section, .sidebar .institution,
+    .badge-count, .nav-section, .form-group label,
+    .lb-list-meta, .rank-badge {
+      font-size: 12px;
+    }
+    body[data-theme] .app input,
+    body[data-theme] .app select,
+    body[data-theme] .app textarea,
+    body[data-theme] .app button { font-family: var(--body); }
+    body[data-theme] .sidebar,
+    body[data-theme] .topbar { font-family: var(--body); }
+    body[data-theme] .sidebar a, body[data-theme] .sidebar span,
+    body[data-theme] .sidebar div, body[data-theme] .sidebar button,
+    body[data-theme] .topbar a, body[data-theme] .topbar span,
+    body[data-theme] .topbar div, body[data-theme] .topbar button { font-family: inherit; }
+    body[data-theme] .sidebar i,
+    body[data-theme] .sidebar .fa, body[data-theme] .sidebar .fas,
+    body[data-theme] .sidebar .far, body[data-theme] .sidebar .fab,
+    body[data-theme] .sidebar .fa-solid, body[data-theme] .sidebar .fa-regular,
+    body[data-theme] .sidebar .fa-brands,
+    body[data-theme] .topbar i,
+    body[data-theme] .topbar .fa, body[data-theme] .topbar .fas,
+    body[data-theme] .topbar .far, body[data-theme] .topbar .fab,
+    body[data-theme] .topbar .fa-solid, body[data-theme] .topbar .fa-regular,
+    body[data-theme] .topbar .fa-brands {
+      font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+    }
+    body[data-theme] .sidebar .logo,
+    body[data-theme] .page-title, body[data-theme] .page-title *,
+    body[data-theme] .growth-stat-value, body[data-theme] .metric-value,
+    body[data-theme] .class-name,
+    body[data-theme] .spotlight-title, body[data-theme] .spotlight-item,
+    body[data-theme] .progress-labels, body[data-theme] .progress-footer,
+    body[data-theme] .user-meta-role {
+      font-family: var(--display);
+    }
+
+    /* Toast (_toast.html): kill the hardcoded green dark background
+       and use surface tokens. Also override the title color which the
+       partial sets to var(--forest) — that maps to gold via the
+       bridge above, which is too saturated for a heading. */
+    body[data-theme="dark"] .cl-toast {
+      background: var(--surface) !important;
+      border-color: var(--border-strong) !important;
+      box-shadow: 0 12px 36px -12px rgba(0,0,0,0.6), 0 0 0 1px var(--gold-glow) !important;
+      backdrop-filter: blur(14px);
+      color: var(--text);
+    }
+    body[data-theme] .cl-toast .cl-toast-body strong {
+      color: var(--text);
+    }
+    body[data-theme] .cl-toast .cl-toast-icon { color: #0a0f1f; }
+  </style>
+
+  <!-- ═══ Page-transition animation on the <main> content only ═══
+       Sidebar stays static across navigation so it doesn't re-animate
+       on every page switch — only the page body fades+slides up. -->
+  <style>
+    @keyframes pageFadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Animate every direct child of <main> except the topbar (which
+       stays put — animating it across navigations feels jittery). */
+    body[data-theme] main > *:not(.topbar) {
+      animation: pageFadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    /* Micro-interaction polish — tightened to 150ms with smooth-out
+       curve. The row gets a subtle translateX nudge, the icon scales
+       up so users get an extra tactile cue. */
+    body[data-theme] .sidebar .nav a {
+      transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                  color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    body[data-theme] .sidebar .nav a:hover {
+      transform: translateX(2px);
+    }
+    /* Sidebar icon scales subtly on row hover. Transform on the inner
+       span only — the row's box stays stable so nothing reflows. */
+    body[data-theme] .sidebar .nav a .nav-icon {
+      transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: center;
+      will-change: transform;
+    }
+    body[data-theme] .sidebar .nav a:hover .nav-icon { transform: scale(1.12); }
+    body[data-theme] .sidebar .nav a.active .nav-icon { transform: scale(1.06); }
+
+    /* Card lift micro-interaction — applies to the gamification panels
+       (subject cards, quest cards, leaderboard rows, badge tiles). All
+       150ms snappy with smooth-out curve. The selector list is broad
+       on purpose so any new card on a student page picks this up for
+       free. */
+    body[data-theme] .subject-card,
+    body[data-theme] .quest-card,
+    body[data-theme] .stat-card,
+    body[data-theme] .metric-card,
+    body[data-theme] .class-card,
+    body[data-theme] .info-card,
+    body[data-theme] .lesson-card,
+    body[data-theme] .activity-card {
+      transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    body[data-theme] .subject-card:hover,
+    body[data-theme] .quest-card:hover,
+    body[data-theme] .stat-card:hover,
+    body[data-theme] .metric-card:hover,
+    body[data-theme] .class-card:hover,
+    body[data-theme] .info-card:hover,
+    body[data-theme] .lesson-card:hover,
+    body[data-theme] .activity-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--brand-primary, #f4b740) 35%, transparent);
+      border-color: color-mix(in srgb, var(--brand-primary, #f4b740) 35%, var(--border-strong, rgba(0,0,0,0.12)));
+    }
+
+    /* Topbar / notification icon buttons — same snappy lift + glyph
+       scale so the entire shell shares one interaction language. */
+    body[data-theme] .topbar .icon-btn,
+    body[data-theme] .topbar-actions .icon-btn,
+    body[data-theme] .notif-trigger {
+      transition: color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                  background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    body[data-theme] .topbar .icon-btn:hover,
+    body[data-theme] .topbar-actions .icon-btn:hover,
+    body[data-theme] .notif-trigger:hover {
+      transform: translateY(-2px);
+    }
+    body[data-theme] .topbar .icon-btn > i,
+    body[data-theme] .topbar-actions .icon-btn > i,
+    body[data-theme] .notif-trigger > i {
+      transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    body[data-theme] .topbar .icon-btn:hover > i,
+    body[data-theme] .topbar-actions .icon-btn:hover > i,
+    body[data-theme] .notif-trigger:hover > i { transform: scale(1.12); }
+
+    /* Honor reduced-motion globally — disables every transform we just
+       added so users with the OS preference get a static UI. */
+    @media (prefers-reduced-motion: reduce) {
+      body[data-theme] main > *:not(.topbar) { animation: none !important; }
+      body[data-theme] .sidebar .nav a:hover,
+      body[data-theme] .sidebar .nav a:hover .nav-icon,
+      body[data-theme] .sidebar .nav a.active .nav-icon,
+      body[data-theme] .subject-card:hover,
+      body[data-theme] .quest-card:hover,
+      body[data-theme] .stat-card:hover,
+      body[data-theme] .metric-card:hover,
+      body[data-theme] .class-card:hover,
+      body[data-theme] .info-card:hover,
+      body[data-theme] .lesson-card:hover,
+      body[data-theme] .activity-card:hover,
+      body[data-theme] .topbar .icon-btn:hover,
+      body[data-theme] .topbar-actions .icon-btn:hover,
+      body[data-theme] .notif-trigger:hover,
+      body[data-theme] .topbar .icon-btn:hover > i,
+      body[data-theme] .topbar-actions .icon-btn:hover > i,
+      body[data-theme] .notif-trigger:hover > i { transform: none !important; }
+    }
+
+    /* ═══ Topbar search palette + notification popover ════════════
+       Ported from base_operation.html, restyled with student_theme
+       tokens (--surface / --bg-2 / --text / --gold) so the cmdk
+       palette and bell popover look native to the gamification UI. */
+    .notif-wrap { position: relative; display: inline-block; }
+
+    /* Search command palette overlay */
+    .cmdk-overlay {
+      position: fixed; inset: 0;
+      background: rgba(5, 8, 18, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 9000;
+      opacity: 0; visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.15s, visibility 0.15s;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 14vh;
+      padding-left: 16px; padding-right: 16px;
+    }
+    body[data-theme="light"] .cmdk-overlay { background: rgba(20, 24, 38, 0.45); }
+    .cmdk-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
+    .cmdk-panel {
+      width: 100%; max-width: 600px;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 18px;
+      box-shadow: 0 24px 60px -16px rgba(0,0,0,0.55), 0 0 0 1px var(--gold-glow);
+      backdrop-filter: blur(20px);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      max-height: 70vh;
+      transform: scale(0.97) translateY(-4px);
+      transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .cmdk-overlay.open .cmdk-panel { transform: scale(1) translateY(0); }
+    .cmdk-input-wrap {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-2);
+    }
+    .cmdk-input-wrap > i { color: var(--gold); font-size: 14px; flex-shrink: 0; }
+    .cmdk-input {
+      flex: 1; border: none; outline: none;
+      background: transparent;
+      color: var(--text);
+      font-family: var(--body);
+      font-size: 15px; font-weight: 500;
+    }
+    .cmdk-input::placeholder { color: var(--text-muted); font-weight: 400; }
+    .cmdk-kbd {
+      font-family: var(--body); font-size: 11px;
+      color: var(--text-dim);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px 6px;
+      flex-shrink: 0;
+    }
+    .cmdk-list {
+      flex: 1; overflow-y: auto;
+      padding: 6px;
+      background: var(--surface);
+    }
+    .cmdk-group-label {
+      padding: 8px 12px 4px;
+      font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+    .cmdk-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .cmdk-item .cmdk-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      color: var(--text-dim);
+      display: grid; place-items: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .cmdk-item:hover, .cmdk-item.is-active {
+      background: linear-gradient(90deg, rgba(244, 183, 64, 0.18), transparent);
+      color: var(--text);
+    }
+    .cmdk-item:hover .cmdk-icon, .cmdk-item.is-active .cmdk-icon {
+      background: linear-gradient(135deg, var(--gold), var(--coral));
+      color: #0a0f1f;
+    }
+    .cmdk-item .cmdk-arrow {
+      margin-left: auto; color: var(--text-muted);
+      font-size: 11px; opacity: 0;
+      transition: opacity 0.12s;
+    }
+    .cmdk-item.is-active .cmdk-arrow { opacity: 1; color: var(--gold); }
+    .cmdk-empty {
+      padding: 32px 16px; text-align: center;
+      color: var(--text-muted); font-size: 13px;
+    }
+    .cmdk-empty i { font-size: 22px; margin-bottom: 8px; display: block; color: var(--gold); }
+
+    /* Notifications popover */
+    .notif-panel {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: 360px;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 18px;
+      box-shadow: 0 24px 60px -16px rgba(0,0,0,0.5), 0 0 0 1px var(--gold-glow);
+      backdrop-filter: blur(20px);
+      opacity: 0; visibility: hidden;
+      transform: translateY(-6px);
+      transition: all 0.18s ease;
+      z-index: 100;
+    }
+    .notif-panel.open {
+      opacity: 1; visibility: visible;
+      transform: translateY(0);
+    }
+    .notif-head {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-2);
+      border-top-left-radius: 18px;
+      border-top-right-radius: 18px;
+    }
+    .notif-head .title {
+      font-family: var(--display);
+      font-weight: 700; font-size: 15px; color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .notif-head .mark-all {
+      font-size: 12px; color: var(--gold); font-weight: 600;
+      background: none; border: none; cursor: pointer;
+      padding: 4px 10px; border-radius: 100px;
+      transition: background 0.15s;
+    }
+    .notif-head .mark-all:hover { background: rgba(244, 183, 64, 0.14); }
+    .notif-list {
+      max-height: 400px; overflow-y: auto;
+      padding: 4px 0;
+    }
+    .notif-item {
+      display: flex; gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: default;
+      transition: background 0.15s;
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item:hover { background: var(--surface-2); }
+    .notif-item.unread {
+      background: linear-gradient(90deg, rgba(244, 183, 64, 0.12), transparent);
+    }
+    .notif-item.unread:hover {
+      background: linear-gradient(90deg, rgba(244, 183, 64, 0.18), transparent);
+    }
+    /* When the notification has a target URL, the row is an <a>; keep it
+       visually identical to a non-link row but signal clickability. */
+    a.notif-item, a.notif-link {
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    a.notif-item:hover, a.notif-link:hover { color: inherit; }
+    a.notif-item:focus-visible, a.notif-link:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: -2px;
+    }
+    .notif-icon {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--coral));
+      color: #0a0f1f;
+      display: grid; place-items: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px -4px var(--gold-glow);
+    }
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-msg {
+      font-size: 13px; color: var(--text);
+      line-height: 1.4; margin-bottom: 2px;
+      overflow-wrap: break-word;
+    }
+    .notif-time { font-size: 11px; color: var(--text-muted); }
+    .notif-empty {
+      padding: 40px 16px; text-align: center;
+      color: var(--text-muted); font-size: 13px;
+    }
+    .notif-empty i { font-size: 26px; color: var(--gold); margin-bottom: 10px; opacity: 0.6; }
+
+    /* Bell red dot — already styled in student_theme for .icon-btn .dot,
+       but also style .bell-dot for the mark-all script. */
+    .icon-btn .bell-dot {
+      position: absolute;
+      top: 8px; right: 8px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--coral);
+      box-shadow: 0 0 8px var(--coral-glow);
+    }
+
+    @media (max-width: 720px) {
+      .notif-panel {
+        width: min(340px, calc(100vw - 32px));
+        right: -8px;
+      }
+    }
+  </style>
+
+  {% block extra_css %}{% endblock %}
+
+  <!-- Shepherd.js (v10 UMD) + cl-tour adapter — student walkthroughs.
+       Adapter is body-deferred so the head only carries the CSS. -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" />
+  <link rel="stylesheet" href="{% static 'css/cl-tour.css' %}" />
+
+  <!-- Plyr — unified video / audio / YouTube / Vimeo player. Backs the
+       cl-material-viewer media render paths so previews land with the
+       same UI regardless of media type. -->
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+  <link rel="stylesheet" href="{% static 'css/cl-material-viewer.css' %}" />
+
+  {% include "includes/_brand_cohesive.html" %}
+
+  <!-- Tenant brand color (server-rendered) — same pattern as
+       base_operation.html. Also derives --brand-primary-soft so dark-mode
+       atmospheres / focus glows / soft tints track tenant brand. -->
+  <style data-cl-brand-tenant>
+    body[data-theme] {
+      --brand-primary: {{ SCHOOL_BRAND_COLOR|default:"#1b4332" }};
+      --brand-primary-soft: color-mix(in srgb, {{ SCHOOL_BRAND_COLOR|default:"#1b4332" }} 18%, transparent);
+    }
+  </style>
+
+  <script>
+    (function () {
+      try {
+        var raw = new URLSearchParams(window.location.search).get('brand');
+        if (!raw) return;
+        var hex = raw.trim();
+        if (hex.charAt(0) !== '#') hex = '#' + hex;
+        if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex)) {
+          console.warn('[cl-brand-dev] Ignoring invalid ?brand value:', raw);
+          return;
+        }
+        var style = document.createElement('style');
+        style.setAttribute('data-cl-brand-dev', '');
+        // Specificity must match the existing body[data-theme] declaration
+        // (where --brand-primary is defined for this template) so source
+        // order decides the winner.
+        style.textContent = 'body[data-theme] { --brand-primary: ' + hex + '; }';
+        document.head.appendChild(style);
+        console.info('[cl-brand-dev] Brand override active:', hex);
+      } catch (err) {
+        console.error('[cl-brand-dev] Init failed:', err);
+      }
+    })();
+  </script>
+
+  {# Cross-theater brand utilities (same file as operations + login). #}
+  <link rel="stylesheet" href="{% static 'css/cl-brand-utilities.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/cl-table-mobile.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/vendor-brand.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/cl-carousel.css' %}" />
+  <script src="{% static 'js/cl-scrollbar.js' %}" defer></script>
+  <script src="{% static 'js/cl-form-guard.js' %}" defer></script>
+  <script src="{% static 'js/cl-native-dialogs.js' %}" defer></script>
+  <script src="{% static 'js/cl-search-highlight.js' %}" defer></script>
+  <script src="{% static 'js/cl-collapsed-actions.js' %}" defer></script>
+  <script src="{% static 'js/cl-form-autosave.js' %}" defer></script>
+  <script src="{% static 'js/cl-skeleton.js' %}" defer></script>
+  <script src="{% static 'js/cl-brand.js' %}"></script>
+</head>
+<style>
+  .ll-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--ink-dim); font-size: 13px;
+    text-decoration: none; margin-bottom: 8px;
+    transition: color 0.15s;
+  }
+  .ll-back:hover { color: var(--forest); }
+  .ll-back i { font-size: 11px; }
+
+  .ll-back-bottom {
+    margin-top: 20px;
+    display: flex; justify-content: flex-start;
+  }
+</style>
+
+<body data-theme="{{ theme_preference }}" data-current-user-id="{{ request.user.id }}">
+  <!-- Apply theme immediately -->
+  <script src="{% static 'js/student_theme.js' %}"></script>
+
+  <div class="app">
+
+    <!-- ─── Mobile hamburger ───────────────────── -->
+    <button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Toggle sidebar">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- ─── Sidebar (markup mirrors base_operation.html) ─── -->
+    <aside class="sidebar">
+      <a href="{% url 'dashboard' %}" class="brand" title="Go to dashboard">
+        <div class="brand-emblem">
+          <span class="brand-emblem-shine"></span>
+          <span class="brand-emblem-letter">
+            <img src="{% static 'assets/img/Classedge.png' %}" alt="ClassEdge" />
+          </span>
+          <span class="brand-emblem-edge"></span>
+        </div>
+        <div class="brand-words">
+          <span class="brand-name">Class<em>Edge</em></span>
+          <span class="brand-tagline">{% if request.user.profile.section %}{{ request.user.profile.section }}{% else %}Student{% endif %}</span>
+        </div>
+      </a>
+      <div class="brand-school" title="{{ SCHOOL_NAME|default:'ClassEdge' }}">
+        <img
+          src="{{ MEDIA_URL }}logos/HCCCI-logo.png?{{ logo_update_time }}"
+          alt="{{ SCHOOL_NAME|default:'ClassEdge' }}"
+          class="brand-school-logo"
+          width="22"
+          height="22"
+          loading="lazy"
+          decoding="async"
+        />
+        <span>{{ SCHOOL_NAME|default:"ClassEdge" }}</span>
+      </div>
+
+      {# ── Scrollable nav area ── #}
+      <div class="sidebar-scroll">
+        <div class="nav-section">Menu</div>
+        <nav class="nav">
+          <a href="{% url 'dashboard' %}" class="{% if request.path == '/' or '/dashboard' in request.path %}active{% endif %}">
+            <span class="nav-icon"><i class="fas fa-home"></i></span> Dashboard
+          </a>
+          <a href="{% url 'course-list' %}" class="{% if '/subject' in request.path and '/subject-announcements' not in request.path or '/SubjectList' in request.path or '/course/list' in request.path or '/material/' in request.path or '/view-subject-module' in request.path or '/view-module-cm' in request.path or '/assessment/' in request.path or '/assessment-' in request.path or '/module-progress' in request.path or '/progress-list' in request.path or '/detail-progress' in request.path %}active{% endif %}">
+            <span class="nav-icon"><i class="fas fa-book"></i></span> My Courses
+          </a>
+          <a href="{% url 'my-grades' %}" class="{% if '/my/grades' in request.path or '/my-grades' in request.path %}active{% endif %}">
+            <span class="nav-icon"><i class="fas fa-chart-line"></i></span> My Grade
+          </a>
+          <a href="{% url 'student_calendar' %}" class="{% if '/calendar' in request.path %}active{% endif %}">
+            <span class="nav-icon"><i class="fas fa-calendar"></i></span> Calendar
+          </a>
+          <a href="{% url 'news' %}" class="{% if '/news' in request.path %}active{% endif %}">
+            <span class="nav-icon"><i class="fas fa-newspaper"></i></span> Campus News
+          </a>
+          <a href="{% url 'quest_map_picker' %}" class="{% if '/quest-map' in request.path %}active{% endif %}">
+            <span class="nav-icon"><i class="fas fa-map"></i></span> Quest Map
+          </a>
+          <a href="{% url 'archive-index' %}" class="{% if '/account/archive' in request.path %}active{% endif %}">
+            <span class="nav-icon"><i class="fas fa-box-archive"></i></span> Archived
+          </a>
+          <a href="{% url 'gamification_leaderboard' %}" class="{% if '/leaderboard' in request.path %}active{% endif %}">
+            <span class="nav-icon"><i class="fas fa-trophy"></i></span> Leaderboard
+          </a>
+          <a href="{% url 'social_media_inbox' %}" class="{% if '/social_media_inbox' in request.path or '/inbox' in request.path %}active{% endif %}">
+            <span class="nav-icon"><i class="fas fa-envelope"></i></span> Messages
+            {% if unread_messages_count %}<span class="nav-badge">{{ unread_messages_count }}</span>{% endif %}
+          </a>
+          <a href="{% url 'account_profile' pk=request.user.id %}" class="{% if '/profile' in request.path %}active{% endif %}">
+            <span class="nav-icon"><i class="fas fa-cog"></i></span> Settings
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-footer">
+          <a href="{% url 'account_profile' pk=request.user.id %}" title="View profile" class="user-block">
+            <div class="avatar">
+              {% if request.user.profile.student_photo %}
+                <img src="{{ request.user.profile.student_photo.url }}" alt="{{ request.user.get_full_name|default:request.user.username }}">
+              {% else %}
+                {{ request.user.first_name|default:request.user.username|make_list|first|upper }}
+              {% endif %}
+            </div>
+            <div class="user-meta">
+              <div class="user-meta-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+              <div class="user-meta-role">{% if request.user.profile.section %}{{ request.user.profile.section }}{% else %}Student{% endif %}</div>
+            </div>
+          </a>
+          <a href="{% url 'sign_out' %}" title="Sign out" aria-label="Sign out" class="signout-btn">
+            <i class="fas fa-right-from-bracket"></i>
+          </a>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ─── Main content ───────────────────────── -->
+    <main>
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="greeting-meta">{% now "l F j Y" %}</div>
+        <div class="topbar-actions">
+          <button type="button" class="icon-btn" data-cmdk-trigger aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)">
+            <i class="fas fa-search"></i>
+          </button>
+          <a href="{% url 'social_media_inbox' %}" class="icon-btn" title="Messages">
+            <i class="fas fa-envelope"></i>
+            {% if unread_messages_count %}<span class="dot"></span>{% endif %}
+          </a>
+          <button type="button" class="icon-btn theme-toggle-btn" onclick="toggleStudentTheme()" aria-label="Toggle theme" title="Toggle theme">
+            <i id="theme-toggle-icon" class="fas {% if theme_preference == 'dark' %}fa-sun{% else %}fa-moon{% endif %}"></i>
+          </button>
+          <div class="notif-wrap">
+            <button type="button" class="icon-btn" data-bell-btn aria-label="Notifications" title="Notifications">
+              <i class="fas fa-bell"></i>
+              {% if unread_notifications_count %}<span class="dot bell-dot"></span>{% endif %}
+            </button>
+            <div class="notif-panel" data-notif-panel>
+              <div class="notif-head">
+                <span class="title">Notifications{% if unread_notifications_count %} <span style="color: var(--gold); font-weight: 700;">({{ unread_notifications_count }})</span>{% endif %}</span>
+                {% if unread_notifications_count %}
+                  <button type="button" class="mark-all" data-mark-all-read>Mark all as read</button>
+                {% endif %}
+              </div>
+              <div class="notif-list">
+                {% for notif in notifications %}
+                  {% if notif.link %}
+                    <a href="{{ notif.link }}" class="notif-item notif-link {% if not notif.is_read %}unread{% endif %}">
+                      <div class="notif-icon"><i class="{{ notif.icon }}"></i></div>
+                      <div class="notif-body">
+                        <div class="notif-msg">{{ notif.message }}</div>
+                        <div class="notif-time">{{ notif.created_at|timesince }} ago</div>
+                      </div>
+                    </a>
+                  {% else %}
+                    <div class="notif-item {% if not notif.is_read %}unread{% endif %}">
+                      <div class="notif-icon"><i class="{{ notif.icon }}"></i></div>
+                      <div class="notif-body">
+                        <div class="notif-msg">{{ notif.message }}</div>
+                        <div class="notif-time">{{ notif.created_at|timesince }} ago</div>
+                      </div>
+                    </div>
+                  {% endif %}
+                {% empty %}
+                  <div class="notif-empty">
+                    <i class="fas fa-bell-slash"></i>
+                    <div>No notifications yet</div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       JavaScript dependencies
+       ═══════════════════════════════════════════════ -->
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <!-- Bootstrap 5 bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- DataTables -->
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+  <!-- Select2 -->
+  <script src="{% static 'vendors/select2/select2.min.js' %}"></script>
+  <script src="{% static 'vendors/select2/select2.full.min.js' %}"></script>
+  <script src="{% static 'js/cl-select2.js' %}" defer></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- GLightbox -->
+  <script src="{% static 'vendors/glightbox/glightbox.min.js' %}"></script>
+
+  {% include "includes/_toast.html" %}
+
+  <!-- Command palette modal (search) -->
+  <div class="cmdk-overlay" data-cmdk-overlay role="dialog" aria-modal="true" aria-label="Search menu">
+    <div class="cmdk-panel" role="document">
+      <div class="cmdk-input-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" class="cmdk-input" data-cmdk-input placeholder="Search pages…" autocomplete="off" />
+        <span class="cmdk-kbd">Esc</span>
+      </div>
+      <div class="cmdk-list" data-cmdk-list></div>
+    </div>
+  </div>
+
+  <script>
+    /* Close sidebar when clicking outside on mobile */
+    document.addEventListener('click', function(e) {
+      var sidebar = document.querySelector('.sidebar');
+      var toggle = document.querySelector('.sidebar-toggle');
+      if (sidebar && sidebar.classList.contains('open') &&
+          !sidebar.contains(e.target) && !toggle.contains(e.target)) {
+        sidebar.classList.remove('open');
+      }
+    });
+
+    /* ── Command palette (search) ── ported from base_operation.html.
+       Snapshots the sidebar's nav links into a searchable list and
+       opens with Ctrl/Cmd+K or by clicking the topbar magnifier. */
+    function clCmdkInit() {
+      var overlay = document.querySelector('[data-cmdk-overlay]');
+      var input   = document.querySelector('[data-cmdk-input]');
+      var list    = document.querySelector('[data-cmdk-list]');
+      if (!overlay || !input || !list) return;
+
+      var items = [];
+      // Student sidebar has a flat <nav class="nav"> — group label is "Menu".
+      document.querySelectorAll('.sidebar .nav a[href]').forEach(function (a) {
+        var iconEl = a.querySelector('.nav-icon i');
+        var iconClass = iconEl ? iconEl.className : 'fas fa-link';
+        var label = (a.textContent || '').replace(/\s+/g, ' ').trim();
+        var href = a.getAttribute('href');
+        if (label && href) items.push({ label: label, href: href, group: 'Menu', iconClass: iconClass });
+      });
+
+      var activeIndex = 0;
+
+      function render(query) {
+        var q = (query || '').toLowerCase().trim();
+        var matched = q
+          ? items.filter(function (it) { return it.label.toLowerCase().indexOf(q) !== -1; })
+          : items.slice();
+        activeIndex = 0;
+        list.innerHTML = '';
+        if (!matched.length) {
+          list.innerHTML = '<div class="cmdk-empty"><i class="fas fa-magnifying-glass"></i><div>No pages found</div></div>';
+          return;
+        }
+        var lastGroup = null;
+        matched.forEach(function (it, i) {
+          if (it.group !== lastGroup) {
+            var lbl = document.createElement('div');
+            lbl.className = 'cmdk-group-label';
+            lbl.textContent = it.group;
+            list.appendChild(lbl);
+            lastGroup = it.group;
+          }
+          var a = document.createElement('a');
+          a.className = 'cmdk-item' + (i === 0 ? ' is-active' : '');
+          a.href = it.href;
+          a.innerHTML = '<span class="cmdk-icon"><i class="' + it.iconClass + '"></i></span>'
+                      + '<span>' + it.label + '</span>'
+                      + '<i class="fas fa-arrow-turn-down cmdk-arrow"></i>';
+          a.addEventListener('mouseenter', (function (idx) { return function () { setActive(idx); }; })(i));
+          list.appendChild(a);
+        });
+      }
+
+      function setActive(i) {
+        var els = list.querySelectorAll('.cmdk-item');
+        if (!els.length) return;
+        activeIndex = (i + els.length) % els.length;
+        els.forEach(function (el, idx) { el.classList.toggle('is-active', idx === activeIndex); });
+        els[activeIndex].scrollIntoView({ block: 'nearest' });
+      }
+
+      function activate() {
+        var els = list.querySelectorAll('.cmdk-item');
+        var el = els[activeIndex];
+        if (el) window.location.href = el.getAttribute('href');
+      }
+
+      function openPalette() {
+        overlay.classList.add('open');
+        input.value = '';
+        render('');
+        setTimeout(function () { input.focus(); }, 30);
+      }
+      function closePalette() { overlay.classList.remove('open'); }
+
+      document.addEventListener('click', function (e) {
+        var t = e.target;
+        while (t && t !== document) {
+          if (t.matches && t.matches('[data-cmdk-trigger]')) {
+            e.preventDefault();
+            e.stopPropagation();
+            openPalette();
+            return;
+          }
+          t = t.parentNode;
+        }
+      });
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) closePalette(); });
+      input.addEventListener('input', function (e) { render(e.target.value); });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown') { e.preventDefault(); setActive(activeIndex + 1); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(activeIndex - 1); }
+        else if (e.key === 'Enter') { e.preventDefault(); activate(); }
+        else if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+      });
+      document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+          e.preventDefault();
+          if (overlay.classList.contains('open')) closePalette(); else openPalette();
+        }
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', clCmdkInit);
+    } else { clCmdkInit(); }
+
+    /* ── Notifications popover ── ported from base_operation.html.
+       Toggles .notif-panel.open on bell click; outside-click & Esc
+       dismiss; Mark-all-read POSTs to mark_notifications_as_read. */
+    (function () {
+      const btn = document.querySelector('[data-bell-btn]');
+      const panel = document.querySelector('[data-notif-panel]');
+      if (!btn || !panel) return;
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        panel.classList.toggle('open');
+      });
+      panel.addEventListener('click', function (e) { e.stopPropagation(); });
+      document.addEventListener('click', function (e) {
+        if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') panel.classList.remove('open');
+      });
+
+      const markAll = panel.querySelector('[data-mark-all-read]');
+      if (markAll) {
+        markAll.addEventListener('click', async function () {
+          const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+          try {
+            const res = await fetch("{% url 'mark_notifications_as_read' %}", {
+              method: 'POST',
+              headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+              credentials: 'same-origin'
+            });
+            if (res.ok) {
+              panel.querySelectorAll('.notif-item.unread').forEach(function (el) { el.classList.remove('unread'); });
+              document.querySelectorAll('.bell-dot, .icon-btn .dot').forEach(function (el) { el.remove(); });
+              markAll.remove();
+              const titleSpan = panel.querySelector('.notif-head .title span');
+              if (titleSpan) titleSpan.remove();
+            }
+          } catch (err) { /* fail silently */ }
+        });
+      }
+    })();
+  </script>
+
+  {% block extra_js %}{% endblock %}
+
+  {% include "accounts/legal/_modal.html" %}
+
+  {% include "includes/_mobile_tabbar.html" %}
+  <script src="{% static 'js/cl-mobile-tabbar.js' %}" defer></script>
+  <script src="{% static 'js/cl-table-mobile.js' %}" defer></script>
+
+  <!-- Shepherd.js engine + cl-tour adapter. Order matters: Shepherd UMD
+       must load before cl-tour.js so the adapter can call window.Shepherd. -->
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js" defer></script>
+  {# Per-account tour-completion list — seeds cl-tour.js so finished/dismissed
+     walkthroughs never auto-show again for this user on any device. #}
+  {% if request.user.is_authenticated %}{{ request.user.profile.seen_tours|json_script:"cl-tour-seen-data" }}{% endif %}
+  <script>
+    (function () {
+      var el = document.getElementById('cl-tour-seen-data');
+      try { window.__clTourSeen = el ? JSON.parse(el.textContent) : []; }
+      catch (e) { window.__clTourSeen = []; }
+      if (!Array.isArray(window.__clTourSeen)) window.__clTourSeen = [];
+    })();
+  </script>
+  <script src="{% static 'js/cl-tour.js' %}" defer></script>
+
+  <!-- Plyr + cl-material-viewer engine. Plyr is body-deferred so it
+       finishes loading after the page is interactive; the engine waits
+       for window.Plyr at first open() call. -->
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js" defer></script>
+  <script src="{% static 'js/cl-material-viewer.js' %}" defer></script>
+</body>
+</html>

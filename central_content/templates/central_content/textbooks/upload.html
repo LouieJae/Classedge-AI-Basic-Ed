@@ -1,0 +1,23 @@
+{% extends "central_content/base.html" %}
+{% block title %}Upload Textbook — {{ subject.subject_name }}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Upload Textbook</h1>
+<p class="text-gray-600 mb-6">Subject: {{ subject.subject_name }}</p>
+
+<form method="post" enctype="multipart/form-data" class="bg-white p-6 rounded shadow max-w-lg"
+      data-cl-loading data-cl-loading-label="Uploading…">
+    {% csrf_token %}
+    <div class="mb-4">
+        <label class="block text-sm font-medium mb-1" for="id_title">Title (optional, defaults to filename)</label>
+        <input type="text" name="title" id="id_title" class="w-full border rounded px-3 py-2" value="{{ form.title.value|default:'' }}">
+        {% if form.title.errors %}<p class="text-red-600 text-sm mt-1">{{ form.title.errors.0 }}</p>{% endif %}
+    </div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium mb-1" for="id_file">PDF File</label>
+        <input type="file" name="file" id="id_file" accept=".pdf" class="w-full border rounded px-3 py-2" required>
+        {% if form.file.errors %}<p class="text-red-600 text-sm mt-1">{{ form.file.errors.0 }}</p>{% endif %}
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Upload &amp; Parse</button>
+    <a href="/subjects/{{ subject.id }}/" class="ml-3 text-gray-600">Cancel</a>
+</form>
+{% endblock %}

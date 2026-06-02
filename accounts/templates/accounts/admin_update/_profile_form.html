@@ -1,0 +1,443 @@
+{% comment %}
+[Classedge LMS] Shared themed profile-edit form for standalone update pages
+(teacher/student/staff/program-head). Posts back to ``request.path`` so the
+same view handles the save.
+{% endcomment %}
+<style>
+  .pf-form { font-family: var(--body); color: var(--ink); }
+
+  /* ─── Sectioning ─────────────────────────────────────────── */
+  .pf-section { margin-bottom: 36px; }
+  .pf-section:last-of-type { margin-bottom: 24px; }
+  .pf-section-head {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding-bottom: 14px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pf-section-num {
+    width: 36px; height: 36px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: var(--cream-2);
+    color: var(--ink);
+    font-family: var(--display);
+    font-weight: 700; font-size: 14px;
+    display: grid; place-items: center;
+    border: 1px solid var(--border);
+    letter-spacing: -0.02em;
+  }
+  .pf-section-text { flex: 1; min-width: 0; padding-top: 2px; }
+  .pf-section-title {
+    font-family: var(--display);
+    color: var(--ink);
+    font-size: 16.5px;
+    font-weight: 600;
+    margin: 0 0 3px;
+    letter-spacing: -0.005em;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .pf-section-title i { color: var(--brand-primary, #1b4332); font-size: 14px; }
+  .pf-section-sub {
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    margin: 0;
+  }
+
+  /* ─── Field grid ─────────────────────────────────────────── */
+  .pf-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 28px;
+  }
+  @media (max-width: 720px) {
+    .pf-grid { grid-template-columns: 1fr; gap: 18px; }
+  }
+
+  .pf-field { margin: 0; min-width: 0; }
+  .pf-field.full { grid-column: 1 / -1; }
+  .pf-form label {
+    display: block;
+    font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-dim); margin-bottom: 8px;
+  }
+  .pf-form .req { color: var(--brand-primary, #1b4332); font-weight: 700; margin-left: 2px; }
+
+  /* ─── Inputs ─────────────────────────────────────────────── */
+  .pf-form input[type="text"],
+  .pf-form input[type="email"],
+  .pf-form input[type="tel"],
+  .pf-form input[type="date"],
+  .pf-form input[type="number"],
+  .pf-form input[type="password"],
+  .pf-form select,
+  .pf-form textarea {
+    width: 100%;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    font-family: var(--body); font-size: 13.5px;
+    background: var(--paper); color: var(--ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .pf-form input:hover:not(:focus),
+  .pf-form select:hover:not(:focus),
+  .pf-form textarea:hover:not(:focus) {
+    border-color: var(--ink-dim);
+  }
+  .pf-form input:focus, .pf-form select:focus, .pf-form textarea:focus {
+    outline: none; border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+    background: var(--paper);
+  }
+  .pf-form textarea { min-height: 88px; resize: vertical; line-height: 1.5; }
+
+  .pf-form .err { color: #b02a37; font-size: 12px; margin-top: 5px; font-weight: 500; }
+  .pf-form .helper { color: var(--ink-muted); font-size: 11.5px; margin-top: 5px; }
+
+  /* ─── Native <select> chevron ───────────────────────────── */
+  .pf-form select.pf-select,
+  .pf-form select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 38px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='none' stroke='%236c7080' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5l5 5 5-5'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 12px 8px;
+    cursor: pointer;
+  }
+  .pf-form .bootstrap-select { display: none !important; }
+
+  /* ─── Photo dropzone ─────────────────────────────────────── */
+  .pf-photo-row {
+    display: grid;
+    grid-template-columns: 132px 1fr;
+    gap: 22px;
+    align-items: stretch;
+  }
+  @media (max-width: 720px) {
+    .pf-photo-row { grid-template-columns: 1fr; }
+  }
+  .pf-photo-preview {
+    width: 132px; height: 132px;
+    border-radius: 16px;
+    border: 1px solid var(--border-strong);
+    background: var(--cream-2);
+    overflow: hidden;
+    display: grid; place-items: center;
+    color: var(--ink-dim);
+    position: relative;
+  }
+  .pf-photo-preview img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .pf-photo-placeholder {
+    text-align: center;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .pf-photo-placeholder i {
+    display: block;
+    font-size: 26px;
+    margin-bottom: 6px;
+    color: var(--brand-primary, #1b4332);
+  }
+  .pf-photo-zone {
+    position: relative;
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--cream);
+    padding: 18px 20px;
+    display: flex; flex-direction: column; justify-content: center;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    cursor: pointer;
+  }
+  .pf-photo-zone:hover {
+    border-color: var(--brand-primary, #1b4332);
+    background: var(--brand-primary-soft);
+  }
+  .pf-photo-zone-title {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .pf-photo-zone-title em { color: var(--brand-primary, #1b4332); font-style: normal; font-weight: 700; }
+  .pf-photo-zone-sub {
+    font-size: 12px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+  }
+  .pf-photo-zone-name {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--ink);
+    font-weight: 600;
+    word-break: break-all;
+    display: none;
+  }
+  .pf-photo-zone-name.has-file { display: block; }
+  .pf-photo-zone input[type="file"] {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    opacity: 0; cursor: pointer;
+  }
+  .pf-photo-current {
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--ink-muted);
+  }
+  .pf-photo-current a {
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px dotted var(--brand-primary, #1b4332);
+  }
+
+  /* ─── Footer ─────────────────────────────────────────────── */
+  .pf-footer {
+    margin-top: 28px;
+    padding: 18px 0 0;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 10px; justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .pf-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 22px;
+    border-radius: var(--radius-sm);
+    font-family: var(--body); font-size: 13px; font-weight: 600;
+    border: 1px solid var(--border-strong);
+    background: var(--paper); color: var(--ink);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .pf-btn:hover { background: var(--cream-2); color: var(--ink); border-color: var(--brand-primary, #1b4332); }
+  .pf-btn-primary { background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332); }
+  .pf-btn-primary:hover { background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332); transform: translateY(-1px); box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--brand-primary, #1b4332) 50%, transparent); }
+</style>
+
+<form method="post" action="{{ request.path }}" enctype="multipart/form-data" class="pf-form" id="profileForm"
+      data-cl-loading data-cl-loading-label="Saving…">
+  {% csrf_token %}
+
+  {# ───── Section 1 · Personal Information ───── #}
+  <div class="pf-section">
+    <div class="pf-section-head">
+      <div class="pf-section-num">01</div>
+      <div class="pf-section-text">
+        <h6 class="pf-section-title"><i class="fas fa-user"></i> Personal information</h6>
+        <p class="pf-section-sub">Identity, demographics, and a profile photo for the directory.</p>
+      </div>
+    </div>
+
+    <div class="pf-grid">
+      <div class="pf-field">
+        <label for="{{ form.first_name.id_for_label }}">First name<span class="req">*</span></label>
+        {{ form.first_name }}
+        {% if form.first_name.errors %}<div class="err">{{ form.first_name.errors|striptags }}</div>{% endif %}
+      </div>
+      <div class="pf-field">
+        <label for="{{ form.last_name.id_for_label }}">Last name<span class="req">*</span></label>
+        {{ form.last_name }}
+        {% if form.last_name.errors %}<div class="err">{{ form.last_name.errors|striptags }}</div>{% endif %}
+      </div>
+      <div class="pf-field">
+        <label for="{{ form.date_of_birth.id_for_label }}">Date of birth</label>
+        {{ form.date_of_birth }}
+        {% if form.date_of_birth.errors %}<div class="err">{{ form.date_of_birth.errors|striptags }}</div>{% endif %}
+      </div>
+      <div class="pf-field">
+        <label for="{{ form.gender.id_for_label }}">Gender</label>
+        {{ form.gender }}
+        {% if form.gender.errors %}<div class="err">{{ form.gender.errors|striptags }}</div>{% endif %}
+      </div>
+      <div class="pf-field full">
+        <label for="{{ form.nationality.id_for_label }}">Nationality</label>
+        {{ form.nationality }}
+        {% if form.nationality.errors %}<div class="err">{{ form.nationality.errors|striptags }}</div>{% endif %}
+      </div>
+
+      {% if form.student_photo %}
+      <div class="pf-field full">
+        <label for="{{ form.student_photo.id_for_label }}">Profile photo</label>
+        <div class="pf-photo-row">
+          <div class="pf-photo-preview" id="photoPreview">
+            {% if profile.student_photo %}
+              <img src="{{ profile.student_photo.url }}" alt="Current photo" id="photoPreviewImg">
+            {% else %}
+              <div class="pf-photo-placeholder">
+                <i class="fas fa-image"></i>
+                No photo
+              </div>
+            {% endif %}
+          </div>
+          <label class="pf-photo-zone" for="{{ form.student_photo.id_for_label }}">
+            <div class="pf-photo-zone-title">Drop a photo here or <em>browse</em></div>
+            <div class="pf-photo-zone-sub">PNG, JPG, or WEBP. Square images render best in the directory and avatar.</div>
+            <div class="pf-photo-zone-name" id="photoFileName"></div>
+            {{ form.student_photo }}
+          </label>
+        </div>
+        {% if form.student_photo.errors %}<div class="err">{{ form.student_photo.errors|striptags }}</div>{% endif %}
+        {% if profile.student_photo %}
+          <div class="pf-photo-current">
+            Current file:
+            <a href="{{ profile.student_photo.url }}" target="_blank" rel="noopener">view full size</a>
+          </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ───── Section 2 · Contact ───── #}
+  <div class="pf-section">
+    <div class="pf-section-head">
+      <div class="pf-section-num">02</div>
+      <div class="pf-section-text">
+        <h6 class="pf-section-title"><i class="fas fa-address-book"></i> Contact</h6>
+        <p class="pf-section-sub">How the school can reach this account.</p>
+      </div>
+    </div>
+    <div class="pf-grid">
+      <div class="pf-field">
+        <label for="{{ form.phone_number.id_for_label }}">Phone number</label>
+        {{ form.phone_number }}
+        {% if form.phone_number.errors %}<div class="err">{{ form.phone_number.errors|striptags }}</div>{% endif %}
+      </div>
+      <div class="pf-field full">
+        <label for="{{ form.address.id_for_label }}">Address</label>
+        {{ form.address }}
+        {% if form.address.errors %}<div class="err">{{ form.address.errors|striptags }}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ───── Section 3 · Academic ───── #}
+  <div class="pf-section">
+    <div class="pf-section-head">
+      <div class="pf-section-num">03</div>
+      <div class="pf-section-text">
+        <h6 class="pf-section-title"><i class="fas fa-graduation-cap"></i> Academic</h6>
+        <p class="pf-section-sub">Identifier, role, and program enrollment context.</p>
+      </div>
+    </div>
+    <div class="pf-grid">
+      <div class="pf-field">
+        <label for="{{ form.id_number.id_for_label }}">ID number</label>
+        {{ form.id_number }}
+        {% if form.id_number.errors %}<div class="err">{{ form.id_number.errors|striptags }}</div>{% endif %}
+      </div>
+      {% if form.role %}
+        <div class="pf-field">
+          <label for="{{ form.role.id_for_label }}">Role</label>
+          {{ form.role }}
+          {% if form.role.errors %}<div class="err">{{ form.role.errors|striptags }}</div>{% endif %}
+        </div>
+      {% endif %}
+      {% if form.student_status %}
+        <div class="pf-field">
+          <label for="{{ form.student_status.id_for_label }}">Status</label>
+          {{ form.student_status }}
+          {% if form.student_status.errors %}<div class="err">{{ form.student_status.errors|striptags }}</div>{% endif %}
+        </div>
+      {% endif %}
+      {% if form.grade_year_level %}
+        <div class="pf-field">
+          <label for="{{ form.grade_year_level.id_for_label }}">Year Level</label>
+          {{ form.grade_year_level }}
+          {% if form.grade_year_level.errors %}<div class="err">{{ form.grade_year_level.errors|striptags }}</div>{% endif %}
+        </div>
+      {% endif %}
+      {% if form.course %}
+        <div class="pf-field">
+          <label for="{{ form.course.id_for_label }}">Program</label>
+          {{ form.course }}
+          {% if form.course.errors %}<div class="err">{{ form.course.errors|striptags }}</div>{% endif %}
+        </div>
+      {% endif %}
+      {% if form.department_fields %}
+        <div class="pf-field">
+          <label for="{{ form.department_fields.id_for_label }}">Department</label>
+          {{ form.department_fields }}
+          {% if form.department_fields.errors %}<div class="err">{{ form.department_fields.errors|striptags }}</div>{% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="pf-footer">
+    <a href="{{ back_url|default:'javascript:history.back()' }}" class="pf-btn">Cancel</a>
+    <button type="submit" class="pf-btn pf-btn-primary"><i class="fas fa-save"></i> Save changes</button>
+  </div>
+</form>
+
+<script>
+  // Sidestep bootstrap-select entirely on this form — version 1.14-beta2 has
+  // known issues with double-wrapping and inaccessible click handlers.
+  // Strip `.selectpicker` from each select before any library can pick it up,
+  // and unwrap any pre-existing `.bootstrap-select` wrappers if init already
+  // happened. Native <select> styling is handled by `.pf-form select` CSS.
+  (function () {
+    function detachPicker() {
+      document.querySelectorAll('.pf-form select.selectpicker').forEach(sel => {
+        sel.classList.remove('selectpicker');
+        sel.classList.add('pf-select');
+      });
+      if (window.$ && $.fn && $.fn.selectpicker) {
+        $('.pf-form .bootstrap-select').each(function () {
+          const $wrap = $(this);
+          const $sel = $wrap.find('select').first();
+          if ($sel.length) {
+            try { $sel.selectpicker('destroy'); } catch (e) {}
+            if ($sel.parent('.bootstrap-select').length) {
+              $wrap.replaceWith($sel);
+            }
+            $sel.removeClass('selectpicker').addClass('pf-select');
+          } else {
+            $wrap.remove();
+          }
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', detachPicker);
+    } else {
+      detachPicker();
+    }
+  })();
+
+  // Photo dropzone preview + filename
+  (function () {
+    const fileInput = document.getElementById('{{ form.student_photo.id_for_label }}');
+    if (!fileInput) return;
+    const nameEl = document.getElementById('photoFileName');
+    const preview = document.getElementById('photoPreview');
+    fileInput.addEventListener('change', function () {
+      const f = this.files && this.files[0];
+      if (!f) {
+        if (nameEl) { nameEl.textContent = ''; nameEl.classList.remove('has-file'); }
+        return;
+      }
+      if (nameEl) {
+        nameEl.textContent = f.name;
+        nameEl.classList.add('has-file');
+      }
+      if (preview && /^image\//.test(f.type)) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.innerHTML = '<img src="' + e.target.result + '" alt="New photo">';
+        };
+        reader.readAsDataURL(f);
+      }
+    });
+  })();
+</script>

@@ -1,0 +1,157 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Partner schools{% endblock %}
+
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <link rel="stylesheet" href="{% static 'coil/coil_school_list.css' %}" />
+
+  {# Pre-compute counts so we don't iterate twice #}
+  {% with total=coil_school|length %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-school me-2"></i>Partner <em>schools</em></h2>
+        <p>Institutions in your COIL pipeline. Track invitations, confirmed partners, and resolved student counts.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="coil-school-list">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <a href="{% url 'coil_registration' %}" class="cl-btn cl-btn-primary">
+          <i class="fas fa-paper-plane"></i> Send invite
+        </a>
+      </div>
+    </div>
+
+    {# ───────── Stat strip — counts populated by JS via [data-count-status] ───────── #}
+    <div class="csl-stats">
+      <div class="csl-stat">
+        <div class="csl-stat-icon"><i class="fas fa-school"></i></div>
+        <div>
+          <div class="csl-stat-num">{{ total }}</div>
+          <div class="csl-stat-label">Total schools</div>
+        </div>
+      </div>
+      <div class="csl-stat partner">
+        <div class="csl-stat-icon"><i class="fas fa-handshake"></i></div>
+        <div>
+          <div class="csl-stat-num" data-count-status="Partner">0</div>
+          <div class="csl-stat-label">Partners</div>
+        </div>
+      </div>
+      <div class="csl-stat pending">
+        <div class="csl-stat-icon"><i class="fas fa-hourglass-half"></i></div>
+        <div>
+          <div class="csl-stat-num" data-count-status="Pending Acceptance">0</div>
+          <div class="csl-stat-label">Pending</div>
+        </div>
+      </div>
+      <div class="csl-stat rejected">
+        <div class="csl-stat-icon"><i class="fas fa-circle-xmark"></i></div>
+        <div>
+          <div class="csl-stat-num" data-count-status="Rejected">0</div>
+          <div class="csl-stat-label">Rejected</div>
+        </div>
+      </div>
+    </div>
+
+    {# ───────── Card with toolbar + ledger ───────── #}
+    <div class="cl-card">
+      <div class="cl-card-header">
+        <span><i class="fas fa-list me-2"></i>School <em>directory</em></span>
+        <span style="font-size: 11px; font-weight: 700; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; font-variant-numeric: tabular-nums;">{{ total }} {{ total|pluralize:"school,schools" }}</span>
+      </div>
+      <div class="cl-card-body">
+        <div class="csl-toolbar">
+          <div class="csl-search">
+            <i class="fas fa-search"></i>
+            <input id="cslSearch" type="text" placeholder="Search by name or domain…" autocomplete="off">
+          </div>
+          <div class="csl-chips" id="cslChips">
+            <button type="button" class="csl-chip active" data-status="all">All <span class="count" id="cslCountAll">{{ total }}</span></button>
+            <button type="button" class="csl-chip" data-status="Partner">Partners <span class="count" data-count-status="Partner">0</span></button>
+            <button type="button" class="csl-chip" data-status="Pending Acceptance">Pending <span class="count" data-count-status="Pending Acceptance">0</span></button>
+            <button type="button" class="csl-chip" data-status="Send Invite">Drafts <span class="count" data-count-status="Send Invite">0</span></button>
+            <button type="button" class="csl-chip" data-status="Rejected">Rejected <span class="count" data-count-status="Rejected">0</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cl-card-body flush" style="border-top: 1px solid var(--border);">
+        {% if coil_school %}
+          <div style="overflow-x: auto;">
+            <table class="csl-ledger" id="cslTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>School</th>
+                  <th>Status</th>
+                  <th class="right">Students</th>
+                  <th class="right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in coil_school %}
+                  <tr data-status="{{ s.status }}" data-search="{{ s.school_name|lower }} {{ s.school_domain|default:''|lower }}">
+                    <td style="width: 60px; color: var(--ink-muted); font-family: 'SFMono-Regular', monospace; font-size: 12px;">{{ forloop.counter }}</td>
+                    <td>
+                      <div class="csl-school">
+                        <div class="csl-school-mark">{{ s.school_name|slice:":1"|upper }}</div>
+                        <div class="csl-school-text">
+                          <div class="csl-school-name">{{ s.school_name }}</div>
+                          {% if s.school_domain %}<div class="csl-school-domain">{{ s.school_domain }}</div>{% endif %}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="csl-status {{ s.status|lower|cut:' '|slugify }}">{{ s.status }}</span>
+                    </td>
+                    <td class="right">
+                      <span class="csl-num">{{ s.student_participating|default:"—" }}</span>
+                    </td>
+                    <td class="right">
+                      {% if s.status == 'Send Invite' %}
+                        <form method="POST" action="{% url 'send_school_invite' %}" style="display: inline; margin: 0;">
+                          {% csrf_token %}
+                          <input type="hidden" name="school_email" value="{{ s.school_email }}">
+                          <button type="submit" class="csl-send" title="Send invite to {{ s.school_email }}">
+                            <i class="fas fa-paper-plane"></i> Send invite
+                          </button>
+                        </form>
+                      {% else %}
+                        <span style="color: var(--ink-muted); font-size: 12px;">—</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="csl-empty">
+            <i class="fas fa-school"></i>
+            <div class="lead">No partner schools yet</div>
+            <div class="sub">Click <strong>Send invite</strong> in the header to add your first one.</div>
+          </div>
+        {% endif %}
+
+        <div id="cslEmptyFiltered" class="csl-empty" style="display: none;">
+          <i class="fas fa-search"></i>
+          <div class="lead">No matches</div>
+          <div class="sub">Adjust the search or filter chips above.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'coil/coil_school_list.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-coil-school-list.js' %}" defer></script>
+
+  {% endwith %}
+{% endblock %}

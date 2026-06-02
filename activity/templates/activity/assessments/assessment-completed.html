@@ -1,0 +1,118 @@
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}Assessment completed{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'activity/assessments/assessment-completed.css' %}" />
+
+<div class="ac-page">
+  <div class="ac-card">
+    <span class="ac-eyebrow"><i class="fas fa-circle"></i> Submission received</span>
+
+    <div class="ac-icon-wrap"><i class="fas fa-circle-check"></i></div>
+
+    <h1 class="ac-title">Assessment completed</h1>
+    <p class="ac-sub">
+      Thank you{% if request.user.first_name %}, <strong>{{ request.user.first_name }}</strong>{% endif %} &mdash;
+      your answers have been submitted successfully.
+    </p>
+
+    {% if show_score %}
+      <div class="ac-score-block">
+        {% with pct=score|default:0 %}
+        <div class="ac-progress" data-score="{{ score|default:0 }}" data-max="{{ max_score|default:0 }}">
+          <svg viewBox="0 0 168 168" aria-hidden="true">
+            <circle class="track" cx="84" cy="84" r="75"></circle>
+            <circle class="bar" cx="84" cy="84" r="75"></circle>
+          </svg>
+          <div class="ac-progress-label">
+            <div>
+              <div class="ac-progress-value">
+                {{ score|floatformat:'0' }}<em> / {{ max_score|floatformat:'0' }}</em>
+              </div>
+              <div class="ac-progress-pct" data-pct-text>0%</div>
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+
+        <div class="ac-stats">
+          <div class="ac-stat">
+            <div class="label">Score</div>
+            <div class="value">{{ score|floatformat:'0' }}</div>
+          </div>
+          <div class="ac-stat">
+            <div class="label">Maximum</div>
+            <div class="value">{{ max_score|floatformat:'0' }}</div>
+          </div>
+          <div class="ac-stat">
+            <div class="label">Percentage</div>
+            <div class="value" data-pct-stat>—</div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="ac-pending">
+        <i class="fas fa-hourglass-half"></i>
+        Your score will be available once your teacher has reviewed your submission.
+      </div>
+    {% endif %}
+
+    {% if late_penalty_percent %}
+      <div class="ac-late-notice">
+        <i class="fas fa-hourglass-half"></i>
+        You submitted after the deadline, so a <strong>{{ late_penalty_percent }}%</strong> late penalty was applied.
+        {% if raw_score is not None and show_score %}
+          Your raw score was <strong>{{ raw_score }}</strong>{% if max_score %} / {{ max_score|floatformat:'0' }}{% endif %} before the deduction.
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="ac-actions" style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center;">
+      <a href="{% if subject_id %}{% url 'material-list' subject_id %}?view=assessments{% else %}{% url 'course-list' %}{% endif %}" class="ac-btn">
+        <i class="fas fa-arrow-left"></i> Back to assessments
+      </a>
+      <button type="button" class="cl-tour-replay" data-cl-tour="student-score">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+    </div>
+  </div>
+</div>
+
+{% if show_score %}
+<script src="{% static 'activity/assessments/assessment-completed.js' %}"></script>
+  {% if max_score and score >= max_score %}
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <script>
+      (function () {
+        if (typeof confetti !== 'function') return;
+
+        const fire = (particleRatio, opts) =>
+          confetti(Object.assign({
+            origin: { y: 0.7 },
+            colors: ['#1b4332', '#2ba69e', '#f4b740', '#7b6de0', '#e04545'],
+            disableForReducedMotion: true,
+          }, opts, {
+            particleCount: Math.floor(200 * particleRatio),
+          }));
+
+        const burst = () => {
+          fire(0.25, { spread: 26, startVelocity: 55 });
+          fire(0.2,  { spread: 60 });
+          fire(0.35, { spread: 100, decay: 0.91, scalar: 0.9 });
+          fire(0.1,  { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+          fire(0.1,  { spread: 120, startVelocity: 45 });
+        };
+
+        // Initial celebration + a couple of follow-up pops.
+        burst();
+        setTimeout(burst, 450);
+        setTimeout(burst, 950);
+      })();
+    </script>
+  {% endif %}
+{% endif %}
+
+<script src="{% static 'js/tours/cl-tour-student-score.js' %}" defer></script>
+{% endblock %}

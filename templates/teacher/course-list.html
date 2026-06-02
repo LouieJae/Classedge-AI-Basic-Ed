@@ -1,0 +1,784 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}My Courses{% endblock %}
+
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+{% include "includes/_edit-inline.html" %}
+
+<style>
+  .courses-page { padding: 8px 0 32px; }
+
+  .courses-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  /* Header uses base .page-title / .page-sub for cross-page consistency. */
+
+  .courses-search {
+    margin-bottom: 22px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .courses-search input[type="text"] {
+    flex: 1 1 280px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .courses-search input[type="text"]:focus { border-color: var(--brand-primary, #b7925a); }
+  .courses-search button,
+  .courses-search a.clear-btn {
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--brand-primary, #1b4332);
+    background: var(--brand-primary, #1b4332);
+    color: var(--cream);
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .courses-search button:hover { background: var(--brand-primary, #1b4332); }
+  .courses-search a.clear-btn {
+    background: transparent;
+    color: var(--ink-dim);
+    border-color: var(--border-strong);
+  }
+  /* Real-time search spinner — only visible while HTMX is in-flight. */
+  .courses-search .htmx-indicator {
+    display: none;
+    color: var(--brand-primary, #b7925a);
+    font-size: 14px;
+    margin-left: 4px;
+  }
+  .courses-search .htmx-indicator.htmx-request,
+  .courses-search.htmx-request .htmx-indicator { display: inline-flex; }
+  /* While searching, dim the grid so the spinner is the focal point. */
+  #course-list-results.htmx-request,
+  #course-list-results.htmx-swapping { opacity: 0.55; transition: opacity 0.15s ease; }
+
+  .course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .course-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow);
+    transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+  }
+  .course-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand-primary-soft);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .course-image {
+    position: relative;
+    height: 140px;
+    background: var(--cream-2);
+    overflow: hidden;
+  }
+  .course-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+  }
+  .course-card:hover .course-image img { transform: scale(1.04); }
+  .course-image-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(183, 146, 90, 0.18), var(--brand-primary-soft));
+    display: grid;
+    place-items: center;
+    color: var(--brand-primary, #b7925a);
+    font-size: 36px;
+    opacity: 0.85;
+  }
+  .course-image::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 50%, rgba(45, 49, 66, 0.18) 100%);
+    pointer-events: none;
+  }
+  .course-image-pill {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+  }
+
+  /* "Change Photo" affordance: compact pill anchored to the top-left
+     corner of the card image. Solid paper background with forest text +
+     gold camera icon to sit cleanly on top of any thumbnail while staying
+     on-palette with the rest of the page. Hidden by default, fades in on
+     card hover/focus so the thumbnail stays clean. */
+  .course-photo-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px 5px 8px;
+    border-radius: 100px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 4px 12px -4px rgba(45, 49, 66, 0.28);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.18s ease, transform 0.18s ease,
+                background 0.15s ease, border-color 0.15s ease,
+                box-shadow 0.15s ease;
+  }
+  .course-card:hover .course-photo-btn,
+  .course-card:focus-within .course-photo-btn {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .course-photo-btn:hover {
+    background: var(--cream);
+    border-color: var(--brand-primary, #b7925a);
+    color: var(--ink);
+    box-shadow: 0 6px 14px -4px rgba(45, 49, 66, 0.32);
+  }
+  .course-photo-btn:focus-visible {
+    outline: 2px solid var(--brand-primary, #b7925a);
+    outline-offset: 2px;
+  }
+  .course-photo-btn i {
+    font-size: 12px;
+    color: var(--brand-primary, #b7925a);
+  }
+  .course-photo-btn-label {
+    white-space: nowrap;
+  }
+  /* Touch devices: keep the button visible since hover doesn't apply. */
+  @media (hover: none) {
+    .course-photo-btn { opacity: 1; transform: translateY(0); }
+  }
+
+  /* "Start Classroom Mode" floating-action pill on each course card */
+  .course-classroom-btn {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 100px;
+    background: linear-gradient(135deg, var(--ink), var(--ink));
+    color: var(--cream);
+    font-family: var(--body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    box-shadow: 0 6px 18px -6px var(--brand-primary-soft);
+    border: 1px solid var(--brand-primary, #1b4332);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  }
+  .course-classroom-btn:hover {
+    color: var(--cream);
+    filter: brightness(1.06);
+    box-shadow: 0 10px 24px -6px var(--brand-primary-soft);
+    transform: translateY(2px);
+  }
+  .course-classroom-btn i { font-size: 11px; }
+  .course-card:hover .course-classroom-btn,
+  .course-card:focus-within .course-classroom-btn {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  /* Always-visible on touch devices since hover doesn't apply. */
+  @media (hover: none) {
+    .course-classroom-btn { opacity: 1; transform: translateY(0); }
+  }
+
+  .course-body {
+    padding: 18px 22px 22px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .course-name {
+    font-family: var(--display);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    min-height: calc(1.25em * 2);
+  }
+  .course-code {
+    font-family: var(--display);
+    font-style: italic;
+    color: var(--ink-dim);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .course-type-pill {
+    padding: 4px 11px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: 1px solid;
+    line-height: 1.4;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .course-type-pill.type-lec {
+    color: var(--cream);
+    border-color: var(--brand-primary, #1b4332);
+    background: var(--brand-primary-soft);
+  }
+  .course-type-pill.type-lab {
+    color: var(--cream);
+    border-color: var(--brand-primary, #b7925a);
+    background: color-mix(in srgb, var(--brand-primary, #b7925a) 95%, transparent);
+  }
+  .course-type-pill.type-other {
+    color: var(--ink);
+    border-color: var(--border-strong);
+    background: rgba(255, 255, 255, 0.85);
+  }
+  .course-meta {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ink-dim);
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .course-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .course-meta-item i { color: var(--brand-primary, #b7925a); }
+  /* Clickable variant — used on the enrolled-count pill to open the
+     course's student roster. Inherits the button reset and looks like
+     the surrounding meta items, with a brand-soft hover so teachers
+     notice it's interactive. */
+  .course-meta-item--link {
+    appearance: none;
+    border: 0;
+    padding: 2px 8px;
+    margin: -2px -8px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .course-meta-item--link:hover,
+  .course-meta-item--link:focus-visible {
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #1b4332);
+    outline: none;
+  }
+
+  .course-schedule {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+    font-size: 12px;
+    color: var(--ink-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  /* Use baseline alignment + wrap so the time stays anchored to the first
+     line of the days text — when "Mon, Tue, Wed, Thu, Fri" wraps to two
+     lines, the time doesn't drift to the visual middle. */
+  .course-schedule-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 6px;
+    line-height: 1.4;
+  }
+  .course-schedule-row i {
+    color: var(--brand-primary, #b7925a);
+    flex-shrink: 0;
+    align-self: baseline;
+  }
+  .course-schedule-days {
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    min-width: 0;
+    word-break: break-word;
+  }
+  .course-schedule-time {
+    white-space: nowrap;
+    color: var(--ink-dim);
+  }
+  .course-schedule-empty {
+    color: var(--ink-muted);
+    font-style: italic;
+  }
+  .course-schedule-empty i { color: var(--ink-muted); }
+
+  .pagination-row {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pagination-row a, .pagination-row span {
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 13px;
+    text-decoration: none;
+  }
+  .pagination-row a:hover { border-color: var(--brand-primary, #b7925a); }
+  .pagination-row .active { background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332); }
+  .pagination-row .disabled { opacity: 0.4; cursor: default; }
+
+  .empty-courses {
+    text-align: center;
+    padding: 60px 24px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--ink-dim);
+    grid-column: 1 / -1;
+  }
+  .empty-courses i { font-size: 32px; margin-bottom: 12px; opacity: 0.4; display: block; }
+  .empty-courses .lead { font-size: 16px; margin-bottom: 6px; color: var(--ink); font-family: var(--display); }
+
+  /* ---- 2-column layout with right sidebar ---- */
+  .courses-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 1024px) {
+    .courses-layout { grid-template-columns: 1fr; }
+  }
+  .courses-main { min-width: 0; }
+
+  .courses-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+  @media (max-width: 1024px) {
+    .courses-sidebar { position: static; }
+  }
+
+  .sidebar-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow);
+    padding: 16px 18px 14px;
+  }
+  .sidebar-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .sidebar-card-head h3 {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .sidebar-badge {
+    background: var(--brand-primary, #b7925a);
+    color: var(--cream);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 100px;
+    line-height: 1.4;
+  }
+  .sidebar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    margin: 0 -10px;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--ink);
+    font-size: 12.5px;
+    line-height: 1.35;
+    border-radius: 8px;
+    transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .sidebar-row:last-child { border-bottom: none; }
+  /* Hovering a sidebar entry lights up a brand-soft background so the
+     user has a clear "I'm pointing at this one" cue. The title shifts
+     to the tenant brand color and the row nudges 2px to the right for
+     a tactile feel — same micro-interaction language used on nav rows. */
+  .sidebar-row:hover {
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #1b4332);
+    transform: translateX(2px);
+  }
+  .sidebar-row:hover .sidebar-row-title { color: var(--brand-primary, #1b4332); }
+  .sidebar-row > i { color: var(--brand-primary, #1b4332); width: 16px; text-align: center; flex-shrink: 0; }
+  .sidebar-row-title {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .sidebar-row-meta {
+    color: var(--ink-muted);
+    font-size: 11px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .sidebar-row-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .sidebar-row-snippet {
+    color: var(--ink-dim);
+    font-size: 11.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sidebar-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .sidebar-rank {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--cream-2);
+    color: var(--ink);
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .sidebar-empty {
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-style: italic;
+    padding: 6px 0 2px;
+  }
+  .sidebar-card-foot {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+    text-align: right;
+  }
+  .sidebar-card-foot a {
+    color: var(--ink);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .sidebar-card-foot a:hover { color: var(--brand-primary, #b7925a); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="courses-page">
+  <div class="courses-header">
+    <div class="courses-title-block">
+      <h1 class="page-title">My <em>Courses</em></h1>
+      <div class="page-sub">
+        {% if selected_semester %}
+          {{ selected_semester.semester_name }} &middot; {{ selected_semester.get_academic_year }}
+        {% else %}
+          {% now 'Y' as current_year %}
+          {{ current_year }}&ndash;{{ current_year|add:'1' }} academic year
+        {% endif %}
+      </div>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="course-list">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <div class="courses-layout">
+    <div class="courses-main">
+      <form method="get" class="courses-search">
+        <input type="text" name="search"
+               placeholder="Search by course name, code, or room..."
+               value="{{ search_query }}"
+               autocomplete="off"
+               hx-get="{% url 'course-list' %}"
+               hx-trigger="keyup changed delay:250ms, search"
+               hx-target="#course-list-results"
+               hx-select="#course-list-results"
+               hx-swap="outerHTML"
+               hx-push-url="true"
+               hx-include="[name='semester']"
+               hx-indicator="#course-search-spinner" />
+        {% if selected_semester %}<input type="hidden" name="semester" value="{{ selected_semester.id }}" />{% endif %}
+        <button type="submit"><i class="fas fa-search"></i> Search</button>
+        <span id="course-search-spinner" class="htmx-indicator" aria-hidden="true">
+          <i class="fas fa-circle-notch fa-spin"></i>
+        </span>
+        {% if search_query %}
+          <a class="clear-btn" href="{% url 'course-list' %}{% if selected_semester %}?semester={{ selected_semester.id }}{% endif %}">Clear</a>
+        {% endif %}
+      </form>
+
+      <div id="course-list-results">
+      <div class="course-grid cl-carousel">
+        {% for subject in page_obj %}
+          <a class="course-card" href="{% url 'material-list' subject.id %}">
+            <div class="course-image">
+              {% if subject.subject_photo and subject.subject_photo.url %}
+                <img src="{{ subject.subject_photo.url }}" alt="{{ subject.subject_name }}" />
+              {% else %}
+                <div class="course-image-placeholder"><i class="fas fa-book"></i></div>
+              {% endif %}
+              {% if subject.subject_type %}
+                <span class="course-image-pill course-type-pill type-{{ subject.subject_type|lower }}">{{ subject.subject_type }}</span>
+              {% endif %}
+              <button type="button"
+                      class="course-classroom-btn"
+                      title="Start Classroom Mode"
+                      data-classroom-url="{% url 'enter_classroom_mode_view' subject.id %}"
+                      onclick="event.stopPropagation(); event.preventDefault(); window.location.href = this.dataset.classroomUrl;">
+                <i class="fas fa-chalkboard-teacher"></i> Start Classroom
+              </button>
+            </div>
+            <div class="course-body">
+              <div class="course-name" title="{{ subject.subject_name }}">
+                {{ subject.subject_name }}
+              </div>
+
+              <div class="course-meta">
+                <button type="button"
+                        class="course-meta-item course-meta-item--link"
+                        title="View enrolled students"
+                        data-roster-url="{% url 'subject-student-roster' id=subject.id %}"
+                        onclick="event.stopPropagation(); event.preventDefault(); window.location.href = this.dataset.rosterUrl;">
+                  <i class="fas fa-users"></i>
+                  <span>{{ subject.enrolled_count|default:0 }} enrolled</span>
+                </button>
+                {% if subject.room_number %}
+                  <div class="course-meta-item">
+                    <i class="fas fa-door-open"></i>
+                    <span>Room {{ subject.room_number }}</span>
+                  </div>
+                {% endif %}
+                {% if subject.substitute_teacher %}
+                  <div class="course-meta-item">
+                    <i class="fas fa-user-friends"></i>
+                    <span>Sub: {{ subject.substitute_teacher.first_name }} {{ subject.substitute_teacher.last_name }}</span>
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="course-schedule">
+                {% for schedule in subject.schedules.all %}
+                  {% if not selected_semester or not schedule.semester_id or schedule.semester_id == selected_semester.id %}
+                    <div class="course-schedule-row">
+                      <i class="far fa-clock"></i>
+                      <span class="course-schedule-days">{{ schedule.days_of_week|join:", " }}</span>
+                      <span class="course-schedule-time">&middot; {{ schedule.schedule_start_time|time:"g:i A" }}&ndash;{{ schedule.schedule_end_time|time:"g:i A" }}</span>
+                    </div>
+                  {% endif %}
+                {% empty %}
+                  <div class="course-schedule-empty"><i class="far fa-clock"></i> No schedule yet</div>
+                {% endfor %}
+              </div>
+            </div>
+          </a>
+        {% empty %}
+          <div class="empty-courses">
+            <i class="fas fa-book-open"></i>
+            <div class="lead">No courses assigned</div>
+            <div style="font-size: 13px;">You aren't assigned to any courses for this semester.</div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pagination-row" aria-label="Pagination">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}"><i class="fas fa-chevron-left"></i></a>
+          {% else %}
+            <span class="disabled"><i class="fas fa-chevron-left"></i></span>
+          {% endif %}
+          {% for page_num in page_range %}
+            {% if page_num == page_obj.number %}
+              <span class="active">{{ page_num }}</span>
+            {% else %}
+              <a href="?page={{ page_num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ page_num }}</a>
+            {% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}"><i class="fas fa-chevron-right"></i></a>
+          {% else %}
+            <span class="disabled"><i class="fas fa-chevron-right"></i></span>
+          {% endif %}
+        </nav>
+      {% endif %}
+      </div>{# /#course-list-results — HTMX swap target #}
+    </div>
+
+    <aside class="courses-sidebar">
+      <section class="sidebar-card">
+        <header class="sidebar-card-head">
+          <h3>Upcoming</h3>
+          {% if upcoming_items %}<span class="sidebar-badge">{{ upcoming_items|length }}</span>{% endif %}
+        </header>
+        {% for item in upcoming_items %}
+          <a class="sidebar-row" href="{% url 'assessment-details' item.id %}">
+            <i class="fas fa-{{ item.icon }}" aria-hidden="true"></i>
+            <span class="sidebar-row-body">
+              <span class="sidebar-row-title">{{ item.title }}</span>
+              <span class="sidebar-row-snippet">
+                {{ item.subject_short }}{% if item.type_name %} &middot; {{ item.type_name }}{% endif %}
+              </span>
+            </span>
+            <span class="sidebar-row-meta">{{ item.date|date:"M j" }}</span>
+          </a>
+        {% empty %}
+          <div class="sidebar-empty">No upcoming assessments.</div>
+        {% endfor %}
+        {% if upcoming_items %}
+          <div class="sidebar-card-foot">
+            <a href="{% url 'assessment-list' %}">View all &rarr;</a>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="sidebar-card">
+        <header class="sidebar-card-head">
+          <h3>Needs grading</h3>
+          {% if todo_total %}<span class="sidebar-badge">{{ todo_total }}</span>{% endif %}
+        </header>
+        {% for item in todo_items %}
+          <a class="sidebar-row" href="{% url 'assessment-details' item.activity_id %}">
+            <span class="sidebar-avatar" aria-hidden="true">{{ item.initial }}</span>
+            <span class="sidebar-row-body">
+              <span class="sidebar-row-title">{{ item.activity_name }}</span>
+              <span class="sidebar-row-snippet">
+                {{ item.student_name }}{% if item.type_name %} &middot; {{ item.type_name }}{% endif %}
+              </span>
+            </span>
+            <span class="sidebar-row-meta">Grade</span>
+          </a>
+        {% empty %}
+          <div class="sidebar-empty">All submissions graded.</div>
+        {% endfor %}
+        {% if todo_total > todo_items|length %}
+          <div class="sidebar-card-foot">
+            <a href="{% url 'material-list' %}">View all &rarr;</a>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="sidebar-card">
+        <header class="sidebar-card-head">
+          <h3>Due today</h3>
+          {% if due_today_items %}<span class="sidebar-badge">{{ due_today_items|length }}</span>{% endif %}
+        </header>
+        {% for a in due_today_items %}
+          <a class="sidebar-row" href="{% url 'assessment-details' a.id %}">
+            <i class="fas fa-flag" aria-hidden="true"></i>
+            <span class="sidebar-row-body">
+              <span class="sidebar-row-title">{{ a.activity_name }}</span>
+              <span class="sidebar-row-snippet">{{ a.subject.subject_short_name|default:a.subject.subject_name }}</span>
+            </span>
+            <span class="sidebar-row-meta">{{ a.end_time|time:"g:i A" }}</span>
+          </a>
+        {% empty %}
+          <div class="sidebar-empty">Nothing due today.</div>
+        {% endfor %}
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script src="{% static 'js/tours/cl-tour-course-list.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "base_operation.html" %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Generate with AI — {{ subject.subject_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h3 class="mb-3">Generate with AI</h3>
+            <p class="text-muted mb-4">{{ subject.subject_name }}</p>
+
+            <form method="post" enctype="multipart/form-data" class="card shadow-sm"
+                  data-cl-loading data-cl-loading-label="Generating…">
+                {% csrf_token %}
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Term</label>
+                        <select name="term_id" class="form-select" required>
+                            {% for t in terms %}
+                            <option value="{{ t.pk }}">{{ t.term_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Topic</label>
+                        <input type="text" name="topic" value="{{ form.topic.value|default:'' }}" class="form-control" required placeholder="e.g. Introduction to Algebra">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Learning Objectives</label>
+                        <textarea name="objectives" class="form-control" rows="4" required placeholder="Describe what students should learn...">{{ form.objectives.value|default:'' }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Content Type</label>
+                        <div>
+                            {% for radio in form.content_type %}
+                            <div class="form-check form-check-inline">
+                                {{ radio.tag }}
+                                <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Reference Material (optional)</label>
+                        <input type="file" name="reference_file" class="form-control" accept=".pdf">
+                        <div class="form-text">PDF only, max 50MB. Content will be grounded in this material.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">AI Model</label>
+                        <select name="model_key" class="form-select">
+                            {% for choice in form.model_key.field.choices %}
+                            <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                        <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary">Generate Content</button>
+                    <a href="{% url 'material-list' subject.pk %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

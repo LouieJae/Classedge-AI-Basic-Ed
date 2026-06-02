@@ -1,0 +1,73 @@
+{% extends "migration/base.html" %}
+
+{% block migration_content %}
+{% if messages %}
+  <div class="mig-messages">
+    {% for message in messages %}
+      <div class="mig-msg">{{ message }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<section class="cl-card mig-card">
+  <div class="cl-card-header">
+    <span><i class="fas fa-gear me-2"></i>Connection <em>settings</em></span>
+    <span class="cl-badge">Saved values override .env at runtime</span>
+  </div>
+  <div class="cl-card-body" style="padding: 20px;">
+    <form method="post" class="mig-form" data-cl-loading data-cl-loading-label="Saving…">{% csrf_token %}
+      <div class="mig-field">
+        <label for="{{ form.base_url.id_for_label }}">Source LMS base URL</label>
+        {{ form.base_url }}
+        <span class="mig-help">{{ form.base_url.help_text }} Env default: <code>{{ env_base_url }}</code>.</span>
+        {% if form.base_url.errors %}<span class="mig-help" style="color: var(--mig-danger);">{{ form.base_url.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="mig-field">
+        <label for="{{ form.token.id_for_label }}">Auth token</label>
+        {{ form.token }}
+        <span class="mig-help">
+          {{ form.token.help_text }}
+          {% if has_token %}A token is currently stored in the database.
+          {% elif env_has_token %}No DB override — using the token from <code>.env</code>.
+          {% else %}No token configured anywhere yet.{% endif %}
+        </span>
+        {% if form.token.errors %}<span class="mig-help" style="color: var(--mig-danger);">{{ form.token.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="mig-form-actions">
+        <button type="submit" class="cl-btn cl-btn-primary">
+          <i class="fas fa-floppy-disk"></i> Save settings
+        </button>
+        {% if has_token %}
+          <button type="submit" name="clear_token" value="1" class="cl-btn"
+                  onclick="return confirm('Clear the DB-stored token and fall back to .env?');">
+            <i class="fas fa-eraser"></i> Clear stored token
+          </button>
+        {% endif %}
+      </div>
+    </form>
+
+    <dl class="mig-effective">
+      <dt>Effective URL</dt>
+      <dd class="mig-source">
+        <code>{{ effective_base_url }}</code>
+        <span class="mig-source-tag {% if row.base_url %}is-db{% else %}is-env{% endif %}">
+          {{ row.base_url|yesno:"DB,ENV" }}
+        </span>
+      </dd>
+      <dt>Effective token</dt>
+      <dd class="mig-source">
+        {% if effective_has_token %}<code>••••••••</code>{% else %}<em>(not set)</em>{% endif %}
+        <span class="mig-source-tag {% if has_token %}is-db{% elif env_has_token %}is-env{% endif %}">
+          {% if has_token %}DB{% elif env_has_token %}ENV{% else %}—{% endif %}
+        </span>
+      </dd>
+      {% if row.updated_at %}
+        <dt>Last updated</dt>
+        <dd>{{ row.updated_at }}{% if row.updated_by %} by {{ row.updated_by }}{% endif %}</dd>
+      {% endif %}
+    </dl>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,2582 @@
+{% load static %}
+{% load permissions %}
+<!DOCTYPE html>
+<html lang="en" class="cl-scrollbar-host">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="csrf-token" content="{{ csrf_token }}" />
+<title>ClassEdge · {% block title %}{{ request.user.profile.role.name|default:"Dashboard" }}{% endblock %}</title>
+<style>
+  html.cl-scrollbar-host,
+  html.cl-scrollbar-host * {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  html.cl-scrollbar-host::-webkit-scrollbar,
+  html.cl-scrollbar-host *::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+    -webkit-appearance: none !important;
+    background: transparent !important;
+  }
+</style>
+
+<link rel="icon" type="image/png" href="{{ MEDIA_URL }}logos/HCCCI-logo.png?{{ logo_update_time }}" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" />
+<script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js" defer></script>
+
+<!-- Plyr (unified video / audio / YouTube / Vimeo player) — powers
+     cl-material-viewer's media render paths. Loaded for all ops pages
+     since the preview modal can mount from any material card. -->
+<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+<script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js" defer></script>
+
+<style>
+  /* ─── Light palette (default) ─── */
+  :root,
+  body[data-theme="light"] {
+    --cream: #ffffff;
+    --cream-2: #f3ede2;
+    --paper: #ffffff;
+    --forest: #1b4332;
+    --forest-2: #2d5a47;
+    --forest-light: #d9e4dd;
+    --gold: #b7925a;
+    --gold-soft: #e8d5b0;
+    --gold-bg: rgba(183, 146, 90, 0.08);
+
+    /* ── Semantic brand tokens (Phase 1, multi-tenant prep) ────────────
+       --brand-primary aliases the system primary. Declaring it once is
+       enough — var(--forest) re-resolves under body[data-theme="dark"],
+       so the alias automatically tracks both themes. Tenant overrides
+       only need to touch --brand-primary; cards, surfaces, typography,
+       and ink tokens stay locked because they aren't aliased. */
+    --brand-primary: var(--forest);
+    /* color-mix() fallback: 18% forest tint for browsers without it.
+       The second line wins everywhere that supports color-mix (all
+       major browsers since 2023). */
+    --brand-primary-soft: rgba(27, 67, 50, 0.18);
+    --brand-primary-soft: color-mix(in srgb, var(--brand-primary) 18%, transparent);
+
+    /* ── Guardrail token engine (Phase 4) ──────────────────────────────
+       Tenants only ever set --brand-primary. The five tokens below are
+       derived deterministically from the design system so the color
+       picker can never break categorical meaning or surface contrast.
+
+       --brand-secondary*: namespace exists for future flexibility, but
+       today it aliases --gold (locked design accent). Decorative gold
+       surfaces — top accent borders, side rails, italic emphases,
+       hover rings — read from this alias.
+
+       --surface-cream: semantic name for the page-canvas cream. Aliases
+       --cream so dark-theme inversion still works automatically.
+
+       --status-pending / --semantic-warning: categorical safeguards.
+       "At-risk" and "upcoming/pending" data surfaces map here instead
+       of touching --brand-secondary, so urgency meaning is never
+       repainted by the tenant's color picker. */
+    --brand-secondary: var(--gold, #b7925a);
+    --brand-secondary-soft: rgba(183, 146, 90, 0.18);
+    --brand-secondary-soft: color-mix(in srgb, var(--brand-secondary, #b7925a) 18%, transparent);
+    --surface-cream: var(--cream, #faf7f2);
+    --status-pending: var(--gold, #b7925a);
+    --semantic-warning: #c47a00;
+
+    /* ── Semantic color system (Phase 5) ────────────────────────────
+       Universal status colors used across the app. They DO NOT track
+       the tenant brand — by design — because meanings like
+       "success = green", "danger = red", "warning = amber" must
+       remain recognizable regardless of brand. Each has a paired
+       *-soft mix for backgrounds, and a *-tint for borders/atmospheres.
+       Soft + tint variants use color-mix() so tweaking the base hue
+       once cascades through every derived atmosphere automatically —
+       mirrors the --brand-primary / --brand-primary-soft pattern.
+       Visual hierarchy:
+         --primary  → tenant brand (already declared above as --brand-primary)
+         --secondary → tonal soft brand (use --brand-primary-soft directly)
+         --success  → emerald
+         --warning  → amber (same hue as --semantic-warning, aliased)
+         --info     → cyan-blue
+         --danger   → rose-red */
+    --success:        #1f9d55;
+    --success-soft:   color-mix(in srgb, var(--success) 14%, transparent);
+    --success-tint:   color-mix(in srgb, var(--success) 35%, transparent);
+    --warning:        var(--semantic-warning, #c47a00);
+    --warning-soft:   color-mix(in srgb, var(--warning) 14%, transparent);
+    --warning-tint:   color-mix(in srgb, var(--warning) 35%, transparent);
+    --info:           #2c7be5;
+    --info-soft:      color-mix(in srgb, var(--info) 12%, transparent);
+    --info-tint:      color-mix(in srgb, var(--info) 35%, transparent);
+    --danger:         #c0392b;
+    --danger-soft:    color-mix(in srgb, var(--danger) 12%, transparent);
+    --danger-tint:    color-mix(in srgb, var(--danger) 35%, transparent);
+
+    --rose: #c08479;
+    --rose-soft: #f4e0dc;
+    --ink: #2d3142;
+    --ink-dim: #6c7080;
+    --ink-muted: #a0a4b8;
+    --border: rgba(45, 49, 66, 0.08);
+    --border-strong: rgba(45, 49, 66, 0.14);
+    --shadow: 0 1px 2px rgba(45,49,66,0.03), 0 12px 32px -12px rgba(45,49,66,0.08);
+    --shadow-hover: 0 2px 4px rgba(45,49,66,0.04), 0 20px 48px -16px rgba(45,49,66,0.12);
+    --sidebar-bg: rgba(255, 255, 255, 0.4);
+    --display: 'Inter', system-ui, -apple-system, sans-serif;
+    --body: 'Inter', system-ui, -apple-system, sans-serif;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  /* ─── Dark palette ─── */
+  body[data-theme="dark"] {
+    --cream: #0f1714;
+    --cream-2: #161f1a;
+    --paper: #1a2420;
+    --forest: #7bc4a5;
+    --forest-2: #5ba88a;
+    --forest-light: rgba(123, 196, 165, 0.14);
+    --gold: #d4a973;
+    --gold-soft: rgba(212, 169, 115, 0.25);
+    --gold-bg: rgba(212, 169, 115, 0.10);
+    --rose: #d6a097;
+    --rose-soft: rgba(214, 160, 151, 0.16);
+    --ink: #e8eaf0;
+    --ink-dim: #a9aebe;
+    --ink-muted: #6d7388;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 12px 32px -12px rgba(0,0,0,0.3);
+    --shadow-hover: 0 2px 4px rgba(0,0,0,0.3), 0 20px 48px -16px rgba(0,0,0,0.4);
+    --sidebar-bg: rgba(10, 15, 20, 0.6);
+
+    /* Semantic colors — dark-mode variants. Slightly brighter base hues
+       so they pop against the dark canvas; soft + tint variants stay
+       color-mix() derivations so the system stays single-sourced. */
+    --success:        #3fc97c;
+    --success-soft:   color-mix(in srgb, var(--success) 18%, transparent);
+    --success-tint:   color-mix(in srgb, var(--success) 40%, transparent);
+    --warning:        #e0a93f;
+    --warning-soft:   color-mix(in srgb, var(--warning) 18%, transparent);
+    --warning-tint:   color-mix(in srgb, var(--warning) 40%, transparent);
+    --info:           #5b9dff;
+    --info-soft:      color-mix(in srgb, var(--info) 16%, transparent);
+    --info-tint:      color-mix(in srgb, var(--info) 40%, transparent);
+    --danger:         #e74c3c;
+    --danger-soft:    color-mix(in srgb, var(--danger) 18%, transparent);
+    --danger-tint:    color-mix(in srgb, var(--danger) 40%, transparent);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    font-feature-settings: "cv11", "ss01";
+  }
+  /* Boost the smallest UI labels to 12px minimum for accessibility */
+  .growth-stat-label, .metric-label, .class-metric-label, .class-progress-label,
+  .topbar .greeting-meta, .sidebar .nav-section, .sidebar .institution,
+  .badge-count, .nav-section, .form-group label,
+  .lb-list-meta, .rank-badge {
+    font-size: 12px;
+  }
+  /* Lock the topbar/sidebar typography against page-level overrides
+     (exclude icon fonts so Font Awesome glyphs still resolve) */
+  .app input, .app select, .app textarea, .app button {
+    font-family: var(--body);
+  }
+  .sidebar, .topbar { font-family: var(--body); }
+  .sidebar a, .sidebar span, .sidebar div, .sidebar button,
+  .topbar a, .topbar span, .topbar div, .topbar button {
+    font-family: inherit;
+  }
+  .sidebar i, .sidebar .fa, .sidebar .fas, .sidebar .far, .sidebar .fab, .sidebar .fa-solid, .sidebar .fa-regular, .sidebar .fa-brands,
+  .topbar i, .topbar .fa, .topbar .fas, .topbar .far, .topbar .fab, .topbar .fa-solid, .topbar .fa-regular, .topbar .fa-brands {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+  }
+  .sidebar .logo, .page-title, .page-title *,
+  .growth-stat-value, .metric-value, .class-name,
+  .spotlight-title, .spotlight-item,
+  .progress-labels, .progress-footer,
+  .user-meta-role {
+    font-family: var(--display);
+  }
+
+  body[data-theme="light"] {
+    background:
+      radial-gradient(ellipse at 10% 0%, rgba(183, 146, 90, 0.08) 0%, transparent 40%),
+      radial-gradient(ellipse at 90% 100%, rgba(27, 67, 50, 0.05) 0%, transparent 50%),
+      var(--cream);
+    background-attachment: fixed;
+  }
+
+  body[data-theme="dark"] {
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(123, 196, 165, 0.08) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 100%, rgba(212, 169, 115, 0.06) 0%, transparent 50%),
+      var(--cream);
+    background-attachment: fixed;
+  }
+
+  body {
+    position: relative;
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    min-height: 100vh;
+    position: relative;
+    /* No z-index here: it would create a stacking context that traps
+       Bootstrap modals (z-index 1055) below `.modal-backdrop` (1050),
+       which is appended to <body> as a sibling of .app. The noise
+       overlay (body::before, z-index 0) still paints behind because
+       .app comes later in source order. */
+  }
+
+  /* ─── Sidebar ─────────────────────────────────── */
+  .sidebar {
+    padding: 32px 24px 20px;
+    border-right: 1px solid var(--border);
+    background: var(--sidebar-bg);
+    backdrop-filter: blur(14px);
+    position: sticky;
+    top: 0;
+    width: 260px;
+    min-width: 260px;
+    max-width: 260px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+    z-index: 50;
+  }
+  .sidebar-scroll {
+    flex: 1 1 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    /* Reserve explicit padding-right for the custom overlay scrollbar.
+       `scrollbar-gutter: stable` was a no-op here — our global
+       .cl-scrollbar-host rule forces the native scrollbar to width:0,
+       which means the gutter reserves 0px and menu items extended all
+       the way to .sidebar-scroll's right edge, colliding with the
+       custom overlay bar that paints 4px from that edge. The 16px of
+       manual padding-right keeps every nav row clear of the bar AND
+       gives the bar visual breathing room. The right edge of the
+       scroll container doesn't shift between pages, so the no-jump
+       invariant the gutter was meant to enforce still holds. */
+    padding-right: 16px;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     Custom overlay scrollbar — pixel-identical across Firefox, Chrome,
+     Edge, Safari, Brave, Electron. The JS module at static/js/cl-scrollbar.js
+     adds `.cl-scrollbar-host` to <html>, which hides every native
+     scrollbar; the module then paints its own .cl-scrollbar element over
+     each scroller (document, .sidebar-scroll, anything tagged with
+     [data-cl-scroll]). All colors come from our design tokens so light
+     and dark themes flow through automatically.
+     ───────────────────────────────────────────────────────────────────── */
+
+  /* Hide every native scrollbar once the host class is applied. */
+  html.cl-scrollbar-host                       { scrollbar-width: none; -ms-overflow-style: none; }
+  html.cl-scrollbar-host *                     { scrollbar-width: none; }
+  html.cl-scrollbar-host::-webkit-scrollbar,
+  html.cl-scrollbar-host *::-webkit-scrollbar  { width: 0 !important; height: 0 !important; display: none !important; }
+
+  /* Overlay track. Position is set by JS (fixed, right edge of its target). */
+  .cl-scrollbar {
+    position: fixed;
+    width: 10px;
+    z-index: 9999;
+    pointer-events: auto;
+    opacity: 0;
+    transition: opacity 180ms ease;
+    will-change: opacity, transform;
+  }
+  .cl-scrollbar.is-visible,
+  .cl-scrollbar.is-hover,
+  .cl-scrollbar.is-active        { opacity: 1; }
+  /* Surface the doc scrollbar on body hover so it's discoverable. */
+  body:hover .cl-scrollbar--doc  { opacity: 1; }
+
+  .cl-scrollbar__thumb {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    top: 0;
+    height: 28px;
+    border-radius: 999px;
+    background: var(--border-strong);
+    transition: background-color 160ms ease, transform 0ms;
+    cursor: pointer;
+  }
+  /* Hover and active states both track --brand-primary so the scrollbar
+     thumb repaints with the tenant brand. Hover uses a slightly softer
+     mix so it's clearly distinct from the click/drag state. */
+  .cl-scrollbar:hover .cl-scrollbar__thumb,
+  .cl-scrollbar.is-hover .cl-scrollbar__thumb  { background: color-mix(in srgb, var(--brand-primary, #b7925a) 70%, transparent); }
+  .cl-scrollbar.is-active .cl-scrollbar__thumb { background: var(--brand-primary, #b7925a); }
+
+  /* Dark mode — resting thumb gets a soft white tint so it has presence
+     against the dark surface, hover/drag track the tenant brand. */
+  body[data-theme="dark"] .cl-scrollbar__thumb               { background: rgba(255, 255, 255, 0.18); }
+  body[data-theme="dark"] .cl-scrollbar:hover  .cl-scrollbar__thumb,
+  body[data-theme="dark"] .cl-scrollbar.is-hover .cl-scrollbar__thumb { background: color-mix(in srgb, var(--brand-primary, #d4a973) 70%, transparent); }
+  body[data-theme="dark"] .cl-scrollbar.is-active .cl-scrollbar__thumb { background: var(--brand-primary, #d4a973); }
+
+  /* While dragging, kill text selection across the page so the cursor
+     doesn't paint highlight as the user scrubs. */
+  body.cl-scrollbar-dragging,
+  body.cl-scrollbar-dragging * { user-select: none !important; }
+
+  /* Mobile / narrow viewports — the sidebar slides in as a drawer
+     (translateX), so its inner `.sidebar-scroll` overlay was producing
+     a second visible scrollbar on top of the doc overlay. Hide every
+     non-doc custom overlay under the mobile breakpoint so the user sees
+     only one scrollbar (the doc one). Also re-assert the native-bar
+     hide at the html/body level — some mobile browsers (iOS Safari,
+     Android WebView) leak a momentum scrollbar past the global rule
+     unless the selector is repeated at the element scope. */
+  @media (max-width: 840px) {
+    .cl-scrollbar:not(.cl-scrollbar--doc) { display: none !important; }
+    html, body {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      width: 0 !important; height: 0 !important;
+      display: none !important;
+      -webkit-appearance: none !important;
+    }
+  }
+  /* Touch devices: force the doc overlay visible. Hover events don't
+     fire on touch, so without this the bar would never appear. */
+  @media (hover: none) and (pointer: coarse) {
+    .cl-scrollbar--doc { opacity: 1 !important; }
+  }
+
+  /* Print: the JS-painted overlay scrollbar is position: fixed at the
+     viewport edge, so it gets rasterized into every printed page (visible
+     as a thin pill in the top-right corner). Force it hidden so printed
+     output stays clean. */
+  @media print {
+    .cl-scrollbar,
+    .cl-scrollbar__thumb { display: none !important; }
+  }
+
+  /* Protect sidebar from Bootstrap overrides */
+  .sidebar, .sidebar * { box-sizing: border-box; }
+  main { min-width: 0; overflow-x: hidden; overflow-x: clip; }
+
+  /* ─── Sidebar brand block ─────────────────────
+     Lock height so any sub-pixel difference between font weights or
+     font-loading states can't make the brand row taller/shorter on
+     one page than another, which would shift everything below it. */
+  .sidebar .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 4px 2px;
+    margin-bottom: 14px;
+    text-decoration: none;
+    color: inherit;
+    flex-shrink: 0;
+    transition: opacity 0.18s;
+    height: 54px;
+    min-height: 54px;
+    max-height: 54px;
+    box-sizing: border-box;
+  }
+  .sidebar .brand:hover { opacity: 0.92; }
+  .sidebar .brand:hover .brand-emblem { transform: translateY(-1px); }
+  .sidebar .brand:hover .brand-emblem-shine { opacity: 0.45; }
+
+  /* Emblem — depth via stacked gradients + inset highlight + corner "edge" */
+  /* Brand emblem — fully brand-tracked. The 3-stop gradient uses
+     color-mix derivations of --brand-primary so the badge gets depth
+     (lighter top-left, base middle, darker bottom-right) while the
+     whole thing repaints to whatever the tenant picks. */
+  .sidebar .brand-emblem {
+    position: relative;
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    background:
+      radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.18), transparent 55%),
+      linear-gradient(140deg,
+        color-mix(in srgb, var(--brand-primary, #b7925a), white 14%) 0%,
+        var(--brand-primary, #b7925a) 60%,
+        color-mix(in srgb, var(--brand-primary, #b7925a), black 35%) 100%);
+    box-shadow:
+      0 10px 24px -10px color-mix(in srgb, var(--brand-primary, #b7925a), transparent 45%),
+      0 1px 0 rgba(255, 255, 255, 0.06) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.18) inset;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: transform 0.18s ease;
+  }
+  body[data-theme="dark"] .sidebar .brand-emblem {
+    background:
+      radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.12), transparent 55%),
+      linear-gradient(140deg,
+        color-mix(in srgb, var(--brand-primary, #d4a973), white 8%) 0%,
+        var(--brand-primary, #d4a973) 60%,
+        color-mix(in srgb, var(--brand-primary, #d4a973), black 30%) 100%);
+    box-shadow:
+      0 10px 24px -10px rgba(0,0,0,0.6),
+      0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  }
+  /* Brand emblem letter — now hosts the Classedge logo PNG instead of
+     the "C" glyph. Image is centered inside the emblem and scaled to
+     ~70% of the emblem size so the gradient frame is still visible
+     around the logo. */
+  .sidebar .brand-emblem-letter {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    z-index: 2;
+  }
+  .sidebar .brand-emblem-letter img {
+    width: 56%;
+    height: 56%;
+    object-fit: contain;
+    display: block;
+    /* Subtle drop-shadow so the logo reads cleanly against the brand
+       gradient backdrop, similar to the prior letter's text-shadow. */
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.22));
+  }
+  body[data-theme="dark"] .sidebar .brand-emblem-letter img {
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.18));
+  }
+  /* Diagonal glass shine */
+  .sidebar .brand-emblem-shine {
+    position: absolute;
+    top: -20%; left: -40%;
+    width: 80%; height: 140%;
+    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%);
+    transform: rotate(8deg);
+    opacity: 0.25;
+    transition: opacity 0.25s;
+    z-index: 1;
+    pointer-events: none;
+  }
+  /* Corner "edge" — the signature accent. Lighter shade of
+     --brand-primary so it pops against the base gradient regardless
+     of the tenant brand color. */
+  .sidebar .brand-emblem-edge {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 0 0 14px 14px;
+    border-color: transparent transparent color-mix(in srgb, var(--brand-primary, #b7925a), white 28%) transparent;
+    z-index: 3;
+  }
+
+  /* Wordmark */
+  .sidebar .brand-words {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+  .sidebar .brand-name {
+    font-family: var(--display);
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    line-height: 1.05;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  body[data-theme="dark"] .sidebar .brand-name { color: #faf7f2; }
+  /* The "Edge" accent — italic em like all page-title em accents,
+     painted by --brand-primary so tenant injection (or saved school
+     brand color) repaints the wordmark just like everything else. */
+  .sidebar .brand-name em {
+    color: var(--brand-primary, #b7925a);
+    font-style: italic;
+    font-weight: 800;
+  }
+  body[data-theme="dark"] .sidebar .brand-name em { color: var(--brand-primary, #d4a973); }
+  .sidebar .brand-tagline {
+    margin-top: 6px;
+    font-family: var(--body);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ink-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sidebar .brand-tagline::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-secondary, #b7925a) 18%, transparent);
+  }
+
+  /* School divider row — locked outer height so the position of
+     .sidebar-scroll (and therefore "MAIN") never shifts between pages. */
+  .sidebar .brand-school {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 22px;
+    border-radius: var(--radius-sm);
+    background: var(--cream-2);
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    flex-shrink: 0;
+    min-width: 0;
+    border: 1px solid var(--border);
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .sidebar .brand-school span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  body[data-theme="dark"] .sidebar .brand-school {
+    background: rgba(255, 255, 255, 0.06);
+    color: #d9e0e7;
+    border-color: rgba(255,255,255,0.1);
+  }
+  body[data-theme="dark"] .sidebar .brand-school span { color: #d9e0e7; }
+  body[data-theme="dark"] .sidebar .brand-tagline { color: #c4cad6; }
+  body[data-theme="dark"] .sidebar .nav-section { color: #9aa3b2; }
+  .sidebar .brand-school i {
+    font-size: 12px;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+  body[data-theme="dark"] .sidebar .brand-school i {
+    color: var(--gold);
+  }
+  .sidebar .brand-school .brand-school-logo {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    object-fit: contain;
+    border-radius: 4px;
+    display: block;
+  }
+  body[data-theme="dark"] .sidebar .brand-school .brand-school-logo {
+    /* Lift the logo slightly off the darker pill background so it
+       stays legible without recoloring the artwork itself. */
+    filter: brightness(1.05);
+  }
+  .sidebar .brand-school span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+  }
+
+  /* Lock the section label to an exact 52px outer box (= 18px text + 24px
+     top padding + 10px bottom padding). Using border-box + an explicit
+     `height` so the total slot it occupies in the rail is byte-stable,
+     and removing every margin so nothing can collapse with the .nav
+     element above or below it. */
+  .sidebar .nav-section {
+    font-family: var(--body);
+    font-size: 11px;
+    line-height: 18px;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    margin: 0;
+    padding: 24px 14px 10px;
+    height: 52px;
+    min-height: 52px;
+    max-height: 52px;
+    box-sizing: border-box;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Make the very first label tighter so it doesn't double-stack with
+     the brand-school's bottom margin above. Optional — comment out if
+     you want a uniform 24px gap before every section. */
+  .sidebar-scroll > .nav-section:first-of-type {
+    padding-top: 4px;
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+  }
+  .sidebar .nav {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    gap: 2px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+  .sidebar .nav a {
+    padding: 11px 16px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.2;
+    /* Use the same weight for inactive AND active so the row never
+       reflows when navigating between pages. Active state is signalled
+       by color + background + the right-side gold dot below. */
+    font-weight: 500;
+    color: var(--ink-dim);
+    text-decoration: none;
+    /* Micro-interaction: snappy 150ms ease with smooth-out curve. Background
+       + color animate together; transform handled separately so it doesn't
+       fight font hinting on idle rows. */
+    transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    width: auto;
+    white-space: nowrap;
+    /* Lock row height so font-rendering differences between active and
+     inactive states can never push the items below by sub-pixel
+     rounding. */
+    min-height: 40px;
+    box-sizing: border-box;
+  }
+  .sidebar .nav a:hover { color: var(--brand-primary); background: var(--brand-primary-soft); opacity: 0.8; }
+  /* Sidebar icon micro-interaction: scale up slightly on row hover so
+     the user gets a tactile cue without the row itself shifting. Pure
+     transform on the inner span keeps the row's box geometry stable
+     (no reflow of siblings) while reading as a clear hover affordance. */
+  .sidebar .nav a .nav-icon {
+    transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: center;
+    will-change: transform;
+  }
+  .sidebar .nav a:hover .nav-icon { transform: scale(1.12); }
+  .sidebar .nav a.active .nav-icon { transform: scale(1.06); }
+  .sidebar .nav a.active {
+    color: var(--brand-primary);
+    background: var(--brand-primary-soft);
+    /* Intentionally NOT bumping font-weight here — same weight as
+       inactive prevents the row width/height from shifting. */
+  }
+  body[data-theme="dark"] .sidebar .nav a { color: #c4cad6; }
+  body[data-theme="dark"] .sidebar .nav a:hover { color: #faf7f2; background: var(--brand-primary-soft); opacity: 1; }
+  body[data-theme="dark"] .sidebar .nav a.active { color: var(--brand-primary); background: var(--brand-primary-soft); }
+  .sidebar .nav a.active::after {
+    content: '';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--brand-primary);
+    border: 0;
+    margin: 0;
+    transform: none;
+  }
+  /* `.nav-icon` is a <span> — inline by default, which ignores width and
+     lets every Font Awesome glyph take its own intrinsic width (e.g.
+     fa-house is narrow, fa-calendar-week is wide). That pushes each
+     label to a different X, so the sidebar looks misaligned from row to
+     row. Force a fixed-size inline-flex box and center the glyph inside
+     so every icon column lines up regardless of which icon is used. */
+  .sidebar .nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    min-width: 22px;
+    height: 18px;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .sidebar .nav-icon i { line-height: 1; }
+
+  .sidebar .sidebar-bottom {
+    flex-shrink: 0;
+    flex-grow: 0;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sidebar .sidebar-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    flex-shrink: 0;
+  }
+  .sidebar .user-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-width: 0;
+    text-decoration: none;
+    color: var(--ink);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    margin: -4px;
+    transition: background 0.2s, color 0.2s;
+  }
+  .sidebar .user-block:hover { background: var(--brand-primary-soft); }
+  .sidebar .user-block:hover .user-meta-name { color: var(--ink); }
+  .sidebar .user-meta {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .sidebar .signout-btn {
+    flex-shrink: 0;
+    padding: 8px 10px;
+    color: var(--ink-dim);
+    text-decoration: none;
+    font-size: 16px;
+    line-height: 1;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s, color 0.2s;
+  }
+  .sidebar .signout-btn:hover {
+    color: var(--ink);
+    background: var(--brand-primary-soft);
+  }
+  .topbar-actions .theme-toggle-btn {
+    padding: 0;
+    font-family: inherit;
+  }
+  .sidebar .avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--forest), var(--gold));
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-size: 17px;
+    font-style: italic;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .sidebar .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  body[data-theme="dark"] .sidebar .avatar {
+    color: #0f1714;
+  }
+  .sidebar .user-meta-name {
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 13.5px;
+    line-height: 1.3;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+  }
+  .sidebar .user-meta-role {
+    font-family: var(--body);
+    font-size: 11px;
+    line-height: 1.3;
+    font-weight: 600;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ─── Main ──────────────────────────────────── */
+  main { padding: 40px 48px 80px; width: 100%; min-width: 0; }
+
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 32px;
+    animation: fadeDown 0.6s ease;
+  }
+  .topbar .greeting-meta {
+    color: var(--ink-dim);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+  }
+  .topbar-actions { display: flex; gap: 10px; }
+  .topbar-actions .icon-btn {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    color: var(--ink-dim);
+    display: grid; place-items: center;
+    cursor: pointer;
+    font-size: 16px;
+    /* Micro-interaction: 150ms snappy curve, scoped properties so
+       the bell dot / badge counter inside doesn't animate. */
+    transition: color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    text-decoration: none;
+  }
+  .topbar-actions .icon-btn:hover {
+    color: var(--ink);
+    border-color: var(--brand-primary, #b7925a);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--brand-primary, #b7925a) 50%, transparent);
+  }
+  /* The icon glyph inside scales up subtly so the button feels alive
+     even though the box geometry only lifts 2px. */
+  .topbar-actions .icon-btn > i {
+    transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .topbar-actions .icon-btn:hover > i { transform: scale(1.12); }
+  .topbar-actions .icon-btn .dot {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #e57373;
+    box-shadow: 0 0 8px rgba(229, 115, 115, 0.6);
+  }
+
+  .page-title {
+    font-family: var(--display);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .page-title em {
+    font-style: italic;
+    color: var(--brand-primary);
+    font-weight: 500;
+  }
+  .page-sub {
+    color: var(--ink-dim);
+    font-size: 14px;
+    font-family: var(--body);
+    font-weight: 400;
+  }
+  .page-sub em {
+    font-style: italic;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ─── Growth overview ──────────────────────── */
+  .growth {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 40px 44px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.7s 0.05s both ease;
+  }
+  .growth::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 360px; height: 360px;
+    background: radial-gradient(circle at top right, rgba(183, 146, 90, 0.12), transparent 65%);
+    pointer-events: none;
+  }
+  .growth-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 32px; position: relative;
+  }
+  .growth-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    padding: 24px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .growth-stat-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--ink-muted); font-weight: 600; margin-bottom: 6px;
+  }
+  .growth-stat-value {
+    font-family: var(--display); font-size: 28px; font-weight: 700;
+    color: var(--ink); letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
+  }
+  .growth-stat-sub {
+    font-family: var(--display); font-style: italic;
+    color: var(--ink-dim); font-size: 13px; margin-top: 4px;
+  }
+
+  .progress-section { position: relative; }
+  .progress-labels {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--ink-dim);
+    margin-bottom: 10px; font-family: var(--display); font-style: italic;
+  }
+  .progress-labels .target { color: var(--gold); font-weight: 500; }
+  .progress-track {
+    height: 6px; background: var(--cream-2); border-radius: 100px;
+    overflow: hidden; position: relative;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--forest) 0%, var(--forest-2) 80%, var(--gold) 100%);
+    border-radius: 100px;
+    animation: fillProgress 1.8s 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute; right: -3px; top: 50%;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--gold); transform: translateY(-50%);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-secondary, #b7925a) 20%, transparent);
+  }
+  .progress-footer {
+    font-family: var(--display); font-style: italic;
+    color: var(--ink-dim); font-size: 13px; margin-top: 12px;
+  }
+  .progress-footer strong { color: var(--ink); font-weight: 600; }
+
+  /* ─── Metric cards row ─────────────────────── */
+  .metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px; margin-bottom: 24px;
+  }
+  .metric {
+    background: var(--paper); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 22px 24px;
+    box-shadow: var(--shadow);
+    /* Micro-interaction: tightened from 300ms → 150ms with smooth-out
+       curve. Transform is the lift, shadow tracks for depth perception,
+       border-color subtly tracks brand. */
+    transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative; overflow: hidden;
+    animation: fadeUp 0.7s both ease;
+  }
+  .metric:nth-child(1) { animation-delay: 0.15s; }
+  .metric:nth-child(2) { animation-delay: 0.22s; }
+  .metric:nth-child(3) { animation-delay: 0.29s; }
+  .metric:nth-child(4) { animation-delay: 0.36s; }
+  .metric:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 30%, var(--border));
+  }
+  .metric:hover .metric-icon { transform: scale(1.12); }
+  .metric-icon { transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .metric-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--ink-dim); font-weight: 600; margin-bottom: 16px;
+  }
+  .metric-icon {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--brand-primary-soft); color: var(--ink);
+    display: grid; place-items: center; font-size: 12px;
+  }
+  .metric-value {
+    font-family: var(--display); font-size: 30px; font-weight: 700;
+    color: var(--ink); letter-spacing: -0.015em; line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric-value .unit {
+    font-size: 16px; color: var(--ink-dim); font-weight: 400; font-style: italic;
+  }
+  .metric-caption {
+    font-family: var(--display); font-style: italic;
+    color: var(--ink); font-size: 12.5px; margin-top: 8px; font-weight: 500;
+  }
+  .metric-caption.positive::before { content: '▲ '; color: var(--ink); }
+  .metric-caption.warn { color: var(--gold); }
+  .metric-caption.warn::before { content: '◆ '; }
+
+  /* ─── Classes ──────────────────────────────── */
+  .classes {
+    background: var(--paper); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 30px 34px;
+    margin-bottom: 24px; box-shadow: var(--shadow);
+    animation: fadeUp 0.7s 0.5s both ease;
+  }
+  .classes-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 24px;
+  }
+  .classes-list {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+  }
+  .class-card {
+    padding: 22px; background: var(--cream);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    /* Micro-interaction: tightened from 250ms → 150ms. Limit the
+       transitioned properties so layout / position never animate. */
+    transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer; position: relative;
+    border-left: 3px solid var(--forest-2);
+    text-decoration: none; color: inherit; display: block;
+  }
+  .class-card.warn { border-left-color: var(--gold); }
+  .class-card.excellent { border-left-color: var(--brand-primary, #b7925a); background: var(--brand-primary-soft); }
+  .class-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 30%, var(--border));
+  }
+  .class-name {
+    font-family: var(--display); font-size: 17px; font-weight: 600;
+    color: var(--ink); margin-bottom: 2px; letter-spacing: -0.01em;
+  }
+  .class-section {
+    font-family: var(--display); font-style: italic;
+    color: var(--ink-dim); font-size: 12px; margin-bottom: 18px;
+  }
+  .class-metrics {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; margin-bottom: 16px;
+  }
+  .class-metric-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-muted); font-weight: 600; margin-bottom: 2px;
+  }
+  .class-metric-value {
+    font-family: var(--display); font-size: 19px; font-weight: 500;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .class-metric-value.warn { color: var(--gold); }
+  .class-metric-value.done { color: var(--ink); }
+  .class-progress-label {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-muted); font-weight: 600; margin-bottom: 6px;
+    display: flex; justify-content: space-between;
+  }
+  .class-progress-label span:last-child {
+    color: var(--ink); font-variant-numeric: tabular-nums; font-size: 12px;
+  }
+  .class-progress-track {
+    height: 5px; background: var(--cream-2); border-radius: 100px; overflow: hidden;
+  }
+  .class-progress-fill { height: 100%; background: var(--brand-primary, #b7925a); border-radius: 100px; }
+  .class-card.excellent .class-progress-fill { background: var(--brand-primary, #b7925a); }
+  .class-card.warn .class-progress-fill { background: var(--gold); }
+
+  /* ─── Spotlight ────────────────────────────── */
+  .spotlight {
+    background: linear-gradient(135deg, var(--forest) 0%, var(--forest-2) 100%);
+    color: var(--cream); border-radius: var(--radius);
+    padding: 36px 40px;
+    box-shadow: 0 24px 60px -20px color-mix(in srgb, var(--brand-primary, #1b4332), transparent 60%);
+    position: relative; overflow: hidden;
+    animation: fadeUp 0.7s 0.55s both ease;
+  }
+  .spotlight::before {
+    content: ''; position: absolute; top: -80px; right: -80px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, var(--gold-soft), transparent 60%);
+    opacity: 0.15; pointer-events: none;
+  }
+  .spotlight-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
+    color: var(--gold); font-weight: 600; margin-bottom: 10px;
+  }
+  .spotlight-title {
+    font-family: var(--display); font-size: 26px; font-weight: 600;
+    letter-spacing: -0.02em; line-height: 1.25; max-width: 640px; margin-bottom: 24px;
+  }
+  .spotlight-title em { font-style: italic; color: var(--brand-primary, #b7925a); }
+  .spotlight-list { list-style: none; border-top: 1px solid rgba(250, 247, 242, 0.15); }
+  .spotlight-item {
+    padding: 16px 0; border-bottom: 1px solid rgba(250, 247, 242, 0.1);
+    display: flex; align-items: center; gap: 18px;
+    font-size: 15px; font-family: var(--display); font-weight: 400;
+  }
+  .spotlight-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .spotlight-item strong { font-weight: 500; color: #fff; }
+  .spotlight-item em { font-style: italic; color: var(--brand-primary, #b7925a); font-weight: 500; }
+  .spotlight-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--gold); color: var(--ink);
+    display: grid; place-items: center;
+    font-family: var(--display); font-weight: 600;
+    font-style: italic; font-size: 17px; flex-shrink: 0;
+  }
+  .spotlight-cta {
+    margin-top: 28px; display: inline-flex; align-items: center; gap: 10px;
+    background: var(--cream); color: var(--ink);
+    padding: 12px 24px; border: none; border-radius: 100px;
+    font-family: var(--body); font-weight: 600; font-size: 13.5px;
+    cursor: pointer; transition: all 0.25s; text-decoration: none;
+  }
+  .spotlight-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 30px -10px rgba(0,0,0,0.3); }
+
+  /* ─── Animations ─────────────────────────── */
+  /* End with transform: none so the element does not establish a containing
+     block for fixed-position descendants (e.g. modals). translateY(0) is
+     non-initial and would constrain `position: fixed` children to the
+     animated parent. */
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fillProgress { from { width: 0; } }
+
+  /* Universal page-content reveal — every page extending this base
+     gets the same fade-up entrance, with a gentle stagger on the
+     first few top-level sections so it feels alive without being chatty. */
+  .page-content {
+    animation: fadeUp 0.5s 0.05s ease both;
+  }
+  .page-content > * {
+    animation: fadeUp 0.55s ease both;
+  }
+  .page-content > *:nth-child(1) { animation-delay: 0.08s; }
+  .page-content > *:nth-child(2) { animation-delay: 0.14s; }
+  .page-content > *:nth-child(3) { animation-delay: 0.20s; }
+  .page-content > *:nth-child(4) { animation-delay: 0.26s; }
+  .page-content > *:nth-child(5) { animation-delay: 0.32s; }
+  .page-content > *:nth-child(6) { animation-delay: 0.38s; }
+  .page-content > *:nth-child(n+7) { animation-delay: 0.44s; }
+
+  /* Overlays/modals must not participate in the page-content fade-up — the
+     stagger animation would otherwise apply a transient transform on the
+     overlay itself and (combined with hidden states) cause flicker when
+     opened. They are position:fixed and rely on their parent (.page-content)
+     having transform:none, which the updated keyframes above now guarantee.
+     Match every common naming pattern teams use for modal roots so this
+     never has to be revisited per-page. */
+  .page-content > .modal-overlay,
+  .page-content > .subject-panel-overlay,
+  .page-content > [class*="-overlay"],
+  .page-content > [class*="-backdrop"],
+  .page-content > [class*="modal"],
+  .page-content > [role="dialog"] {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  /* Respect users who prefer reduced motion (accessibility). Disables
+     both page-load animations and the hover micro-interactions added
+     for sidebar icons, metric/class/challenge cards, topbar buttons,
+     and badge items. The hover state itself still applies (color +
+     border + shadow) so the affordance survives — only the transforms
+     are suppressed. */
+  @media (prefers-reduced-motion: reduce) {
+    .topbar, .page-content, .page-content > *,
+    .growth, .metric, .classes, .spotlight {
+      animation: none !important;
+    }
+    .sidebar .nav a:hover .nav-icon,
+    .sidebar .nav a.active .nav-icon,
+    .metric:hover,
+    .metric:hover .metric-icon,
+    .class-card:hover,
+    .challenge-card:hover,
+    .topbar-actions .icon-btn:hover,
+    .topbar-actions .icon-btn:hover > i,
+    .badge-item:hover { transform: none !important; }
+  }
+
+  @media (max-width: 1100px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .classes-list { grid-template-columns: 1fr; }
+  }
+  /* Rank badge */
+  .rank-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .rank-bronze { background: rgba(205, 127, 50, 0.12); color: #cd7f32; border: 1px solid rgba(205, 127, 50, 0.3); }
+  .rank-silver { background: rgba(192, 192, 192, 0.12); color: #808080; border: 1px solid rgba(192, 192, 192, 0.3); }
+  .rank-gold { background: var(--gold-bg); color: var(--gold); border: 1px solid color-mix(in srgb, var(--brand-secondary, #b7925a) 30%, transparent); }
+  .rank-platinum { background: rgba(229, 228, 226, 0.15); color: #6c6c6c; border: 1px solid rgba(229, 228, 226, 0.4); }
+
+  /* Challenges */
+  .challenges { margin-bottom: 32px; }
+  .challenges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .challenge-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    /* Micro-interaction: 150ms snappy lift + brand-tinted border on
+       hover. Matches metric / class-card pattern for consistency. */
+    transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .challenge-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 30%, var(--border));
+  }
+  .challenge-card.urgent { border-left: 3px solid var(--rose); }
+  .challenge-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .challenge-name { font-weight: 600; color: var(--ink); font-size: 14px; }
+  .challenge-reward { font-size: 12px; color: var(--gold); font-weight: 600; }
+  .challenge-desc { font-size: 12px; color: var(--ink-dim); margin-bottom: 12px; }
+  .challenge-progress-track { height: 6px; background: var(--cream-2); border-radius: 3px; overflow: hidden; }
+  .challenge-progress-fill { height: 100%; background: var(--brand-primary, #b7925a); border-radius: 3px; transition: width 0.3s; }
+  .challenge-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-muted); margin-top: 6px; }
+
+  /* Badge shelf */
+  .badge-shelf { margin-bottom: 32px; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .badge-count { font-size: 13px; color: var(--ink-dim); font-weight: 500; }
+  .badges-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .badge-item {
+    width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; font-size: 24px;
+    background: var(--paper); border: 2px solid var(--border);
+    box-shadow: var(--shadow); cursor: default;
+    /* Micro-interaction: 150ms snappy scale + shadow tracks tenant brand. */
+    transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .badge-item:hover {
+    transform: scale(1.15) translateY(-1px);
+    box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--brand-primary, #b7925a) 40%, transparent);
+  }
+  .badge-item.bronze { border-color: #cd7f32; }
+  .badge-item.silver { border-color: #c0c0c0; }
+  .badge-item.gold { border-color: var(--gold); }
+  .badge-item.platinum { border-color: #b0b0b0; background: linear-gradient(135deg, #f5f5f5, #e8e8e8); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(45, 49, 66, 0.5);
+    backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    z-index: 1000;
+    overscroll-behavior: contain;
+  }
+  /* The modal card flexes column-wise so the body can scroll while the
+     header + footer stay pinned. Hard-capped at the viewport so the
+     buttons can never be pushed off-screen on short / phone-landscape
+     viewports. */
+  .modal-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 480px;
+    max-width: 100%;
+    max-height: calc(100vh - 48px);
+    box-shadow: 0 24px 64px -16px rgba(45, 49, 66, 0.25);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalCardIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes modalCardIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .modal-header h3 { margin: 0; font-size: 17px; }
+  .modal-close {
+    background: none; border: none;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--ink-muted);
+    display: grid; place-items: center;
+    transition: background 0.15s, color 0.15s;
+  }
+  .modal-close:hover { background: var(--cream-2); color: var(--ink); }
+  /* Internal scroll for tall content; rest of card stays pinned. */
+  .modal-body {
+    padding: 22px;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .modal-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    background: var(--cream-2);
+    display: flex; justify-content: flex-end; gap: 10px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 560px) {
+    .modal-overlay { padding: 0; align-items: flex-end; }
+    .modal-card {
+      max-width: 100%;
+      width: 100%;
+      max-height: 100vh;
+      max-height: 100dvh;
+      border-radius: 0;
+      border-left: 0; border-right: 0; border-bottom: 0;
+      animation: modalCardInSheet 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .modal-header, .modal-body, .modal-footer { padding-left: 18px; padding-right: 18px; }
+    .modal-footer { flex-direction: column-reverse; align-items: stretch; }
+    .modal-footer > * { width: 100%; justify-content: center; }
+  }
+  @keyframes modalCardInSheet {
+    from { transform: translateY(24px); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+  }
+  body.modal-open { overflow: hidden; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-dim); margin-bottom: 6px;
+  }
+
+  /* Spotlight button */
+  .spotlight-cta-btn {
+    padding: 8px 16px; border: 1px solid rgba(255,255,255,0.3);
+    border-radius: var(--radius-sm); background: transparent;
+    color: white; font-family: var(--body); font-size: 12px;
+    font-weight: 600; cursor: pointer; white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .spotlight-cta-btn:hover { background: rgba(255,255,255,0.1); }
+
+  /* ─── Mobile burger (toggles sidebar) ───────── */
+  .mobile-burger {
+    display: none;
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    color: var(--ink-dim);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    margin-right: 12px;
+    transition: all 0.2s;
+  }
+  .mobile-burger:hover { color: var(--ink); border-color: var(--brand-primary, #b7925a); }
+  .sidebar-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 49;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+  }
+  body.sidebar-open .sidebar-backdrop { opacity: 1; visibility: visible; }
+
+  /* ─── Command palette modal (shadcn-style) ─── */
+  .notif-wrap { position: relative; }
+  .cmdk-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15, 20, 25, 0.55);
+    backdrop-filter: blur(2px);
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.15s, visibility 0.15s;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 14vh;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .cmdk-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
+  .cmdk-panel {
+    width: 100%;
+    max-width: 600px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 24px 60px -16px rgba(0,0,0,0.32);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 70vh;
+    transform: scale(0.97) translateY(-4px);
+    transition: transform 0.15s ease;
+  }
+  .cmdk-overlay.open .cmdk-panel { transform: scale(1) translateY(0); }
+  .cmdk-input-wrap {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cmdk-input-wrap i { color: var(--ink-muted); font-size: 14px; flex-shrink: 0; }
+  .cmdk-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .cmdk-input::placeholder { color: var(--ink-muted); font-weight: 400; }
+  .cmdk-kbd {
+    font-family: var(--body);
+    font-size: 11px;
+    color: var(--ink-muted);
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+  }
+  .cmdk-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+  }
+  .cmdk-group-label {
+    padding: 8px 12px 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-muted);
+    font-weight: 600;
+  }
+  .cmdk-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .cmdk-item .cmdk-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--cream-2);
+    color: var(--ink-dim);
+    display: grid; place-items: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .cmdk-item:hover, .cmdk-item.is-active {
+    background: var(--brand-primary-soft);
+    color: var(--ink);
+  }
+  .cmdk-item:hover .cmdk-icon, .cmdk-item.is-active .cmdk-icon {
+    background: var(--brand-primary, #b7925a);
+    color: var(--cream);
+  }
+  .cmdk-item .cmdk-arrow { margin-left: auto; color: var(--ink-muted); font-size: 11px; opacity: 0; transition: opacity 0.12s; }
+  .cmdk-item.is-active .cmdk-arrow { opacity: 1; }
+  .cmdk-empty {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 13px;
+  }
+  .cmdk-empty i { font-size: 22px; margin-bottom: 8px; display: block; }
+
+  /* ─── Notifications panel ──────────────────── */
+  .notif-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 360px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-hover);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: all 0.18s ease;
+    z-index: 100;
+  }
+  .notif-panel.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .notif-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .notif-head .title {
+    font-weight: 600; font-size: 14px; color: var(--ink);
+  }
+  .notif-head .mark-all {
+    font-size: 12px; color: var(--ink); font-weight: 500;
+    background: none; border: none; cursor: pointer;
+    padding: 4px 8px; border-radius: 6px;
+  }
+  .notif-head .mark-all:hover { background: var(--brand-primary-soft); }
+  .notif-list {
+    max-height: 400px; overflow-y: auto;
+    padding: 4px 0;
+  }
+  .notif-item {
+    display: flex; gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    outline: none;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-item:hover { background: var(--cream-2); color: var(--ink); }
+  .notif-item.unread { background: var(--brand-primary-soft); }
+  .notif-item.unread:hover { background: var(--brand-primary-soft); }
+  .notif-item:focus-visible { box-shadow: inset 2px 0 0 0 var(--gold); }
+  /* Tiny gold pip to make unread items legible at a glance */
+  .notif-item.unread .notif-msg::before {
+    content: '';
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+    margin-right: 8px;
+    vertical-align: 2px;
+  }
+  .notif-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--brand-primary-soft);
+    color: var(--ink);
+    display: grid; place-items: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .notif-body {
+    flex: 1; min-width: 0;
+  }
+  .notif-msg {
+    font-size: 13px; color: var(--ink);
+    line-height: 1.4; margin-bottom: 2px;
+    overflow-wrap: break-word;
+  }
+  .notif-time {
+    font-size: 11px; color: var(--ink-muted);
+  }
+  .notif-empty {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 13px;
+  }
+  .notif-empty i {
+    font-size: 24px; color: var(--ink-muted); margin-bottom: 8px;
+  }
+
+  /* ─── Mobile breakpoint ────────────────────── */
+  @media (max-width: 840px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar {
+      display: flex;
+      position: fixed;
+      top: 0; left: 0;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      z-index: 50;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+      background: var(--paper);
+    }
+    body.sidebar-open .sidebar { transform: translateX(0); }
+    .mobile-burger { display: inline-flex; }
+    main { padding: 24px; }
+    .metrics { grid-template-columns: 1fr; }
+    .growth-stats { grid-template-columns: 1fr; gap: 24px; }
+    .notif-panel {
+      min-width: min(340px, calc(100vw - 32px));
+      max-width: calc(100vw - 32px);
+      right: 0;
+    }
+  }
+  @media (max-width: 640px) {
+    .topbar .greeting-meta { display: none; }
+    /* On phones the notification dropdown becomes a bottom sheet:
+       full-width, anchored to the bottom of the viewport, with a
+       larger touch-friendly close target. */
+    .notif-wrap { position: static; }
+    .notif-panel {
+      position: fixed;
+      top: auto;
+      left: 0; right: 0; bottom: 0;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      border-radius: 18px 18px 0 0;
+      border-left: 0; border-right: 0; border-bottom: 0;
+      max-height: 78vh;
+      max-height: 78dvh;
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.18s ease, visibility 0.18s ease;
+      box-shadow: 0 -16px 48px -12px rgba(0, 0, 0, 0.35);
+      z-index: 1010; /* above sidebar */
+    }
+    .notif-panel.open { transform: translateY(0); }
+    /* Subtle grab-handle so users learn it's a sheet. */
+    .notif-panel.open::before {
+      content: '';
+      position: absolute;
+      top: 6px; left: 50%;
+      transform: translateX(-50%);
+      width: 44px; height: 4px;
+      border-radius: 100px;
+      background: var(--border-strong);
+    }
+    .notif-head { padding-top: 22px; }
+    .notif-list { max-height: calc(78dvh - 60px); }
+
+    /* Command palette (⌘K) — bottom sheet on phones, matching the
+       notification dropdown so every topbar panel behaves the same.
+       Slides up from the viewport bottom with a grab-handle on top
+       and ~78dvh max-height. Keeps the user's thumb in reach instead
+       of forcing them to reach for the top of the screen. */
+    .cmdk-overlay {
+      align-items: flex-end;
+      padding: 0;
+      padding-top: 0;
+    }
+    .cmdk-panel {
+      width: 100%;
+      max-width: 100%;
+      max-height: 78vh;
+      max-height: 78dvh;
+      border-radius: 18px 18px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 -16px 48px -12px rgba(0, 0, 0, 0.35);
+    }
+    .cmdk-overlay.open .cmdk-panel { transform: translateY(0); }
+    /* Grab-handle so users learn it's a sheet — same dimensions as the
+       notif handle for cross-panel consistency. */
+    .cmdk-overlay.open .cmdk-panel::before {
+      content: '';
+      position: absolute;
+      top: 6px; left: 50%;
+      transform: translateX(-50%);
+      width: 44px; height: 4px;
+      border-radius: 100px;
+      background: var(--border-strong);
+      z-index: 2;
+    }
+    .cmdk-input-wrap { padding-top: 22px; padding-left: 20px; padding-right: 20px; }
+    /* Bump input to 16px so iOS Safari doesn't auto-zoom on focus, and
+       hide the keyboard-shortcut chip — there's no Esc key on a phone. */
+    .cmdk-input { font-size: 16px; }
+    .cmdk-kbd { display: none; }
+    /* Make the group labels obvious on the smaller surface. */
+    .cmdk-group-label {
+      font-size: 12px;
+      padding: 14px 16px 6px;
+      letter-spacing: 0.14em;
+    }
+    /* Tap-friendly item rows: 44px+ height, bigger label + icon,
+       arrow always visible so it reads as tappable (no hover state
+       to lean on). */
+    .cmdk-list { padding: 8px 8px 16px; }
+    .cmdk-item {
+      padding: 14px 14px;
+      gap: 14px;
+      font-size: 15px;
+      min-height: 52px;
+    }
+    .cmdk-item .cmdk-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .cmdk-item .cmdk-arrow { opacity: 1; font-size: 13px; }
+    .cmdk-empty { padding: 40px 16px; font-size: 14px; }
+    .cmdk-empty i { font-size: 26px; }
+  }
+  .ll-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--ink-dim); font-size: 13px;
+    text-decoration: none; margin-bottom: 8px;
+    transition: color 0.15s;
+  }
+  .ll-back:hover { color: var(--ink); }
+  .ll-back i { font-size: 11px; }
+
+  .ll-back-bottom {
+    margin-top: 20px;
+    display: flex; justify-content: flex-start;
+  }
+</style>
+<!-- ─── Tenant brand color (server-rendered) ────────────────────────
+     SCHOOL_BRAND_COLOR comes from accounts.context_processors.school_context
+     and reflects the value the admin saved on the school_profile page.
+     Inlined as a <style> rather than a body attribute so it survives
+     theme toggles and is available before the first paint.
+
+     We also re-derive --brand-primary-soft at every theme scope (rather
+     than relying only on the master's :root color-mix inheritance) so
+     atmospheres / focus glows / soft tints all track the tenant brand
+     in dark mode too — without depending on a chain through --forest. -->
+<style data-cl-brand-tenant>
+  :root,
+  body[data-theme="light"],
+  body[data-theme="dark"] {
+    --brand-primary: {{ SCHOOL_BRAND_COLOR|default:"#1b4332" }};
+    --brand-primary-soft: color-mix(in srgb, {{ SCHOOL_BRAND_COLOR|default:"#1b4332" }} 18%, transparent);
+  }
+</style>
+
+<script>
+  (function () {
+    // Dev-only override: ?brand=#hex in the URL takes precedence over the
+    // tenant value so we can preview other brands without persisting.
+    // Removes itself when no param is present so the tenant CSS above wins.
+    try {
+      var raw = new URLSearchParams(window.location.search).get('brand');
+      if (!raw) return;
+      var hex = raw.trim();
+      if (hex.charAt(0) !== '#') hex = '#' + hex;
+      if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex)) {
+        console.warn('[cl-brand-dev] Ignoring invalid ?brand value:', raw);
+        return;
+      }
+      var style = document.createElement('style');
+      style.setAttribute('data-cl-brand-dev', '');
+      // Later in source order than the tenant <style> above, same
+      // specificity → dev override wins.
+      style.textContent =
+        ':root, body[data-theme="light"], body[data-theme="dark"] { ' +
+        '--brand-primary: ' + hex + '; }';
+      document.head.appendChild(style);
+      console.info('[cl-brand-dev] Brand override active:', hex);
+    } catch (err) {
+      console.error('[cl-brand-dev] Init failed:', err);
+    }
+  })();
+</script>
+
+{% block extra_css %}{% endblock %}
+{% include "includes/_brand_cohesive.html" %}
+
+<script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2" crossorigin="anonymous"></script>
+<script src="{% static 'js/cl-scrollbar.js' %}" defer></script>
+<script src="{% static 'js/cl-form-guard.js' %}" defer></script>
+<script src="{% static 'js/cl-native-dialogs.js' %}" defer></script>
+<script src="{% static 'js/cl-search-highlight.js' %}" defer></script>
+<script src="{% static 'js/cl-collapsed-actions.js' %}" defer></script>
+<script src="{% static 'js/cl-form-autosave.js' %}" defer></script>
+<script src="{% static 'js/cl-skeleton.js' %}" defer></script>
+<script src="{% static 'js/cl-brand.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/vendor-brand.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cl-brand-utilities.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cl-table-mobile.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cl-carousel.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cl-form-validation.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cl-tour.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cl-material-viewer.css' %}" />
+</head>
+<body data-theme="{{ theme_preference|default:'light' }}" data-current-user-id="{{ request.user.id }}">
+<script src="{% static 'js/student_theme.js' %}"></script>
+
+<div class="app">
+  <div class="sidebar-backdrop" data-sidebar-backdrop></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <a href="{% url 'dashboard' %}" class="brand" title="Go to dashboard">
+      <div class="brand-emblem">
+        <span class="brand-emblem-shine"></span>
+        <span class="brand-emblem-letter">
+          <img src="{% static 'assets/img/Classedge.png' %}" alt="ClassEdge" />
+        </span>
+        <span class="brand-emblem-edge"></span>
+      </div>
+      <div class="brand-words">
+        <span class="brand-name">Class<em>Edge</em></span>
+        <span class="brand-tagline">{{ request.user.profile.role.name|default:"Workspace" }}</span>
+      </div>
+    </a>
+    <div class="brand-school" title="{{ SCHOOL_NAME|default:'ClassEdge' }}">
+      <img
+        src="{{ MEDIA_URL }}logos/HCCCI-logo.png?{{ logo_update_time }}"
+        alt="{{ SCHOOL_NAME|default:'ClassEdge' }}"
+        class="brand-school-logo"
+        width="22"
+        height="22"
+        loading="lazy"
+        decoding="async"
+      />
+      <span>{{ SCHOOL_NAME|default:"ClassEdge" }}</span>
+    </div>
+
+    {# ── Scrollable nav area ── #}
+    <div class="sidebar-scroll">
+
+      {# ── Core Navigation (all non-student roles) ── #}
+      <div class="nav-section">Main</div>
+      <nav class="nav">
+        <a href="{% url 'dashboard' %}"{% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'it_admin_dashboard' or request.resolver_match.url_name == 'registrar_dashboard' or request.resolver_match.url_name == 'academic_director_dashboard' or request.resolver_match.url_name == 'coil_admin_dashboard' or request.resolver_match.url_name == 'super_admin_dashboard' or request.resolver_match.url_name == 'program_head_dashboard' or request.resolver_match.url_name == 'time_keeper_dashboard' %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-house"></i></span> Dashboard</a>
+        <a href="{% url 'calendars' %}"{% if '/calendars' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-calendar-alt"></i></span> Calendar</a>
+        
+        {% if user|has_perm:'classroom.view_teacher_attendance' %}
+          <a href="{% url 'teacher_timesheet_report' %}"{% if '/teacher/timesheet' in request.path or '/teacher_timesheet_report' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-clock"></i></span> Time Sheet</a>
+        {% endif %}
+
+        {% if user|has_perm:'message.view_message' %}
+          <a href="{% url 'social_media_inbox' %}"{% if '/social_media_inbox' in request.path or '/inbox' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-envelope"></i></span> Messages{% if unread_messages_count %} <span class="nav-badge">{{ unread_messages_count }}</span>{% endif %}</a>
+        {% endif %}
+
+        {% if user|has_perm:'gamification.add_teacherrecognition' %}
+          <a href="{% url 'recognition_page' %}"{% if request.resolver_match.url_name == 'recognition_page' %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-star"></i></span> Recognition</a>
+        {% endif %}
+
+        <a href="{% url 'news' %}"{% if '/news' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-newspaper"></i></span> News</a>
+        <a href="{% url 'gamification_leaderboard' %}"{% if '/leaderboard' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-trophy"></i></span> Leaderboard</a>
+      </nav>
+
+      {# ── Teaching (teachers, program heads, academic directors) ── #}
+      {% if user|has_perm:'subject.view_subject' %}
+        <div class="nav-section">Teaching</div>
+        <nav class="nav">
+          {# ── Course List ── #}
+          <a href="{% url 'course-list' %}"{% if '/subject' in request.path and '/subject-announcements' not in request.path and '/subject/report' not in request.path or '/SubjectList' in request.path or '/course/list' in request.path or '/course/create' in request.path or '/course/update' in request.path or '/course/delete' in request.path or '/material/' in request.path or '/view-subject-module' in request.path or '/view-module-cm' in request.path or '/assessment/' in request.path or '/assessment-' in request.path or '/module-progress' in request.path or '/progress-list' in request.path or '/copy-materials' in request.path or '/detail-progress' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-book"></i></span> Courses</a>
+
+          {# ── Schedule List ── #}
+          {% if user|has_perm:'subject.view_schedule' %}
+            <a href="{% url 'schedule' %}"{% if request.resolver_match.url_name == 'schedule' or '/schedule' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-calendar-week"></i></span> Schedules</a>
+          {% endif %}
+
+          {# ── Rubrics List ── #}
+          {% if user|has_perm:'activity.view_rubrics' %}
+            <a href="{% url 'rubric-list' %}"{% if '/rubric' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-list-ol"></i></span> Rubrics</a>
+          {% endif %}
+
+          {# ── Gradebook List ── #}
+          {% if user|has_perm:'gradebookcomponent.view_gradebookcomponents' or user|has_perm:'gradebookcomponent.view_termgradebookcomponents' %}
+            {% if user|has_perm:'gradebookcomponent.view_gradebookcomponents' %}
+              <a href="{% url 'grades' %}"{% if request.resolver_match.url_name == 'grades' or request.resolver_match.url_name == 'subject_gradebook' or '/grades' in request.path or '/score-sheet' in request.path or '/my-assessment-score' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-chart-bar"></i></span> Grades</a>
+            {% endif %}
+            {% if user|has_perm:'gradebookcomponent.view_termgradebookcomponents' %}
+              <a href="{% url 'grade-book' %}"{% if '/gradebook' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-pen"></i></span> Gradebook</a>
+            {% endif %}
+          {% endif %}
+
+          {# ── Attendance List ── #}
+          {% if user|has_perm:'course.view_attendance' %}
+            <a href="{% url 'attendance-report' %}"{% if '/attendance' in request.path or '/record-attendance' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-clipboard-check"></i></span> Attendance</a>
+          {% endif %}
+
+          {# ── Subject Announcements List  ── #}
+          {% if user.is_teacher %}
+            {% if user|has_perm:'calendars.view_announcement'%}
+              <a href="{% url 'subject_announcements' %}"{% if '/subject-announcements' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-bullhorn"></i></span> Announcements</a>
+            {% endif %}
+          {% endif %}
+
+          {# ── Archived List ── #}
+          {% if user|has_perm:'activity.view_rubrics' %}
+            <a href="{% url 'archive-index' %}"{% if '/account/archive' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-box-archive"></i></span> Archived</a>
+          {% endif %}
+
+          {# ── Enrollment List ── #}
+          {% if user|has_perm:'course.view_subjectenrollment' %}
+            <a href="{% url 'enrollment-list' %}"{% if '/enrollment' in request.path or '/enroll-student' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-user-graduate"></i></span> Students</a>
+          {% endif %}
+
+          {# ── Grade Finalization List ── #}
+          {% if user|has_perm:'course.view_subjectenrollment' %}
+            <a href="{% url 'grade_finalization_page' %}"{% if '/grade/finalization' in request.path or '/grade_finalization' in request.path or '/grade-finalization' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-check-double"></i></span> Grade Finalization</a>
+          {% endif %}
+
+        </nav>
+      {% endif %}
+
+      {% if user.is_student or user.is_teacher %}
+        <div class="nav-section">Orbit Program</div>
+        <nav class="nav">
+          <a href="{% url 'coil_subjectList' %}"{% if '/coil_subjectList' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-handshake-angle"></i></span> COIL Courses</a>
+          <a href="{% url 'hali_subjectList' %}"{% if '/hali_subjectList' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-globe-americas"></i></span> HALI Courses</a>
+          <a href="{% url 'cte_subject_list' %}"{% if '/cte_subject_list' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-screwdriver-wrench"></i></span> CTE Courses</a>
+        </nav>
+      {% endif %}
+
+      {% if user.profile.role.name|lower in 'admin registrar' or user.is_superuser or user.is_staff %}
+        <div class="nav-section">Orbit Settings</div>
+        <nav class="nav">
+          <a href="{% url 'coil_school_list' %}"{% if '/coil_school_list' in request.path or '/coil_registration' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-school"></i></span>School List</a>
+        </nav>
+      {% endif %}
+
+      {# ── Gamification & Insight ── #}
+      {% if user|has_perm:'gamification.view_badgedefinition' or user|has_perm:'ide.view_codingexercise' or user|has_perm:'gamification.add_teacherrecognition' %}
+        <div class="nav-section">Insight</div>
+        <nav class="nav">
+          {% if user|has_perm:'gamification.view_badgedefinition' %}
+            <a href="{% url 'badge_management' %}"{% if '/badge' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-award"></i></span> Badges</a>
+          {% endif %}
+          {% if user|has_perm:'ide.view_codingexercise' %}
+            <a href="{% url 'coding_overview' %}"{% if '/coding' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-code"></i></span> Coding</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+
+      {# ── User Management — each item gated by the matching model perm ── #}
+      {% if user|has_perm:'accounts.add_profile' %}
+        <div class="nav-section">User Management</div>
+        <nav class="nav">
+          {% if user|has_perm:'accounts.add_profile' %}
+            <a href="{% url 'teacher-list' %}"{% if '/teacher-list' in request.path or '/update-profile-teacher' in request.path or '/update-teacher-profile' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-chalkboard-user"></i></span> Teachers</a>
+            <a href="{% url 'student-list' %}"{% if '/student-list' in request.path or '/update-profile-student' in request.path or '/update-student-profile' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-users"></i></span> Students</a>
+            <a href="{% url 'admin-and-staff-list' %}"{% if '/admin-and-staff-list' in request.path or '/update-profile-staff' in request.path or '/update-admin-and-staff-profile' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-user-shield"></i></span>Staff</a>
+            <a href="{% url 'program-head-list' %}"{% if '/program-head-list' in request.path or '/update-profile-program-head' in request.path or '/update-program-head-profile' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-user-tie"></i></span> Program Heads</a>
+          {% endif %}
+          {% if user|has_perm:'roles.view_role' %}
+            <a href="{% url 'role_list' %}"{% if '/role/' in request.path or '/rename_role' in request.path or '/delete_role' in request.path or '/get_role_permissions' in request.path or '/import-roles' in request.path or '/export-roles' in request.path or '/download-roles' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-key"></i></span> Roles & Permissions</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+
+      {# ── School Management — each item gated by its model's view perm ── #}
+      {% if user|has_perm:'accounts.view_department' or user|has_perm:'accounts.view_course' or user|has_perm:'accounts.view_schoolname' or user|has_perm:'accounts.view_certificate' %}
+        <div class="nav-section">School Management</div>
+        <nav class="nav">
+          {% if user|has_perm:'accounts.view_department' %}
+            <a href="{% url 'department_list' %}"{% if '/department' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-building"></i></span> Departments</a>
+          {% endif %}
+          {% if user|has_perm:'accounts.view_course' %}
+            <a href="{% url 'program-list' %}"{% if '/program/' in request.path or request.resolver_match.url_name == 'program-list' %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-book-open"></i></span> Programs</a>
+          {% endif %}
+          {% if user|has_perm:'accounts.view_schoolname' %}
+            <a href="{% url 'school-profile' %}"{% if '/school/profile' in request.path or '/change_school_name' in request.path or '/change_brand_color' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-school"></i></span> School Profile</a>
+          {% endif %}
+          {% if user|has_perm:'accounts.view_certificate' %}
+            <a href="{% url 'certificate-list' %}"{% if '/certificate' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-certificate"></i></span> Certificates</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+
+      {# ── Reports — each item gated by the matching model perm ── #}
+      {% if user|has_perm:'accounts.view_loginhistory' %}
+        <div class="nav-section">Reports</div>
+        <nav class="nav">
+          {% if user|has_perm:'accounts.view_loginhistory' %}
+            <a href="{% url 'student-login-report' %}"{% if '/student/login/report' in request.path or '/student-login-report' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-chart-line"></i></span> Student Login</a>
+            <a href="{% url 'teacher-login-report' %}"{% if '/teacher/login/report' in request.path or '/teacher-login-report' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-chart-area"></i></span> Teacher Login</a>
+            <a href="{% url 'teacher-progress-report' %}"{% if '/teacher/progress/report' in request.path or '/teacher-progress-report' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-chart-pie"></i></span> Teacher Progress</a>
+            {% endif %}
+          {% if user|has_perm:'accounts.view_course' %}
+            <a href="{% url 'course-report' %}"{% if '/course/report' in request.path or '/course-report' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-graduation-cap"></i></span> Program Report</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+
+      {# ── Data Migration — superuser only, additive op for old-LMS imports ── #}
+      {% if request.user.is_superuser %}
+        <div class="nav-section">Data Migration</div>
+        <nav class="nav">
+          <a href="{% url 'migration:sequence' %}"{% if request.resolver_match.namespace == 'migration' and request.resolver_match.url_name == 'sequence' %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-database"></i></span> Migration Console</a>
+          <a href="{% url 'migration:errors' %}"{% if request.resolver_match.namespace == 'migration' and request.resolver_match.url_name == 'errors' %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-triangle-exclamation"></i></span> Migration Errors</a>
+          <a href="{% url 'migration:settings' %}"{% if request.resolver_match.namespace == 'migration' and request.resolver_match.url_name == 'settings' %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-gear"></i></span> Migration Settings</a>
+        </nav>
+      {% endif %}
+
+      {# ── Settings — each item gated by the matching model perm ── #}
+      {# "Program Settings" link removed: it pointed to course_list, which is already exposed as "Programs" under School Management. #}
+      {% if user|has_perm:'course.view_semester' or user|has_perm:'course.view_transmutationrule' or user|has_perm:'subject.view_evaluationassignment' or user|has_perm:'roles.view_role' %}
+        <div class="nav-section">Settings</div>
+        <nav class="nav">
+          {% if user|has_perm:'course.view_semester' %}
+            <a href="{% url 'semester-list' %}"{% if '/semester' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-calendar-days"></i></span> Semester</a>
+            <a href="{% url 'term-list' %}"{% if '/term-list' in request.path or '/term/' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-calendar-week"></i></span> Term</a>
+          {% endif %}
+          {% if user|has_perm:'course.view_transmutationrule' %}
+            <a href="{% url 'transmutation-list' %}"{% if '/transmutation' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-sliders"></i></span> Transmutation</a>
+          {% endif %}
+          {% if user|has_perm:'subject.view_evaluationassignment' %}
+            <a href="{% url 'list_evaluation_assignments' %}"{% if '/evaluation' in request.path or '/list_evaluation_assignments' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-clipboard-question"></i></span> Teacher Evaluation</a>
+          {% endif %}
+          {% if user|has_perm:'roles.view_role' %}
+            <a href="{% url 'rms_data_import' %}"{% if '/rms' in request.path %} class="active"{% endif %}><span class="nav-icon"><i class="fas fa-file-import"></i></span> Rms Import</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+
+    </div>{# end sidebar-scroll #}
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-footer">
+        <a href="{% url 'account_profile' pk=request.user.id %}" title="View profile" class="user-block">
+          <div class="avatar">
+            {% if request.user.profile.student_photo %}
+              <img src="{{ request.user.profile.student_photo.url }}" alt="{{ request.user.get_full_name|default:request.user.username }}">
+            {% else %}
+              {{ request.user.first_name|default:request.user.username|make_list|first|upper }}
+            {% endif %}
+          </div>
+          <div class="user-meta">
+            <div class="user-meta-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <div class="user-meta-role">{{ request.user.profile.role.name|default:"User" }}</div>
+          </div>
+        </a>
+        <a href="{% url 'sign_out' %}" title="Sign out" aria-label="Sign out" class="signout-btn" data-confirm-signout>
+          <i class="fas fa-right-from-bracket"></i>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main>
+    <div class="topbar">
+      <div style="display: flex; align-items: center; min-width: 0;">
+        <button type="button" class="mobile-burger" data-sidebar-toggle aria-label="Open menu" title="Open menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="greeting-meta">{% now "l F j Y" %}</div>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" class="icon-btn" data-cmdk-trigger aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)">
+          <i class="fas fa-search"></i>
+        </button>
+        <a href="{% url 'social_media_inbox' %}" class="icon-btn">
+          <i class="fas fa-envelope"></i>
+          {% if unread_messages_count %}<span class="dot"></span>{% endif %}
+        </a>
+        <div class="notif-wrap">
+          <button type="button" class="icon-btn" data-bell-btn aria-label="Notifications" title="Notifications">
+            <i class="fas fa-bell"></i>
+            {% if unread_notifications_count %}<span class="dot bell-dot"></span>{% endif %}
+          </button>
+          <div class="notif-panel" data-notif-panel>
+            <div class="notif-head">
+              <span class="title">Notifications{% if unread_notifications_count %} <span style="color: var(--gold); font-weight: 700;">({{ unread_notifications_count }})</span>{% endif %}</span>
+              {% if unread_notifications_count %}
+                <button type="button" class="mark-all" data-mark-all-read>Mark all as read</button>
+              {% endif %}
+            </div>
+            <div class="notif-list">
+              {% for notif in notifications %}
+                <a class="notif-item {% if not notif.is_read %}unread{% endif %}"
+                   href="{{ notif.link|default:'#' }}"
+                   data-notif-id="{{ notif.id }}"
+                   data-notif-type="{{ notif.type }}">
+                  <div class="notif-icon"><i class="{{ notif.icon }}"></i></div>
+                  <div class="notif-body">
+                    <div class="notif-msg">{{ notif.message }}</div>
+                    <div class="notif-time">{{ notif.created_at|timesince }} ago</div>
+                  </div>
+                </a>
+              {% empty %}
+                <div class="notif-empty">
+                  <i class="fas fa-bell-slash"></i>
+                  <div>No notifications yet</div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <button type="button" class="icon-btn theme-toggle-btn" onclick="toggleStudentTheme()" aria-label="Toggle theme" title="Toggle theme">
+          <i id="theme-toggle-icon" class="fas {% if theme_preference == 'dark' %}fa-sun{% else %}fa-moon{% endif %}"></i>
+        </button>
+      </div>
+    </div>
+    <div class="page-content">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+
+<script>
+  // [Classedge LMS] Persist sidebar scroll position across page reloads so
+  // bottom-of-list nav items don't snap back to the top when the user
+  // clicks them.
+  (function () {
+    const KEY = 'cl-sidebar-scroll';
+    const el = document.querySelector('.sidebar-scroll');
+    if (!el) return;
+    // Restore as soon as possible to avoid a visible jump.
+    const saved = sessionStorage.getItem(KEY);
+    if (saved !== null) el.scrollTop = parseInt(saved, 10) || 0;
+    // Best-effort save: scroll events while browsing + before unload.
+    let pending;
+    el.addEventListener('scroll', function () {
+      clearTimeout(pending);
+      pending = setTimeout(() => sessionStorage.setItem(KEY, el.scrollTop), 80);
+    });
+    window.addEventListener('beforeunload', function () {
+      sessionStorage.setItem(KEY, el.scrollTop);
+    });
+    // (Intentionally no scrollIntoView on the active link.) Any auto-scroll
+    // here causes section labels to land at different vertical positions
+    // depending on where the active item lives in the rail, which is
+    // exactly the "labels move between pages" symptom we're trying to
+    // eliminate. The user's manually-saved scroll position above is
+    // restored faithfully, and that is the only thing that should move
+    // the sidebar.
+  })();
+
+  // [Classedge LMS] Shared row-action dropdown teleport helper.
+  // Use it from any template with a dropdown that gets clipped by a table /
+  // card overflow. Call once per dropdown family on DOMContentLoaded:
+  //
+  //   clBindMenuTeleport({ wrapSelector: '.rb-actions',
+  //                        btnSelector: '.rb-actions-btn',
+  //                        menuSelector: '.rb-actions-menu' });
+  //
+  // The menu is moved to <body> with position:fixed so no ancestor overflow
+  // can clip it. We track the original wrapper so we can put it back on close.
+  window.clBindMenuTeleport = function (opts) {
+    var wrapSel = opts.wrapSelector;
+    var btnSel  = opts.btnSelector;
+    var menuSel = opts.menuSelector;
+    var openClass = opts.openClass || 'is-open';
+    var maxWidth = opts.maxWidth || 200;
+
+    function closeAll() {
+      document.querySelectorAll(menuSel + '[data-cltp="1"]').forEach(function (m) {
+        m.removeAttribute('style');
+        m.dataset.cltp = '';
+        var origin = m._origWrap;
+        if (origin && origin.parentNode) origin.appendChild(m);
+        m._origWrap = null;
+      });
+      document.querySelectorAll(wrapSel + '.' + openClass).forEach(function (w) {
+        w.classList.remove(openClass);
+      });
+    }
+    function position(btn, menu, wrap) {
+      menu._origWrap = wrap;
+      document.body.appendChild(menu);
+      menu.dataset.cltp = '1';
+      menu.style.position = 'fixed';
+      menu.style.right = 'auto';
+      menu.style.bottom = 'auto';
+      menu.style.width = 'auto';
+      menu.style.maxWidth = maxWidth + 'px';
+      menu.style.display = 'block';
+      menu.style.zIndex = '1000';
+      menu.style.top = '-9999px';
+      menu.style.left = '0px';
+      var rect = btn.getBoundingClientRect();
+      var menuRect = menu.getBoundingClientRect();
+      var spaceBelow = window.innerHeight - rect.bottom;
+      var spaceAbove = rect.top;
+      var top = (spaceBelow >= menuRect.height + 8 || spaceBelow >= spaceAbove)
+        ? rect.bottom + 4
+        : Math.max(8, rect.top - menuRect.height - 4);
+      var left = rect.right - menuRect.width;
+      if (left + menuRect.width > window.innerWidth - 8) {
+        left = window.innerWidth - menuRect.width - 8;
+      }
+      if (left < 8) left = 8;
+      menu.style.top = top + 'px';
+      menu.style.left = left + 'px';
+    }
+
+    document.querySelectorAll(wrapSel).forEach(function (wrap) {
+      var btn = wrap.querySelector(btnSel);
+      var menu = wrap.querySelector(menuSel);
+      if (!btn || !menu) return;
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var wasOpen = wrap.classList.contains(openClass);
+        closeAll();
+        if (!wasOpen) {
+          wrap.classList.add(openClass);
+          position(btn, menu, wrap);
+        }
+      });
+    });
+    // Bind global handlers ONCE per selector set (idempotent — safe to call multiple times)
+    var key = '_clMenuBound_' + wrapSel.replace(/\W/g, '_');
+    if (!document[key]) {
+      document[key] = true;
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest(wrapSel) && !e.target.closest(menuSel)) closeAll();
+      });
+      window.addEventListener('scroll', closeAll, true);
+      window.addEventListener('resize', closeAll);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeAll();
+      });
+    }
+  };
+
+  // [Classedge LMS] Mobile sidebar toggle.
+  (function () {
+    const burgers = document.querySelectorAll('[data-sidebar-toggle]');
+    const backdrop = document.querySelector('[data-sidebar-backdrop]');
+    const sidebar = document.querySelector('.sidebar');
+    if (!burgers.length || !sidebar) return;
+    const setOpen = (open) => document.body.classList.toggle('sidebar-open', open);
+    burgers.forEach(b => b.addEventListener('click', (e) => {
+      e.preventDefault();
+      setOpen(!document.body.classList.contains('sidebar-open'));
+    }));
+    backdrop?.addEventListener('click', () => setOpen(false));
+    sidebar.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', () => setOpen(false)));
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') setOpen(false);
+    });
+  })();
+
+  // [Classedge LMS] Command palette (shadcn-style) — pulls items from the
+  // sidebar nav (which is already gated by Django permissions). Ctrl/Cmd+K
+  // to open. We defer the wiring until DOMContentLoaded so the sidebar
+  // markup is guaranteed to exist when we snapshot it.
+  function clCmdkInit() {
+    var overlay = document.querySelector('[data-cmdk-overlay]');
+    var input = document.querySelector('[data-cmdk-input]');
+    var list = document.querySelector('[data-cmdk-list]');
+    if (!overlay || !input || !list) return;
+
+    var items = [];
+    var sections = document.querySelectorAll('.sidebar-scroll .nav-section');
+    sections.forEach(function (sec) {
+      var group = (sec.textContent || '').trim();
+      var navEl = sec.nextElementSibling;
+      if (!navEl) return;
+      navEl.querySelectorAll('a[href]').forEach(function (a) {
+        var iconEl = a.querySelector('.nav-icon i');
+        var iconClass = iconEl ? iconEl.className : 'fas fa-link';
+        var label = (a.textContent || '').replace(/\s+/g, ' ').trim();
+        var href = a.getAttribute('href');
+        if (label && href) items.push({ label: label, href: href, group: group, iconClass: iconClass });
+      });
+    });
+
+    var activeIndex = 0;
+
+    function render(query) {
+      var q = (query || '').toLowerCase().trim();
+      var matched = q
+        ? items.filter(function (it) {
+            return it.label.toLowerCase().indexOf(q) !== -1 || it.group.toLowerCase().indexOf(q) !== -1;
+          })
+        : items.slice();
+      activeIndex = 0;
+      list.innerHTML = '';
+      if (!matched.length) {
+        list.innerHTML = '<div class="cmdk-empty"><i class="fas fa-magnifying-glass"></i><div>No pages found</div></div>';
+        return;
+      }
+      var lastGroup = null;
+      matched.forEach(function (it, i) {
+        if (it.group !== lastGroup) {
+          var lbl = document.createElement('div');
+          lbl.className = 'cmdk-group-label';
+          lbl.textContent = it.group;
+          list.appendChild(lbl);
+          lastGroup = it.group;
+        }
+        var a = document.createElement('a');
+        a.className = 'cmdk-item' + (i === 0 ? ' is-active' : '');
+        a.href = it.href;
+        a.innerHTML = '<span class="cmdk-icon"><i class="' + it.iconClass + '"></i></span>'
+                    + '<span>' + it.label + '</span>'
+                    + '<i class="fas fa-arrow-turn-down cmdk-arrow"></i>';
+        a.addEventListener('mouseenter', (function (idx) { return function () { setActive(idx); }; })(i));
+        list.appendChild(a);
+      });
+    }
+
+    function setActive(i) {
+      var els = list.querySelectorAll('.cmdk-item');
+      if (!els.length) return;
+      activeIndex = (i + els.length) % els.length;
+      els.forEach(function (el, idx) { el.classList.toggle('is-active', idx === activeIndex); });
+      els[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+
+    function activate() {
+      var els = list.querySelectorAll('.cmdk-item');
+      var el = els[activeIndex];
+      if (el) window.location.href = el.getAttribute('href');
+    }
+
+    function openPalette() {
+      overlay.classList.add('open');
+      input.value = '';
+      render('');
+      setTimeout(function () { input.focus(); }, 30);
+    }
+    function closePalette() {
+      overlay.classList.remove('open');
+    }
+
+    // Delegated click — survives any element being replaced.
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      while (t && t !== document) {
+        if (t.matches && t.matches('[data-cmdk-trigger]')) {
+          e.preventDefault();
+          e.stopPropagation();
+          openPalette();
+          return;
+        }
+        t = t.parentNode;
+      }
+    });
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closePalette();
+    });
+    input.addEventListener('input', function (e) { render(e.target.value); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActive(activeIndex + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(activeIndex - 1); }
+      else if (e.key === 'Enter') { e.preventDefault(); activate(); }
+      else if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+    });
+    document.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        if (overlay.classList.contains('open')) closePalette(); else openPalette();
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', clCmdkInit);
+  } else {
+    clCmdkInit();
+  }
+
+  // [Classedge LMS] Notifications popover.
+  (function () {
+    const btn = document.querySelector('[data-bell-btn]');
+    const panel = document.querySelector('[data-notif-panel]');
+    if (!btn || !panel) return;
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      panel.classList.toggle('open');
+    });
+    panel.addEventListener('click', e => e.stopPropagation());
+    document.addEventListener('click', e => {
+      if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') panel.classList.remove('open');
+    });
+
+    const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Per-item read persistence is handled server-side: each unread
+    // user_notification row's href points at `open_notification?next=…`,
+    // which flips is_read=True then 302s to the real target. So we only
+    // do an optimistic visual flip here for snappy UX while the page
+    // navigates — no separate POST needed.
+    panel.querySelectorAll('.notif-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (!item.classList.contains('unread')) return;
+        item.classList.remove('unread');
+        // The counter is regenerated server-side on next page load, but
+        // we tweak it here so the panel doesn't lie during navigation.
+        const titleSpan = panel.querySelector('.notif-head .title span');
+        const remaining = panel.querySelectorAll('.notif-item.unread').length;
+        if (titleSpan) {
+          if (remaining > 0) titleSpan.textContent = `(${remaining})`;
+          else titleSpan.remove();
+        }
+        if (remaining <= 0) {
+          document.querySelectorAll('.bell-dot').forEach(el => el.remove());
+          panel.querySelector('[data-mark-all-read]')?.remove();
+        }
+      });
+    });
+
+    const markAll = panel.querySelector('[data-mark-all-read]');
+    markAll?.addEventListener('click', async (e) => {
+      // Stop the bubble so the surrounding <a>s (and the panel-close
+      // logic) don't consume the click.
+      e.stopPropagation();
+      e.preventDefault();
+      try {
+        const res = await fetch("{% url 'mark_notifications_as_read' %}", {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/json' },
+          credentials: 'same-origin'
+        });
+        if (res.ok) {
+          panel.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));
+          document.querySelectorAll('.bell-dot').forEach(el => el.remove());
+          markAll.remove();
+          panel.querySelector('.notif-head .title span')?.remove();
+        }
+      } catch (err) { /* fail silently — user can refresh */ }
+    });
+  })();
+
+  // [Classedge LMS] Sign-out confirmation via SweetAlert2.
+  (function () {
+    const link = document.querySelector('[data-confirm-signout]');
+    if (!link || typeof Swal === 'undefined') return;
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = link.getAttribute('href');
+      const isDark = document.body.dataset.theme === 'dark';
+      Swal.fire({
+        title: 'Sign out?',
+        text: "You'll need to sign in again to come back.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sign out',
+        cancelButtonText: 'Stay',
+        reverseButtons: true,
+        focusCancel: true,
+        background: isDark ? '#1a2420' : '#ffffff',
+        color: isDark ? '#e8eaf0' : '#2d3142',
+        confirmButtonColor: (getComputedStyle(document.documentElement).getPropertyValue('--brand-primary') || '').trim() || '#1b4332',
+        cancelButtonColor: isDark ? '#3a4540' : '#e5e1d8',
+        customClass: {
+          popup: 'cl-swal-popup',
+          confirmButton: 'cl-swal-confirm',
+          cancelButton: 'cl-swal-cancel'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          Swal.fire({
+            title: 'Signing you out…',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            background: isDark ? '#1a2420' : '#ffffff',
+            color: isDark ? '#e8eaf0' : '#2d3142',
+            didOpen: () => Swal.showLoading()
+          });
+          window.location.href = target;
+        }
+      });
+    });
+  })();
+</script>
+<style>
+  .cl-swal-popup { font-family: 'Inter', system-ui, sans-serif; border-radius: 16px; }
+  .cl-swal-popup .swal2-title { font-weight: 600; letter-spacing: -0.01em; }
+  .cl-swal-confirm, .cl-swal-cancel {
+    font-family: 'Inter', system-ui, sans-serif !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    padding: 10px 22px !important;
+  }
+  .cl-swal-confirm { color: #ffffff !important; }
+  .cl-swal-cancel { color: #2d3142 !important; }
+  body[data-theme="dark"] .cl-swal-cancel { color: #e8eaf0 !important; }
+</style>
+
+{% include "includes/_toast.html" %}
+
+<!-- Command palette modal -->
+<div class="cmdk-overlay" data-cmdk-overlay role="dialog" aria-modal="true" aria-label="Search menu">
+  <div class="cmdk-panel" role="document">
+    <div class="cmdk-input-wrap">
+      <i class="fas fa-search"></i>
+      <input type="text" class="cmdk-input" data-cmdk-input placeholder="Search pages…" autocomplete="off" />
+      <span class="cmdk-kbd">Esc</span>
+    </div>
+    <div class="cmdk-list" data-cmdk-list></div>
+  </div>
+</div>
+
+{% include "accounts/legal/_modal.html" %}
+
+{% include "includes/_mobile_tabbar.html" %}
+<script src="{% static 'js/cl-mobile-tabbar.js' %}" defer></script>
+<script src="{% static 'js/cl-table-mobile.js' %}" defer></script>
+<script src="{% static 'js/cl-form-loading.js' %}" defer></script>
+<script src="{% static 'js/cl-form-validation.js' %}" defer></script>
+<script src="{% static 'js/cl-media-skeleton.js' %}" defer></script>
+{# Per-account tour-completion list — seeds cl-tour.js so finished/dismissed
+   walkthroughs never auto-show again for this user on any device. #}
+{% if request.user.is_authenticated %}{{ request.user.profile.seen_tours|json_script:"cl-tour-seen-data" }}{% endif %}
+<script>
+  (function () {
+    var el = document.getElementById('cl-tour-seen-data');
+    try { window.__clTourSeen = el ? JSON.parse(el.textContent) : []; }
+    catch (e) { window.__clTourSeen = []; }
+    if (!Array.isArray(window.__clTourSeen)) window.__clTourSeen = [];
+  })();
+</script>
+<script src="{% static 'js/cl-tour.js' %}" defer></script>
+<script src="{% static 'js/cl-material-viewer.js' %}" defer></script>
+</body>
+</html>

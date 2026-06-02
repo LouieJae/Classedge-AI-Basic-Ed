@@ -1,0 +1,26 @@
+{% comment %}
+  Canonical page-header title block. Renders the bolded title with an
+  optional italic <em> accent (which picks up --brand-primary from
+  base_operation.html), followed by an optional subtitle.
+
+  Usage:
+    {% include "includes/_page_header.html" with title="Create an" accent="assessment" sub="MATH-101 · Algebra I" %}
+    {% include "includes/_page_header.html" with title="Materials" %}
+    {% include "includes/_page_header.html" with title="Settings" accent="page" %}
+
+  For headers with side-actions, back-link, or eyebrow, keep the outer
+  wrapper per-page and drop this include inside the title column. Each
+  page's layout (.ll-header, .vsp-header, .lesson-header) stays intact:
+
+    <div class="vsp-header">
+      <div>
+        {% include "includes/_page_header.html" with title="..." accent="..." sub="..." %}
+      </div>
+      <div class="header-actions"> ... </div>
+    </div>
+
+  Subs that need HTML / template logic (e.g. {% if foo %}...{% endif %})
+  should stay inline — the include's `sub` param is a plain string.
+{% endcomment %}
+<h1 class="page-title">{{ title }}{% if accent %} <em>{{ accent }}</em>{% endif %}</h1>
+{% if sub %}<p class="page-sub">{{ sub }}</p>{% endif %}

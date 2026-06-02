@@ -1,0 +1,160 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Add Activity" %}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css" />
+  <style>
+    .cm-form-row .cm-col-4 { grid-column: span 4; }
+    .cm-form-row .cm-col-3 { grid-column: span 3; }
+    .cm-form-row .cm-col-2 { grid-column: span 2; }
+    @media (max-width: 720px) { .cm-form-row .cm-col-2, .cm-form-row .cm-col-3, .cm-form-row .cm-col-4 { grid-column: span 12; } }
+    .cm-type-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 12px; border-radius: 100px;
+      background: var(--forest-light); color: var(--forest);
+      font-size: 12px; font-weight: 700; margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="cm-shell">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Add new <em>assessment</em></h1>
+          <div class="cm-subtitle">{{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %}</div>
+          {% if selected_activity_type %}
+            <span class="cm-type-badge"><i class="fas fa-tag"></i> {{ selected_activity_type.name }}</span>
+          {% endif %}
+        </div>
+        <div class="cm-hero-actions">
+          <button type="button" class="cl-tour-replay" data-cl-tour="create-assessment-cm">
+            <i class="fas fa-circle-question"></i> Show me how
+          </button>
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to classroom</a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-form-card">
+      <div class="cm-form-head">
+        <h2><span class="icon"><i class="fas fa-plus"></i></span> Assessment details</h2>
+      </div>
+      {% if form.errors %}
+        <div class="alert alert-danger" style="margin: 12px 16px 0; padding: 12px 16px; border-radius: 8px; background: rgba(192, 57, 43, 0.10); border: 1px solid rgba(192, 57, 43, 0.32); color: #c0392b;">
+          <strong><i class="fas fa-circle-exclamation" aria-hidden="true"></i> Please correct the following:</strong>
+          <ul style="margin: 6px 0 0; padding-left: 22px;">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}
+                <li><strong>{% if field == '__all__' %}Form{% else %}{{ field|cut:"_"|capfirst }}{% endif %}:</strong> {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+      <form method="post" class="needs-validation" novalidate enctype="multipart/form-data" action="" data-cl-autosave="create-assessment-cm" data-cl-loading data-cl-loading-label="Creating…">
+        {% csrf_token %}
+        <input type="hidden" name="activity_type_id" value="{{ request.GET.activity_type_id }}" />
+        <input type="hidden" name="late_submission_days" value="0" />
+        <input type="hidden" name="late_submission_penalty_percent" value="0" />
+
+        <div class="cm-form-body">
+          <div class="cm-form-row">
+            <div class="cm-col-6">
+              <label for="activity_name">Assessment name</label>
+              <input type="text" id="activity_name" name="activity_name" placeholder="e.g. Quiz 1 — Algebra basics" required />
+            </div>
+            <div class="cm-col-6">
+              <label for="term">Term</label>
+              <select id="term" name="term" class="select2" required>
+                {% for term in terms %}
+                  <option value="{{ term.id }}" {% if term.id == current_term.id %}selected{% endif %}>{{ term.term_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          {% if not is_participation %}
+            <div class="cm-form-row">
+              <div class="cm-col-12">
+                <label for="additional_modules">Linked lessons</label>
+                <select id="additional_modules" name="additional_modules" class="select2" multiple>
+                  {% for module in modules %}
+                    <option value="{{ module.id }}">{{ module.file_name }}</option>
+                  {% endfor %}
+                </select>
+                <small class="form-text">Optional — leave empty to keep this assessment standalone.</small>
+              </div>
+            </div>
+          {% endif %}
+
+          <div class="cm-form-row">
+            <div class="cm-col-12">
+              <label for="activity_instruction">Assessment instruction</label>
+              <textarea id="activity_instruction" name="activity_instruction" placeholder="Tell students how to complete this assessment…">{{ activity.activity_instruction|default:'' }}</textarea>
+            </div>
+          </div>
+
+          <!-- Hidden fields populated below for retake/scoring (kept for backend compat) -->
+          <input type="hidden" id="max_retake" name="max_retake" value="0" />
+          <input type="hidden" id="retake_method" name="retake_method" value="first" />
+          <input type="hidden" id="time_duration" name="time_duration" value="0" />
+          <input type="hidden" id="shuffle_questions" name="shuffle_questions" value="" />
+
+          <div class="cm-form-row">
+            <div class="cm-col-3">
+              <label for="passing_score">Passing score</label>
+              <input type="number" id="passing_score" name="passing_score" value="50" min="0" required />
+            </div>
+            <div class="cm-col-3">
+              <label for="passing_score_type">Score type</label>
+              <select id="passing_score_type" name="passing_score_type" class="select2" required>
+                <option value="percentage">Percentage</option>
+                <option value="number">Number</option>
+              </select>
+            </div>
+            <div class="cm-col-3">
+              <label for="start_time">Start time</label>
+              <input type="datetime-local" id="start_time" name="start_time" required />
+            </div>
+            <div class="cm-col-3">
+              <label for="end_time">End time</label>
+              <input type="datetime-local" id="end_time" name="end_time" required />
+            </div>
+          </div>
+        </div>
+
+        <div class="cm-form-foot">
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost">Cancel</a>
+          <button type="submit" class="cm-btn primary"><i class="fas fa-check"></i> Create assessment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script src="{% static 'js/tours/cl-tour-create-assessment-cm.js' %}" defer></script>
+
+  <script>
+    // Robust Select2 init that survives SPA navigation. When the CM-SPA
+    // re-executes scripts after a body swap, external <script src> tags load
+    // asynchronously (not in document order like parser-inserted ones), so
+    // jQuery/Select2 may not be ready when this inline script runs. Poll
+    // until the plugin is available, then init.
+    (function initSelect2WhenReady() {
+      if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
+        window.jQuery('.select2').select2({
+          theme: 'bootstrap-5',
+          width: '100%',
+          placeholder: 'Pick lessons…',
+        });
+        return;
+      }
+      setTimeout(initSelect2WhenReady, 40);
+    })();
+  </script>
+</body>
+</html>

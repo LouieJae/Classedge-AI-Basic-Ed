@@ -1,0 +1,66 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Screenshots · {{ attendance.subject.subject_name }}{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'classroom/view_all_screenshot.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="ss-page">
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Class <em>screenshots</em></h1>
+      <p class="page-sub">All captures recorded for this attendance session.</p>
+    </div>
+    <div class="ss-actions">
+      <a href="{% url 'teacher_timesheet_report' %}" class="ss-btn">
+        <i class="fas fa-arrow-left"></i> Back to timesheet
+      </a>
+    </div>
+  </div>
+
+  <div class="ss-summary">
+    <div class="ss-summary-rows">
+      <div class="ss-summary-cell">
+        <div class="label">Teacher</div>
+        <div class="value">{{ attendance.teacher.get_full_name }}</div>
+      </div>
+      <div class="ss-summary-cell">
+        <div class="label">Subject</div>
+        <div class="value">{{ attendance.subject.subject_name }}</div>
+      </div>
+      <div class="ss-summary-cell">
+        <div class="label">Date</div>
+        <div class="value">{{ attendance.time_started|date:"F j, Y" }}</div>
+      </div>
+    </div>
+    <span class="ss-count">{{ screenshots|length }} screenshot{{ screenshots|length|pluralize }}</span>
+  </div>
+
+  {% if screenshots %}
+    <div class="ss-grid">
+      {% for screenshot in screenshots %}
+        <a href="{{ screenshot.image.url }}" target="_blank" rel="noopener" class="ss-card" title="Open full image">
+          <div class="ss-thumb-wrap">
+            <img src="{{ screenshot.image.url }}" alt="Screenshot taken on {{ screenshot.timestamp }}" loading="lazy">
+          </div>
+          <div class="ss-meta">
+            <i class="far fa-clock"></i>
+            <span>{{ screenshot.timestamp|date:"g:i A" }}</span>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="ss-empty">
+      <i class="fas fa-image"></i>
+      <div class="lead">No screenshots for this session</div>
+      <div class="sub">Nothing was captured during this attendance record.</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

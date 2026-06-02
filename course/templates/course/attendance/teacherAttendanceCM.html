@@ -1,0 +1,519 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Record Attendance" %}
+  <style>
+    /* ─── Page shell tweaks ─────────────────────────────── */
+    .ta-shell { padding: 0; min-width: 0; }
+    .ta-shell, .ta-shell * { box-sizing: border-box; }
+
+    /* ─── Card ──────────────────────────────────────────── */
+    .ta-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      animation: taFade 0.4s ease both;
+    }
+    @keyframes taFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .ta-card-head {
+      padding: 18px 24px;
+      background: var(--cream-2);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px;
+    }
+    .ta-card-title {
+      font-family: var(--body);
+      font-size: 18px; font-weight: 500;
+      color: var(--forest); margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .ta-card-title em { color: var(--gold); font-style: italic; font-weight: 400; }
+
+    /* ─── Toolbar: date · graded · quick actions ─────────── */
+    .ta-toolbar {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) auto 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 880px) {
+      .ta-toolbar { grid-template-columns: 1fr; }
+    }
+    /* Every column shares the same label-on-top + content-below
+       structure so the labels land on a single horizontal line. */
+    .ta-field {
+      display: flex; flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+    .ta-field--end { align-items: flex-end; }
+    .ta-field-label {
+      font-family: var(--body);
+      font-size: 11px; font-weight: 600;
+      color: var(--ink-dim);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin: 0;
+      line-height: 1.4;
+    }
+    .ta-field-label .req { color: var(--rose); margin-left: 2px; }
+    .ta-field input[type="date"] {
+      padding: 9px 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--body); font-size: 13.5px;
+    }
+    .ta-field input[type="date"]:focus {
+      outline: none; border-color: var(--gold);
+      box-shadow: 0 0 0 3px var(--gold-bg);
+    }
+
+    .ta-graded {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--cream);
+      cursor: pointer; user-select: none;
+      transition: border-color 0.15s, background 0.15s;
+      margin: 0;
+      align-self: flex-start;
+    }
+    .ta-graded:hover { border-color: var(--gold); }
+    .ta-graded input[type="checkbox"] {
+      width: 16px; height: 16px; accent-color: var(--forest);
+      margin: 0; cursor: pointer;
+    }
+    .ta-graded span {
+      font-family: var(--body);
+      font-size: 13px; font-weight: 500; color: var(--forest);
+    }
+
+    .ta-chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .ta-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--body); font-size: 12px; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .ta-chip:hover { border-color: var(--gold); color: var(--forest); transform: translateY(-1px); }
+
+    /* ─── Search row + summary ───────────────────────────── */
+    .ta-search-row {
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    }
+    .ta-search { position: relative; flex: 1; max-width: 400px; min-width: 220px; }
+    .ta-search input {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      background: var(--cream);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-family: var(--body); font-size: 13px; color: var(--ink);
+    }
+    .ta-search input:focus {
+      outline: none; background: var(--paper);
+      border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-bg);
+    }
+    .ta-search i {
+      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      color: var(--ink-muted); font-size: 12.5px;
+    }
+    .ta-summary {
+      margin-left: auto;
+      font-family: var(--body); font-style: italic;
+      color: var(--ink-dim); font-size: 13px;
+    }
+    .ta-summary b { color: var(--forest); font-style: normal; font-weight: 600; }
+
+    /* ─── Validation alert ───────────────────────────────── */
+    .ta-alert {
+      margin: 16px 24px 0;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--rose-soft);
+      color: var(--rose);
+      border: 1px solid transparent;
+      font-family: var(--body); font-size: 13px;
+      display: none;
+    }
+    .ta-alert.is-on { display: flex; align-items: center; gap: 8px; }
+
+    /* ─── Table ──────────────────────────────────────────── */
+    .ta-table-wrap { overflow-x: auto; }
+    table.ta-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--paper);
+      font-family: var(--body);
+    }
+    table.ta-table thead th {
+      background: var(--cream-2);
+      color: var(--forest);
+      font-family: var(--body);
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left; white-space: nowrap;
+    }
+    table.ta-table thead th.center { text-align: center; }
+    table.ta-table tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--ink); font-size: 13.5px;
+      vertical-align: middle;
+    }
+    table.ta-table tbody tr:last-child td { border-bottom: none; }
+    table.ta-table tbody tr:hover td { background: var(--cream); }
+    table.ta-table tbody tr.is-missing td { background: var(--rose-soft); }
+    table.ta-table tbody tr.is-missing td:first-child { box-shadow: inset 3px 0 0 var(--rose); }
+
+    .ta-cell-name {
+      font-family: var(--body); font-weight: 500; color: var(--forest);
+      letter-spacing: -0.01em;
+    }
+    .ta-cell-num { color: var(--ink-muted); font-family: var(--body); }
+
+    /* ─── Status pill cells ──────────────────────────────── */
+    .ta-status-cell {
+      text-align: center; cursor: pointer;
+      padding: 0 !important;
+    }
+    .ta-status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--cream);
+      font-family: var(--body);
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-dim);
+      transition: all 0.15s ease;
+      user-select: none;
+      position: relative;
+      min-width: 110px;
+      justify-content: center;
+    }
+    .ta-status-pill .pts {
+      font-size: 10px; font-weight: 500; opacity: 0.75;
+      margin-left: 2px;
+    }
+    .ta-status-cell:hover .ta-status-pill {
+      border-color: var(--gold); color: var(--forest); background: var(--paper);
+    }
+    .ta-status-cell input[type="radio"] {
+      position: absolute; opacity: 0; pointer-events: none;
+    }
+    .ta-status-cell input[type="radio"]:checked + .ta-status-pill {
+      background: var(--forest);
+      color: var(--cream);
+      border-color: var(--forest);
+      box-shadow: 0 4px 10px -4px rgba(45, 49, 66, 0.25);
+    }
+    .ta-status-cell[data-status-name="present"] input:checked + .ta-status-pill {
+      background: var(--forest); border-color: var(--forest); color: var(--cream);
+    }
+    .ta-status-cell[data-status-name="late"] input:checked + .ta-status-pill {
+      background: var(--gold); border-color: var(--gold); color: #fff;
+    }
+    .ta-status-cell[data-status-name="absent"] input:checked + .ta-status-pill {
+      background: var(--rose); border-color: var(--rose); color: #fff;
+    }
+    .ta-status-cell[data-status-name="excused"] input:checked + .ta-status-pill {
+      background: #4f7da3; border-color: #4f7da3; color: #fff;
+    }
+
+    .ta-remark {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--paper);
+      font-family: var(--body); font-size: 13px;
+      resize: vertical; min-height: 36px;
+    }
+    .ta-remark:focus {
+      outline: none; border-color: var(--gold);
+      box-shadow: 0 0 0 3px var(--gold-bg);
+    }
+
+    /* ─── Empty ──────────────────────────────────────────── */
+    .ta-empty {
+      text-align: center; padding: 60px 24px;
+      color: var(--ink-dim);
+      font-family: var(--body);
+    }
+    .ta-empty .ico { font-size: 30px; opacity: 0.4; margin-bottom: 10px; color: var(--forest); }
+    .ta-empty .lead { color: var(--forest); font-size: 16px; margin-bottom: 4px; }
+    .ta-empty .sub { font-style: italic; font-size: 13px; }
+
+    /* ─── Footer ─────────────────────────────────────────── */
+    .ta-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 10px;
+      background: var(--cream-2);
+    }
+    .ta-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      font-family: var(--body); font-size: 13px; font-weight: 600;
+      border: 1px solid var(--border-strong);
+      background: var(--paper);
+      color: var(--ink);
+      text-decoration: none; cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .ta-btn:hover { border-color: var(--gold); color: var(--forest); }
+    .ta-btn--primary {
+      background: var(--forest);
+      color: var(--cream);
+      border-color: var(--forest);
+    }
+    .ta-btn--primary:hover { background: var(--forest-2); border-color: var(--forest-2); color: var(--cream); }
+  </style>
+</head>
+<body>
+  <div class="cm-shell wide ta-shell">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Take <em>attendance</em></h1>
+          <div class="cm-subtitle">{{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %} · click each student's status</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to classroom</a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="ta-card">
+      <form method="post" action="{% url 'record_attendanceCM' subject.id %}" id="attendanceForm" data-cl-loading data-cl-loading-label="Saving…">
+        {% csrf_token %}
+
+        <div class="ta-card-head">
+          <h2 class="ta-card-title">Roster &amp; <em>statuses</em></h2>
+        </div>
+
+        <!-- Toolbar: date · graded · quick actions -->
+        <div class="ta-toolbar">
+          <div class="ta-field">
+            <label class="ta-field-label" for="id_date">Date <span class="req">*</span></label>
+            {{ form.date }}
+          </div>
+          <div class="ta-field">
+            <span class="ta-field-label">Graded</span>
+            <label class="ta-graded">
+              <input type="checkbox" id="graded" name="graded" checked />
+              <span>Mark as Graded</span>
+            </label>
+          </div>
+          {% if students and attendance_statuses %}
+            <div class="ta-field ta-field--end">
+              <span class="ta-field-label">Quick mark all as</span>
+              <div class="ta-chips-row">
+                {% for status in attendance_statuses %}
+                  <button type="button" class="ta-chip selectAll" data-status="{{ status.id }}">
+                    <i class="fas fa-bolt"></i><span class="status-text">{{ status.status }}</span>
+                  </button>
+                {% endfor %}
+              </div>
+            </div>
+          {% else %}
+            <div></div>
+          {% endif %}
+        </div>
+
+        <!-- Search + summary -->
+        {% if students %}
+        <div class="ta-search-row">
+          <div class="ta-search">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input id="taFilter" type="text" placeholder="Search student name" autocomplete="off" />
+          </div>
+          <div class="ta-summary"><b id="taMarkedCount">0</b> of <b id="taTotalCount">{{ students|length }}</b> marked</div>
+        </div>
+        {% endif %}
+
+        <div id="taAlert" class="ta-alert" role="alert">
+          <i class="fas fa-circle-exclamation"></i> Please mark a status for every student before submitting.
+        </div>
+
+        {% if students %}
+          <div class="ta-table-wrap">
+            <table class="ta-table" id="taTable">
+              <thead>
+                <tr>
+                  <th class="center" style="width:48px;">#</th>
+                  <th>Student</th>
+                  {% for status in attendance_statuses %}
+                    <th class="center"><span class="status-text">{{ status.status }}</span></th>
+                  {% endfor %}
+                  <th style="width:280px;">Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in students %}
+                  <tr id="student-row-{{ student.id }}" class="ta-row" data-name="{{ student.last_name|lower }} {{ student.first_name|lower }}">
+                    <td class="center ta-cell-num">{{ forloop.counter }}</td>
+                    <td>
+                      <div class="ta-cell-name">{{ student.last_name }}, {{ student.first_name }}</div>
+                      <input type="hidden" name="students" value="{{ student.id }}" />
+                    </td>
+                    {% for status in attendance_statuses %}
+                      <td class="ta-status-cell" data-status-name="{{ status.status|lower }}">
+                        <input type="radio"
+                               id="status-{{ student.id }}-{{ status.id }}"
+                               class="status-{{ status.id }}"
+                               name="status_{{ student.id }}"
+                               value="{{ status.id }}" />
+                        <label for="status-{{ student.id }}-{{ status.id }}" class="ta-status-pill">
+                          <span class="status-text">{{ status.status }}</span>
+                          <span class="pts">{{ status.points }}pt</span>
+                        </label>
+                      </td>
+                    {% endfor %}
+                    <td>
+                      <textarea id="remark_{{ student.id }}"
+                                class="ta-remark"
+                                name="remark_{{ student.id }}"
+                                rows="1"
+                                placeholder="Remarks (optional)"></textarea>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="ta-empty">
+            <div class="ico"><i class="fas fa-users-slash"></i></div>
+            <div class="lead">No students enrolled</div>
+            <div class="sub">Enroll students into this subject to start recording attendance.</div>
+          </div>
+        {% endif %}
+
+        <div class="ta-footer">
+          <a href="{% url 'classroom_mode' subject.id %}" class="ta-btn">Cancel</a>
+          <button type="submit" class="ta-btn ta-btn--primary" id="submitAttendance" {% if not students %}disabled{% endif %}>
+            <i class="fas fa-check"></i> Submit Attendance
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Replace any underscores in status labels with spaces.
+      document.querySelectorAll('.status-text').forEach(function (el) {
+        el.textContent = el.textContent.replace(/_/g, ' ');
+      });
+
+      // Make the date input use the design-system styling.
+      var dateInput = document.querySelector('input[name="date"]');
+      if (dateInput) {
+        dateInput.classList.add('form-control');
+        dateInput.id = dateInput.id || 'id_date';
+        dateInput.required = true;
+      }
+
+      // Quick "mark all as" chips
+      document.querySelectorAll('.selectAll').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var sid = btn.getAttribute('data-status');
+          document.querySelectorAll('.status-' + sid).forEach(function (radio) {
+            if (radio.closest('tr').style.display === 'none') return;
+            radio.checked = true;
+          });
+          updateMarkedCount();
+        });
+      });
+
+      // Search filter
+      var filter = document.getElementById('taFilter');
+      var rows = Array.prototype.slice.call(document.querySelectorAll('#taTable tbody tr.ta-row'));
+      if (filter) {
+        filter.addEventListener('input', function () {
+          var q = filter.value.trim().toLowerCase();
+          rows.forEach(function (row) {
+            var name = row.getAttribute('data-name') || '';
+            row.style.display = (!q || name.indexOf(q) !== -1) ? '' : 'none';
+          });
+        });
+      }
+
+      // Marked-count summary
+      function updateMarkedCount() {
+        var counter = document.getElementById('taMarkedCount');
+        if (!counter) return;
+        var marked = 0;
+        rows.forEach(function (row) {
+          var checked = row.querySelector('input[type="radio"]:checked');
+          if (checked) marked++;
+        });
+        counter.textContent = marked;
+      }
+      document.addEventListener('change', function (e) {
+        if (e.target && e.target.matches('input[type="radio"][name^="status_"]')) {
+          e.target.closest('tr').classList.remove('is-missing');
+          updateMarkedCount();
+        }
+      });
+      updateMarkedCount();
+
+      // Submit validation
+      var form = document.getElementById('attendanceForm');
+      var alertBox = document.getElementById('taAlert');
+      if (form) {
+        form.addEventListener('submit', function (e) {
+          var ok = true;
+          if (dateInput && !dateInput.value) ok = false;
+          rows.forEach(function (row) {
+            if (row.style.display === 'none') return;
+            var checked = row.querySelector('input[type="radio"]:checked');
+            if (!checked) {
+              ok = false;
+              row.classList.add('is-missing');
+            } else {
+              row.classList.remove('is-missing');
+            }
+          });
+          if (!ok) {
+            e.preventDefault();
+            if (alertBox) alertBox.classList.add('is-on');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else if (alertBox) {
+            alertBox.classList.remove('is-on');
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

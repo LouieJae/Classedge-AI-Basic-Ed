@@ -1,0 +1,85 @@
+  /* Page-local — student-score table */
+  .vss-num {
+    display: inline-grid; place-items: center;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--cream-2);
+    color: var(--ink-dim);
+    font-size: 12px; font-weight: 700;
+  }
+  .vss-student { display: inline-flex; align-items: center; gap: 12px; }
+  .vss-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--ink), var(--brand-primary, #b7925a));
+    color: #fff;
+    display: inline-grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .vss-name { font-weight: 600; color: var(--ink); }
+  .vss-edit {
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .vss-score-input {
+    width: 90px;
+    padding: 7px 10px;
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm, 12px);
+    font-size: 14px; font-weight: 700;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .vss-score-input:focus {
+    outline: none;
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .vss-score-input.is-valid { border-color: #16a085; box-shadow: 0 0 0 3px rgba(22,160,133,0.15); }
+  .vss-score-input.is-invalid { border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192,57,43,0.15); }
+  .vss-denom { color: var(--ink-muted); font-size: 13px; font-weight: 600; }
+  .vss-score-static {
+    font-weight: 700; color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .save-score { padding: 7px 12px; }
+  .save-score i { margin: 0; }
+
+  .vss-empty {
+    text-align: center; padding: 48px 16px;
+    color: var(--ink-dim);
+  }
+  .vss-empty i { font-size: 36px; color: var(--brand-primary, #b7925a); opacity: 0.6; display: block; margin-bottom: 10px; }
+  .vss-empty .lead { font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .vss-empty .hint { font-size: 13px; color: var(--ink-muted); }
+
+  /* DataTables tone-down */
+  .dataTables_wrapper { padding: 12px 18px; }
+  .dataTables_filter input,
+  .dataTables_length select {
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    padding: 6px 14px;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 13px;
+  }
+  .dataTables_filter input:focus,
+  .dataTables_length select:focus {
+    outline: none; border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .dataTables_info { color: var(--ink-dim); font-size: 12.5px; }
+  .dataTables_paginate .paginate_button {
+    border-radius: 8px !important; margin: 0 2px !important;
+    color: var(--ink-dim) !important; border: 1px solid transparent !important;
+  }
+  .dataTables_paginate .paginate_button.current,
+  .dataTables_paginate .paginate_button.current:hover {
+    background: var(--brand-primary, #1b4332) !important; color: var(--cream) !important;
+    border-color: var(--brand-primary, #1b4332) !important;
+  }
+  .dataTables_paginate .paginate_button:hover {
+    background: var(--cream-2) !important; color: var(--ink) !important;
+    border-color: var(--border-strong) !important;
+  }

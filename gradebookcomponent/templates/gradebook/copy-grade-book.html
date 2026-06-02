@@ -1,0 +1,118 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Copy Gradebook{% endblock %}
+
+{% block content %}
+{% include "includes/_list_page_theme.html" %}
+{% include "termbook/_form_styles.html" %}
+<link rel="stylesheet" href="{% static 'gradebookcomponent/copy-grade-book.css' %}" />
+
+<div class="gbf-page">
+
+  <a href="{% url 'grade-book' %}" class="cl-back-btn">
+    <i class="fas fa-arrow-left"></i> Back to gradebook
+  </a>
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Copy <em>GradeBook</em></h1>
+      <p class="page-sub">Bring forward components from a previous term into the current one.</p>
+    </div>
+  </div>
+
+  <div class="cgb-grid">
+    <div class="gbf-card" style="max-width: none;">
+      <form method="post" action="{% url 'copy-grade-book' %}" class="gbf-form" novalidate
+            data-cl-loading data-cl-loading-label="Copying…">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label for="{{ form.source_semester.id_for_label }}" class="form-label">
+            {{ form.source_semester.label }}
+            <i class="fas fa-info-circle" style="color: var(--brand-primary, #b7925a);" data-bs-toggle="tooltip" title="Pick the semester whose gradebook you want to copy from."></i>
+          </label>
+          <select id="{{ form.source_semester.id_for_label }}" name="{{ form.source_semester.html_name }}"
+                  class="form-control selectpicker" data-live-search="true" data-style="btn-outline-secondary" required>
+            <option value="">Select a semester</option>
+            {% for semester in form.fields.source_semester.queryset %}
+              {% with start_year=semester.start_date|date:"Y" end_year=semester.end_date|date:"Y" %}
+                <option value="{{ semester.id }}">
+                  {{ semester.semester_name }} ({{ start_year }}{% if start_year != end_year %}-{{ end_year }}{% endif %})
+                </option>
+              {% endwith %}
+            {% endfor %}
+          </select>
+          <div class="gbf-help">Pick the semester to copy from.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.term.id_for_label }}" class="form-label">
+            {{ form.term.label }}
+            <i class="fas fa-info-circle" style="color: var(--brand-primary, #b7925a);" data-bs-toggle="tooltip" title="Source term within the chosen semester."></i>
+          </label>
+          {{ form.term }}
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.copy_from_subject.id_for_label }}" class="form-label">
+            {{ form.copy_from_subject.label }}
+            <i class="fas fa-info-circle" style="color: var(--brand-primary, #b7925a);" data-bs-toggle="tooltip" title="Source subject — its components will be cloned."></i>
+          </label>
+          {{ form.copy_from_subject }}
+        </div>
+
+        <div class="form-group">
+          <label for="id_current_term" class="form-label">
+            {{ form.current_term.label }}
+            <i class="fas fa-info-circle" style="color: var(--brand-primary, #b7925a);" data-bs-toggle="tooltip" title="Target term in the current semester."></i>
+          </label>
+          <select id="id_current_term" name="{{ form.current_term.html_name }}"
+                  class="form-control selectpicker" data-live-search="true" data-style="btn-outline-secondary" required>
+            <option value="">Select current term</option>
+            {% for term in form.fields.current_term.queryset %}
+              <option value="{{ term.id }}">{{ term.term_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.subject.id_for_label }}" class="form-label">
+            {{ form.subject.label }}
+            <i class="fas fa-info-circle" style="color: var(--brand-primary, #b7925a);" data-bs-toggle="tooltip" title="One or more target subjects to receive the copied components."></i>
+          </label>
+          {{ form.subject }}
+          <div class="gbf-help">You can paste the source components into multiple target subjects.</div>
+        </div>
+
+        <div class="gbf-actions">
+          <button type="submit" class="gbf-btn gbf-btn--primary">
+            <i class="fas fa-copy"></i> Copy GradeBook
+          </button>
+          <a href="{% url 'grade-book' %}" class="gbf-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <div>
+      <div class="cgb-tips-card">
+        <div class="cgb-tips-head"><i class="fas fa-info-circle"></i> Copying tips</div>
+        <div class="cgb-tips-body">
+          <ul>
+            <li><i class="fas fa-check-circle"></i> Pick the source semester first — terms and subjects load after.</li>
+            <li><i class="fas fa-check-circle"></i> Choose a single source subject that already has components defined.</li>
+            <li><i class="fas fa-check-circle"></i> The current term must belong to the active semester.</li>
+            <li><i class="fas fa-check-circle"></i> You can paste into multiple target subjects at once.</li>
+            <li class="warn"><i class="fas fa-exclamation-triangle"></i> A category that already exists on a target won't be duplicated.</li>
+            <li class="warn"><i class="fas fa-exclamation-triangle"></i> Combined weights on a target can't exceed 100%.</li>
+            <li class="danger"><i class="fas fa-ban"></i> Source subject can't be one of the target subjects.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'gradebookcomponent/copy-grade-book.js' %}"></script>
+{% endblock %}

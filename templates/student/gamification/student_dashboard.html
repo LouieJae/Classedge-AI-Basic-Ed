@@ -1,0 +1,289 @@
+{% extends "student_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ SCHOOL_NAME }} | Dashboard{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'gamification/student/student_dashboard.css' %}" />
+
+<!-- ─── Hero: greeting + level + streak + XP bar ─── -->
+<section class="sd-hero">
+  <div class="sd-hero-head">
+    <div>
+      <h1 class="page-title">{{ greeting }}, {{ user_name }} <span class="wave">&#x1F44B;</span></h1>
+      <p class="page-sub">
+        {% if quest_total > 0 %}
+          {{ completed_count }} of {{ quest_total }} tasks done. Keep the momentum going.
+        {% else %}
+          You're all caught up — nice!
+        {% endif %}
+      </p>
+    </div>
+    <div class="sd-hero-aside">
+      {% if login_streak > 0 %}
+      <div class="sd-streak">
+        <i class="fas fa-fire"></i>
+        <span class="num">{{ login_streak }}</span>
+        day{{ login_streak|pluralize }} streak
+      </div>
+      {% endif %}
+      <button type="button" class="cl-tour-replay" data-cl-tour="student-dashboard">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+    </div>
+  </div>
+
+  <div class="sd-level-row">
+    <span class="sd-level-pill"><i class="fas fa-star"></i> Level {{ current_level }}</span>
+    <div class="sd-xp-bar"><div class="sd-xp-fill" style="width: {{ xp_progress_pct }}%;"></div></div>
+  </div>
+  <div class="sd-xp-meta">
+    <span><strong>{{ total_xp|intcomma }}</strong> XP</span>
+    <span>{{ xp_to_next|intcomma }} XP to Level {{ next_level }}</span>
+  </div>
+</section>
+
+<!-- ─── HIGHLIGHT: Today's Schedule ─────────────── -->
+<section class="sd-today" aria-label="Today's classes">
+  <div class="sd-today-head">
+    <div>
+      <div class="sd-today-eyebrow"><i class="fas fa-bolt"></i> Today</div>
+      <h2 class="sd-today-title">
+        {% if schedule_today %}
+          {% if schedule_today|length == 1 %}
+            One class on your <em>schedule today</em>
+          {% else %}
+            {{ schedule_today|length }} classes <em>on today's schedule</em>
+          {% endif %}
+        {% else %}
+          No classes <em>today</em>
+        {% endif %}
+      </h2>
+    </div>
+    <div class="sd-today-clock">
+      <i class="far fa-clock"></i>
+      <span>Now · <strong>{{ now_dt|date:"g:i A" }}</strong></span>
+    </div>
+  </div>
+
+  {% if schedule_today %}
+    <div class="sd-sched-list cl-carousel">
+      {% for s in schedule_today %}
+        <a class="sd-sched-item is-{{ s.status }}"
+           href="{% url 'material-list' s.subject.id %}"
+           aria-label="Open {{ s.subject.subject_name }}">
+          <span class="sd-sched-status">
+            {% if s.status == 'now' %}In session
+            {% elif s.status == 'upcoming' %}Upcoming
+            {% else %}Done
+            {% endif %}
+          </span>
+          <div class="sd-sched-time">
+            {{ s.start_time|time:"g:i A" }}
+            <span class="dash">–</span>
+            {{ s.end_time|time:"g:i A" }}
+          </div>
+          <div class="sd-sched-subject">
+            {{ s.subject.subject_name }}
+            <span class="code">{{ s.subject.subject_code|default:"" }}</span>
+          </div>
+          <div class="sd-sched-meta">
+            {% if s.room %}<span><i class="fas fa-location-dot"></i>{{ s.room }}</span>{% endif %}
+          </div>
+          <span class="sd-sched-cta">
+            Open class <i class="fas fa-arrow-right"></i>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="sd-sched-empty">
+      <i class="fas fa-mug-hot"></i>
+      No classes today — use the time to catch up on work below.
+    </div>
+  {% endif %}
+</section>
+
+<!-- ─── Quick stats ─── -->
+<section class="sd-stats">
+  <div class="sd-stat{% if quest_total > 0 and completed_count < quest_total %} warn{% endif %}">
+    <div class="ico"><i class="fas fa-list-check"></i></div>
+    <div>
+      <div class="lbl">Today's tasks</div>
+      <div class="val">{{ completed_count }}/{{ quest_total }}</div>
+      <div class="sub">done</div>
+    </div>
+  </div>
+  <div class="sd-stat{% if due_this_week_count > 0 %} warn{% endif %}">
+    <div class="ico"><i class="far fa-calendar"></i></div>
+    <div>
+      <div class="lbl">Due this week</div>
+      <div class="val">{{ due_this_week_count }}</div>
+      <div class="sub">assessment{{ due_this_week_count|pluralize }}</div>
+    </div>
+  </div>
+  <div class="sd-stat">
+    <div class="ico"><i class="fas fa-medal"></i></div>
+    <div>
+      <div class="lbl">Badges</div>
+      <div class="val">{{ earned_count }}/{{ total_badges }}</div>
+      <div class="sub">earned</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Today's tasks + Upcoming (two columns) ─── -->
+<section class="sd-work-grid">
+  <div class="sd-card">
+    <div class="sd-card-head">
+      <h2 class="sd-card-title">Today's tasks</h2>
+      {% if quest_total > 0 %}<span class="sd-card-meta">{{ completed_count }} of {{ quest_total }} done</span>{% endif %}
+    </div>
+    {% if quests %}
+      <ul class="sd-quest-list">
+        {% for q in quests %}
+          <li class="sd-quest{% if q.done %} done{% endif %}">
+            {% if q.url %}
+              <a class="sd-quest-link" href="{{ q.url }}" aria-label="Open {{ q.name }}">
+                <span class="check"></span>
+                <span class="body">
+                  <span class="name">{{ q.name }}</span>
+                  {% if q.subject %}<span class="subj">{{ q.subject }}</span>{% endif %}
+                </span>
+                <span class="xp">+{{ q.xp }} XP</span>
+                <i class="fas fa-chevron-right sd-quest-caret" aria-hidden="true"></i>
+              </a>
+            {% else %}
+              <span class="check"></span>
+              <span class="body">
+                <span class="name">{{ q.name }}</span>
+                {% if q.subject %}<span class="subj">{{ q.subject }}</span>{% endif %}
+              </span>
+              <span class="xp">+{{ q.xp }} XP</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="sd-empty">
+        <i class="fas fa-check-circle"></i>
+        Nothing on your plate right now — enjoy the breather.
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="sd-card">
+    <div class="sd-card-head">
+      <h2 class="sd-card-title">Upcoming</h2>
+      <span class="sd-card-meta">next 5</span>
+    </div>
+    {% if upcoming %}
+      <ul class="sd-up-list">
+        {% for item in upcoming %}
+          <li class="sd-up">
+            <span class="date">
+              <span class="day">{{ item.date|date:"j" }}</span>
+              <span class="mon">{{ item.date|date:"M" }}</span>
+            </span>
+            <span class="body">
+              <span class="title">{{ item.title }}</span>
+              <span class="meta">
+                {{ item.date|date:"l" }}{% if item.time %} · {{ item.time|date:"g:i A" }}{% endif %}
+              </span>
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="sd-empty">
+        <i class="far fa-calendar-check"></i>
+        Nothing upcoming. You're all clear.
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ─── Quick links ─── -->
+<section class="sd-qa-strip" style="margin-bottom: 22px;">
+  <a class="sd-qa" href="{% url 'course-list' %}">
+    <span class="ico"><i class="fas fa-book-open"></i></span>
+    <span class="lbl">My courses</span>
+  </a>
+  <a class="sd-qa" href="{% url 'my-grades' %}">
+    <span class="ico"><i class="fas fa-table"></i></span>
+    <span class="lbl">My grades</span>
+  </a>
+  <a class="sd-qa" href="{% url 'student_calendar' %}">
+    <span class="ico"><i class="far fa-calendar"></i></span>
+    <span class="lbl">Calendar</span>
+  </a>
+  <a class="sd-qa" href="{% url 'quest_map_picker' %}">
+    <span class="ico"><i class="fas fa-map"></i></span>
+    <span class="lbl">Quest map</span>
+  </a>
+</section>
+
+<style>
+  .sd-hero-aside { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+</style>
+
+<!-- ─── Bottom: Recent badges + Recognition ─── -->
+<section class="sd-bottom">
+  <div class="sd-card">
+    <div class="sd-card-head">
+      <h2 class="sd-card-title">Recent badges</h2>
+      <span class="sd-card-meta">{{ earned_count }}/{{ total_badges }}</span>
+    </div>
+    <div class="sd-bd-strip">
+      {% for sb in recent_badges %}
+        <div class="sd-bd">
+          <span class="ico">{{ sb.badge.icon }}</span>
+          <span class="nm" title="{{ sb.badge.name }}">{{ sb.badge.name }}</span>
+        </div>
+      {% endfor %}
+      {% with filled=recent_badges|length %}
+        {% if filled < 6 %}
+          {% for _ in "123456"|make_list %}
+            {% if forloop.counter > filled %}
+              <div class="sd-bd locked">
+                <span class="ico"><i class="fas fa-lock"></i></span>
+                <span class="nm">Locked</span>
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+    <div class="sd-bd-footer">
+      <span>{{ earned_count }} of {{ total_badges }} unlocked</span>
+      <a href="{% url 'gamification_badges' %}">View all &rarr;</a>
+    </div>
+  </div>
+
+  <div class="sd-card">
+    <div class="sd-card-head">
+      <h2 class="sd-card-title">&#x1F31F; Recognition</h2>
+      <span class="sd-card-meta">from your teachers</span>
+    </div>
+    {% if recent_recognitions %}
+      <div class="sd-rec-list">
+        {% for rec in recent_recognitions %}
+          <div class="sd-rec">
+            <div class="from">From {{ rec.teacher.first_name|default:rec.teacher.username }}</div>
+            <div class="msg">"{{ rec.message }}"</div>
+            {% if rec.xp_awarded %}<span class="xp">+{{ rec.xp_awarded }} XP</span>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="sd-empty">
+        <i class="far fa-comment"></i>
+        Stay consistent — recognition will land here when teachers send it.
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<script src="{% static 'js/tours/cl-tour-student-dashboard.js' %}" defer></script>
+{% endblock %}

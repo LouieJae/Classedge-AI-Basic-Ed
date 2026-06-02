@@ -1,0 +1,356 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% load attendance_filters %}
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+{% endblock %}
+
+{% block title %}Teacher Timesheet{% endblock %}
+
+{% block content %}
+  {% include "includes/_list_page_theme.html" %}
+
+  <link rel="stylesheet" href="{% static 'classroom/teacher_timesheet_report.css' %}" />
+
+  <div class="cl-page ts-page">
+
+    {# ── Hero ───────────────────────────────────────────── #}
+    <div class="cl-header">
+      <div>
+        <span class="ts-role-tag"><i class="fas fa-stopwatch"></i> Time Keeper</span>
+        <h2 style="margin-bottom: 4px;">Teacher <em>timesheet</em></h2>
+        <p style="margin: 0;">
+          Punch-in / punch-out review for every teacher × subject — compare actual time against the scheduled budget, then export.
+        </p>
+      </div>
+      <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="cl-tour-replay" data-cl-tour="timesheet-report">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <div class="ts-period-chip">
+          <i class="far fa-calendar"></i>
+          <strong>{{ start_date|default:"—" }}</strong>
+          <span class="ts-muted">→</span>
+          <strong>{{ end_date|default:"—" }}</strong>
+        </div>
+      </div>
+    </div>
+
+    {# ── Summary tiles ──────────────────────────────────── #}
+    <div class="ts-summary">
+      <div class="ts-tile ok">
+        <div class="ts-tile-head">
+          <div class="ts-tile-label">Hours clocked</div>
+          <div class="ts-tile-ico"><i class="fas fa-clock"></i></div>
+        </div>
+        <div class="ts-tile-value">{{ timesheet_stats.actual_hours }}</div>
+        <div class="ts-tile-foot">
+          <span class="ts-tile-mini">Budget {{ timesheet_stats.scheduled_hours }}</span>
+          {% if timesheet_stats.variance_hours != "0h 0m" %}
+            <span class="ts-tile-mini {% if timesheet_stats.variance_negative %}gold{% else %}late{% endif %}">
+              {% if timesheet_stats.variance_negative %}+{% else %}−{% endif %}{{ timesheet_stats.variance_hours }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="ts-tile ok">
+        <div class="ts-tile-head">
+          <div class="ts-tile-label">Attendance rate</div>
+          <div class="ts-tile-ico"><i class="fas fa-bullseye"></i></div>
+        </div>
+        <div class="ts-tile-value">{{ timesheet_stats.attendance_rate }}<small>%</small></div>
+        <div class="ts-tile-foot">
+          <span class="ts-tile-mini ok">{{ timesheet_stats.total_entries }} session{{ timesheet_stats.total_entries|pluralize }} reviewed</span>
+        </div>
+        <div class="ts-tile-bar" aria-hidden="true">
+          <span style="width: {{ timesheet_stats.attendance_rate }}%;"></span>
+        </div>
+      </div>
+
+      <div class="ts-tile warn">
+        <div class="ts-tile-head">
+          <div class="ts-tile-label">On-time / Late</div>
+          <div class="ts-tile-ico"><i class="fas fa-hourglass-start"></i></div>
+        </div>
+        <div class="ts-tile-value">{{ timesheet_stats.on_time }} <small>/ {{ timesheet_stats.late }}</small></div>
+        <div class="ts-tile-foot">
+          <span class="ts-tile-mini ok">{{ timesheet_stats.on_time_pct }}% on time</span>
+          {% if timesheet_stats.late %}
+            <span class="ts-tile-mini gold">{{ timesheet_stats.late }} late start{{ timesheet_stats.late|pluralize }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="ts-tile {% if timesheet_stats.absent %}late{% else %}ok{% endif %}">
+        <div class="ts-tile-head">
+          <div class="ts-tile-label">No-shows</div>
+          <div class="ts-tile-ico"><i class="fas fa-user-slash"></i></div>
+        </div>
+        <div class="ts-tile-value">{{ timesheet_stats.absent }}</div>
+        <div class="ts-tile-foot">
+          <span class="ts-tile-mini {% if timesheet_stats.absent %}late{% else %}ok{% endif %}">
+            scheduled but not started
+          </span>
+        </div>
+      </div>
+    </div>
+
+    {# ── Filters + Exports ──────────────────────────────── #}
+    <div class="cl-card">
+      <div class="cl-card-header">
+        <span><i class="fas fa-filter me-2"></i>Filters</span>
+        <span style="font-size:11.5px;color:var(--ink-dim);font-weight:600;">
+          {% if current_semester %}Active term · {{ current_semester.semester_name }}{% endif %}
+        </span>
+      </div>
+      <div class="cl-card-body">
+        <div class="ts-filter-grid">
+          <div class="ts-field">
+            <label for="start_date">Start date</label>
+            <input type="date" id="start_date" value="{{ start_date }}">
+          </div>
+          <div class="ts-field">
+            <label for="end_date">End date</label>
+            <input type="date" id="end_date" value="{{ end_date }}">
+          </div>
+          <div class="ts-field">
+            <label for="teacher_filter">Teacher</label>
+            <select id="teacher_filter" class="select2">
+              <option value="" {% if not selected_teacher_id %}selected{% endif %}>All teachers</option>
+              {% for teacher in teachers %}
+                <option value="{{ teacher.id }}" {% if selected_teacher_id|stringformat:"s" == teacher.id|stringformat:"s" %}selected{% endif %}>
+                  {{ teacher.first_name }} {{ teacher.last_name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="ts-field">
+            <label for="semester_filter">Semester</label>
+            <select id="semester_filter" class="select2">
+              {% for semester in semesters %}
+                <option value="{{ semester.id }}"
+                  {% if selected_semester_id|stringformat:"s" == semester.id|stringformat:"s" %}selected{% endif %}>
+                  {{ semester.semester_name }} ({{ semester.start_date|date:"M Y" }} – {{ semester.end_date|date:"M Y" }}){% if current_semester and semester.id == current_semester.id %} · current{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="ts-exports">
+          <span class="ts-exports-label">Export</span>
+          <a id="export_excel_link"
+             href="{% url 'teacher_attendance_report_excel' %}{% if start_date or end_date or selected_teacher_id %}?{% endif %}{% if start_date %}start_date={{ start_date }}{% if end_date or selected_teacher_id %}&{% endif %}{% endif %}{% if end_date %}end_date={{ end_date }}{% if selected_teacher_id %}&{% endif %}{% endif %}{% if selected_teacher_id %}teacher_id={{ selected_teacher_id }}{% endif %}"
+             class="ts-btn ts-btn--primary">
+            <i class="fas fa-file-excel"></i> Full report
+          </a>
+          <a id="export_summary_excel_link"
+             href="{% url 'teacher_attendance_summary_excel' %}{% if start_date or end_date or selected_teacher_id %}?{% endif %}{% if start_date %}start_date={{ start_date }}{% if end_date or selected_teacher_id %}&{% endif %}{% endif %}{% if end_date %}end_date={{ end_date }}{% if selected_teacher_id %}&{% endif %}{% endif %}{% if selected_teacher_id %}teacher_id={{ selected_teacher_id }}{% endif %}"
+             class="ts-btn">
+            <i class="fas fa-file-lines"></i> Summary
+          </a>
+          <a id="export_schedule_excel_link"
+             href="{% url 'teacher_schedule_excel' %}{% if selected_teacher_id %}?teacher_id={{ selected_teacher_id }}{% endif %}"
+             class="ts-btn ts-btn--gold {% if not selected_teacher_id %}disabled{% endif %}"
+             {% if not selected_teacher_id %}disabled{% endif %}>
+            <i class="fas fa-calendar-alt"></i> Schedule
+          </a>
+          {% if not selected_teacher_id %}
+            <span style="font-size: 11.5px; color: var(--ink-muted); font-style: italic;">— pick a teacher to enable schedule export</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Teacher × Subject cards ────────────────────────── #}
+    {% if report_data %}
+      {% for record in report_data %}
+        <div class="ts-teacher-card">
+          <div class="ts-card-head">
+            <div class="ts-card-who">
+              <div class="ts-avatar">{{ record.teacher_name|slice:":2"|upper }}</div>
+              <div style="min-width: 0; flex: 1;">
+                <div class="ts-card-name">{{ record.teacher_name }}</div>
+                <div class="ts-card-subject">
+                  <span class="pill"><i class="fas fa-book" style="font-size:10px; color: var(--brand-primary, #b7925a);"></i> {{ record.subject_name }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="ts-card-summary">
+              <span class="ts-summary-chip">
+                <span class="lbl">Budget</span>
+                <strong>{{ record.total_scheduled_time }}</strong>
+              </span>
+              <span class="ts-summary-chip">
+                <span class="lbl">Actual</span>
+                <strong>{{ record.total_attendance_time }}</strong>
+              </span>
+              <span class="ts-summary-chip variance {% if record.variance_negative %}neg{% else %}pos{% endif %}">
+                <span class="lbl">{% if record.variance_negative %}Overtime{% else %}Undertime{% endif %}</span>
+                <strong>{% if record.variance_negative %}−{% endif %}{{ record.variance }}</strong>
+              </span>
+              <a href="#"
+                 class="ts-action-link teacher-link"
+                 data-teacher-id="{{ record.teacher_id }}"
+                 data-subject-id="{{ record.subject_id }}">
+                <i class="fas fa-images" style="font-size: 10px;"></i> Screenshots
+              </a>
+            </div>
+          </div>
+
+          <div class="ts-table-wrap">
+            <table class="ts-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Punch in</th>
+                  <th>Punch out</th>
+                  <th>Scheduled</th>
+                  <th class="right">Hours</th>
+                  <th class="center">Status</th>
+                  <th class="right">Variance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entry in record.date_entries %}
+                  {% comment %}
+                    Determine the status for this row:
+                    - has_attendance=false → Absent
+                    - has_attendance=true and actual_start > budget_start → Late
+                    - else → Present
+                    Plus mark overtime/undertime via daily_variance fields.
+                  {% endcomment %}
+                  {% with is_absent=entry.has_attendance|yesno:"no,yes" %}
+                    {% if not entry.has_attendance %}
+                      <tr class="absent">
+                    {% elif entry.actual_start > entry.budget_start %}
+                      <tr class="late">
+                    {% else %}
+                      <tr class="present">
+                    {% endif %}
+                      <td>
+                        <span class="ts-date">
+                          {{ entry.date|date:"M d, Y" }}
+                          <small>{{ entry.date|date:"l" }}</small>
+                        </span>
+                      </td>
+                      <td>
+                        {% if entry.has_attendance %}
+                          <span class="ts-time">{{ entry.actual_start }}</span>
+                        {% else %}
+                          <span class="ts-time muted">—</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if entry.has_attendance %}
+                          <span class="ts-time">{{ entry.actual_end }}</span>
+                        {% else %}
+                          <span class="ts-time muted">—</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <span class="ts-time scheduled">{{ entry.budget_start }} – {{ entry.budget_end }}</span>
+                      </td>
+                      <td class="right">
+                        {% if entry.has_attendance %}
+                          <span class="ts-hours">{{ entry.actual_duration }}</span>
+                        {% else %}
+                          <span class="ts-hours muted">—</span>
+                        {% endif %}
+                      </td>
+                      <td class="center">
+                        {% if not entry.has_attendance %}
+                          <span class="ts-pill absent">Absent</span>
+                        {% elif entry.actual_start > entry.budget_start %}
+                          <span class="ts-pill late">Late</span>
+                        {% else %}
+                          <span class="ts-pill present">Present</span>
+                        {% endif %}
+                      </td>
+                      <td class="right">
+                        {% if entry.daily_variance %}
+                          {% if entry.daily_variance_negative %}
+                            <span class="ts-variance-tag over">+{{ entry.daily_variance }}</span>
+                          {% else %}
+                            <span class="ts-variance-tag under">−{{ entry.daily_variance }}</span>
+                          {% endif %}
+                        {% else %}
+                          <span class="ts-muted">—</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endwith %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="cl-card">
+        <div class="cl-card-body">
+          <div class="ts-empty">
+            <div class="ico"><i class="fas fa-calendar-times"></i></div>
+            <div class="lead">No timesheet records in range</div>
+            <div class="sub">No scheduled classes or attendance entries match the current filters. Try widening the date range, switching semester, or clearing the teacher filter.</div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+
+<script>
+  function applyFilters() {
+    var startDate = document.getElementById('start_date').value;
+    var endDate = document.getElementById('end_date').value;
+    var teacherId = document.getElementById('teacher_filter').value;
+    var semesterId = document.getElementById('semester_filter').value;
+
+    var url = '?';
+    if (startDate) url += 'start_date=' + startDate + '&';
+    if (endDate) url += 'end_date=' + endDate + '&';
+    if (teacherId) url += 'teacher_id=' + teacherId + '&';
+    if (semesterId) url += 'semester_id=' + semesterId + '&';
+
+    if (url.endsWith('&')) url = url.slice(0, -1);
+    if (url === '?') url = '';
+
+    var exportLink = document.getElementById('export_excel_link');
+    var baseExportUrl = "{% url 'teacher_attendance_report_excel' %}";
+    exportLink.href = baseExportUrl + url;
+
+    var exportSummaryLink = document.getElementById('export_summary_excel_link');
+    var baseExportSummaryUrl = "{% url 'teacher_attendance_summary_excel' %}";
+    exportSummaryLink.href = baseExportSummaryUrl + url;
+
+    var exportScheduleLink = document.getElementById('export_schedule_excel_link');
+    var baseExportScheduleUrl = "{% url 'teacher_schedule_excel' %}";
+    var scheduleUrl = '?';
+    if (teacherId) scheduleUrl += 'teacher_id=' + teacherId + '&';
+    if (semesterId) scheduleUrl += 'semester_id=' + semesterId + '&';
+    if (scheduleUrl.endsWith('&')) scheduleUrl = scheduleUrl.slice(0, -1);
+    if (scheduleUrl === '?') scheduleUrl = '';
+
+    if (teacherId) {
+      exportScheduleLink.href = baseExportScheduleUrl + scheduleUrl;
+      exportScheduleLink.classList.remove('disabled');
+      exportScheduleLink.removeAttribute('disabled');
+    } else {
+      exportScheduleLink.href = '#';
+      exportScheduleLink.classList.add('disabled');
+      exportScheduleLink.setAttribute('disabled', 'disabled');
+    }
+
+    window.location.href = url;
+  }
+
+  document.getElementById('start_date').addEventListener('change', applyFilters);
+  document.getElementById('end_date').addEventListener('change', applyFilters);
+</script>
+
+<script src="{% static 'classroom/teacher_timesheet_report.js' %}"></script>
+<script src="{% static 'js/tours/cl-tour-timesheet-report.js' %}" defer></script>
+
+{% endblock %}

@@ -1,0 +1,26 @@
+{% comment %}
+  Classroom Mode pulsing badge.
+
+  Default variant ("eyebrow") renders the .cm-eyebrow chip used inside
+  .cm-hero sections of standalone CM pages. Its CSS lives in
+  classroom-mode-shell.css (loaded via _cm_head.html).
+
+  variant="badge" renders the .cm-mode-badge pill used on pages that
+  extend base_operation.html instead of standing alone in the CM shell
+  (e.g. update-assessment-cm, update-material-cm). Its CSS lives in
+  cl-brand-utilities.css so it works on any page that loads brand
+  utilities — no inline <style> blocks needed.
+
+  Usage:
+    {% include "includes/_cm_mode_badge.html" %}                                 {# default: cm-eyebrow #}
+    {% include "includes/_cm_mode_badge.html" with label="Classroom Mode · Material" %}
+    {% include "includes/_cm_mode_badge.html" with variant="badge" %}            {# pill on ops-base pages #}
+    {% include "includes/_cm_mode_badge.html" with label="Live" %}               {# reuse the dot for other live indicators #}
+{% endcomment %}
+{% with v=variant|default:"eyebrow" lbl=label|default:"Classroom Mode" %}
+{% if v == "badge" %}
+<span class="cm-mode-badge"><span class="pulse"></span> {{ lbl }}</span>
+{% else %}
+<span class="cm-eyebrow"><span class="pulse"></span> {{ lbl }}</span>
+{% endif %}
+{% endwith %}

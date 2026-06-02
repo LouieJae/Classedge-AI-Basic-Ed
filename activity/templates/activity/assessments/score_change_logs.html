@@ -1,0 +1,226 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Score change logs · {{ activity.activity_name }}{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'activity/assessments/score_change_logs.css' %}" />
+
+<div class="scl-page">
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Score <em>change logs</em></h1>
+      <p class="page-sub">{{ activity.activity_name }} — audit trail and editable toggle.</p>
+      <div class="scl-meta-pills">
+        <span class="scl-pill"><i class="fas fa-tag"></i> <strong>{{ activity.activity_type.name }}</strong></span>
+        <span class="scl-pill"><i class="fas fa-bullseye"></i> Max <strong>{{ activity.max_score }}</strong> pts</span>
+        <span class="scl-pill"><i class="fas fa-book"></i> <strong>{{ activity.subject.subject_name }}</strong></span>
+      </div>
+    </div>
+    <a href="{% url 'assessment-list-registrar' activity.subject.id %}" class="scl-back">
+      <i class="fas fa-arrow-left"></i> Back to assessments
+    </a>
+  </div>
+
+  <!-- Student Scores -->
+  <div class="scl-card">
+    <div class="scl-card-head">
+      <h2 class="scl-card-title">Student <em>scores</em></h2>
+      <span class="scl-card-count">{{ student_activities|length }} student{{ student_activities|length|pluralize }}</span>
+    </div>
+    <div class="scl-card-body">
+      <div class="scl-table-wrap">
+        <table class="scl-table data-table" id="scoresTable">
+          <thead>
+            <tr>
+              <th style="width: 60px;">#</th>
+              <th>Student</th>
+              <th>Score</th>
+              <th style="width: 100px;">Editable</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student_activity in student_activities %}
+              {% with first=student_activity.student.first_name last=student_activity.student.last_name %}
+                <tr>
+                  <td><span class="scl-index">{{ forloop.counter }}</span></td>
+                  <td>
+                    <div class="scl-student">
+                      <span class="scl-avatar">{{ first|slice:":1"|upper }}{{ last|slice:":1"|upper }}</span>
+                      <span>{{ first }} {{ last }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="scl-score">{{ student_activity.total_score }}</span>
+                    <span class="scl-score-out">/ {{ activity.max_score }}</span>
+                  </td>
+                  <td>
+                    <label class="scl-toggle">
+                      <input class="toggle-editable" type="checkbox"
+                             {% if student_activity.is_editable %}checked{% endif %}
+                             data-id="{{ student_activity.id }}">
+                      <span class="scl-toggle-slider"></span>
+                    </label>
+                  </td>
+                </tr>
+              {% endwith %}
+            {% empty %}
+              <tr>
+                <td colspan="4">
+                  <div class="scl-empty">
+                    <i class="fas fa-inbox"></i>
+                    <div class="lead">No student scores yet</div>
+                    <div>Once students complete this assessment, scores will appear here.</div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% if student_activities %}
+      <div class="scl-card-foot">Total students · <strong>{{ student_activities|length }}</strong></div>
+    {% endif %}
+  </div>
+
+  <!-- Score Change History -->
+  <div class="scl-card">
+    <div class="scl-card-head">
+      <h2 class="scl-card-title">Score change <em>history</em></h2>
+      <span class="scl-card-count">{{ score_change_logs|length }} entr{{ score_change_logs|length|pluralize:"y,ies" }}</span>
+    </div>
+    <div class="scl-card-body">
+      <div class="scl-table-wrap">
+        <table class="scl-table data-table" id="logsTable">
+          <thead>
+            <tr>
+              <th style="width: 60px;">#</th>
+              <th>Student</th>
+              <th>Previous</th>
+              <th>New</th>
+              <th>Changed by</th>
+              <th>Date &amp; time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in score_change_logs %}
+              {% with first=log.student_activity.student.first_name last=log.student_activity.student.last_name %}
+                <tr>
+                  <td><span class="scl-index">{{ forloop.counter }}</span></td>
+                  <td>
+                    <div class="scl-student">
+                      <span class="scl-avatar">{{ first|slice:":1"|upper }}{{ last|slice:":1"|upper }}</span>
+                      <span>{{ first }} {{ last }}</span>
+                    </div>
+                  </td>
+                  <td><span class="scl-score-prev">{{ log.previous_score }}</span></td>
+                  <td><span class="scl-arrow"><i class="fas fa-arrow-right"></i></span><span class="scl-score-new">{{ log.new_score }}</span></td>
+                  <td>{{ log.changed_by.first_name }} {{ log.changed_by.last_name }}</td>
+                  <td><span class="scl-time">{{ log.change_date|date:"M d, Y · h:i A" }}</span></td>
+                </tr>
+              {% endwith %}
+            {% empty %}
+              <tr>
+                <td colspan="6">
+                  <div class="scl-empty">
+                    <i class="fas fa-clock-rotate-left"></i>
+                    <div class="lead">No score changes recorded</div>
+                    <div>Score adjustments will be logged here for audit transparency.</div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    if ($('#scoresTable tbody tr').length && !$('#scoresTable tbody tr td[colspan]').length) {
+      $('#scoresTable').DataTable({
+        responsive: true,
+        dom: 'Bfrtip',
+        buttons: ['copy', 'excel', 'pdf', 'print'],
+        language: { search: "_INPUT_", searchPlaceholder: "Search students…", lengthMenu: "Show _MENU_ per page", info: "Showing _START_–_END_ of _TOTAL_", paginate: { previous: "‹", next: "›" } }
+      });
+    }
+
+    if ($('#logsTable tbody tr').length && !$('#logsTable tbody tr td[colspan]').length) {
+      $('#logsTable').DataTable({
+        responsive: true,
+        dom: 'Bfrtip',
+        buttons: ['copy', 'excel', 'pdf', 'print'],
+        language: { search: "_INPUT_", searchPlaceholder: "Search logs…", lengthMenu: "Show _MENU_ per page", info: "Showing _START_–_END_ of _TOTAL_", paginate: { previous: "‹", next: "›" } }
+      });
+    }
+
+    $('.dt-buttons .buttons-excel').attr('title', '{{ activity.activity_name|escapejs }} — Score Change Logs');
+
+    document.querySelectorAll('.toggle-editable').forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        const id = this.dataset.id;
+        const isEditable = this.checked;
+
+        fetch("{% url 'toggle-student-assessment-editable' %}", {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({ student_activity_id: id, is_editable: isEditable }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.success) {
+            alert(data.error);
+            this.checked = !isEditable;
+            return;
+          }
+          const toast = document.createElement('div');
+          toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed bottom-0 end-0 m-3';
+          toast.setAttribute('role', 'alert');
+          toast.innerHTML = `
+            <div class="d-flex">
+              <div class="toast-body"><i class="fas fa-check-circle me-2"></i> Editable status updated</div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>`;
+          document.body.appendChild(toast);
+          const bsToast = new bootstrap.Toast(toast);
+          bsToast.show();
+          toast.addEventListener('hidden.bs.toast', () => toast.remove());
+        })
+        .catch(() => {
+          alert("An error occurred while updating editable status.");
+          this.checked = !isEditable;
+        });
+      });
+    });
+  });
+</script>
+{% endblock %}

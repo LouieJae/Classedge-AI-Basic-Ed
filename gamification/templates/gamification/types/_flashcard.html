@@ -1,0 +1,40 @@
+{% load static %}
+{% comment %}Flashcard drill — JS-driven, included by side_activity_play.html{% endcomment %}
+
+<div id="flashcard-container" style="text-align:center;">
+  <div class="flashcard-counter" style="font-size:.9rem;color:var(--muted);margin-bottom:1rem;">1 / ?</div>
+
+  <div class="flashcard-card"
+       style="min-height:220px;display:flex;align-items:center;justify-content:center;padding:2rem;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);cursor:pointer;margin:0 auto;max-width:480px;transition:box-shadow .15s;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+    <div class="flashcard-front" style="font-size:1.35rem;color:var(--text);line-height:1.6;"></div>
+    <div class="flashcard-back" style="font-size:1.15rem;color:var(--muted);line-height:1.6;display:none;"></div>
+  </div>
+
+  <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;">Click the card to flip</p>
+
+  <div style="display:flex;gap:1rem;justify-content:center;margin-top:1.25rem;">
+    <button type="button" class="flashcard-knew"
+            style="display:none;padding:.65rem 1.5rem;font-size:1rem;border:none;border-radius:8px;background:#22c55e;color:#fff;cursor:pointer;">Knew It</button>
+    <button type="button" class="flashcard-didnt"
+            style="display:none;padding:.65rem 1.5rem;font-size:1rem;border:none;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;">Didn't Know</button>
+  </div>
+</div>
+
+<script src="{% static 'js/side_activities/flashcard.js' %}"></script>
+<script src="{% static 'js/side_activities/submit.js' %}"></script>
+<script>
+(function() {
+  var sa = window.SIDE_ACTIVITY;
+  var content = sa.content;
+  var cards = content.cards || [];
+  var startTime = Date.now();
+
+  var container = document.getElementById('flashcard-container');
+
+  initFlashcards(container, cards, function(knewCount) {
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+    var score = cards.length > 0 ? knewCount / cards.length : 0;
+    submitAttempt(sa.id, score, elapsed, {knew: knewCount, total: cards.length});
+  });
+})();
+</script>

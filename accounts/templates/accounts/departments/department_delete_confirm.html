@@ -1,0 +1,38 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Delete {{ dept.name }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'accounts/departments/department_delete_confirm.css' %}" />
+
+<div class="dept-delete-page">
+  <h1>Delete <span class="dept-name">{{ dept.name }}</span>?</h1>
+  <p class="subtitle">
+    This removes the department record. Related rows are not destroyed — they remain in the database and become institution-wide (unowned).
+  </p>
+
+  <div class="impact-card">
+    <h3>What becomes unowned</h3>
+    {% if impact.semesters or impact.events or impact.holidays or impact.announcements %}
+      <ul>
+        {% if impact.semesters %}<li><strong>{{ impact.semesters }}</strong> semester{{ impact.semesters|pluralize }} (and their terms)</li>{% endif %}
+        {% if impact.events %}<li><strong>{{ impact.events }}</strong> event{{ impact.events|pluralize }}</li>{% endif %}
+        {% if impact.holidays %}<li><strong>{{ impact.holidays }}</strong> holiday{{ impact.holidays|pluralize }}</li>{% endif %}
+        {% if impact.announcements %}<li><strong>{{ impact.announcements }}</strong> announcement{{ impact.announcements|pluralize }}</li>{% endif %}
+      </ul>
+    {% else %}
+      <p class="muted">Nothing currently scoped to this department.</p>
+    {% endif %}
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="actions">
+      <button type="submit" class="btn-danger">Yes, delete {{ dept.name }}</button>
+      <a href="{% url 'department_list' %}" class="btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

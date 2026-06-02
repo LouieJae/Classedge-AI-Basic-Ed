@@ -1,0 +1,144 @@
+{% comment %}
+[Classedge LMS] Shared side-drawer modal styles + dark-mode overrides for
+modals and dropdowns. Include alongside _list_page_theme.html on any page
+that uses .custom-modal or themed Bootstrap dropdowns.
+{% endcomment %}
+<style>
+  /* ───────── Side-drawer modal ───────── */
+  .custom-modal {
+    /* Hidden by default. Only the `.show` class flips display + transform.
+       Belt-and-suspenders: even if `transform` gets overridden by another
+       stylesheet, `display: none` keeps the modal out of the layout. */
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    right: 0; top: 0;
+    height: 100%;
+    width: 100%;
+    max-width: 520px;
+    background: var(--paper);
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.18);
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.32s ease;
+    flex-direction: column;
+    font-family: var(--body); color: var(--ink);
+  }
+  @media (min-width: 1024px) { .custom-modal { max-width: 760px; } }
+  @media (min-width: 1440px) { .custom-modal { max-width: 920px; } }
+  .custom-modal.show { display: flex; transform: translateX(0); opacity: 1; }
+
+  .custom-modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background-color: rgba(15, 23, 19, 0.45);
+    backdrop-filter: blur(2px);
+    z-index: 1040;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .custom-modal-backdrop.show { display: block; opacity: 1; }
+
+  .custom-modal-header {
+    padding: 20px 26px;
+    background: var(--brand-primary, #b7925a);
+    color: var(--cream);
+    flex-shrink: 0;
+  }
+  .custom-modal-header h5 {
+    margin: 0;
+    font-family: var(--display); font-weight: 600;
+    font-size: 19px; letter-spacing: 0.01em;
+  }
+
+  .custom-modal-body {
+    padding: 24px 26px;
+    overflow-y: auto;
+    flex: 1 1 auto;
+    background: var(--cream);
+  }
+
+  .close-btn {
+    position: absolute;
+    left: -18px; top: 22px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--brand-primary, #b7925a);
+    color: var(--cream);
+    border: 3px solid var(--paper);
+    cursor: pointer;
+    display: grid; place-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .close-btn:hover { background: var(--brand-primary, #b7925a); transform: scale(1.06); }
+  .close-btn:before { content: "\2715"; font-size: 14px; font-weight: 700; }
+
+  /* ───────── Bootstrap dropdown override (theme-aware) ───────── */
+  .dropdown-menu {
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-hover);
+    padding: 6px;
+  }
+  .dropdown-item {
+    border-radius: 6px;
+    font-size: 13px;
+    padding: 8px 12px;
+    color: var(--ink);
+    background: transparent;
+    border: 0;
+  }
+  .dropdown-item:hover,
+  .dropdown-item:focus {
+    background: var(--cream-2, rgba(255,255,255,0.06));
+    color: var(--ink);
+  }
+  .dropdown-item.text-danger:hover,
+  .dropdown-item.text-danger:focus {
+    background: rgba(220, 53, 69, 0.12);
+    color: #ff6b7a;
+  }
+  .dropdown-divider {
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+  .dropdown-toggle::after { color: currentColor; }
+
+  /* ───────── Dark-mode-specific tweaks ───────── */
+  body[data-theme="dark"] .custom-modal {
+    box-shadow: -8px 0 36px rgba(0, 0, 0, 0.55);
+  }
+  body[data-theme="dark"] .custom-modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+  body[data-theme="dark"] .custom-modal-header {
+    /* In dark mode the forest var becomes a light mint — pair with high-contrast dark text */
+    color: #0f1714;
+  }
+  body[data-theme="dark"] .custom-modal-body {
+    /* `--cream` is near-black in dark mode; lift to `--paper` so the modal
+       reads as a panel instead of a void. */
+    background: var(--paper);
+  }
+  body[data-theme="dark"] .close-btn {
+    border-color: var(--paper);
+    color: #0f1714;
+  }
+  body[data-theme="dark"] .dropdown-menu {
+    background: #1f2a26;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6);
+  }
+  body[data-theme="dark"] .dropdown-item { color: var(--ink); }
+  body[data-theme="dark"] .dropdown-item:hover,
+  body[data-theme="dark"] .dropdown-item:focus {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--ink);
+  }
+  body[data-theme="dark"] .dropdown-divider {
+    border-top-color: rgba(255, 255, 255, 0.08);
+  }
+</style>

@@ -1,0 +1,65 @@
+{% load static %}
+{% block content %}
+
+<form method="POST" action="{% url 'update_role' role.id %}" id="updateRoleForm" class="rl-form">
+  {% csrf_token %}
+
+  <div class="rl-form-body">
+    <div class="rp-field">
+      <label for="id_name">Role name</label>
+      {{ form.name }}
+    </div>
+
+    <div class="rp-section-title">Permissions</div>
+    <div class="check-all-bar">
+      <label for="checkAll"><input type="checkbox" id="checkAll"> Select all permissions</label>
+      <small>Grouped by category, then by module</small>
+    </div>
+
+    {% for category, modules in categorized_permissions_grouped %}
+      <details class="perm-category" open>
+        <summary>
+          <label class="cat-select-label">
+            <input type="checkbox" class="select-all-category" data-cat-index="{{ forloop.counter }}">
+            {{ category }}
+          </label>
+          <span class="cat-count">{{ modules|length }} module{{ modules|length|pluralize }}</span>
+        </summary>
+        <div class="module-list">
+          {% for model_label, perms in modules %}
+            <div class="perm-module">
+              <div class="perm-module-header">
+                <label class="model-select-label">
+                  <input type="checkbox"
+                         class="select-all-model"
+                         data-model-key="m-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                         data-cat-index="{{ forloop.parentloop.counter }}">
+                  {{ model_label }}
+                </label>
+                <span class="model-meta">{{ perms|length }} action{{ perms|length|pluralize }}</span>
+              </div>
+              <div class="perm-actions">
+                {% for action_label, perm in perms %}
+                  <label class="perm-action-pill" title="{{ perm.name }}">
+                    <input type="checkbox"
+                           name="permissions"
+                           class="permission-checkbox cat-{{ forloop.parentloop.parentloop.counter }}"
+                           data-model-key="m-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}"
+                           value="{{ perm.id }}"
+                           {% if perm.id in role_permission_ids %}checked{% endif %}>
+                    {{ action_label }}
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </details>
+    {% endfor %}
+  </div>
+
+  <div class="rl-form-foot">
+    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-save"></i> Update role</button>
+  </div>
+</form>
+{% endblock %}

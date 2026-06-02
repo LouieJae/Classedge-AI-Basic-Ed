@@ -1,0 +1,145 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Student Scores · {{ activity.activity_name }}{% endblock %}
+
+{% block content %}
+{% include "includes/_list_page_theme.html" %}
+
+<div class="cl-page">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'material-list' activity.subject.id %}">{{ activity.subject.subject_name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'subject-assessment-list' activity.subject.id %}">Assessments</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ activity.activity_name }}</li>
+    </ol>
+  </nav>
+
+  <div class="cl-header">
+    <div>
+      <h2><i class="fas fa-clipboard-list me-2"></i>{{ activity.activity_name }}</h2>
+      <p>
+        Student scores · {{ activity.activity_type.name }}
+        {% if activity.max_score %} · Max {{ activity.max_score }}{% endif %}
+      </p>
+    </div>
+    <div class="cl-actions">
+      <a href="{% url 'subject-assessment-list' activity.subject.id %}" class="cl-btn"><i class="fas fa-arrow-left"></i> Back to assessments</a>
+    </div>
+  </div>
+
+  <div class="cl-card">
+    <div class="cl-card-header">
+      <span><i class="fas fa-list-ol me-2"></i>Student scores</span>
+      {% if student_activities %}
+        <span class="cl-badge">{{ student_activities|length }} student{{ student_activities|length|pluralize }}</span>
+      {% endif %}
+    </div>
+
+    <div class="cl-card-body">
+      <div class="table-responsive">
+        <table class="cl-table data-table" id="scoresTable">
+          <thead>
+            <tr>
+              <th style="width: 56px;">#</th>
+              <th>Student</th>
+              <th style="width: 220px;">Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student_activity in student_activities %}
+              <tr>
+                <td><span class="vss-num">{{ forloop.counter }}</span></td>
+                <td>
+                  <div class="vss-student">
+                    <span class="vss-avatar">{{ student_activity.student.first_name|slice:":1"|upper }}{{ student_activity.student.last_name|slice:":1"|upper }}</span>
+                    <span class="vss-name">{{ student_activity.student.first_name }} {{ student_activity.student.last_name }}</span>
+                  </div>
+                </td>
+                <td>
+                  {% if student_activity.is_editable %}
+                    <div class="vss-edit">
+                      <input type="number" step="0.01" min="0"
+                             value="{{ student_activity.total_score }}"
+                             class="vss-score-input score-input"
+                             data-id="{{ student_activity.id }}">
+                      {% if activity.max_score %}<span class="vss-denom">/ {{ activity.max_score }}</span>{% endif %}
+                      <button class="cl-btn cl-btn-primary save-score" data-id="{{ student_activity.id }}" type="button">
+                        <i class="fas fa-save"></i>
+                      </button>
+                    </div>
+                  {% else %}
+                    <span class="vss-score-static">
+                      {{ student_activity.total_score }}{% if activity.max_score %}<span class="vss-denom">/ {{ activity.max_score }}</span>{% endif %}
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="vss-empty">
+                  <i class="fas fa-clipboard-question"></i>
+                  <div class="lead">No student scores yet</div>
+                  <div class="hint">Once students complete this assessment, their scores will appear here.</div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{% static 'activity/assessments/view_student_score.css' %}" />
+
+<script>
+  document.querySelectorAll('.save-score').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var id = this.dataset.id;
+      var input = document.querySelector('input.score-input[data-id="' + id + '"]');
+      var score = input.value;
+
+      fetch("{% url 'edit_student_score' %}", {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ student_activity_id: id, score: score }),
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          input.classList.remove('is-invalid');
+          input.classList.add('is-valid');
+          setTimeout(function () { input.classList.remove('is-valid'); }, 1500);
+        } else {
+          input.classList.add('is-invalid');
+          alert(data.error);
+        }
+      })
+      .catch(function () { alert('An error occurred while saving the score.'); });
+    });
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var scoreTable = document.querySelector('#scoresTable');
+    var hasRows = scoreTable && scoreTable.querySelectorAll('tbody tr').length > 0
+                 && !scoreTable.querySelector('tbody tr td[colspan]');
+    if (scoreTable && hasRows && window.jQuery && jQuery.fn.DataTable && !jQuery.fn.DataTable.isDataTable(scoreTable)) {
+      jQuery(scoreTable).DataTable({
+        responsive: true, autoWidth: false,
+        paging: true, searching: true, ordering: true, pageLength: 10,
+        language: { search: '', searchPlaceholder: 'Search students…' },
+        columnDefs: [{ orderable: false, targets: [2] }]
+      });
+    }
+  });
+</script>
+{% endblock %}

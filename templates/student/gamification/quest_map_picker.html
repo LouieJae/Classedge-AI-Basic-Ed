@@ -1,0 +1,104 @@
+{% extends 'student_base.html' %}
+{% load static %}
+{% block title %}Quest Map — Choose a Subject{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'gamification/student/quest_map_picker.css' %}" />
+
+<div class="qp-shell">
+  <div class="qp-head">
+    <div>
+      <h1 class="page-title">Quest <em>Map</em></h1>
+      <p class="page-sub">Pick a subject and continue your journey</p>
+    </div>
+    <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="cl-tour-replay" data-cl-tour="quest-map-picker">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      <a href="{% url 'student_dashboard' %}" class="qp-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    </div>
+  </div>
+
+  {% if subjects %}
+  <div class="qp-banner">
+    <div>
+      <div class="title">Your learning adventure awaits</div>
+      <div class="desc">Each subject is a quest line. Finish modules to unlock the next stop, claim XP, and earn badges along the way.</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="val">{{ subjects|length }}</div><div class="lbl">Subjects</div></div>
+      <div class="stat"><div class="val">{{ total_completed_all }}</div><div class="lbl">Done</div></div>
+      <div class="stat"><div class="val">{{ fully_done }}</div><div class="lbl">Mastered</div></div>
+    </div>
+  </div>
+
+  <div class="qp-overall">
+    <div class="qp-overall-head">
+      <div class="label">Overall Module Progress</div>
+      <div class="pct">{{ overall_pct }}%</div>
+    </div>
+    <div class="qp-overall-track">
+      <div class="qp-overall-fill" style="width:{{ overall_pct }}%;"></div>
+    </div>
+  </div>
+
+  <div class="qp-grid">
+    {% for s in subjects %}
+    {% if s.total == 0 %}
+      {% with state="empty" %}
+      <a href="{% url 'quest_map' s.id %}" class="qp-card empty">
+        <div class="qp-card-head">
+          <div class="qp-icon"><i class="fas fa-map-signs"></i></div>
+          <div class="qp-name">{{ s.name }}</div>
+          <span class="qp-badge not-started">No modules</span>
+        </div>
+        <div class="qp-cta-line">
+          <span>Waiting for lesson plan</span>
+          <span class="go">View &rarr;</span>
+        </div>
+      </a>
+      {% endwith %}
+    {% elif s.completed >= s.total %}
+      <a href="{% url 'quest_map' s.id %}" class="qp-card done">
+        <div class="qp-card-head">
+          <div class="qp-icon"><i class="fas fa-trophy"></i></div>
+          <div class="qp-name">{{ s.name }}</div>
+          <span class="qp-badge done">Mastered</span>
+        </div>
+        <div class="qp-progress">
+          <div class="qp-progress-head"><span>{{ s.completed }} / {{ s.total }} quests</span><strong>{{ s.pct }}%</strong></div>
+          <div class="qp-progress-track"><div class="qp-progress-fill" style="width:{{ s.pct }}%;"></div></div>
+        </div>
+        <div class="qp-cta-line">
+          <span><i class="fas fa-check-circle"></i> All quests complete</span>
+          <span class="go">Review &rarr;</span>
+        </div>
+      </a>
+    {% else %}
+      <a href="{% url 'quest_map' s.id %}" class="qp-card">
+        <div class="qp-card-head">
+          <div class="qp-icon"><i class="fas fa-book-open"></i></div>
+          <div class="qp-name">{{ s.name }}</div>
+          {% if s.completed > 0 %}<span class="qp-badge in-progress">In Progress</span>{% else %}<span class="qp-badge not-started">New</span>{% endif %}
+        </div>
+        <div class="qp-progress">
+          <div class="qp-progress-head"><span>{{ s.completed }} / {{ s.total }} quests</span><strong>{{ s.pct }}%</strong></div>
+          <div class="qp-progress-track"><div class="qp-progress-fill" style="width:{{ s.pct }}%;"></div></div>
+        </div>
+        <div class="qp-cta-line">
+          <span><i class="fas fa-location-dot"></i> {{ s.remaining }} quest{{ s.remaining|pluralize }} left</span>
+          <span class="go">Continue &rarr;</span>
+        </div>
+      </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="qp-empty">
+    <i class="fas fa-map-signs"></i>
+    <p>No enrolled subjects yet. Once you join a class, your quest map appears here.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script src="{% static 'js/tours/cl-tour-quest-map-picker.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Import Activities" %}
+  <style>
+    .act-pool { display: grid; gap: 14px; }
+    .pool-empty { padding: 32px 16px; text-align: center; color: var(--ink-dim); background: var(--cream-2); border-radius: var(--radius-sm); }
+    .semester-group { margin-top: 14px; }
+    .semester-label { font-size: 13px; font-weight: 800; color: var(--forest); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .term-group { margin-left: 4px; margin-bottom: 14px; }
+    .term-label { font-size: 12px; font-weight: 700; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .activity-card { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: border-color 0.15s, background 0.15s; margin-bottom: 8px; }
+    .activity-card:hover { border-color: var(--forest); }
+    .activity-card.is-selected { border-color: var(--forest); background: var(--forest-light); }
+    .activity-card input[type="checkbox"] { margin-top: 4px; accent-color: var(--forest); width: 18px; height: 18px; }
+    .activity-card .body { flex: 1; min-width: 0; }
+    .activity-card .name { font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .chip { display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+    .chip-type { background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332); }
+    .chip-term { background: var(--forest-light); color: var(--forest); }
+    .pool-counter { font-size: 12px; color: var(--ink-dim); font-weight: 600; }
+    .pool-counter strong { color: var(--forest); font-size: 14px; font-weight: 800; }
+    .modules-multiselect { min-height: 130px; padding: 8px; }
+  </style>
+</head>
+<body>
+  <div class="cm-shell">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Import from <em>previous semester</em></h1>
+          <div class="cm-subtitle">{{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %} · assessments</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'assessment-list-cm' subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to assessments</a>
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost"><i class="fas fa-chalkboard"></i> Classroom</a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-form-card">
+      <div class="cm-form-head">
+        <h2><span class="icon"><i class="fas fa-clock-rotate-left"></i></span> Pick assessments to import</h2>
+      </div>
+      <form method="post" action="{% url 'import-assessments-from-previous-semester-cm' subject_id=subject.id %}" id="copyActivityFormCM" data-cl-loading data-cl-loading-label="Copying…">
+        {% csrf_token %}
+        <div class="cm-form-body">
+
+          <div class="cm-form-row" id="dateConfig" style="display: none;">
+            <div class="cm-col-12">
+              <h3 style="font-size: 13px; font-weight: 700; color: var(--ink-dim); margin: 6px 0 10px; text-transform: uppercase; letter-spacing: 0.08em;">Schedule for the copies</h3>
+              <div class="cm-form-row">
+                <div class="cm-col-6">
+                  <label for="start_time">Opens at</label>
+                  <input type="datetime-local" id="start_time" name="start_time" value="{{ default_start_time|date:'Y-m-d\TH:i' }}" />
+                </div>
+                <div class="cm-col-6">
+                  <label for="end_time">Closes at</label>
+                  <input type="datetime-local" id="end_time" name="end_time" value="{{ default_end_time|date:'Y-m-d\TH:i' }}" />
+                </div>
+              </div>
+              <div class="cm-form-row">
+                <div class="cm-col-6">
+                  <label for="term">Term</label>
+                  <select id="term" name="term">
+                    {% for term in available_terms %}
+                      <option value="{{ term.id }}" {% if term.id == current_term.id %}selected{% endif %}>{{ term.term_name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="cm-col-6">
+                  <label for="modules">Anchor to lessons (optional)</label>
+                  <select id="modules" name="modules" multiple class="modules-multiselect">
+                    {% for module in available_modules %}
+                      <option value="{{ module.id }}">{{ module.file_name }}{% if module.term %} ({{ module.term.term_name }}){% endif %}</option>
+                    {% endfor %}
+                  </select>
+                  <small>Hold Ctrl/⌘ to pick multiple. Linked to all imported assessments.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cm-form-row">
+            <div class="cm-col-12">
+              <div class="cm-field-head">
+                <h3 style="font-size: 13px; font-weight: 700; color: var(--ink-dim); margin: 0; text-transform: uppercase; letter-spacing: 0.08em;">Available assessments</h3>
+                <span class="pool-counter"><strong id="selectedCount">0</strong> selected</span>
+              </div>
+              <div class="act-pool">
+                {% if activities_by_semester %}
+                  {% for semester, terms in activities_by_semester.items %}
+                    <div class="semester-group">
+                      <h4 class="semester-label">{{ semester.semester_name }}</h4>
+                      {% for term, activities in terms.items %}
+                        <div class="term-group">
+                          <div class="term-label">{{ term.term_name }}</div>
+                          {% for activity in activities %}
+                            <label class="activity-card" id="activity-item-{{ activity.id }}" for="activity_{{ activity.id }}">
+                              <input type="checkbox" class="activity-checkbox" id="activity_{{ activity.id }}" name="selected_activities" value="{{ activity.id }}">
+                              <div class="body">
+                                <div class="name">
+                                  {{ activity.activity_name }}
+                                  {% if activity.activity_type %}<span class="chip chip-type">{{ activity.activity_type.name }}</span>{% endif %}
+                                  {% if activity.term %}<span class="chip chip-term">{{ activity.term.term_name }}</span>{% endif %}
+                                </div>
+                              </div>
+                            </label>
+                          {% endfor %}
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="pool-empty">No assessments found in previous semesters.</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="cm-form-foot">
+          <a href="{% url 'assessment-list-cm' subject.id %}" class="cm-btn ghost">Cancel</a>
+          <button type="submit" class="cm-btn primary" id="copyBtn" disabled>
+            <i class="fas fa-file-import"></i> Import assessments
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var dateConfig = document.getElementById('dateConfig');
+      var copyBtn = document.getElementById('copyBtn');
+      var counter = document.getElementById('selectedCount');
+
+      function refresh() {
+        var checked = document.querySelectorAll('.activity-checkbox:checked');
+        counter.textContent = checked.length;
+        copyBtn.disabled = checked.length === 0;
+        dateConfig.style.display = checked.length ? 'flex' : 'none';
+      }
+
+      document.querySelectorAll('.activity-checkbox').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+          var card = cb.closest('.activity-card');
+          if (card) card.classList.toggle('is-selected', cb.checked);
+          refresh();
+        });
+      });
+
+      var form = document.getElementById('copyActivityFormCM');
+      if (form) form.addEventListener('submit', function (e) {
+        var checked = document.querySelectorAll('.activity-checkbox:checked');
+        if (checked.length === 0) {
+          e.preventDefault();
+          if (window.Swal) {
+            Swal.fire({ title: 'No assessments selected', text: 'Please select at least one assessment to import.', icon: 'info', confirmButtonColor: '#1F4D3A' });
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

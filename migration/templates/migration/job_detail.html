@@ -1,0 +1,27 @@
+{% extends "migration/base.html" %}
+
+{% block migration_content %}
+<h2>{{ job.app_label }}.{{ job.model_name }} — {{ job.status }}</h2>
+<dl>
+  <dt>Cursor</dt><dd>{{ job.last_cursor|default:"-" }}</dd>
+  <dt>Rows written</dt><dd>{{ job.rows_written }} / {{ job.total_estimated }}</dd>
+  <dt>Errored</dt><dd>{{ job.rows_errored }}</dd>
+  <dt>Skipped</dt><dd>{{ job.rows_skipped }}</dd>
+  <dt>Started</dt><dd>{{ job.started_at|default:"-" }}</dd>
+  <dt>Completed</dt><dd>{{ job.completed_at|default:"-" }}</dd>
+</dl>
+
+<h3>Recent run logs</h3>
+<div hx-get="{% url 'migration:job-detail-fragment' job.id %}"
+     hx-trigger="every 3s"
+     hx-swap="innerHTML">
+  {% include "migration/_run_log_tail.html" %}
+</div>
+
+<h3>Recent errors</h3>
+<ul>
+{% for e in recent_errors %}
+<li><a href="{% url 'migration:error-detail' e.id %}">{{ e.occurred_at }} {{ e.category }} pk={{ e.old_pk }} — {{ e.message }}</a></li>
+{% empty %}<li>None</li>{% endfor %}
+</ul>
+{% endblock %}

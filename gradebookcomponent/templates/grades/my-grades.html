@@ -1,0 +1,118 @@
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}My Grades{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'gradebookcomponent/my-grades.css' %}" />
+
+<div class="grades-page">
+  <div class="grades-header">
+    <div class="grades-title-block">
+      <h1 class="page-title">My <em>Grades</em></h1>
+      <p class="page-sub">
+        {% if selected_semester %}
+          {{ selected_semester.semester_name }} &middot; {{ selected_semester.get_academic_year }}
+          &middot; passing grade {{ passing_grade|floatformat:0 }}
+        {% else %}
+          No active semester
+        {% endif %}
+      </p>
+    </div>
+    <div class="grades-toolbar">
+      <form method="get">
+        <label for="semester">Semester</label>
+        <select id="semester" name="semester" onchange="this.form.submit()">
+          {% for s in semesters %}
+            <option value="{{ s.id }}" {% if selected_semester and selected_semester.id == s.id %}selected{% endif %}>
+              {{ s.semester_name }} &middot; {{ s.get_academic_year }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+
+  {% if rows %}
+    <div class="grades-table-card">
+      <div class="grades-table-wrap">
+        <table class="grades-table">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              {% for term_name in term_columns %}
+                <th class="col-num">{{ term_name }}<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:10px;">Term Grade</span></th>
+              {% endfor %}
+              <th class="col-num col-final">Final Grade</th>
+              {% if request.user.is_teacher %}
+              <th class="col-num" style="width: 56px;"><span class="sr-only">Export</span></th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td>
+                  <div class="subj-cell">
+                    <div class="subj-thumb">
+                      {% if row.subject.subject_photo %}
+                        <img src="{{ row.subject.subject_photo.url }}" alt="{{ row.subject.subject_name }}" />
+                      {% else %}
+                        <i class="fas fa-book"></i>
+                      {% endif %}
+                    </div>
+                    <div>
+                      <div class="subj-name">{{ row.subject.subject_name }}</div>
+                      <div class="subj-meta">
+                        {% if row.subject.subject_code %}{{ row.subject.subject_code }}{% endif %}
+                        {% if row.subject.assign_teacher %} &middot; {{ row.subject.assign_teacher.first_name }} {{ row.subject.assign_teacher.last_name }}{% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                {% for t in row.terms %}
+                  <td class="col-num">
+                    {% if t.visibility == False %}
+                      <span class="term-grade hidden" title="Not yet released">Hidden</span>
+                    {% elif t.total is not None %}
+                      <span class="term-grade">{{ t.total|floatformat:1 }}</span>
+                    {% else %}
+                      <span class="term-grade empty">&mdash;</span>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+                <td class="col-num col-final">
+                  {% if row.final_grade is not None %}
+                    <span class="final-grade {% if row.is_passing %}pass{% else %}fail{% endif %}">{{ row.final_grade|floatformat:1 }}</span>
+                  {% else %}
+                    <span class="final-grade empty">&mdash;</span>
+                  {% endif %}
+                </td>
+                {% if request.user.is_teacher %}
+                <td class="col-num">
+                  {% if selected_semester and row.has_activities %}
+                    <a class="grade-export-btn"
+                       href="{% url 'export_my_grades_excel' %}?semester={{ selected_semester.id }}&subject={{ row.subject.id }}"
+                       title="Download this subject's grade record (Excel)">
+                      <i class="fas fa-file-excel"></i>
+                    </a>
+                  {% else %}
+                    <span class="grade-export-btn disabled" title="No assessments yet"><i class="fas fa-file-excel"></i></span>
+                  {% endif %}
+                </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="empty-grades">
+      <i class="fas fa-chart-line"></i>
+      <div style="font-size: 16px; margin-bottom: 6px; color: var(--text);">Nothing to grade yet</div>
+      <div style="font-size: 13px;">You aren't enrolled in any subjects for this semester.</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

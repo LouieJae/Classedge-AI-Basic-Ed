@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Material Progress" %}
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap4.min.css" />
+  <style>
+    .cm-progress-table { width: 100%; }
+    .cm-progress-bar-wrap { background: var(--cream-2); border-radius: 100px; height: 22px; position: relative; overflow: hidden; min-width: 180px; }
+    .cm-progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--brand-primary, #1b4332), var(--forest)); border-radius: 100px; transition: width 0.4s ease; }
+    .cm-progress-bar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink); }
+    .cm-progress-bar-text.on-fill { color: #fff; mix-blend-mode: difference; }
+    .cm-stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .cm-stat-tile { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; }
+    .cm-stat-tile .label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim); }
+    .cm-stat-tile .value { font-size: 24px; font-weight: 800; color: var(--ink); margin-top: 4px; }
+    .cm-stat-tile .value em { font-style: normal; color: var(--forest); }
+    .cm-stat-tile.gold .value em { color: var(--brand-primary, #1b4332); }
+    .cm-stat-tile.rose .value em { color: var(--rose); }
+  </style>
+</head>
+<body>
+  <div class="cm-shell wide">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title"><em>{{ activity_name }}</em> · progress</h1>
+          <div class="cm-subtitle">{{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %}</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'material-list-cm' subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to lessons</a>
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost"><i class="fas fa-chalkboard"></i> Classroom</a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    {% with total=progress_list|length %}
+      <div class="cm-stat-strip">
+        <div class="cm-stat-tile"><div class="label">Students tracked</div><div class="value"><em>{{ total }}</em></div></div>
+        <div class="cm-stat-tile gold"><div class="label">Completed (100%)</div><div class="value" id="cm-stat-complete"><em>0</em></div></div>
+        <div class="cm-stat-tile"><div class="label">In progress</div><div class="value" id="cm-stat-inprogress"><em>0</em></div></div>
+        <div class="cm-stat-tile rose"><div class="label">Not started</div><div class="value" id="cm-stat-none"><em>0</em></div></div>
+      </div>
+    {% endwith %}
+
+    <div class="cm-card">
+      <div class="cm-table-wrap">
+        <table class="cm-table cm-progress-table" id="cm-progress-table">
+          <thead>
+            <tr>
+              <th style="width: 56px; text-align: center;">#</th>
+              <th style="text-align: left;">Student</th>
+              <th>Progress</th>
+              <th>Time spent</th>
+              <th>First access</th>
+              <th>Last access</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for progress in progress_list %}
+              <tr data-pct="{{ progress.progress|default:0 }}">
+                <td style="text-align: center;"><span class="cm-pill">{{ forloop.counter }}</span></td>
+                <td><strong>{{ progress.student }}</strong></td>
+                <td>
+                  <div class="cm-progress-bar-wrap">
+                    <div class="cm-progress-bar-fill" style="width: {{ progress.progress|default:0 }}%;"></div>
+                    <div class="cm-progress-bar-text {% if progress.progress and progress.progress >= 50 %}on-fill{% endif %}">{{ progress.progress|default:0 }}%</div>
+                  </div>
+                </td>
+                <td><span class="cm-time">{{ progress.formatted_time_spent }}</span></td>
+                <td><span class="cm-time">{% if progress.first_accessed %}{{ progress.first_accessed|date:'M d, Y H:i' }}{% else %}—{% endif %}</span></td>
+                <td><span class="cm-time">{% if progress.last_accessed %}{{ progress.last_accessed|date:'M d, Y H:i' }}{% else %}—{% endif %}</span></td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6"><div class="cm-empty"><i class="fas fa-chart-line"></i><div class="lead">No progress recorded yet</div><div>Students will appear here once they start the lesson.</div></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var rows = document.querySelectorAll('#cm-progress-table tbody tr[data-pct]');
+      var complete = 0, inprogress = 0, none = 0;
+      rows.forEach(function (r) {
+        var pct = parseFloat(r.getAttribute('data-pct')) || 0;
+        if (pct >= 100) complete++;
+        else if (pct > 0) inprogress++;
+        else none++;
+      });
+      var setStat = function (id, val) {
+        var el = document.querySelector('#' + id + ' em');
+        if (el) el.textContent = val;
+      };
+      setStat('cm-stat-complete', complete);
+      setStat('cm-stat-inprogress', inprogress);
+      setStat('cm-stat-none', none);
+
+      if (window.jQuery && jQuery.fn.DataTable && jQuery('#cm-progress-table tbody tr').length > 1) {
+        jQuery('#cm-progress-table').DataTable({
+          paging: true, pageLength: 25, info: true, searching: true, order: [[2, 'desc']],
+          columnDefs: [{ orderable: false, targets: [0] }],
+          language: {
+            paginate: {
+              first:    '<i class="fas fa-angles-left"></i>',
+              previous: '<i class="fas fa-angle-left"></i>',
+              next:     '<i class="fas fa-angle-right"></i>',
+              last:     '<i class="fas fa-angles-right"></i>',
+            },
+          },
+        });
+      }
+    });
+  </script>
+</body>
+</html>

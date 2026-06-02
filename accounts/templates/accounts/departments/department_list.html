@@ -1,0 +1,47 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Departments{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+  {% include "includes/_centre_modal_theme.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2>Departments</h2>
+        <p>Organize the school into departments. Each department owns its semesters, events, and announcements.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="department-list">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <button type="button" class="cl-btn cl-btn-primary" id="openAddDepartmentBtn">
+          <i class="fas fa-plus"></i> New Department
+        </button>
+      </div>
+    </div>
+
+    <div id="cl-dept-wrapper" class="cl-table-wrapper" data-cl-async-table data-base-url="{% url 'department_list' %}">
+      {% include "includes/_list_table.html" %}
+    </div>
+  </div>
+
+  {% include "accounts/departments/add_department.html" %}
+
+  <!-- Edit modal: form fetched from /departments/<id>/settings/ -->
+  <div id="editDepartmentModal" class="rl-modal rl-modal--compact" role="dialog" aria-labelledby="editDeptTitle" aria-modal="true">
+    <div class="rl-modal-head">
+      <h5 id="editDeptTitle"><i class="fas fa-edit"></i> Update <em>department</em></h5>
+      <button type="button" class="rl-modal-close" id="closeEditDepartmentBtn" aria-label="Close">&times;</button>
+    </div>
+    <div class="rl-modal-content" id="editDepartmentBody"></div>
+  </div>
+  <div id="editDepartmentBackdrop" class="rl-modal-backdrop"></div>
+
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script src="{% static 'accounts/departments/department_list.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-department-list.js' %}" defer></script>
+{% endblock %}

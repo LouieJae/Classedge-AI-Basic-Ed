@@ -1,0 +1,36 @@
+{% extends "central_content/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Dashboard</h1>
+
+<div class="bg-white p-4 rounded shadow mb-6">
+    <h2 class="font-semibold mb-2">Draft</h2>
+    <p>Subjects: {{ subject_counts.draft }} · Modules: {{ module_counts.draft }} · Activities: {{ activity_counts.draft }}</p>
+    <h2 class="font-semibold mt-3 mb-2">In Review</h2>
+    <p>Subjects: {{ subject_counts.in_review }} · Modules: {{ module_counts.in_review }} · Activities: {{ activity_counts.in_review }}</p>
+    <h2 class="font-semibold mt-3 mb-2">Approved</h2>
+    <p>Subjects: {{ subject_counts.approved }} · Modules: {{ module_counts.approved }} · Activities: {{ activity_counts.approved }}</p>
+</div>
+
+<div class="bg-white p-4 rounded shadow mb-6">
+    <h2 class="font-semibold mb-2">Needs Review</h2>
+    <ul>
+    {% for s in review_queue %}
+        <li class="py-1"><a href="/subjects/{{ s.id }}/" class="text-blue-700">{{ s.subject_name }}</a></li>
+    {% empty %}
+        <li class="text-gray-500">Nothing waiting.</li>
+    {% endfor %}
+    </ul>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+    <h2 class="font-semibold mb-2">Recent activity</h2>
+    <ul>
+    {% for e in recent_audit %}
+        <li class="py-1 text-sm">{{ e.created_at|date:"Y-m-d H:i" }} — {{ e.actor.email }} — {{ e.from_state }} → {{ e.to_state }}</li>
+    {% empty %}
+        <li class="text-gray-500">No activity yet.</li>
+    {% endfor %}
+    </ul>
+</div>
+{% endblock %}

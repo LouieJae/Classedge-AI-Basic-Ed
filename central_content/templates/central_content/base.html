@@ -1,0 +1,30 @@
+<!-- central_content/templates/central_content/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Central Content{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+    {% if request.user.is_authenticated %}
+    <nav class="bg-white border-b border-gray-200 px-6 py-3 flex gap-4">
+        <a href="/" class="font-semibold">Central</a>
+        <a href="/subjects/">Subjects</a>
+        {% if request.user.role == "publisher" %}<a href="/staff/">Staff</a>{% endif %}
+        {% if request.user.role == "publisher" or request.user.role == "reviewer" %}
+        <a href="/schools/">Schools</a>
+        <a href="/matching/">Matching</a>
+        <a href="/push-history/">Push history</a>
+        {% endif %}
+        <form action="/logout" method="post" class="ml-auto">{% csrf_token %}
+            <button type="submit">Logout ({{ request.user.email }})</button>
+        </form>
+    </nav>
+    {% endif %}
+    <main class="max-w-6xl mx-auto p-6">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

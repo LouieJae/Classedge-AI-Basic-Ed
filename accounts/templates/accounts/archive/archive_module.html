@@ -1,0 +1,44 @@
+{% extends is_student_role|yesno:'student_base.html,base_operation.html' %}
+{% load static %}
+{% block title %}{{ module.file_name|default:module }} — Archive{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'accounts/archive/archive_module.css' %}" />
+
+<div class="am-shell">
+  <a href="{% if semester %}{% url 'archive-subject' subject.id semester.id %}{% else %}{% url 'archive-index' %}{% endif %}" class="am-back">
+    <i class="fas fa-arrow-left"></i> Back to {{ subject.subject_name|default:'archive' }}
+  </a>
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">{{ module.file_name|default:module }}</h1>
+      <div class="am-topbar-sub">
+        {% if subject %}<span class="sub-item"><i class="fas fa-book"></i> {{ subject.subject_name }}</span>{% endif %}
+        {% if semester %}<span class="sub-item"><i class="fas fa-calendar"></i> {{ semester.semester_name|default:semester }}</span>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="am-card">
+    <div class="am-content">
+      {% if module.file %}
+        {% with name=module.file.name|lower %}
+          {% if '.pdf' in name %}
+            <iframe src="{{ module.file.url }}" title="{{ module.file_name }}"></iframe>
+          {% elif '.jpg' in name or '.jpeg' in name or '.png' in name or '.gif' in name or '.webp' in name %}
+            <img src="{{ module.file.url }}" alt="{{ module.file_name }}">
+          {% else %}
+            <p><i class="fas fa-paperclip"></i>
+              <a href="{{ module.file.url }}" target="_blank" rel="noopener">Download {{ module.file_name }}</a>
+            </p>
+          {% endif %}
+        {% endwith %}
+      {% elif module.text_content %}
+        {{ module.text_content|safe }}
+      {% else %}
+        <div class="am-empty"><i class="fas fa-circle-info"></i> No content recorded for this module.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

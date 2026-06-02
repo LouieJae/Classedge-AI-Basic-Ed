@@ -1,0 +1,717 @@
+{% extends is_student_role|yesno:"student_base.html,base_operation.html" %}
+{% load static %}
+{% load material_tags %}
+
+{% block title %}Materials{% if subject %} · {{ subject.subject_name }}{% endif %}{% endblock %}
+
+{% block extra_css %}
+{% if not is_student_role %}{% include "teacher/_legacy_stack.html" %}{% endif %}
+<link rel="dns-prefetch" href="//onedrive.live.com">
+<link rel="dns-prefetch" href="//office.com">
+<link rel="dns-prefetch" href="//officeapps.live.com">
+<link rel="dns-prefetch" href="//1drv.ms">
+<link rel="preconnect" href="https://onedrive.live.com" crossorigin>
+<link rel="preconnect" href="https://officeapps.live.com" crossorigin>
+<link rel="stylesheet" href="{% static 'module/material-list.css' %}" />
+{% if not is_student_role %}
+  {% include "includes/_edit-inline.html" %}
+  
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="ll-shell">
+
+  <a href="{% url back_url_name|default:'course-list' %}" class="ll-back">
+    <i class="fas fa-arrow-left"></i> Back to my courses
+  </a>
+
+  <div class="ll-header">
+    <div>
+      <h1 class="page-title">Materials</h1>
+      <div class="page-sub">{% if subject %}{{ subject.subject_code }} &middot; {{ subject.subject_name }}{% else %}All materials{% endif %}</div>
+    </div>
+    {% if not is_student_role %}
+      <div class="ll-actions">
+        {% if perms.activity.add_activity %}
+          {% if active_view == 'assessments' %}
+          <details class="ll-add" id="llAddAssessment">
+            <summary class="ll-add-trigger">
+              <i class="fas fa-plus" aria-hidden="true"></i>
+              New assessment
+              <i class="fas fa-chevron-down caret" aria-hidden="true"></i>
+            </summary>
+            <div class="ll-add-menu" role="menu">
+              {% for t in assessment_activity_types %}
+                <a class="ll-add-item"
+                   role="menuitem"
+                   data-slug="{{ t|slugify }}"
+                   href="{% url 'add-assessment' subject_id=subject_id %}?activity_type_id={{ t.id }}">
+                  <span class="dot"></span>
+                  {{ t }}
+                </a>
+              {% empty %}
+                <div class="ll-add-empty">No assessment types configured.</div>
+              {% endfor %}
+            </div>
+          </details>
+
+          <details class="import-menu">
+            <summary class="btn-pill secondary">
+                <i class="fas fa-file-import"></i> Import
+                <i class="fas fa-chevron-down chev"></i>
+            </summary>
+            <div class="import-menu-panel" role="menu">
+              <a href="{% url 'import-assessments-from-previous-semester' subject_id=subject_id %}" class="import-option" role="menuitem">
+                <span class="import-option-icon"><i class="fas fa-clock-rotate-left"></i></span>
+                <span class="import-option-body">
+                  <span class="import-option-title">From a previous semester</span>
+                  <span class="import-option-sub">Reuse assessments you set up before — schedule fresh dates on copy.</span>
+                </span>
+              </a>
+              <a href="{% url 'copy-assessments-from-subject' target_subject_id=subject_id %}" class="import-option" role="menuitem">
+                <span class="import-option-icon"><i class="fas fa-copy"></i></span>
+                <span class="import-option-body">
+                  <span class="import-option-title">From another course</span>
+                  <span class="import-option-sub">Copy assessments from any course you teach.</span>
+                </span>
+              </a>
+            </div>
+          </details>
+          {% else %}
+
+          {% if perms.module.add_module %}
+            <a href="{% url 'create-material' subject_id=subject_id %}" class="btn-pill primary">
+              <i class="fas fa-folder-plus"></i> Add material
+            </a>
+          {% endif %}
+
+          {% if perms.module.add_module %}
+            <details class="import-menu">
+                <summary class="btn-pill secondary">
+                    <i class="fas fa-file-import"></i> Import
+                    <i class="fas fa-chevron-down chev"></i>
+                </summary>
+              <div class="import-menu-panel" role="menu">
+                <a href="{% url 'copy-materials' subject_id=subject_id %}" class="import-option" role="menuitem">
+                  <span class="import-option-icon"><i class="fas fa-clock-rotate-left"></i></span>
+                  <span class="import-option-body">
+                    <span class="import-option-title">From a previous semester</span>
+                    <span class="import-option-sub">Reuse materials you taught before.</span>
+                  </span>
+                </a>
+                <a href="{% url 'copy-materials-from-subject' target_subject_id=subject_id %}" class="import-option" role="menuitem">
+                  <span class="import-option-icon"><i class="fas fa-copy"></i></span>
+                  <span class="import-option-body">
+                    <span class="import-option-title">From another course</span>
+                    <span class="import-option-sub">Copy materials from a different course.</span>
+                  </span>
+                </a>
+              </div>
+            </details>
+          {% endif %}
+
+          {% endif %}
+        {% endif %}
+        <a href="{% url 'subject-student-roster' id=subject_id %}" class="btn-pill secondary">
+          <i class="fas fa-users"></i> Students
+        </a>
+        <button type="button" class="cl-tour-replay" data-cl-tour="material-list">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="ll-layout">
+    <div class="ll-main">
+
+  {# ── Materials / Assessments tabs (URL-driven so back-button works) ── #}
+  <div class="ll-tabs" role="tablist">
+    <a class="ll-tab {% if active_view != 'assessments' %}is-active{% endif %}"
+       href="?view=lessons" role="tab" aria-selected="{% if active_view != 'assessments' %}true{% else %}false{% endif %}">
+      <i class="fas fa-book-open"></i> Materials
+      <span class="lt-count">{{ page_obj.paginator.count|default:0 }}</span>
+    </a>
+    <a class="ll-tab {% if active_view == 'assessments' %}is-active{% endif %}"
+       href="?view=assessments" role="tab" aria-selected="{% if active_view == 'assessments' %}true{% else %}false{% endif %}">
+      <i class="fas fa-pen-to-square"></i> Assessments
+      <span class="lt-count">{{ assessment_counts.all|default:0 }}</span>
+    </a>
+  </div>
+
+  {% if active_view != 'assessments' %}
+  <div class="ll-filters">
+    <form method="get">
+      <input type="hidden" name="view" value="lessons" />
+      {% if selected_term %}<input type="hidden" name="term" value="{{ selected_term }}" />{% endif %}
+      <div>
+        <label class="field-label" for="searchInput">Search</label>
+        <div class="ll-search-wrap">
+          <i class="fas fa-search ico"></i>
+          <input type="text" id="searchInput" name="search" placeholder="Search by name or term…" value="{{ search_query }}">
+        </div>
+      </div>
+      <div>
+        <label class="field-label" for="sortSelect">Sort by</label>
+        <select id="sortSelect" name="sort" class="cl-select">
+          <option value="-id" {% if sort_by == '-id' %}selected{% endif %}>Newest first</option>
+          <option value="file_name" {% if sort_by == 'file_name' %}selected{% endif %}>Name (A → Z)</option>
+          <option value="-file_name" {% if sort_by == '-file_name' %}selected{% endif %}>Name (Z → A)</option>
+          <option value="start_date" {% if sort_by == 'start_date' %}selected{% endif %}>Start date (oldest)</option>
+          <option value="-start_date" {% if sort_by == '-start_date' %}selected{% endif %}>Start date (newest)</option>
+          <option value="end_date" {% if sort_by == 'end_date' %}selected{% endif %}>End date (oldest)</option>
+          <option value="-end_date" {% if sort_by == '-end_date' %}selected{% endif %}>End date (newest)</option>
+          <option value="term__term_name" {% if sort_by == 'term__term_name' %}selected{% endif %}>Term (A → Z)</option>
+          <option value="-term__term_name" {% if sort_by == '-term__term_name' %}selected{% endif %}>Term (Z → A)</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="perPageSelect">Per page</label>
+        <select id="perPageSelect" name="per_page" class="cl-select">
+          <option value="5" {% if items_per_page == 5 %}selected{% endif %}>5</option>
+          <option value="10" {% if items_per_page == 10 %}selected{% endif %}>10</option>
+          <option value="25" {% if items_per_page == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if items_per_page == 50 %}selected{% endif %}>50</option>
+        </select>
+      </div>
+      <div>
+        <button type="submit" class="btn-pill primary"><i class="fas fa-filter"></i> Apply</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if active_view == 'assessments' %}
+  {# ── Assessments view (teacher) ──────────────────────────────── #}
+  <div class="ta-filters" role="tablist" aria-label="Filter assessments">
+    <button type="button" class="ta-filter is-active" data-ta-filter="all">
+      All <span class="num">{{ assessment_counts.all|default:0 }}</span>
+    </button>
+    <button type="button" class="ta-filter" data-ta-filter="open">
+      <i class="far fa-circle-play"></i> Open <span class="num">{{ assessment_counts.open|default:0 }}</span>
+    </button>
+    <button type="button" class="ta-filter" data-ta-filter="upcoming">
+      <i class="far fa-clock"></i> Upcoming <span class="num">{{ assessment_counts.upcoming|default:0 }}</span>
+    </button>
+    <button type="button" class="ta-filter" data-ta-filter="closed">
+      <i class="fas fa-flag-checkered"></i> Closed <span class="num">{{ assessment_counts.closed|default:0 }}</span>
+    </button>
+    {% if assessment_counts.draft %}
+    <button type="button" class="ta-filter" data-ta-filter="draft">
+      <i class="far fa-pen-to-square"></i> Draft <span class="num">{{ assessment_counts.draft }}</span>
+    </button>
+    {% endif %}
+  </div>
+
+  <div class="ta-list" id="taList" data-filter="all">
+    {% for item in assessment_items %}
+      {% with a=item.activity %}
+      <div class="ta-card" data-status="{{ item.status }}">
+        <a class="ta-card-link"
+           href="{% url 'assessment-details' a.id %}"
+           aria-label="View {{ a.activity_name|default:'assessment' }}"></a>
+
+        <div class="ta-card-icon
+          {% with t=a.activity_type.name|lower %}
+            {% if 'exam' in t %}t-exam
+            {% elif 'quiz' in t %}t-quiz
+            {% elif 'assignment' in t %}t-assignment
+            {% elif 'coding' in t %}t-coding
+            {% else %}t-default
+            {% endif %}{% endwith %}">
+          {% with t=a.activity_type.name|lower %}
+            {% if 'exam' in t %}<i class="fas fa-clipboard-list"></i>
+            {% elif 'quiz' in t %}<i class="fas fa-circle-question"></i>
+            {% elif 'assignment' in t %}<i class="fas fa-pen-to-square"></i>
+            {% elif 'coding' in t %}<i class="fas fa-code"></i>
+            {% else %}<i class="fas fa-list-check"></i>{% endif %}
+          {% endwith %}
+        </div>
+
+        <div class="ta-card-body">
+          <div class="ta-card-title">
+            {{ a.activity_name|default:"Untitled assessment" }}
+            {% if a.classroom_mode %}
+              <span class="cm-badge" title="Created in Classroom mode">
+                <i class="fas fa-chalkboard-user"></i> Classroom
+              </span>
+            {% endif %}
+          </div>
+          <div class="ta-card-meta">
+            {% if a.activity_type %}<span class="type-pill">{{ a.activity_type.name }}</span>{% endif %}
+            {% if a.max_score %}<span><i class="fas fa-star"></i> {{ a.max_score|floatformat:"-2" }} pts</span>{% endif %}
+            {% if a.start_time %}<span><i class="far fa-calendar"></i> Opens {{ a.start_time|date:"M j, g:i A" }}</span>{% endif %}
+            {% if a.end_time %}<span><i class="far fa-clock"></i> Due {{ a.end_time|date:"M j, g:i A" }}</span>{% endif %}
+          </div>
+        </div>
+
+        <div class="ta-card-aside">
+          <span class="ta-subs"><strong>{{ item.submitted_count }}</strong> submission{{ item.submitted_count|pluralize }}</span>
+          <span class="ta-status-pill s-{{ item.status }}">{{ item.status }}</span>
+
+          {% if not is_student_role %}
+            <a href="{% url 'update-assessment' a.id %}"
+               class="ta-action-btn"
+               title="Edit assessment"
+               aria-label="Edit assessment">
+              <i class="fas fa-pen"></i>
+            </a>
+            <form method="post" action="{% url 'delete-assessment' a.id %}" class="ta-action-form">
+              {% csrf_token %}
+              <button type="button" class="ta-action-btn danger js-delete-assessment"
+                      data-name="{{ a.activity_name|default:'this assessment'|escapejs }}"
+                      title="Delete assessment" aria-label="Delete assessment">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          {% else %}
+            <i class="fas fa-chevron-right ta-card-arrow" aria-hidden="true"></i>
+          {% endif %}
+        </div>
+      </div>
+      {% endwith %}
+    {% empty %}
+      <div class="ta-empty">
+        <div class="icon"><i class="fas fa-list-check"></i></div>
+        <h3>No assessments yet</h3>
+        <p>Create the first assessment for this subject from your assessments management.</p>
+      </div>
+    {% endfor %}
+  </div>
+  {% else %}
+
+  <div class="panel">
+    <div class="panel-header">
+      <h3 class="panel-title">
+        Materials
+        <span class="panel-count">{{ page_obj.paginator.count|default:0 }} total</span>
+      </h3>
+      {% if available_terms %}
+        <form method="get" class="ll-term-filter">
+          <input type="hidden" name="view" value="lessons" />
+          {% if search_query %}<input type="hidden" name="search" value="{{ search_query }}" />{% endif %}
+          {% if sort_by %}<input type="hidden" name="sort" value="{{ sort_by }}" />{% endif %}
+          {% if items_per_page %}<input type="hidden" name="per_page" value="{{ items_per_page }}" />{% endif %}
+          <label for="ll-term-select"><i class="fas fa-calendar-days"></i> Term</label>
+          <select id="ll-term-select" name="term" class="cl-select" onchange="this.form.submit()">
+            {% if active_semester %}
+              <option value="active" {% if selected_term == 'active' %}selected{% endif %}>
+                Active semester &middot; {{ active_semester.semester_name }}
+              </option>
+            {% endif %}
+            <option value="all" {% if selected_term == 'all' %}selected{% endif %}>All terms</option>
+            <optgroup label="Specific term">
+              {% for t in available_terms %}
+                <option value="{{ t.id }}" {% if selected_term == t.id %}selected{% endif %}>
+                  {{ t.term_name }}{% if t.semester %} &middot; {{ t.semester.semester_name }}{% endif %}
+                </option>
+              {% endfor %}
+            </optgroup>
+          </select>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if page_obj %}
+      <div class="ta-list">
+        {% for m in page_obj %}
+          {% if is_student_role and m.file %}
+            {% if m.onedrive_embed_url %}
+            <a class="ta-card" href="{{ m.onedrive_embed_url }}" target="_blank" rel="noopener">
+            {% else %}
+            <a class="ta-card" href="{% url 'student-pdf-viewer' %}?file={{ m.file.url }}&module={{ m.id }}" target="_blank" rel="noopener">
+            {% endif %}
+          {% elif is_student_role and m.url %}
+            <a class="ta-card" href="{{ m.url }}" target="_blank" rel="noopener">
+          {% else %}
+            <div class="ta-card is-clickable"
+                 data-card-href="{% url 'material-progress-report' m.id %}"
+                 role="link"
+                 tabindex="0"
+                 title="View student progress">
+          {% endif %}
+            {% with kind=m|material_kind %}
+            <div class="ta-card-icon t-{{ kind }}" title="{{ kind|capfirst }}">
+              <i class="fas {{ kind|material_icon }}"></i>
+            </div>
+            {% endwith %}
+            <div class="ta-card-body">
+              <div class="ta-card-title" title="{{ m.file_name }}">
+                {% if can_edit_material %}
+                  <span class="cl-edit"
+                        data-endpoint="{% url 'rename-module' m.id %}"
+                        data-field="file_name"
+                        data-label="Material name"
+                        data-min="2"
+                        data-max="100">{{ m.file_name }}</span>
+                {% else %}
+                  {{ m.file_name }}
+                {% endif %}
+              </div>
+              <div class="ta-card-meta">
+                {% if m.url %}<span class="type-pill"><i class="fas fa-link"></i> URL</span>
+                {% elif m.iframe_code %}<span class="type-pill"><i class="fas fa-code"></i> Embed</span>
+                {% elif m.file %}<span class="type-pill"><i class="fas fa-file"></i> File</span>
+                {% else %}<span class="type-pill">—</span>{% endif %}
+                {% if m.term %}<span><i class="fas fa-folder"></i> {{ m.term.term_name }}</span>{% endif %}
+                {% if m.start_date %}<span><i class="far fa-calendar"></i> {{ m.start_date|date:"M j, Y" }}</span>{% endif %}
+                {% if m.end_date %}<span><i class="far fa-clock"></i> Ends {{ m.end_date|date:"M j, Y" }}</span>{% endif %}
+              </div>
+            </div>
+            {% if not is_student_role %}
+            <div class="ta-card-aside">
+              {% if m.file or m.url or m.iframe_code or m.onedrive_embed_url %}
+                <button type="button"
+                        class="icon-btn"
+                        title="Preview material"
+                        data-cmv-open
+                        data-cmv-name="{{ m.file_name }}"
+                        {% if m.file %}data-cmv-file="{{ m.file.url }}"{% endif %}
+                        {% if m.url %}data-cmv-url="{{ m.url }}"{% endif %}
+                        {% if m.iframe_code %}data-cmv-embed="{{ m.iframe_code|escape }}"{% endif %}
+                        {% if m.onedrive_embed_url %}data-cmv-onedrive="{{ m.onedrive_embed_url }}"{% endif %}
+                        {% if m.allow_download and m.file %}data-cmv-download="1" data-cmv-download-url="{{ m.file.url }}"{% endif %}>
+                  <i class="fas fa-eye"></i>
+                </button>
+              {% endif %}
+              {% if perms.module.change_module %}
+                <a href="{% url 'update-material' m.id %}" class="icon-btn" title="Edit material" onclick="event.stopPropagation();">
+                  <i class="fas fa-pen"></i>
+                </a>
+              {% endif %}
+              {% if perms.module.delete_module %}
+                <form method="post" action="{% url 'delete-material' m.id %}" style="display: inline; margin: 0;">
+                  {% csrf_token %}
+                  <button type="button" class="icon-btn danger js-delete-module"
+                          data-filename="{{ m.file_name|escapejs }}"
+                          title="Delete material">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+            {% else %}
+            <div class="ta-card-aside">
+              <i class="fas fa-chevron-right ta-card-arrow" aria-hidden="true"></i>
+            </div>
+            {% endif %}
+          {% if is_student_role and m.file or is_student_role and m.url %}</a>{% else %}</div>{% endif %}
+        {% endfor %}
+      </div>
+
+      {% if page_obj.has_other_pages %}
+        <div class="ll-pagination">
+          {% if page_obj.has_previous %}
+            <a class="pg-btn" href="?page=1&search={{ search_query }}&sort={{ sort_by }}&per_page={{ items_per_page }}&term={{ selected_term }}">« First</a>
+            <a class="pg-btn" href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}&sort={{ sort_by }}&per_page={{ items_per_page }}&term={{ selected_term }}">‹</a>
+          {% else %}
+            <span class="pg-btn disabled">« First</span>
+            <span class="pg-btn disabled">‹</span>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <span class="pg-btn active">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <a class="pg-btn" href="?page={{ num }}&search={{ search_query }}&sort={{ sort_by }}&per_page={{ items_per_page }}&term={{ selected_term }}">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <a class="pg-btn" href="?page={{ page_obj.next_page_number }}&search={{ search_query }}&sort={{ sort_by }}&per_page={{ items_per_page }}&term={{ selected_term }}">›</a>
+            <a class="pg-btn" href="?page={{ page_obj.paginator.num_pages }}&search={{ search_query }}&sort={{ sort_by }}&per_page={{ items_per_page }}&term={{ selected_term }}">Last »</a>
+          {% else %}
+            <span class="pg-btn disabled">›</span>
+            <span class="pg-btn disabled">Last »</span>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="empty-state">
+        <div class="icon"><i class="fas fa-book-open"></i></div>
+        <h3>No materials yet</h3>
+        <p>{% if search_query %}No materials match your search.{% else %}Add your first material to this subject to get started.{% endif %}</p>
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}{# /active_view == 'assessments' #}
+
+    </div>{# /.ll-main #}
+
+    <aside class="ll-side" aria-label="Course sidebar">
+
+      {# ── Class snapshot ─────────────────────────────────── #}
+      <section class="ts-panel">
+        <div class="ts-panel-head">
+          <h3><i class="fas fa-chart-pie"></i> Class snapshot</h3>
+        </div>
+        <div class="ts-panel-body">
+          <div class="ts-stats">
+            <div class="ts-stat">
+              <div class="v">{{ teacher_stats.enrolled|default:0 }}</div>
+              <div class="l">Students</div>
+            </div>
+            <div class="ts-stat">
+              <div class="v">{{ teacher_stats.lessons|default:0 }}</div>
+              <div class="l">Materials</div>
+            </div>
+            <div class="ts-stat">
+              <div class="v">{{ teacher_stats.assessments|default:0 }}</div>
+              <div class="l">Assessments</div>
+            </div>
+            <div class="ts-stat {% if teacher_stats.ungraded %}warn{% endif %}">
+              <div class="v">{{ teacher_stats.ungraded|default:0 }}</div>
+              <div class="l">Ungraded</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {# ── Needs grading ──────────────────────────────────── #}
+      <section class="ts-panel">
+        <div class="ts-panel-head">
+          <h3><i class="fas fa-pen"></i> Needs grading</h3>
+          {% if teacher_stats.ungraded %}
+            <span class="ts-count">{{ teacher_stats.ungraded }}</span>
+          {% endif %}
+        </div>
+        <div class="ts-panel-body">
+          <div class="ts-grade-list">
+            {% for sa in needs_grading %}
+              <a class="ts-grade-item" href="{% url 'assessment-details' sa.activity.id %}">
+                <span class="ts-grade-dot" aria-hidden="true"></span>
+                <div class="ts-grade-body">
+                  <div class="ts-grade-name">{{ sa.activity.activity_name|default:"Untitled" }}</div>
+                  <div class="ts-grade-meta">
+                    <span>{{ sa.student.get_full_name|default:sa.student.username }}</span>
+                    {% if sa.activity.activity_type %}<span>{{ sa.activity.activity_type.name }}</span>{% endif %}
+                    {% if sa.end_time %}<span>{{ sa.end_time|date:"M j" }}</span>{% endif %}
+                  </div>
+                </div>
+              </a>
+            {% empty %}
+              <div class="ts-empty">
+                <i class="fas fa-check-circle"></i>
+                Nothing to grade right now. You're caught up.
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      {# ── Quick links ───────────────────────────────────── #}
+      <section class="ts-panel">
+        <div class="ts-panel-head">
+          <h3><i class="fas fa-compass"></i> Quick links</h3>
+        </div>
+        <div class="ts-panel-body">
+          <div class="ts-link-list">
+            <a class="ts-link" href="{% url 'gradebook_subject' subject.id %}">
+              <i class="fas fa-table"></i> Open Gradebook
+              <i class="fas fa-chevron-right ts-link-chev"></i>
+            </a>
+            <a class="ts-link" href="{% url 'subject_analytics_panel' subject.id %}">
+              <i class="fas fa-chart-line"></i> Subject analytics
+              <i class="fas fa-chevron-right ts-link-chev"></i>
+            </a>
+            <a class="ts-link" href="{% url 'attendance-report' %}?subject_id={{ subject.id }}">
+              <i class="fas fa-clipboard-check"></i> Attendance
+              <i class="fas fa-chevron-right ts-link-chev"></i>
+            </a>
+            <a class="ts-link" href="{% url 'create-material' subject_id=subject.id %}">
+              <i class="fas fa-folder-plus"></i> Add material
+              <i class="fas fa-chevron-right ts-link-chev"></i>
+            </a>
+            <a class="ts-link" href="{% url 'course-list' %}">
+              <i class="fas fa-book"></i> All courses
+              <i class="fas fa-chevron-right ts-link-chev"></i>
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+  </div>{# /.ll-layout #}
+
+</div>
+
+
+<script src="{% static 'module/material-list.js' %}"></script>
+
+<script>
+  // Apply Select2 to the three short native selects on this page so they
+  // match the rest of the operations chrome. Override the engine defaults
+  // for this page only — these selects are required (no clear button) and
+  // have few options (no search box). The cl-select2 engine's MutationObserver
+  // already auto-styles class="cl-select" with default opts, so we destroy
+  // and re-init with the right per-select config.
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window.jQuery || !jQuery.fn.select2) return;
+    var configs = [
+      { id: 'll-term-select', minimumResultsForSearch: Infinity, allowClear: false, width: '100%' },
+      { id: 'sortSelect',     minimumResultsForSearch: Infinity, allowClear: false, width: '100%' },
+      { id: 'perPageSelect',  minimumResultsForSearch: Infinity, allowClear: false, width: '100%' },
+    ];
+    configs.forEach(function (cfg) {
+      var el = document.getElementById(cfg.id);
+      if (!el) return;
+      var $el = jQuery(el);
+      if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
+      $el.select2({
+        theme: 'bootstrap-5',
+        width: cfg.width,
+        minimumResultsForSearch: cfg.minimumResultsForSearch,
+        allowClear: cfg.allowClear,
+      });
+    });
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var list = document.querySelector('.ta-list');
+    if (!list) return;
+    function shouldIgnore(target) {
+      return !!target.closest('.icon-btn, .cl-edit, button, form, a, input, textarea, select');
+    }
+    list.addEventListener('click', function (e) {
+      var card = e.target.closest('.ta-card.is-clickable[data-card-href]');
+      if (!card) return;
+      if (shouldIgnore(e.target)) return;
+      var href = card.getAttribute('data-card-href');
+      if (!href) return;
+      if (e.metaKey || e.ctrlKey || e.button === 1) {
+        window.open(href, '_blank', 'noopener');
+      } else {
+        window.location.href = href;
+      }
+    });
+    list.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var card = e.target.closest('.ta-card.is-clickable[data-card-href]');
+      if (!card || card !== e.target) return;
+      e.preventDefault();
+      window.location.href = card.getAttribute('data-card-href');
+    });
+  });
+</script>
+
+{% if not is_student_role and perms.module.add_module and subject_id %}
+<div class="conf-modal" id="conferenceModal" role="dialog" aria-modal="true" aria-labelledby="conferenceModalTitle">
+  <div class="conf-modal-card">
+    <h3 class="conf-modal-title" id="conferenceModalTitle">New <em>conference</em></h3>
+    <p class="conf-modal-sub">Pick a provider and paste the meeting link. Students will see it alongside materials.</p>
+
+    <form method="post" action="{% url 'create-conference' subject_id=subject_id %}">
+      {% csrf_token %}
+
+      <div class="conf-providers" role="radiogroup" aria-label="Conferencing provider">
+        <label class="conf-provider">
+          <input type="radio" name="provider" value="msteams" required checked />
+          <span class="pv-icon"><i class="fab fa-microsoft"></i></span>
+          <span class="pv-label">Teams</span>
+        </label>
+        <label class="conf-provider">
+          <input type="radio" name="provider" value="googlemeet" />
+          <span class="pv-icon"><i class="fas fa-video"></i></span>
+          <span class="pv-label">Google Meet</span>
+        </label>
+        <label class="conf-provider">
+          <input type="radio" name="provider" value="googleclassroom" />
+          <span class="pv-icon"><i class="fas fa-chalkboard"></i></span>
+          <span class="pv-label">Classroom</span>
+        </label>
+        <label class="conf-provider">
+          <input type="radio" name="provider" value="zoom" />
+          <span class="pv-icon"><i class="fas fa-camera"></i></span>
+          <span class="pv-label">Zoom</span>
+        </label>
+        <label class="conf-provider">
+          <input type="radio" name="provider" value="webex" />
+          <span class="pv-icon"><i class="fas fa-circle-dot"></i></span>
+          <span class="pv-label">Webex</span>
+        </label>
+        <label class="conf-provider">
+          <input type="radio" name="provider" value="other" />
+          <span class="pv-icon"><i class="fas fa-link"></i></span>
+          <span class="pv-label">Other</span>
+        </label>
+      </div>
+
+      <div class="conf-field">
+        <label for="confTitle">Name</label>
+        <input type="text" id="confTitle" name="title" required maxlength="100" placeholder="e.g. Friday class meeting" />
+      </div>
+      <div class="conf-field">
+        <label for="confUrl">Meeting link</label>
+        <input type="url" id="confUrl" name="url" required placeholder="https://teams.microsoft.com/..." />
+      </div>
+      <div class="conf-field">
+        <label for="confDescription">Notes (optional)</label>
+        <textarea id="confDescription" name="description" placeholder="Agenda, passcode, dial-in number, etc."></textarea>
+      </div>
+
+      <div class="conf-actions">
+        <button type="button" class="conf-btn" id="closeConferenceModal">Cancel</button>
+        <button type="submit" class="conf-btn primary"><i class="fas fa-plus"></i> Add conference</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if subject.is_coil and perms.module.add_module %}
+
+<div class="cinv-overlay" id="cinvStudent" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="cinvStudentTitle">
+  <div class="cinv-modal">
+    <header class="cinv-banner">
+      <div class="cinv-eyebrow"><i class="fas fa-user-graduate"></i> COIL invitation</div>
+      <h3 class="cinv-title" id="cinvStudentTitle">Invite a <em>student</em></h3>
+      <p class="cinv-sub">Send an enrollment link to a student. External emails must belong to a verified COIL partner school.</p>
+    </header>
+    <div class="cinv-body">
+      <form method="POST" action="{% url 'send_student_invite' subject_id=subject.id %}">
+        {% csrf_token %}
+        <div class="cinv-field">
+          <label for="cinvStudentEmail">Student email <span class="req">*</span></label>
+          <input id="cinvStudentEmail" type="email" name="email" required placeholder="student@partnerschool.edu" autocomplete="off">
+          <span class="hint">A token-secured invite link will be sent to this address. Internal HCCCI emails skip the partner check.</span>
+        </div>
+        <div class="cinv-foot">
+          <button type="button" class="cinv-btn" data-cinv-close>Cancel</button>
+          <button type="submit" class="cinv-btn primary"><i class="fas fa-paper-plane"></i> Send invite</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="cinv-overlay" id="cinvTeacher" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="cinvTeacherTitle">
+  <div class="cinv-modal">
+    <header class="cinv-banner">
+      <div class="cinv-eyebrow"><i class="fas fa-chalkboard-teacher"></i> COIL invitation</div>
+      <h3 class="cinv-title" id="cinvTeacherTitle">Invite a <em>teacher</em></h3>
+      <p class="cinv-sub">Add a co-teacher to this subject. They'll register through a partner-school invite link and join as a collaborator.</p>
+    </header>
+    <div class="cinv-body">
+      <form method="POST" action="{% url 'send_collaboration_invite' subject_id=subject.id %}">
+        {% csrf_token %}
+        <div class="cinv-field">
+          <label for="cinvTeacherEmail">Teacher email <span class="req">*</span></label>
+          <input id="cinvTeacherEmail" type="email" name="email" required placeholder="teacher@partnerschool.edu" autocomplete="off">
+          <span class="hint">The recipient gets a 72-hour invite link to register as a co-teacher on <strong>{{ subject.subject_name }}</strong>.</span>
+        </div>
+        <div class="cinv-foot">
+          <button type="button" class="cinv-btn" data-cinv-close>Cancel</button>
+          <button type="submit" class="cinv-btn primary"><i class="fas fa-paper-plane"></i> Send invite</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+{% if not is_student_role %}
+  <script src="{% static 'js/tours/cl-tour-material-list.js' %}" defer></script>
+{% endif %}
+{% endblock %}

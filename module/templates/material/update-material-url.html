@@ -1,0 +1,120 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Update Material (URL) · {{ module.file_name|default:"Lesson" }}{% endblock %}
+
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+{% include "material/_material-form-assets.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="lesson-shell">
+
+  <a href="{% url 'material-list' subject.id %}" class="lesson-back">
+    <i class="fas fa-arrow-left"></i> Back to {{ subject.subject_short_name|default:subject.subject_name }}
+  </a>
+
+  <div class="lesson-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      {% with file_label=module.file_name|default:"Untitled lesson" %}
+      {% with sub_text=subject.subject_code|add:" · "|add:file_label %}
+        {% include "includes/_page_header.html" with title="Update" accent="material" sub=sub_text %}
+      {% endwith %}
+      {% endwith %}
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="update-material-url">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <form method="post" action="{% url 'update-material-url' module.id %}" class="form-panel"
+        data-cl-loading data-cl-loading-label="Updating…"
+        style="background: transparent; border: none; box-shadow: none; padding: 0;">
+    {% csrf_token %}
+
+    <div class="form-grid">
+      <div class="form-main">
+
+        <div class="form-card form-section">
+          <h3 class="form-section-title">Basics</h3>
+          <div class="field-row">
+            <div class="field">
+              <label for="id_file_name">Material name</label>
+              {{ form.file_name }}
+            </div>
+            <div class="field">
+              <label for="id_term">Term</label>
+              {{ form.term }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card form-section">
+          <h3 class="form-section-title">Content</h3>
+          <div class="field">
+            <label for="id_url">URL</label>
+            {{ form.url }}
+            <span class="field-help">Paste a direct link (e.g., a video, doc, or article). The platform extracts the URL automatically.</span>
+          </div>
+        </div>
+
+        <div class="form-card form-section">
+          <h3 class="form-section-title">Description</h3>
+          <div class="field">
+            <label for="id_description">What is this material about?</label>
+            {{ form.description }}
+          </div>
+        </div>
+
+      </div>{# end form-main #}
+
+      <div class="form-side">
+
+        <div class="form-card form-section">
+          <h3 class="form-section-title">Schedule</h3>
+          <div class="field">
+            <label for="id_start_date">Start date</label>
+            {{ form.start_date }}
+          </div>
+          <div class="field">
+            <label for="id_end_date">End date</label>
+            {{ form.end_date }}
+          </div>
+        </div>
+
+        <div class="form-card form-section">
+          <h3 class="form-section-title">Audience</h3>
+          <div class="field">
+            <label for="id_display_lesson_for_selected_users">Display this material for selected students</label>
+            <div class="audience-actions">
+              <button type="button" id="selectAllStudents" class="audience-btn">
+                <i class="fas fa-check-double"></i> Select all
+              </button>
+              <button type="button" id="clearAllStudents" class="audience-btn">
+                <i class="fas fa-xmark"></i> Clear all
+              </button>
+            </div>
+            {{ form.display_lesson_for_selected_users }}
+            <span class="field-help">Leave empty to display this material to every enrolled student.</span>
+          </div>
+        </div>
+
+      </div>{# end form-side #}
+    </div>{# end form-grid #}
+
+    <div class="form-footer-card">
+      <div class="form-actions">
+        <a href="{% url 'material-list' subject.id %}" class="btn-pill">
+          <i class="fas fa-arrow-left"></i> Cancel
+        </a>
+        <button type="submit" class="btn-pill primary">
+          <i class="fas fa-floppy-disk"></i> Save changes
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script src="{% static 'js/tours/cl-tour-update-material-url.js' %}" defer></script>
+{% endblock %}

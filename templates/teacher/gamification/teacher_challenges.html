@@ -1,0 +1,30 @@
+<section class="challenges">
+  <div class="section-header">
+    <h2 style="font-family:var(--display);font-size:22px;font-weight:500;color:var(--forest);letter-spacing:-0.015em;">Active <em style="font-style:italic;color:var(--gold);font-weight:400;">Challenges</em></h2>
+  </div>
+
+  <div class="challenges-grid">
+    {% for c in challenges %}
+    <div class="challenge-card{% if c.days_left is not None and c.days_left <= 2 %} urgent{% endif %}">
+      <div class="challenge-header">
+        <span class="challenge-name">{{ c.name }}</span>
+        <span class="challenge-reward">+{{ c.ip_reward }} IP</span>
+      </div>
+      <div class="challenge-desc">{{ c.description }}</div>
+      <div class="challenge-progress">
+        <div class="challenge-progress-track">
+          <div class="challenge-progress-fill" style="width: {{ c.progress_pct }}%;"></div>
+        </div>
+        <div class="challenge-meta">
+          <span>{{ c.current }}/{{ c.target }}</span>
+          <span>{% if c.days_left is not None %}{{ c.days_left }}d left{% else %}Ongoing{% endif %}</span>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div style="padding:20px;text-align:center;color:var(--ink-dim);font-family:var(--display);font-style:italic;">
+      No active challenges yet.
+    </div>
+    {% endfor %}
+  </div>
+</section>

@@ -1,0 +1,415 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Update Activity · {{ activity.activity_name }}{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+  <link href="{% static 'vendors/choices/choices.min.css' %}" rel="stylesheet" />
+  <script src="{% static 'vendors/choices/choices.min.js' %}"></script>
+  {% include "activity/assessments/_assessment-form-assets.html" %}
+  {% include "includes/_stepper.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="activity-shell">
+
+  <a href="{% url 'course-list' %}" class="activity-back">
+    <i class="fas fa-arrow-left"></i> Back to my courses
+  </a>
+
+  <div class="activity-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      {% with sub_text=activity.subject.subject_code|add:" · "|add:activity.activity_name %}
+        {% include "includes/_page_header.html" with title="Update" accent="assessment" sub=sub_text %}
+      {% endwith %}
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour-family="update-assessment">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  {% if has_submissions %}
+    <div class="alert alert-warning" style="margin: 12px 0 16px; padding: 12px 16px; border-radius: 8px; background: rgba(241, 196, 15, 0.12); border: 1px solid rgba(241, 196, 15, 0.4); color: #b07d00;">
+      <i class="fas fa-lock" aria-hidden="true"></i>
+      Submissions exist. Only the schedule (start/end time and late-submission settings) can still be changed — useful for letting students who missed the assessment catch up. All other fields are locked to protect existing grades.
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data"
+        class="form-panel needs-validation"
+        data-cl-stepper
+        data-cl-no-autosave
+        data-cl-loading data-cl-loading-label="Updating…"
+        novalidate
+        style="background: transparent; border: none; box-shadow: none; padding: 0;">
+    {% csrf_token %}
+    <input type="hidden" name="activity_type" value="{{ activity.activity_type.id }}">
+    <input type="hidden" name="subject" value="{{ activity.subject.id }}">
+
+    <div class="cl-stepper-head" data-cl-stepper-nav>
+      <button type="button" class="cl-stepper-dot is-active" aria-label="Go to step 1">
+        <span class="cl-stepper-num">1</span>
+        <span class="cl-stepper-label">Basics</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 2">
+        <span class="cl-stepper-num">2</span>
+        <span class="cl-stepper-label">Schedule</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 3">
+        <span class="cl-stepper-num">3</span>
+        <span class="cl-stepper-label">Behavior</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 4">
+        <span class="cl-stepper-num">4</span>
+        <span class="cl-stepper-label">Review</span>
+      </button>
+    </div>
+
+    <section class="cl-step is-active" data-step="basics" data-step-title="Basics">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 1</span> · Basics
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Activity details</h3>
+        <div class="field-row">
+          <div class="field">
+            <label for="activity_name">
+              Activity name
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="The name students see for this activity.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="text" id="activity_name" name="activity_name" value="{{ form.activity_name.value }}" class="form-control" required />
+            <div class="invalid-feedback">Please provide an activity name.</div>
+          </div>
+          <div class="field">
+            <label for="term">
+              Term
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Term this activity belongs to.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            {{ form.term }}
+            <div class="invalid-feedback">Please select a term.</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="additional_modules">
+            Lessons
+            <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Lessons this activity is attached to.">
+              <i class="fas fa-circle-info"></i>
+            </span>
+          </label>
+          <select id="additional_modules" name="additional_modules" multiple class="js-choice">
+            {% for module in modules %}
+              <option value="{{ module.id }}" {% if module in activity.additional_modules.all %}selected{% endif %}>{{ module.file_name }}</option>
+            {% endfor %}
+          </select>
+          <span class="field-help">Optional — leave empty to keep this activity standalone.</span>
+        </div>
+
+        <div class="field">
+          <label for="activity_instruction">
+            Instructions
+            <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Instructions students will read before starting.">
+              <i class="fas fa-circle-info"></i>
+            </span>
+          </label>
+          <textarea id="activity_instruction" name="activity_instruction" class="form-control" rows="4" placeholder="What should students know or do before they begin?">{{ activity.activity_instruction }}</textarea>
+        </div>
+
+        <div class="field">
+          <label for="activity_file_instruction">
+            Instruction file
+            <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Optional PDF or image (max 10MB) shown alongside the text instructions.">
+              <i class="fas fa-circle-info"></i>
+            </span>
+          </label>
+          {% if activity.activity_file_instruction %}
+            <div class="mb-2">
+              <a href="{{ activity.activity_file_instruction.url }}" target="_blank">
+                <i class="fas fa-file"></i> Current file
+              </a>
+            </div>
+          {% endif %}
+          <input type="file" id="activity_file_instruction" name="activity_file_instruction" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="schedule" data-step-title="Schedule">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 2</span> · Schedule &amp; scoring
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Attempts &amp; timing</h3>
+        <div class="field-row-3">
+          <div class="field">
+            <label for="max_retake">
+              Max attempts
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="How many times a student can attempt this activity.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            {{ form.max_retake }}
+            <div class="invalid-feedback">Please provide a valid number of attempts.</div>
+          </div>
+          <div class="field">
+            <label for="retake_method">
+              Retake method
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="How the final score is calculated when there are multiple attempts.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <select id="retake_method" name="retake_method" class="form-control" required>
+              {% for value, label in form.retake_method.field.choices %}
+                <option value="{{ value }}" {% if form.retake_method.value == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <div class="invalid-feedback">Please select a retake method.</div>
+          </div>
+          <div class="field">
+            <label for="time_duration">
+              Time limit (min)
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Total minutes a student has to complete one attempt.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            {{ form.time_duration }}
+          </div>
+        </div>
+
+        <div class="field-row-mixed">
+          <div class="field">
+            <label for="passing_score">
+              Passing
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Minimum score considered passing.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            {{ form.passing_score }}
+            <div class="invalid-feedback">Please provide a valid number.</div>
+          </div>
+          <div class="field">
+            <label for="passing_score_type">
+              Type
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Treat the passing score as a percentage or an absolute number.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            {{ form.passing_score_type }}
+            <div class="invalid-feedback">Please select the score type.</div>
+          </div>
+          <div class="field">
+            <label for="start_time">
+              Opens at
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="When the activity becomes available to students.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="datetime-local" id="start_time" name="start_time" value="{{ form.start_time.value|date:'Y-m-d\TH:i' }}" class="form-control" required />
+            <div class="invalid-feedback">Please select a start time.</div>
+          </div>
+          <div class="field">
+            <label for="end_time">
+              Closes at
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="The deadline. Submissions stop here.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="datetime-local" id="end_time" name="end_time" value="{{ form.end_time.value|date:'Y-m-d\TH:i' }}" class="form-control" required />
+            <div class="invalid-feedback">Please select an end time.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="behavior" data-step-title="Behavior">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 3</span> · Behavior
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Settings</h3>
+        <div class="settings-grid">
+          <label class="setting-card" for="shuffle_questions">
+            <input type="checkbox" id="shuffle_questions" name="shuffle_questions" {% if form.shuffle_questions.value %}checked{% endif %} />
+            <div class="setting-text">
+              <span class="setting-name">Shuffle questions</span>
+              <span class="setting-desc">Each student sees questions in a different order.</span>
+            </div>
+          </label>
+          <label class="setting-card" for="is_graded">
+            <input type="checkbox" id="is_graded" name="is_graded" {% if form.is_graded.value %}checked{% endif %} />
+            <div class="setting-text">
+              <span class="setting-name">Graded activity</span>
+              <span class="setting-desc">Score counts toward the gradebook.</span>
+            </div>
+          </label>
+          <label class="setting-card" for="remedial">
+            <input type="checkbox" id="remedial" name="remedial" {% if form.remedial.value %}checked{% endif %} />
+            <div class="setting-text">
+              <span class="setting-name">Remedial</span>
+              <span class="setting-desc">Only assigned to specific students for re-attempt.</span>
+            </div>
+          </label>
+          <label class="setting-card" for="allow_late_submission">
+            <input type="checkbox" id="allow_late_submission" name="allow_late_submission" {% if form.allow_late_submission.value %}checked{% endif %} />
+            <div class="setting-text">
+              <span class="setting-name">Allow late submission</span>
+              <span class="setting-desc">Students can still submit after the deadline within the grace window below.</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-card form-section" id="late_submission_fields" style="display: {% if form.allow_late_submission.value %}block{% else %}none{% endif %};">
+        <h3 class="form-section-title">Late submission window</h3>
+        <div class="field-row">
+          <div class="field">
+            <label for="late_submission_days">
+              Grace window (days)
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="How many days after the deadline late submissions are still accepted.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            {{ form.late_submission_days }}
+          </div>
+          <div class="field">
+            <label for="late_submission_penalty_percent">
+              Penalty (%)
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Percentage deducted from the final score for late submissions. 0 = no penalty.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            {{ form.late_submission_penalty_percent }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card form-section" id="remedial_students_field" style="display: {% if form.remedial.value %}block{% else %}none{% endif %};">
+        <h3 class="form-section-title">Remedial students</h3>
+        <div class="field">
+          <label for="remedial_students">
+            Select students
+            <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Only these students will see this remedial activity.">
+              <i class="fas fa-circle-info"></i>
+            </span>
+          </label>
+          <select id="remedial_students" name="remedial_students" multiple class="js-choice">
+            {% for student in students %}
+              <option value="{{ student.id }}" {% if student.id in form.remedial_students.value %}selected{% endif %}>{{ student.get_full_name }}</option>
+            {% endfor %}
+          </select>
+          <span class="field-help">Hold Ctrl (or Cmd on Mac) to select multiple students.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="review" data-step-title="Review" data-step-review>
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 4</span> · Review &amp; save
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Confirm your changes</h3>
+        <p class="field-help" style="margin-bottom: 18px;">
+          Quick read-through. Use the dots above or the <strong>Back</strong> button to fix anything,
+          then click <strong>Save changes</strong> below.
+        </p>
+
+        <dl class="cl-review-list">
+          <div class="cl-review-row full">
+            <dt>Activity name</dt>
+            <dd data-cl-review-for="activity_name">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Term</dt>
+            <dd data-cl-review-for="term">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Lessons</dt>
+            <dd data-cl-review-for="additional_modules">—</dd>
+          </div>
+          <div class="cl-review-row full">
+            <dt>Instructions</dt>
+            <dd data-cl-review-for="activity_instruction">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Instruction file</dt>
+            <dd data-cl-review-for="activity_file_instruction">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Max attempts</dt>
+            <dd data-cl-review-for="max_retake">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Retake method</dt>
+            <dd data-cl-review-for="retake_method">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Time limit (min)</dt>
+            <dd data-cl-review-for="time_duration">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Passing score</dt>
+            <dd data-cl-review-for="passing_score">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Score type</dt>
+            <dd data-cl-review-for="passing_score_type">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Opens at</dt>
+            <dd data-cl-review-for="start_time" data-cl-review-format="date">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Closes at</dt>
+            <dd data-cl-review-for="end_time" data-cl-review-format="date">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Shuffle questions</dt>
+            <dd data-cl-review-for="shuffle_questions">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Graded</dt>
+            <dd data-cl-review-for="is_graded">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Remedial</dt>
+            <dd data-cl-review-for="remedial">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Allow late submission</dt>
+            <dd data-cl-review-for="allow_late_submission">—</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <div class="cl-stepper-footer">
+      <button type="button" class="btn-pill" data-cl-stepper-prev>
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <span class="cl-stepper-counter" data-cl-stepper-counter>1 / 4</span>
+      <button type="button" class="btn-pill primary" data-cl-stepper-next>
+        Next <i class="fas fa-arrow-right"></i>
+      </button>
+      <button type="submit" class="btn-pill primary" data-cl-stepper-submit style="display:none;">
+        <i class="fas fa-floppy-disk"></i> Save changes
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script src="{% static 'js/tours/cl-tour-update-assessment.js' %}" defer></script>
+{% endblock %}

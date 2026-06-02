@@ -1,0 +1,266 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% load cl_list %}
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'gradebookcomponent/grade-book.css' %}" />
+{% endblock %}
+
+{% block title %}Gradebook{% endblock %}
+
+{% block content %}
+
+<div class="gb-shell">
+  <div class="gb-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      <h1 class="page-title">Gradebook &middot; <em>Termbook</em></h1>
+      <div class="page-sub">Configure terms, weights, and components for the courses you teach</div>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="gradebook">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <!-- ─── TermBook Section ──────────────────────── -->
+  <section class="gb-section">
+    <div class="gb-section-head">
+      <h2 class="gb-section-title">Term<em>book</em></h2>
+      <div class="gb-actions">
+        <input type="search" placeholder="Search termbooks…"
+               class="gb-input gb-search" data-gb-filter="#termBookAccordion"
+               style="padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-family:var(--body);font-size:13px;background:var(--paper);color:var(--ink);">
+        <a href="{% url 'create-term-book' %}" class="gb-btn gb-btn--primary">
+          <i class="fas fa-plus" aria-hidden="true"></i> Add Termbook
+        </a>
+      </div>
+    </div>
+
+    {% if grouped_termbooks %}
+      <div class="gb-accordion" id="termBookAccordion">
+        {% for subject, termbooks in grouped_termbooks.items %}
+          <div class="gb-accordion-item">
+            <h2 class="m-0" id="termHeading{{ forloop.counter }}">
+              <button class="gb-accordion-button collapsed"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#termCollapse{{ forloop.counter }}"
+                      aria-expanded="false"
+                      aria-controls="termCollapse{{ forloop.counter }}">
+                <span class="gb-acc-info">
+                  <span class="gb-acc-subject">{{ subject.subject_name }}{% if subject.subject_type %} &middot; {{ subject.subject_type }}{% endif %}</span>
+                  <span class="gb-acc-hint">Click to view terms</span>
+                </span>
+                <span class="gb-acc-right">
+                  <span class="t-badge t-badge--gold">{{ termbooks|length }} term{{ termbooks|length|pluralize }}</span>
+                  <i class="fas fa-chevron-down gb-chevron" aria-hidden="true"></i>
+                </span>
+              </button>
+            </h2>
+
+            <div id="termCollapse{{ forloop.counter }}"
+                 class="collapse"
+                 aria-labelledby="termHeading{{ forloop.counter }}"
+                 data-bs-parent="#termBookAccordion">
+              <div class="gb-accordion-body">
+                <div class="gb-table-wrap">
+                  <table class="gb-table">
+                    <thead>
+                      <tr>
+                        <th>Subject(s)</th>
+                        <th>Term</th>
+                        <th>Base Grade</th>
+                        <th>Percentage</th>
+                        <th class="gb-action-cell">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for termbook in termbooks %}
+                        <tr data-search="{% for s in termbook.subjects.all %}{{ s.subject_name|lower }} {% endfor %}{{ termbook.term.term_name|lower }}">
+                          <td class="gb-cell-strong" data-label="Subject(s)">{% for s in termbook.subjects.all %}{{ s.subject_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                          <td data-label="Term">{{ termbook.term.term_name }}</td>
+                          <td data-label="Base Grade">{{ termbook.base_grade }}</td>
+                          <td data-label="Percentage">{{ termbook.percentage|floatformat:0 }}%</td>
+                          <td class="gb-action-cell" data-label="Action">
+                            <a href="{% url 'update-term-book' termbook.id %}" class="gb-icon-btn" title="Edit">
+                              <i class="fas fa-pen"></i>
+                            </a>
+                            <form method="post" action="{% url 'delete-term-book' termbook.id %}" class="d-inline-block m-0"
+                                  onsubmit="return gbSwalConfirmSubmit(event, this, 'Delete this termbook?', 'This action cannot be undone.');">
+                              {% csrf_token %}
+                              <button type="submit" class="gb-icon-btn gb-icon-btn--danger" title="Delete">
+                                <i class="fas fa-trash"></i>
+                              </button>
+                            </form>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th></th>
+                        <th></th>
+                        <th>Total</th>
+                        <th colspan="3">
+                          <span class="gb-total total-percentage-{{ forloop.counter }}"
+                                data-termbooks='[{% for tb in termbooks %}{{ tb.percentage }}{% if not forloop.last %},{% endif %}{% endfor %}]'></span>
+                        </th>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="gb-empty">
+        <div class="ico"><i class="fas fa-layer-group" aria-hidden="true"></i></div>
+        <div class="lead">No termbooks yet</div>
+        <div>Create your first termbook to get started.</div>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- ─── GradeBook Section ─────────────────────── -->
+  <section class="gb-section">
+    <div class="gb-section-head">
+      <h2 class="gb-section-title">Grade<em>book</em></h2>
+      <div class="gb-actions">
+        <input type="search" placeholder="Search gradebooks…"
+               class="gb-input gb-search" data-gb-filter="#gradeBookAccordion"
+               style="padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-family:var(--body);font-size:13px;background:var(--paper);color:var(--ink);">
+        <a href="{% url 'create-grade-book' %}" class="gb-btn gb-btn--primary">
+          <i class="fas fa-plus" aria-hidden="true"></i> Add Gradebook
+        </a>
+        <a href="{% url 'copy-grade-book' %}" class="gb-btn">
+          <i class="fas fa-copy" aria-hidden="true"></i> Copy Gradebook
+        </a>
+        <a href="{% url 'status-list' %}" class="gb-btn">
+          <i class="fas fa-clipboard-check" aria-hidden="true"></i> Attendance Status Points
+        </a>
+      </div>
+    </div>
+
+    {% if grouped_components %}
+      <div class="gb-accordion" id="gradeBookAccordion">
+        {% for subject, components in grouped_components.items %}
+          <div class="gb-accordion-item">
+            <h2 class="m-0" id="heading{{ forloop.counter }}">
+              <button class="gb-accordion-button collapsed"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapse{{ forloop.counter }}"
+                      aria-expanded="false"
+                      aria-controls="collapse{{ forloop.counter }}">
+                <span class="gb-acc-info">
+                  <span class="gb-acc-subject">{{ subject.subject_name }}{% if subject.subject_type %} &middot; {{ subject.subject_type }}{% endif %}</span>
+                  <span class="gb-acc-hint">Click to view components</span>
+                </span>
+                <span class="gb-acc-right">
+                  {% with subj_total=subject_totals|cl_get:subject.subject_name %}
+                    {% if subj_total == 100 or subj_total == 100.0 %}
+                      <span class="t-badge t-badge--forest">Total {{ subj_total|floatformat:0 }}%</span>
+                    {% elif subj_total > 100 %}
+                      <span class="t-badge t-badge--rose">Total {{ subj_total|floatformat:0 }}%</span>
+                    {% else %}
+                      <span class="t-badge t-badge--gold">Total {{ subj_total|floatformat:0 }}%</span>
+                    {% endif %}
+                  {% endwith %}
+                  <span class="t-badge t-badge--forest">{{ components|length }} component{{ components|length|pluralize }}</span>
+                  <i class="fas fa-chevron-down gb-chevron" aria-hidden="true"></i>
+                </span>
+              </button>
+            </h2>
+
+            <div id="collapse{{ forloop.counter }}"
+                 class="collapse"
+                 aria-labelledby="heading{{ forloop.counter }}"
+                 data-bs-parent="#gradeBookAccordion">
+              <div class="gb-accordion-body">
+                <div class="gb-table-wrap">
+                  <table class="gb-table">
+                    <thead>
+                      <tr>
+                        <th>Category</th>
+                        <th>Sub-Category</th>
+                        <th>Term</th>
+                        <th>Weight</th>
+                        <th class="gb-action-cell">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for component in components %}
+                        {% with cat_label=component.gradebook_category|default:component.gradebook_name %}
+                        <tr data-search="{{ component.subject.subject_name|lower }} {{ cat_label|lower }} {{ component.term.term_name|lower }}">
+                          <td data-label="Category">{{ cat_label|default:"—" }}</td>
+                          <td data-label="Sub-Category">
+                            {% with subs=component.activity_type_percentages.all %}
+                              {% if subs %}
+                                <div class="gb-subact-list">
+                                  {% for sub in subs %}
+                                    <span class="gb-subact-chip">
+                                      <span class="gb-subact-name">{{ sub.activity_type }}</span>
+                                      <span class="gb-subact-pct">{{ sub.percentage|floatformat:0 }}%</span>
+                                    </span>
+                                  {% endfor %}
+                                </div>
+                              {% else %}
+                                <span class="text-muted" style="color: var(--ink-muted); font-style: italic;">—</span>
+                              {% endif %}
+                            {% endwith %}
+                          </td>
+                          <td data-label="Term">{{ component.term.term_name }}</td>
+                          <td data-label="Weight">{{ component.percentage|floatformat:0 }}%</td>
+                          <td class="gb-action-cell" data-label="Action">
+                            <a href="{% url 'update-grade-book' component.id %}" class="gb-icon-btn" title="Edit">
+                              <i class="fas fa-pen"></i>
+                            </a>
+                            <form method="post" action="{% url 'delete-grade-book' component.id %}" class="d-inline-block m-0"
+                                  onsubmit="return gbSwalConfirmSubmit(event, this, 'Delete this gradebook component?', 'This action cannot be undone.');">
+                              {% csrf_token %}
+                              <button type="submit" class="gb-icon-btn gb-icon-btn--danger" title="Delete">
+                                <i class="fas fa-trash"></i>
+                              </button>
+                            </form>
+                          </td>
+                        </tr>
+                        {% endwith %}
+                      {% endfor %}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th></th>
+                        <th></th>
+                        <th>Total</th>
+                        <th colspan="4">
+                          {% with subj_total=subject_totals|cl_get:subject.subject_name %}
+                            <span class="gb-total {% if subj_total == 100 or subj_total == 100.0 %}text-success{% elif subj_total > 100 %}text-danger{% else %}text-warning{% endif %}">
+                              {{ subj_total|floatformat:0 }}%
+                            </span>
+                          {% endwith %}
+                        </th>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="gb-empty">
+        <div class="ico"><i class="fas fa-inbox" aria-hidden="true"></i></div>
+        <div class="lead">No records found</div>
+        <div>Create your first gradebook component to get started.</div>
+      </div>
+    {% endif %}
+  </section>
+</div>
+
+
+<!-- JavaScript: helpers + GradeBook + TermBook + DataTables -->
+<script src="{% static 'gradebookcomponent/grade-book.js' %}"></script>
+<script src="{% static 'js/tours/cl-tour-gradebook.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Create Rubric{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+{% endblock %}
+
+{% block content %}
+  {% include "rubrics/_rubric_form.html" with form_title="New <em>rubric</em>" form_sub="Define reusable scoring criteria for graded essays and document submissions." submit_label="Create Rubric" %}
+{% endblock %}

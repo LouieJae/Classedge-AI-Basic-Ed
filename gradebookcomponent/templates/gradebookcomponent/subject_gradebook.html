@@ -1,0 +1,94 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}{{ subject.subject_name }} · Gradebook{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gradebookcomponent/subject_gradebook.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="gb-shell">
+  <div class="gb-header">
+    <div class="gb-header-left">
+      <a class="gb-back" href="{% url 'gradebook_home' %}">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> All subjects
+      </a>
+      <h1 class="gb-title">
+        {{ subject.subject_name }}{% if term %}<em> · {{ term.term_name }}</em>{% endif %}
+      </h1>
+    </div>
+    <a class="gb-csv" href="{% url 'gradebook_subject_csv' subject.id %}">
+      <i class="fas fa-file-csv" aria-hidden="true"></i> Export CSV
+    </a>
+  </div>
+
+  <div class="t-table-wrap">
+    <table class="gb-grid">
+      <thead>
+        <tr>
+          <th class="gb-sticky-left">Student</th>
+          {% for a in activities %}
+            <th>
+              {{ a.activity_name }}
+              <span class="gb-max">out of {{ a.max_score }}</span>
+            </th>
+          {% endfor %}
+          {% for t in terms %}
+            <th class="gb-term-grade">
+              {{ t.term_name }}
+              <span class="gb-max">term grade</span>
+            </th>
+          {% endfor %}
+          <th class="gb-final">Final</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td class="gb-sticky-left">{{ row.student.last_name }}, {{ row.student.first_name }}</td>
+            {% for cell in row.cells %}
+              <td class="{% if cell.sa %}{% if cell.sa.total_score > 0 %}gb-cell-graded{% else %}gb-cell-ungraded{% endif %}{% else %}gb-cell-empty{% endif %}">
+                {% if cell.sa %}
+                  {% if cell.sa.is_editable %}
+                    <details>
+                      <summary class="t-cell-edit">
+                        <span class="t-cell-edit-text">{{ cell.sa.total_score }}{% if cell.sa.score_logs.exists %}<span class="t-cell-edit-mark">•</span>{% endif %}</span>
+                        <i class="fas fa-pen t-cell-edit-icon" aria-hidden="true"></i>
+                      </summary>
+                      <form class="gb-override-form" method="post" action="{% url 'gradebook_override' cell.sa.id %}">
+                        {% csrf_token %}
+                        <label>
+                          New score
+                          <input name="new_score" type="number" min="0" max="{{ cell.activity.max_score }}" step="0.01" value="{{ cell.sa.total_score }}" required>
+                        </label>
+                        <label>
+                          Reason
+                          <textarea name="reason" rows="2" required placeholder="Why this override?"></textarea>
+                        </label>
+                        <button type="submit">Override</button>
+                      </form>
+                    </details>
+                  {% else %}
+                    {{ cell.sa.total_score }}
+                  {% endif %}
+                {% else %}<span aria-label="Not graded">&mdash;</span>{% endif %}
+              </td>
+            {% endfor %}
+            {% for tg in row.term_grades %}
+              <td class="gb-term-grade">
+                {% if tg.total is not None %}{{ tg.total|floatformat:1 }}%{% else %}<span class="gb-empty-mark">&mdash;</span>{% endif %}
+              </td>
+            {% endfor %}
+            <td class="gb-final">
+              {% if row.final is not None %}{{ row.final|floatformat:1 }}%{% else %}<span class="gb-empty-mark">&mdash;</span>{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr class="gb-empty-row"><td colspan="100">No students enrolled yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

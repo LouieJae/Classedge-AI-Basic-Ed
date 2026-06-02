@@ -1,0 +1,8 @@
+<span class="px-3 py-1 rounded text-sm
+    {% if job.status == 'complete' %}bg-green-100 text-green-800
+    {% elif job.status == 'failed' %}bg-red-100 text-red-800
+    {% elif job.status == 'running' %}bg-amber-100 text-amber-800
+    {% else %}bg-gray-100 text-gray-800{% endif %}">
+    {{ job.get_status_display }}
+    {% if job.status == 'running' %}({{ job.completed_weeks }}/{{ job.total_weeks }}){% endif %}
+</span>

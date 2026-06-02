@@ -1,0 +1,330 @@
+{% extends "base_operation.html" %}
+
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %} Edit Question {% endblock %}
+
+{% block content %}
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Edit Question for {{ activity.activity_name }}</h2>
+            <a href="{% url 'list-assessment-questions' activity.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" data-cl-loading data-cl-loading-label="Updating…">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="question_text" class="form-label">{% if question.quiz_type.name == 'Essay' or question.quiz_type.name == 'Document' %}Instruction{% else %}Question{% endif %}:</label>
+                        <textarea id="question_text" name="question_text" class="form-control" required>{{ question.question_text }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="score" class="form-label">Score:</label>
+                        <input type="number" id="score" name="score" class="form-control" value="{{ question.score }}" required min="1">
+                    </div>
+
+                    {% if question.quiz_type.name == 'Multiple Choice' %}
+                    <div id="choices">
+                        <label class="form-label">Choices: <small class="text-muted">(text, image, or both)</small></label>
+                        {% for choice in question.choices.all %}
+                        <div class="input-group mb-2 choice-row" data-choice-idx="{{ forloop.counter0 }}">
+                            <div class="input-group-text">
+                                <input type="radio" name="correct_answer" value="{{ forloop.counter0 }}"
+                                    {% if question.correct_answer == forloop.counter0|stringformat:"s" or choice.choice_text == question.correct_answer %}checked{% endif %}>
+                            </div>
+                            <input type="text" name="choices" class="form-control" value="{{ choice.choice_text }}">
+                            <input type="file" name="choice_image_{{ forloop.counter0 }}" class="form-control choice-image-file"
+                                   accept="image/*" style="max-width: 200px;" title="Replace image">
+                            {% if choice.choice_image %}
+                                <input type="hidden" name="keep_image_{{ forloop.counter0 }}" value="1" class="keep-image-flag">
+                                <a href="{{ choice.choice_image.url }}" target="_blank" class="input-group-text" title="Current image">
+                                    <img src="{{ choice.choice_image.url }}" class="choice-thumb" style="height:32px; width:auto; border-radius:4px;">
+                                </a>
+                                <button type="button" class="btn btn-outline-secondary btn-sm clear-choice-image" title="Remove image">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            {% endif %}
+                            <button type="button" class="btn btn-danger btn-sm remove-choice">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-outline-primary mt-2" onclick="addChoice()">
+                        <i class="fas fa-plus"></i> Add Choice
+                    </button>
+
+                    {% elif question.quiz_type.name == 'Matching Type' %}
+                    <div id="matching_pairs">
+                        <label class="form-label">Matching Pairs:</label>
+                        {% for left, right in matching_pairs %}
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-5">
+                                <input type="text" name="matching_left" class="form-control" value="{{ left.choice_text }}" required>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" name="matching_right" class="form-control" value="{{ right.choice_text }}" required>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div id="additional_right_options">
+                        <label class="form-label">Additional Right Side Options (Distractors):</label>
+                        {% for extra in extra_right_choices %}
+                        <div class="input-group mb-2">
+                            <input type="text" name="extra_right" class="form-control" value="{{ extra.choice_text }}">
+                            <button type="button" class="btn btn-danger btn-sm remove-right">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% elif question.quiz_type.name == 'True/False' %}
+                    <div class="mb-3">
+                        <label for="correct_answer" class="form-label">Correct Answer:</label>
+                        <select id="correct_answer" name="correct_answer" class="form-select">
+                            <option value="True" {% if question.correct_answer == 'True' %}selected{% endif %}>True</option>
+                            <option value="False" {% if question.correct_answer == 'False' %}selected{% endif %}>False</option>
+                        </select>
+                    </div>
+
+                    {% elif question.quiz_type.name == "Calculated Numeric" or question.quiz_type.name == "Fill in the Blank" %}
+                    <div class="mb-3">
+                        <label for="correct_answer" class="form-label">Correct Answer:</label>
+                        <input type="text" id="correct_answer" name="correct_answer" class="form-control" value="{{ question.correct_answer }}" required>
+                    </div>
+                    {% endif %}
+
+                    {% if question.quiz_type and question.quiz_type.name in 'Essay,Document' %}
+                    <div class="mb-3">
+                        <label for="question_instruction" class="form-label">Instruction (Optional):</label>
+                        <input type="file" id="question_instruction" name="question_instruction" class="form-control" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png">
+                        <small class="form-text text-muted">Upload instruction file for this question (PDF, Word, text, or image files)</small>
+                        {% if question.question_instruction %}
+                        <div class="mt-2">
+                            <p class="mb-1"><strong>Current file:</strong></p>
+                            <div class="d-flex gap-2 align-items-center">
+                                <a href="{{ question.question_instruction.url }}" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-file-download"></i> View Current Instruction</a>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="removeInstructionFile()"><i class="fas fa-trash"></i> Remove File</button>
+                            </div>
+                            <input type="hidden" id="remove_instruction" name="remove_instruction" value="0">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Rubric Criteria</strong></label>
+                        <div class="alert alert-info">
+                            <small>Add criteria and points for grading this question. Total points should not exceed 100%.</small>
+                        </div>
+                        <div id="rubric_items">
+                            {% for item in rubric_items %}
+                            <div class="input-group mb-2 rubric-item">
+                                <select name="rubric_id" class="form-select rubric-select" required>
+                                    <option value="{{ item.rubric.id }}" selected>{{ item.rubric.rubric_name }}</option>
+                                </select>
+                                <input type="number" name="rubric_points" class="form-control rubric-point" placeholder="Points (%)" min="1" max="100" step="0.01" value="{{ item.point }}" required style="width: 100px;">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove(); updateTotalPercentage();"><i class="fas fa-trash"></i></button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addRubricItem()">Add Criteria</button>
+                            <span id="total_percentage" class="badge bg-primary">Total: {{ total_rubric_percentage }}%</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Question
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+<script>
+    function reindexChoices() {
+        document.querySelectorAll('#choices .choice-row').forEach((row, idx) => {
+            row.dataset.choiceIdx = idx;
+            const radio = row.querySelector('input[type="radio"][name="correct_answer"]');
+            if (radio) radio.value = idx;
+            const fileInput = row.querySelector('.choice-image-file');
+            if (fileInput) fileInput.name = `choice_image_${idx}`;
+            const keepFlag = row.querySelector('.keep-image-flag');
+            if (keepFlag) keepFlag.name = `keep_image_${idx}`;
+        });
+    }
+
+    function addChoice() {
+        const choiceContainer = document.createElement('div');
+        choiceContainer.classList.add('input-group', 'mb-2', 'choice-row');
+
+        const radioWrapper = document.createElement('div');
+        radioWrapper.classList.add('input-group-text');
+
+        const radioInput = document.createElement('input');
+        radioInput.type = 'radio';
+        radioInput.name = 'correct_answer';
+
+        radioWrapper.appendChild(radioInput);
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.name = 'choices';
+        textInput.classList.add('form-control');
+        textInput.placeholder = 'Enter choice text...';
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.classList.add('form-control', 'choice-image-file');
+        fileInput.accept = 'image/*';
+        fileInput.style.maxWidth = '200px';
+        fileInput.title = 'Choice image (optional)';
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.classList.add('btn', 'btn-danger', 'btn-sm', 'remove-choice');
+        deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        deleteButton.onclick = function () {
+            choiceContainer.remove();
+            reindexChoices();
+        };
+
+        choiceContainer.appendChild(radioWrapper);
+        choiceContainer.appendChild(textInput);
+        choiceContainer.appendChild(fileInput);
+        choiceContainer.appendChild(deleteButton);
+
+        document.getElementById('choices').appendChild(choiceContainer);
+        reindexChoices();
+    }
+
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.remove-choice')) {
+            const row = e.target.closest('.choice-row');
+            if (row) { row.remove(); reindexChoices(); }
+        }
+        if (e.target.closest('.clear-choice-image')) {
+            const row = e.target.closest('.choice-row');
+            if (row) {
+                const flag = row.querySelector('.keep-image-flag');
+                if (flag) flag.value = '0';
+                const thumb = row.querySelector('.choice-thumb');
+                if (thumb && thumb.parentElement) thumb.parentElement.remove();
+                e.target.closest('.clear-choice-image').remove();
+            }
+        }
+    });
+
+    window.addRubricItem = function () {
+        const itemContainer = document.createElement('div');
+        itemContainer.classList.add('input-group', 'mb-2', 'rubric-item');
+      
+        const rubricSelect = document.createElement('select');
+        rubricSelect.name = 'rubric_id';
+        rubricSelect.classList.add('form-select', 'rubric-select');
+        rubricSelect.required = true;
+      
+        const pointInput = document.createElement('input');
+        pointInput.type = 'number';
+        pointInput.name = 'rubric_points';
+        pointInput.classList.add('form-control', 'rubric-point');
+        pointInput.placeholder = 'Points (%)';
+        pointInput.min = '1';
+        pointInput.max = '100';
+        pointInput.step = '0.01';
+        pointInput.required = true;
+        pointInput.style.width = '100px';
+        pointInput.addEventListener('input', updateTotalPercentage);
+      
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.classList.add('btn', 'btn-danger', 'btn-sm');
+        deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+        deleteButton.onclick = function () {
+            itemContainer.remove();
+            updateTotalPercentage();
+        };
+      
+        itemContainer.appendChild(rubricSelect);
+        itemContainer.appendChild(pointInput);
+        itemContainer.appendChild(deleteButton);
+      
+        document.getElementById('rubric_items').appendChild(itemContainer);
+      
+        // Fetch rubrics for this subject
+        const subjectId = {{ subject.id|default:'null' }};
+        const apiUrl = subjectId ? `/api/rubrics/?subject_id=${subjectId}` : '/api/rubrics/';
+        
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                const selectedRubricIds = Array.from(document.querySelectorAll('select[name="rubric_id"]'))
+                    .map(select => select.value)
+                    .filter(val => val !== '');
+        
+                rubricSelect.innerHTML = '<option value="" disabled selected>Select Rubric</option>';
+                data.forEach(rubric => {
+                    if (!selectedRubricIds.includes(rubric.id.toString())) {
+                        const option = document.createElement('option');
+                        option.value = rubric.id;
+                        option.textContent = rubric.rubric_name;
+                        rubricSelect.appendChild(option);
+                    }
+                });
+        
+                if (rubricSelect.options.length === 1) {
+                    rubricSelect.innerHTML = '<option disabled>No more available rubrics</option>';
+                    rubricSelect.disabled = true;
+                    pointInput.disabled = true;
+                    deleteButton.disabled = false;
+                }
+            })
+            .catch(error => {
+                rubricSelect.innerHTML = '<option disabled>Error loading rubrics</option>';
+            });
+      
+        updateTotalPercentage();
+    };
+
+    function updateTotalPercentage() {
+        const rubricPoints = document.querySelectorAll('.rubric-point');
+        let totalPercentage = 0;
+        rubricPoints.forEach(pointInput => {
+            totalPercentage += parseFloat(pointInput.value) || 0;
+        });
+        document.getElementById('total_percentage').textContent = `Total: ${totalPercentage}%`;
+    }
+
+    function removeInstructionFile() {
+        if (confirm('Are you sure you want to remove the current instruction file?')) {
+            document.getElementById('remove_instruction').value = '1';
+            document.querySelector('.mt-2').style.display = 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.remove-choice').forEach(button => {
+            button.addEventListener('click', function () {
+                this.parentElement.remove();
+            });
+        });
+
+        document.querySelectorAll('.remove-right').forEach(button => {
+            button.addEventListener('click', function () {
+                this.parentElement.remove();
+            });
+        });
+    });
+</script>
+{% endblock %}

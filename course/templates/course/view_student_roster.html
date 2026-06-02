@@ -1,0 +1,203 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}
+  Student Roster for {{ subject.subject_name }}
+{% endblock %}
+{% block content %}
+  {% csrf_token %}
+  <!-- Content Header -->
+  <h3 class="mb-4 text-center text-gray-800">
+    Student Roster for {{ subject.subject_name }}
+    <br />
+    <small>
+      {% if selected_semester %}
+        {{ selected_semester.semester_name }} -{% if selected_semester.start_date.year == selected_semester.end_date.year %}
+          {{ selected_semester.start_date|date:'Y' }}
+        {% else %}
+          {{ selected_semester.start_date|date:'Y' }} - {{ selected_semester.end_date|date:'Y' }}
+        {% endif %}
+      {% else %}
+        No Active Semester
+      {% endif %}
+    </small>
+  </h3>
+
+  <!-- Main content -->
+
+  <div class="row justify-content-center">
+    <div class="col-lg-12">
+      <!-- Attendance Export Card -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">
+            Attendance Report - {{ subject.subject_name }}
+            <small class="d-block mt-1 text-muted">
+              {{ selected_semester.semester_name }} {% if selected_semester.start_date.year == selected_semester.end_date.year %}
+                {{ selected_semester.start_date|date:'Y' }}
+              {% else %}
+                {{ selected_semester.start_date|date:'Y' }} - {{ selected_semester.end_date|date:'Y' }}
+              {% endif %}
+            </small>
+          </h6>
+        </div>
+        <div class="card-body">
+          <form id="exportAttendanceForm" method="GET" action="{% url 'export_attendance_by_date_range' subject.id %}">
+            <input type="hidden" name="semester" value="{{ selected_semester.id }}">
+            <div class="row">
+              <div class="col-md-5">
+                <div class="form-group">
+                  <label for="start_date">Start Date</label>
+                  <input type="date" class="form-control" id="start_date" name="start_date" required>
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="form-group">
+                  <label for="end_date">End Date</label>
+                  <input type="date" class="form-control" id="end_date" name="end_date" required>
+                </div>
+              </div>
+              <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary btn-block">
+                  <i class="fas fa-file-export mr-2"></i> Export
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 text-muted small">
+              <i class="fas fa-info-circle mr-1"></i> Export will include subject name, semester details, and date range in the Excel file.
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Date Range Selector Card -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Filter by Date Range</h6>
+        </div>
+        <div class="card-body">
+          <form method="GET" action="">
+            <input type="hidden" name="semester" value="{{ selected_semester.id }}">
+            <div class="row">
+              <div class="col-md-5">
+                <div class="form-group">
+                  <label for="start_date_filter">Start Date:</label>
+                  <input type="date" class="form-control" id="start_date_filter" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="form-group">
+                  <label for="end_date_filter">End Date:</label>
+                  <input type="date" class="form-control" id="end_date_filter" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+                </div>
+              </div>
+              <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary btn-block">
+                  <i class="fas fa-filter mr-2"></i> Filter
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Consolidated Attendance Card -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">
+            Consolidated Attendance Report
+            <small class="d-block mt-1 text-muted">{{ start_date|date:'M d, Y' }} - {{ end_date|date:'M d, Y' }}</small>
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover mb-0 data-table">
+              <thead class="table-light">
+                <tr>
+                  <th>Student Name</th>
+                  {% for status in all_statuses %}
+                    <th class="text-center">{{ status.status }}</th>
+                  {% endfor %}
+                  <th class="text-center">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in students %}
+                  <tr>
+                    <td>
+                      <a href="{% url 'student_subject_attendance' subject.id student.id %}" class="d-inline-flex align-items-center text-decoration-none">
+                        {% if student.profile.student_photo %}
+                          <img src="{{ student.profile.student_photo.url }}" class="rounded-image me-2" alt="Student" style="width: 30px; height: 30px; object-fit: cover;" />
+                        {% else %}
+                          <img src="{% static 'assets/img/def_user.jpg' %}" class="rounded-image me-2" alt="Profile Picture" style="width: 30px; height: 30px; object-fit: cover;" />
+                        {% endif %}
+                        {{ student.profile.last_name }}, {{ student.profile.first_name }}
+                      </a>
+                    </td>
+                    {% for status in all_statuses %}
+                      <td class="text-center">
+                        <span class="attendance-count" data-student="{{ student.id }}" data-status="{{ status.status }}">-</span>
+                      </td>
+                    {% endfor %}
+                    <td class="text-center">
+                      <strong class="attendance-total" data-student="{{ student.id }}">-</strong>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="text-right">
+    <a href="{% url 'material-list' subject.id %}" class="btn btn-secondary">Back</a>
+  </div>
+
+  <link rel="stylesheet" href="{% static 'course/view_student_roster.css' %}" />
+
+  <script>
+    // Consolidated attendance data from backend
+    const consolidatedAttendance = {{ consolidated_attendance|safe }};
+
+    document.addEventListener('DOMContentLoaded', function() {
+      populateConsolidatedAttendance();
+    });
+
+    function populateConsolidatedAttendance() {
+      // Populate attendance counts for each student
+      document.querySelectorAll('.attendance-count').forEach(element => {
+        const studentId = element.getAttribute('data-student');
+        const status = element.getAttribute('data-status');
+        
+        if (consolidatedAttendance[studentId] && consolidatedAttendance[studentId].status_counts) {
+          const count = consolidatedAttendance[studentId].status_counts[status] || 0;
+          if (count > 0) {
+            element.innerHTML = `<span class="badge">${count}</span>`;
+          } else {
+            element.innerHTML = '<span class="text-muted">0</span>';
+          }
+        } else {
+          element.innerHTML = '<span class="text-muted">0</span>';
+        }
+      });
+
+      // Populate total counts
+      document.querySelectorAll('.attendance-total').forEach(element => {
+        const studentId = element.getAttribute('data-student');
+        
+        if (consolidatedAttendance[studentId]) {
+          const total = consolidatedAttendance[studentId].total || 0;
+          element.textContent = total;
+        } else {
+          element.textContent = '0';
+        }
+      });
+    }
+  </script>
+
+  <script src="{% static 'course/view_student_roster.js' %}"></script>
+
+  {% endblock %}

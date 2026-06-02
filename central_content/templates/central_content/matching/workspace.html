@@ -1,0 +1,110 @@
+{% extends "central_content/base.html" %}
+{% block title %}Matching{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-semibold">Matching</h1>
+  <form method="get" class="flex gap-2 items-center">
+    <label>School:
+      <select name="school" onchange="this.form.submit()">
+        {% for s in schools %}
+          <option value="{{ s.pk }}" {% if selected_school and s.pk == selected_school.pk %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+</div>
+
+{% if catalog_error %}
+  <div class="bg-red-100 text-red-700 p-3 mb-4 rounded">{{ catalog_error }}</div>
+{% endif %}
+
+{% if selected_school %}
+  {% if can_bind %}
+  <form method="post" action="{% url 'binding_create' %}" class="grid grid-cols-2 gap-4 mb-6">
+    {% csrf_token %}
+    <input type="hidden" name="school_id" value="{{ selected_school.pk }}">
+    <div>
+      <div class="font-semibold mb-2">Central subjects (approved)</div>
+      {% for cs in central_subjects %}
+        <label class="block p-2 border-b {% if cs.pk in bound_central_subject_ids %}opacity-40{% endif %}">
+          <input type="radio" name="central_subject_id" value="{{ cs.pk }}"
+            {% if cs.pk in bound_central_subject_ids %}disabled{% endif %}>
+          {{ cs.subject_name }} &middot; v{{ cs.version }}
+        </label>
+      {% empty %}
+        <p class="text-gray-400">No approved central subjects yet.</p>
+      {% endfor %}
+    </div>
+    <div>
+      <div class="font-semibold mb-2">{{ selected_school.name }} subjects</div>
+      {% for row in catalog_rows %}
+        <label class="block p-2 border-b {% if row.id in bound_school_subject_ids %}opacity-40{% endif %}">
+          <input type="radio" name="school_subject_id" value="{{ row.id }}"
+            {% if row.id in bound_school_subject_ids %}disabled{% endif %}
+            data-name="{{ row.subject_name }}" data-code="{{ row.subject_code }}">
+          {{ row.subject_name }} &mdash; {{ row.subject_code }}
+        </label>
+      {% empty %}
+        <p class="text-gray-400">No subjects returned.</p>
+      {% endfor %}
+    </div>
+    <div class="col-span-2">
+      <input type="hidden" name="school_subject_name" id="school_subject_name">
+      <input type="hidden" name="school_subject_code" id="school_subject_code">
+      <button type="submit" data-action="bind" class="bg-blue-600 text-white px-4 py-2 rounded">Bind selected</button>
+    </div>
+  </form>
+  <script>
+    document.querySelectorAll('input[name=school_subject_id]').forEach(r => {
+      r.addEventListener('change', () => {
+        document.getElementById('school_subject_name').value = r.dataset.name;
+        document.getElementById('school_subject_code').value = r.dataset.code;
+      });
+    });
+  </script>
+  {% endif %}
+
+  <h2 class="text-xl mt-6 mb-2">Current bindings for {{ selected_school.name }}</h2>
+  <table class="min-w-full bg-white shadow text-sm">
+    <thead><tr class="text-left border-b">
+      <th class="p-2">Central subject</th>
+      <th class="p-2">School subject</th>
+      <th class="p-2">Status</th>
+      {% if can_bind %}<th class="p-2">Actions</th>{% endif %}
+    </tr></thead>
+    <tbody>
+    {% for b in bindings %}
+      <tr class="border-b">
+        <td class="p-2">{{ b.central_subject.subject_name }} (v{{ b.central_subject.version }})</td>
+        <td class="p-2">{{ b.school_subject_name }}</td>
+        <td class="p-2">
+          {% if b.drift_state == "never" %}
+            <span class="text-gray-400">Not pushed</span>
+          {% elif b.drift_state == "up_to_date" %}
+            <span class="text-green-600">Up to date &middot; v{{ b.pushed_version }}</span>
+          {% else %}
+            <span class="text-amber-600">Drift &mdash; pushed v{{ b.pushed_version }}, current v{{ b.central_subject.version }}</span>
+          {% endif %}
+        </td>
+        {% if can_bind %}
+          <td class="p-2">
+            <form method="post" action="{% url 'binding_push' b.pk %}" class="inline">
+              {% csrf_token %}
+              <button type="submit" class="text-blue-600">
+                {% if b.drift_state == "never" %}Push{% elif b.drift_state == "drift" %}Push update{% else %}Re-push{% endif %}
+              </button>
+            </form>
+            &middot;
+            <a href="{% url 'binding_unbind_confirm' b.pk %}" class="text-red-600">Unbind</a>
+          </td>
+        {% endif %}
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" class="p-4 text-gray-400">No bindings yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="text-gray-400">No active school selected.</p>
+{% endif %}
+{% endblock %}

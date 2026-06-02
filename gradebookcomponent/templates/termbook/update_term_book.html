@@ -1,0 +1,72 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Update Termbook{% endblock %}
+
+{% block content %}
+{% include "includes/_list_page_theme.html" %}
+{% include "termbook/_form_styles.html" %}
+
+<div class="gbf-page">
+
+  <a href="{% url 'grade-book' %}" class="cl-back-btn">
+    <i class="fas fa-arrow-left"></i> Back to gradebook
+  </a>
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Update <em>Termbook</em></h1>
+      <p class="page-sub">Adjust this termbook's term, subjects, and weight.</p>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="termbook-form">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <div class="gbf-card">
+    <form method="post" action="{% url 'update-term-book' termbook.id %}" class="gbf-form" novalidate
+          data-cl-loading data-cl-loading-label="Updating…">
+      {% csrf_token %}
+
+      <div class="form-group">
+        {{ form.term.label_tag }}
+        {{ form.term }}
+      </div>
+
+      <div class="form-group">
+        {{ form.subjects.label_tag }}
+        {{ form.subjects }}
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.base_grade.id_for_label }}">
+          Base Grade
+          <i class="fas fa-info-circle" style="color: var(--brand-primary, #1b4332);" data-bs-toggle="tooltip" title="Minimum grade that will be used for calculating the final grade"></i>
+        </label>
+        {{ form.base_grade }}
+      </div>
+
+      <div class="form-group">
+        {{ form.passing_grade.label_tag }}
+        {{ form.passing_grade }}
+      </div>
+
+      <div class="form-group">
+        {{ form.percentage.label_tag }}
+        {{ form.percentage }}
+      </div>
+
+      <div class="gbf-actions">
+        <button type="submit" class="gbf-btn gbf-btn--primary">
+          <i class="fas fa-check"></i> Save changes
+        </button>
+        <a href="{% url 'grade-book' %}" class="gbf-btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="{% static 'gradebookcomponent/update_term_book.js' %}"></script>
+<script src="{% static 'js/tours/cl-tour-termbook-form.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,335 @@
+    .lb-shell {
+      width: 100%;
+      margin: 0 auto;
+      padding: 8px 0;
+      min-width: 0;
+    }
+    .lb-shell,
+    .lb-shell * {
+      box-sizing: border-box;
+    }
+    
+    .lb-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ink-dim);
+      font-size: 13px;
+      text-decoration: none;
+      margin-bottom: 8px;
+      transition: color 0.15s;
+    }
+    .lb-back:hover {
+      color: var(--ink);
+    }
+    .lb-back i {
+      font-size: 11px;
+    }
+    
+    .lb-header {
+      margin-bottom: 28px;
+    }
+    /* Page-level title uses canonical .page-title / .page-sub from student_theme.css */
+    
+    /* Top 3 podium */
+    .lb-podium {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 1fr;
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 720px) {
+      .lb-podium {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .lb-podium-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px 18px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .lb-podium-card.is-you {
+      border-color: var(--brand-primary, #b7925a);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary, #b7925a) 15%, transparent), var(--shadow);
+    }
+    .lb-podium-card .crown {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+    }
+    .lb-podium-card.gold-rank {
+      padding-top: 36px;
+      transform: translateY(-12px);
+    }
+    .lb-podium-card.gold-rank .crown {
+      background: var(--brand-primary, #b7925a);
+      color: var(--cream);
+    }
+    .lb-podium-card.silver-rank .crown {
+      background: #c0c5cb;
+      color: var(--paper);
+    }
+    .lb-podium-card.bronze-rank .crown {
+      background: #b08056;
+      color: var(--paper);
+    }
+    
+    .lb-podium-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--brand-primary, #1b4332);
+      color: var(--cream);
+      display: grid;
+      place-items: center;
+      font-family: var(--display);
+      font-size: 26px;
+      font-weight: 700;
+      margin: 6px auto 12px;
+      border: 3px solid var(--cream);
+      box-shadow: 0 0 0 1px var(--border);
+    }
+    .lb-podium-card.gold-rank .lb-podium-avatar {
+      box-shadow: 0 0 0 2px var(--brand-primary, #b7925a);
+    }
+    .lb-podium-card.silver-rank .lb-podium-avatar {
+      box-shadow: 0 0 0 2px #c0c5cb;
+    }
+    .lb-podium-card.bronze-rank .lb-podium-avatar {
+      box-shadow: 0 0 0 2px #b08056;
+    }
+    
+    .lb-podium-name {
+      font-family: var(--display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0 0 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .lb-podium-card.is-you .lb-podium-name::after {
+      content: ' (you)';
+      color: var(--brand-primary, #b7925a);
+      font-style: italic;
+      font-weight: 500;
+    }
+    .lb-podium-meta {
+      font-size: 11px;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .lb-podium-xp {
+      font-family: var(--display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.015em;
+    }
+    .lb-podium-xp .unit {
+      font-size: 12px;
+      color: var(--ink-dim);
+      font-weight: 500;
+      font-style: italic;
+      margin-left: 3px;
+    }
+    .lb-podium-stats {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      font-size: 12px;
+      color: var(--ink-dim);
+      margin-top: 8px;
+    }
+    .lb-podium-stats span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .lb-podium-stats i {
+      color: var(--brand-primary, #b7925a);
+      font-size: 11px;
+    }
+    
+    /* Rest of the list */
+    .lb-list-panel {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .lb-list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+    .lb-list-title {
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+    }
+    .lb-list-meta {
+      font-family: var(--body);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+    
+    .lb-row {
+      display: grid;
+      grid-template-columns: 50px 44px 1fr 70px 80px 110px;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 22px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    @media (max-width: 720px) {
+      .lb-row {
+        grid-template-columns: 40px 40px 1fr auto;
+      }
+      .lb-row .lb-row-level,
+      .lb-row .lb-row-badges {
+        display: none;
+      }
+    }
+    .lb-row:last-child {
+      border-bottom: none;
+    }
+    .lb-row:hover {
+      background: var(--cream);
+    }
+    .lb-row.is-you {
+      background: color-mix(in srgb, var(--brand-primary, #b7925a) 6%, transparent);
+      border-left: 3px solid var(--brand-primary, #b7925a);
+      padding-left: 19px;
+    }
+    .lb-row-rank {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+    .lb-row.is-you .lb-row-rank {
+      color: var(--brand-primary, #b7925a);
+    }
+    
+    .lb-row-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      display: grid;
+      place-items: center;
+      font-family: var(--display);
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .lb-row.is-you .lb-row-avatar {
+      background: var(--brand-primary, #b7925a);
+      color: var(--cream);
+    }
+    .lb-row-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .lb-row.is-you .lb-row-name::after {
+      content: ' (you)';
+      color: var(--brand-primary, #b7925a);
+      font-style: italic;
+      font-weight: 500;
+      margin-left: 4px;
+    }
+    .lb-row-level,
+    .lb-row-badges {
+      font-size: 12px;
+      color: var(--ink-dim);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .lb-row-level i,
+    .lb-row-badges i {
+      color: var(--brand-primary, #b7925a);
+      font-size: 11px;
+    }
+    .lb-row-xp {
+      font-family: var(--display);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      text-align: right;
+      letter-spacing: -0.005em;
+      font-variant-numeric: tabular-nums;
+    }
+    .lb-row-xp .unit {
+      font-size: 11px;
+      color: var(--ink-dim);
+      font-weight: 500;
+      font-style: italic;
+      margin-left: 2px;
+    }
+    
+    /* Empty state */
+    .lb-empty {
+      padding: 88px 24px;
+      text-align: center;
+      color: var(--ink-dim);
+    }
+    .lb-empty .icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--cream-2);
+      color: var(--brand-primary, #b7925a);
+      display: grid;
+      place-items: center;
+      font-size: 26px;
+      margin: 0 auto 18px;
+    }
+    .lb-empty h3 {
+      font-family: var(--display);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0 0 6px;
+    }
+    .lb-empty p {
+      font-size: 13.5px;
+      color: var(--ink-dim);
+      font-style: italic;
+      margin: 0;
+    }
+  

@@ -1,0 +1,3 @@
+  .subject-card { transition: transform .3s ease, background-color .3s ease; border-radius: 15px; background:#fff; padding:.5rem; border:1px solid rgba(0,0,0,.05); box-shadow:0 4px 12px rgba(0,0,0,.05); }
+  .subject-card:hover { transform: translateY(-10px) scale(1.02); background-color:#f9f9f9; box-shadow:0 8px 20px rgba(0,0,0,.1); }
+  .display-10 { font-size: 25px; color: #2c3e50; font-weight: 500; }

@@ -1,0 +1,34 @@
+    /* Remove background color from event time */
+    .fc-daygrid-event {
+      background: none !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+    
+    /* Remove any extra styling on the event link */
+    .fc-daygrid-event a {
+      color: inherit !important; /* Use default text color */
+      text-decoration: none !important;
+      font-weight: bold;
+      font-size: 12px;
+      background: none !important; /* Remove background */
+      border-radius: 0 !important;
+      display: inline-block;
+      padding: 2px;
+    }
+    
+    /* Ensure text remains visible in dark mode */
+    body.dark-mode .fc-daygrid-event a {
+      color: #ffffff !important; /* White text in dark mode */
+    }
+    
+    /* Ensure text remains visible in light mode */
+    body.light-mode .fc-daygrid-event a {
+      color: #000000 !important; /* Black text in light mode */
+    }
+    
+    /* Remove hover effect that adds background */
+    .fc-daygrid-event:hover {
+      background: none !important;
+    }
+  

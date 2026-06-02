@@ -1,0 +1,22 @@
+{% extends "central_content/base.html" %}
+{% block title %}Unbind confirmation{% endblock %}
+{% block content %}
+<div class="max-w-lg">
+  <h1 class="text-2xl font-semibold mb-4">Unbind subject</h1>
+  <p class="mb-4">
+    This will delete <strong>{{ binding.central_subject.subject_name }}</strong>
+    and all its modules and activities from <strong>{{ binding.target_school.name }}</strong>.
+    Teachers who have scheduled content from this subject will lose it.
+  </p>
+  {% if error %}
+    <div class="bg-red-100 text-red-700 p-3 mb-4 rounded">Push failed: {{ error }}</div>
+  {% endif %}
+  <form method="post" action="{% url 'binding_unbind' binding.pk %}">
+    {% csrf_token %}
+    <p class="mb-2">Type <code>{{ binding.central_subject.subject_name }}</code> to confirm:</p>
+    <input type="text" name="confirm_name" class="border p-2 w-full" autofocus>
+    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded mt-2">Delete from {{ binding.target_school.name }}</button>
+    <a href="{% url 'matching_workspace' %}?school={{ binding.target_school_id }}" class="ml-2">Cancel</a>
+  </form>
+</div>
+{% endblock %}

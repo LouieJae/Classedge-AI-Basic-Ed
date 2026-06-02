@@ -1,0 +1,61 @@
+{% load static %}
+{% comment %}Code kata / editor — JS-driven, included by side_activity_play.html{% endcomment %}
+
+<div id="code-kata-container">
+  <div id="ck-prompt" style="font-size:1.05rem;color:var(--text);line-height:1.6;margin-bottom:1.25rem;padding:1rem;border-left:3px solid var(--primary);background:var(--surface-2);border-radius:0 8px 8px 0;"></div>
+
+  <div style="margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:.85rem;color:var(--muted);">Your solution</span>
+    <span id="ck-lang" style="font-size:.8rem;color:var(--muted);text-transform:uppercase;"></span>
+  </div>
+
+  <textarea id="ck-editor" rows="14"
+            style="width:100%;padding:1rem;font-family:monospace;font-size:.95rem;line-height:1.5;border:1px solid var(--border);border-radius:8px;background:#1e1e2e;color:#cdd6f4;resize:vertical;box-sizing:border-box;tab-size:4;"></textarea>
+
+  <div style="margin-top:1rem;display:flex;gap:1rem;justify-content:center;">
+    <button type="button" id="ck-run-btn"
+            style="padding:.75rem 2rem;font-size:1rem;border:none;border-radius:8px;background:var(--primary);color:#fff;cursor:pointer;">Run Tests</button>
+  </div>
+
+  <div id="ck-output" style="display:none;margin-top:1rem;padding:1rem;font-family:monospace;font-size:.9rem;border-radius:8px;background:var(--surface-2);color:var(--text);white-space:pre-wrap;border:1px solid var(--border);"></div>
+</div>
+
+<script src="{% static 'js/side_activities/submit.js' %}"></script>
+<script>
+(function() {
+  var sa = window.SIDE_ACTIVITY;
+  var content = sa.content;
+  var startTime = Date.now();
+
+  var promptEl = document.getElementById('ck-prompt');
+  var editorEl = document.getElementById('ck-editor');
+  var langEl = document.getElementById('ck-lang');
+  var outputEl = document.getElementById('ck-output');
+
+  promptEl.textContent = content.prompt || 'Write your solution below.';
+  langEl.textContent = content.language || '';
+  if (content.starter_code) editorEl.value = content.starter_code;
+
+  // Tab key inserts spaces instead of changing focus
+  editorEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      var start = this.selectionStart;
+      var end = this.selectionEnd;
+      this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+      this.selectionStart = this.selectionEnd = start + 4;
+    }
+  });
+
+  document.getElementById('ck-run-btn').addEventListener('click', function() {
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+    var code = editorEl.value;
+
+    outputEl.style.display = 'block';
+    outputEl.textContent = 'Submitting code...';
+
+    // Default score 0.5 since we cannot execute code client-side
+    submitAttempt(sa.id, 0.5, elapsed, {code: code, language: content.language || 'unknown'});
+  });
+})();
+</script>

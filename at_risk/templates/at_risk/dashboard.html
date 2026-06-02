@@ -1,0 +1,89 @@
+{% extends is_student_role|yesno:"student_base.html,base.html" %}
+{% block title %}At-risk Students — {{ subject.subject_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h3>At-risk Students</h3>
+            <p class="text-muted">{{ subject.subject_name }}{% if semester %} · {{ semester.semester_name }}{% endif %}</p>
+        </div>
+        <a href="{% url 'material-list' subject.pk %}" class="btn btn-outline-secondary btn-sm">&larr; Back to subject</a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-danger">
+                <div class="card-body py-2">
+                    <h4 class="text-danger mb-0">{{ high_count }}</h4>
+                    <small class="text-muted">High Risk</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body py-2">
+                    <h4 class="text-warning mb-0">{{ medium_count }}</h4>
+                    <small class="text-muted">Medium Risk</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body py-2">
+                    <h4 class="mb-0">{{ total_enrolled }}</h4>
+                    <small class="text-muted">Total Enrolled</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if results %}
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0" id="at-risk-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Student</th>
+                        <th>Risk Score</th>
+                        <th>Risk Level</th>
+                        <th>Grade %</th>
+                        <th>Completion %</th>
+                        <th>Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for r in results %}
+                <tr>
+                    <td>{{ r.student_name }}</td>
+                    <td>{{ r.risk_score }}</td>
+                    <td>
+                        {% if r.risk_level == "high" %}
+                        <span class="badge bg-danger">High</span>
+                        {% elif r.risk_level == "medium" %}
+                        <span class="badge bg-warning text-dark">Medium</span>
+                        {% else %}
+                        <span class="badge bg-success">Low</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ r.grade_score }}</td>
+                    <td>{{ r.completion_score }}</td>
+                    <td>{{ r.attendance_score }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof $.fn.DataTable !== 'undefined') {
+            $('#at-risk-table').DataTable({paging: false, searching: true, order: [[1, 'asc']]});
+        }
+    });
+    </script>
+    {% else %}
+    <p class="text-muted">No enrolled students found for the current semester.</p>
+    {% endif %}
+</div>
+{% endblock %}

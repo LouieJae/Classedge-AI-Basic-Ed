@@ -1,0 +1,293 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Import materials · {{ subject.subject_name }}{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+  {% include "module/_material-import-assets.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="imp-shell">
+
+  <a href="{% url 'material-list' subject.id %}" class="imp-back">
+    <i class="fas fa-arrow-left"></i> Back to {{ subject.subject_short_name|default:subject.subject_name }}
+  </a>
+
+  <div class="imp-header">
+    <h1 class="page-title">Import from a <em>previous semester</em></h1>
+    <div class="page-sub">Importing materials into {{ subject.subject_code }} &middot; {{ subject.subject_name }}</div>
+  </div>
+
+  <div class="form-panel" style="padding-bottom: 0; margin-bottom: 18px;">
+    <div class="form-section">
+      <h3 class="form-section-title">Source</h3>
+      <div class="field">
+        <label for="source_subject">Source course</label>
+        <select id="source_subject" class="form-select">
+          <option value="{{ subject.id }}" selected>{{ subject.subject_name }} (current subject — earlier semesters)</option>
+          {% for subj in all_subjects %}
+            {% if subj.id != subject.id %}
+              <option value="{{ subj.id }}">{{ subj.subject_name }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <span class="field-help">Pick a course to view its materials from previous semesters.</span>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" action="{% url 'copy-materials' subject.id %}" id="copy-lessons-form" class="form-panel">
+    {% csrf_token %}
+
+    <!-- ─── Schedule for imported materials (shown when ≥1 selected) ── -->
+    <div class="form-section" id="date-config" style="display: none;">
+      <h3 class="form-section-title">Schedule &amp; placement</h3>
+      <div class="field-row">
+        <div class="field">
+          <label for="start_date">Start date</label>
+          <input type="datetime-local" id="start_date" name="start_date" value="{{ default_start_date|date:'Y-m-dTH:i' }}" />
+        </div>
+        <div class="field">
+          <label for="end_date">End date</label>
+          <input type="datetime-local" id="end_date" name="end_date" value="{{ default_end_date|date:'Y-m-dTH:i' }}" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="term">Term</label>
+        <select id="term" name="term">
+          {% for term in available_terms %}
+            <option value="{{ term.id }}" {% if term.id == current_term.id %}selected{% endif %}>{{ term.term_name }}</option>
+          {% endfor %}
+        </select>
+        <span class="field-help">Term for the imported materials in the current semester.</span>
+      </div>
+    </div>
+
+    <!-- ─── Available lessons ───────────────────── -->
+    <div class="form-section">
+      <h3 class="form-section-title">Available materials</h3>
+      <div id="lessons-container">
+        <div id="loading-indicator" style="display: none;">
+          {% include "includes/_skel_card_list.html" with count=4 label="Loading materials" %}
+        </div>
+
+        <div id="lessons-list" class="lesson-pool">
+          {% if modules_by_semester %}
+            {% for semester, terms in modules_by_semester.items %}
+              <div class="semester-group">
+                <h4 class="semester-label">{{ semester.semester_name }}</h4>
+                {% for term, modules in terms.items %}
+                  <div class="term-group">
+                    <div class="term-label">{{ term.term_name }}</div>
+                    {% for module in modules %}
+                      <label class="lesson-card" id="lesson-item-{{ module.id }}" for="module_{{ module.id }}">
+                        <input type="checkbox" class="lesson-checkbox" id="module_{{ module.id }}" name="selected_modules" value="{{ module.id }}" />
+                        <div class="body">
+                          <div class="name">
+                            {{ module.file_name }}
+                            <span id="duplicate-warning-{{ module.id }}" class="duplicate-warn" style="display:none;">
+                              <i class="fas fa-triangle-exclamation"></i> Already exists
+                            </span>
+                          </div>
+                          <div id="details-{{ module.id }}" class="details">
+                            <strong>Start:</strong> <span class="start-date-display">{{ default_start_date|date:'M j, Y · g:i A' }}</span><br />
+                            <strong>End:</strong> <span class="end-date-display">{{ default_end_date|date:'M j, Y · g:i A' }}</span><br />
+                            <strong>Term:</strong> <span class="term-display">{{ current_term.term_name }}</span>
+                          </div>
+                        </div>
+                      </label>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="pool-empty">No materials found from previous semesters.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{% url 'material-list' subject.id %}" class="btn-pill">
+        <i class="fas fa-arrow-left"></i> Cancel
+      </a>
+      <button type="submit" class="btn-pill primary" id="copy-btn" disabled>
+        <i class="fas fa-file-import"></i> Import materials
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const currentSubjectId = '{{ subject.id }}';
+  const defaultStartDate = '{{ default_start_date|date:"Y-m-dTH:i" }}';
+  const defaultEndDate = '{{ default_end_date|date:"Y-m-dTH:i" }}';
+  const currentTermName = '{{ current_term.term_name }}';
+
+  function formatDateTime(s) {
+    if (!s) return 'Not set';
+    try {
+      return new Date(s).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+    } catch { return 'Not set'; }
+  }
+
+  function syncSelectedClass(cb) {
+    const card = cb.closest('.lesson-card');
+    if (card) card.classList.toggle('is-selected', cb.checked && !cb.disabled);
+  }
+
+  function updateDetailsDisplay() {
+    const startVal = document.getElementById('start_date').value;
+    const endVal = document.getElementById('end_date').value;
+    const termSel = document.getElementById('term');
+    const termText = termSel.options[termSel.selectedIndex] ? termSel.options[termSel.selectedIndex].text : '';
+    document.querySelectorAll('.lesson-checkbox:checked').forEach((cb) => {
+      const details = document.getElementById(`details-${cb.value}`);
+      if (!details) return;
+      details.querySelector('.start-date-display').textContent = formatDateTime(startVal);
+      details.querySelector('.end-date-display').textContent = formatDateTime(endVal);
+      details.querySelector('.term-display').textContent = termText;
+    });
+  }
+
+  function updateCopyButtonState() {
+    const selectedCount = document.querySelectorAll('.lesson-checkbox:checked').length;
+    document.getElementById('copy-btn').disabled = selectedCount === 0;
+    document.getElementById('date-config').style.display = selectedCount >= 1 ? 'block' : 'none';
+  }
+
+  function bindCheckboxes() {
+    document.querySelectorAll('.lesson-checkbox').forEach((cb) => {
+      cb.addEventListener('change', function () {
+        const lessonId = this.value;
+        fetch(`/subject/${currentSubjectId}/check_lesson_exists/?lesson_id=${lessonId}`, {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            const warn = document.getElementById(`duplicate-warning-${lessonId}`);
+            const card = document.getElementById(`lesson-item-${lessonId}`);
+            if (data.exists) {
+              if (warn) warn.style.display = 'inline-flex';
+              cb.disabled = true;
+              cb.checked = false;
+              if (card) { card.classList.add('is-disabled'); card.classList.remove('is-selected'); }
+            } else {
+              if (warn) warn.style.display = 'none';
+              cb.disabled = false;
+              if (card) card.classList.remove('is-disabled');
+            }
+            syncSelectedClass(cb);
+            updateCopyButtonState();
+            updateDetailsDisplay();
+          })
+          .catch((err) => console.error(err));
+      });
+    });
+  }
+
+  function loadSubjectLessons(subjectId) {
+    const loading = document.getElementById('loading-indicator');
+    const list = document.getElementById('lessons-list');
+    loading.style.display = 'block';
+    list.innerHTML = '';
+
+    fetch(`/subject/${subjectId}/get_subject_modules/`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        loading.style.display = 'none';
+        if (!data.modules_by_semester || !Object.keys(data.modules_by_semester).length) {
+          list.innerHTML = '<div class="pool-empty">No materials found from previous semesters.</div>';
+          return;
+        }
+        let html = '';
+        Object.keys(data.modules_by_semester).sort().reverse().forEach((semKey) => {
+          const [, semName] = semKey.split('|');
+          const terms = data.modules_by_semester[semKey];
+          html += `<div class="semester-group"><h4 class="semester-label">${semName}</h4>`;
+          Object.keys(terms).forEach((termKey) => {
+            const [, termName] = termKey.split('|');
+            html += `<div class="term-group"><div class="term-label">${termName}</div>`;
+            terms[termKey].forEach((m) => {
+              html += `
+                <label class="lesson-card" id="lesson-item-${m.id}" for="module_${m.id}">
+                  <input type="checkbox" class="lesson-checkbox" id="module_${m.id}" name="selected_modules" value="${m.id}" />
+                  <div class="body">
+                    <div class="name">
+                      ${m.file_name}
+                      <span id="duplicate-warning-${m.id}" class="duplicate-warn" style="display:none;">
+                        <i class="fas fa-triangle-exclamation"></i> Already exists
+                      </span>
+                    </div>
+                    <div id="details-${m.id}" class="details">
+                      <strong>Start:</strong> <span class="start-date-display">${formatDateTime(defaultStartDate)}</span><br />
+                      <strong>End:</strong> <span class="end-date-display">${formatDateTime(defaultEndDate)}</span><br />
+                      <strong>Term:</strong> <span class="term-display">${currentTermName}</span>
+                    </div>
+                  </div>
+                </label>`;
+            });
+            html += `</div>`;
+          });
+          html += `</div>`;
+        });
+        list.innerHTML = html;
+        bindCheckboxes();
+        updateCopyButtonState();
+      })
+      .catch((err) => {
+        loading.style.display = 'none';
+        list.innerHTML = '<div class="pool-empty" style="color: var(--rose);">Error loading materials. Please try again.</div>';
+        console.error(err);
+      });
+  }
+
+  document.getElementById('start_date').addEventListener('change', updateDetailsDisplay);
+  document.getElementById('end_date').addEventListener('change', updateDetailsDisplay);
+  document.getElementById('term').addEventListener('change', updateDetailsDisplay);
+
+  document.getElementById('source_subject').addEventListener('change', function () {
+    loadSubjectLessons(this.value);
+  });
+
+  document.getElementById('copy-lessons-form').addEventListener('submit', function (event) {
+    let hasDuplicates = false;
+    let selectedCount = 0;
+    document.querySelectorAll('.lesson-checkbox').forEach((cb) => {
+      if (cb.checked) selectedCount++;
+      const warn = document.getElementById(`duplicate-warning-${cb.value}`);
+      if (warn && warn.style.display === 'inline-flex') hasDuplicates = true;
+    });
+    if (selectedCount === 0) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'No materials selected',
+        text: 'Please select at least one material to import.',
+        icon: 'info',
+        confirmButtonColor: '#1b4332',
+      });
+      return;
+    }
+    if (hasDuplicates) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Duplicate materials',
+        text: 'Some materials already exist in the current semester and cannot be copied.',
+        icon: 'warning',
+        confirmButtonColor: '#1b4332',
+      });
+    }
+  });
+
+  bindCheckboxes();
+  updateCopyButtonState();
+</script>
+{% endblock %}

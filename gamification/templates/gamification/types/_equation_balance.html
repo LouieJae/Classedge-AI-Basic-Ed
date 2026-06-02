@@ -1,0 +1,22 @@
+{% comment %}Equation balancing — included inside <form> by side_activity_play.html{% endcomment %}
+
+<div style="margin-bottom:1.5rem;padding:1.25rem;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;text-align:center;">
+  <p style="font-size:1.3rem;color:var(--text);font-family:monospace;letter-spacing:.05em;">{{ content.equation }}</p>
+</div>
+
+{% if content.instruction %}
+<p style="color:var(--muted);font-size:.9rem;margin-bottom:1.25rem;">{{ content.instruction }}</p>
+{% endif %}
+
+<div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:center;">
+  {% for coeff in content.coefficients %}
+  <div style="display:flex;flex-direction:column;align-items:center;gap:.4rem;">
+    <label style="color:var(--muted);font-size:.8rem;">{{ coeff.label }}</label>
+    <input type="number" name="coeff_{{ forloop.counter0 }}"
+           min="1" step="1"
+           placeholder="?"
+           required
+           style="width:4rem;padding:.6rem;font-size:1.1rem;text-align:center;color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;outline:none;transition:border-color .15s;">
+  </div>
+  {% endfor %}
+</div>

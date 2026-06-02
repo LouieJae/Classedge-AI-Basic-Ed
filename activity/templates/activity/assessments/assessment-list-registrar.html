@@ -1,0 +1,96 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Activities · {{ subject.subject_name }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'activity/assessments/assessment-list-registrar.css' %}" />
+
+<div class="alr-page">
+
+  <!-- Header -->
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Assessments · <em>{{ subject.subject_name }}</em></h1>
+      <p class="page-sub">All graded assessments for this subject in the active semester.</p>
+    </div>
+    <span class="alr-subject-pill">
+      <i class="fas fa-book"></i>
+      {{ subject.subject_code|default:subject.subject_short_name|default:subject.subject_name }}
+    </span>
+  </div>
+
+  <!-- Card -->
+  <div class="alr-card">
+    <div class="alr-card-head">
+      <h2 class="alr-card-title">Assessment <em>list</em></h2>
+      <span class="alr-card-count">{{ activities|length }} activit{{ activities|length|pluralize:"y,ies" }}</span>
+    </div>
+
+    {% if activities %}
+      <div class="alr-table-wrap">
+        <table class="alr-table data-table activity-registrar-table">
+          <thead>
+            <tr>
+              <th style="width: 60px;">#</th>
+              <th>Assessment name</th>
+              <th>Term</th>
+              <th>Start time</th>
+              <th>End time</th>
+              <th style="width: 80px; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for activity in activities %}
+              <tr>
+                <td><span class="alr-index">{{ forloop.counter }}</span></td>
+                <td><span class="alr-act-name">{{ activity.activity_name }}</span></td>
+                <td>
+                  {% if activity.term %}
+                    <span class="alr-term-pill">{{ activity.term.term_name }}</span>
+                  {% else %}
+                    <span class="alr-time">—</span>
+                  {% endif %}
+                </td>
+                <td><span class="alr-time">{{ activity.start_time|date:"d M Y, h:i A" }}</span></td>
+                <td><span class="alr-time">{{ activity.end_time|date:"d M Y, h:i A" }}</span></td>
+                <td style="text-align: right;">
+                  <div class="dropdown" style="display: inline-block;">
+                    <button class="alr-action-btn" type="button"
+                            id="dropdown-act-{{ activity.id }}"
+                            data-bs-toggle="dropdown"
+                            data-boundary="window"
+                            aria-haspopup="true" aria-expanded="false"
+                            data-bs-reference="parent">
+                      <i class="fas fa-ellipsis-vertical"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-act-{{ activity.id }}">
+                      <a class="dropdown-item" href="{% url 'scoreChangeLogs' activity.id %}">
+                        <i class="fas fa-eye"></i> View student score
+                      </a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alr-empty">
+        <i class="fas fa-inbox"></i>
+        <div class="lead">No assessments yet</div>
+        <div>This subject has no graded assessments for the active semester.</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <a href="{% url 'course-list' %}" class="alr-back">
+    <i class="fas fa-arrow-left"></i> Back to subjects
+  </a>
+</div>
+
+<script src="{% static 'activity/assessments/assessment-list-registrar.js' %}"></script>
+{% endblock %}

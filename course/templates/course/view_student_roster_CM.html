@@ -1,0 +1,358 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Student Roster" %}
+  <style>
+    .cm-info {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .cm-info .icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: var(--forest-light);
+      color: var(--forest);
+      display: grid; place-items: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .cm-info .body h4 { margin: 0 0 4px; font-size: 16px; font-weight: 700; color: var(--ink); }
+    .cm-info .body p { margin: 0; color: var(--ink-dim); font-size: 13px; }
+    .cm-info .meta-pills { display: inline-flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+    .cm-info .meta-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 100px;
+      background: var(--cream-2); color: var(--ink);
+      font-size: 12px; font-weight: 700;
+    }
+    .cm-info .meta-pill i { color: var(--brand-primary, #1b4332); }
+    /* .meta-pill.gold now paints brand-primary too — the class name is
+       kept for backward compatibility with the template markup, but
+       every roster meta-pill (gold variant or default) tracks the
+       tenant brand color now. */
+    .cm-info .meta-pill.gold { background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332); }
+    .cm-info .meta-pill.gold i { color: var(--brand-primary, #1b4332); }
+
+    .cm-search-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; align-items: stretch; }
+    .cm-search { position: relative; flex: 1 1 280px; }
+    .cm-search input {
+      width: 100%; padding: 10px 14px 10px 40px; border-radius: 100px;
+      border: 1px solid var(--border-strong); background: var(--paper); color: var(--ink); font-size: 13.5px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .cm-search input:focus { outline: none; border-color: var(--brand-primary, #1b4332); box-shadow: 0 0 0 3px var(--brand-primary-soft); }
+    .cm-search i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--ink-muted); }
+    .cm-sort {
+      padding: 10px 14px; border-radius: 100px;
+      border: 1px solid var(--border-strong);
+      background: var(--paper); color: var(--ink); font-size: 13.5px; min-width: 200px;
+    }
+    .cm-sort:focus { outline: none; border-color: var(--brand-primary, #1b4332); }
+    .cm-view-toggle {
+      display: inline-flex; background: var(--paper); border: 1px solid var(--border-strong); border-radius: 100px; padding: 3px;
+    }
+    .cm-view-toggle button {
+      border: none; background: transparent; padding: 6px 14px; border-radius: 100px;
+      font-size: 12.5px; font-weight: 700; color: var(--ink-dim); cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .cm-view-toggle button.active { background: var(--forest); color: var(--cream); }
+
+    .cm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .cm-student-card {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+      padding: 22px 18px 18px;
+      text-align: center;
+      transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+    }
+    .cm-student-card:hover { transform: translateY(-3px); border-color: var(--brand-primary, #1b4332); box-shadow: var(--shadow-hover); }
+    .cm-student-avatar { position: relative; width: 76px; height: 76px; margin: 0 auto 12px; }
+    .cm-student-avatar img {
+      width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid var(--brand-primary-soft);
+    }
+    /* Initials avatar uses a brand → darker-brand gradient so the
+       fallback avatar reads as part of the cohesive palette instead
+       of the old forest→gold two-tone. */
+    .cm-student-avatar .initials {
+      width: 100%; height: 100%; border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand-primary, #1b4332), color-mix(in srgb, var(--brand-primary, #1b4332), black 22%));
+      color: #fff; display: grid; place-items: center; font-size: 22px; font-weight: 700;
+      border: 3px solid var(--brand-primary-soft);
+    }
+    .cm-student-num {
+      position: absolute; left: -8px; top: -8px;
+      min-width: 26px; height: 26px; padding: 0 8px;
+      border-radius: 100px; background: var(--cream-2);
+      color: var(--ink-dim); font-size: 11px; font-weight: 800;
+      display: inline-grid; place-items: center; border: 1px solid var(--border);
+    }
+    .cm-student-name { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0 0 4px; line-height: 1.25; }
+    .cm-student-email {
+      font-size: 11.5px; color: var(--ink-dim);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      margin-bottom: 12px;
+    }
+    .cm-student-meta { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+    .cm-mini-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 100px; background: var(--cream-2); color: var(--ink-dim); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .cm-mini-pill i { color: var(--forest); font-size: 10px; }
+    .cm-student-card .cm-row-actions { display: flex; gap: 6px; }
+    .cm-student-card .cm-row-actions a {
+      flex: 1; justify-content: center; font-size: 12px; padding: 7px 10px;
+    }
+
+    .cm-student-actions { position: absolute; top: 10px; right: 10px; }
+    .cm-mini-action {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--paper); color: var(--ink-dim);
+      display: inline-grid; place-items: center; cursor: pointer; transition: all 0.15s;
+    }
+    .cm-mini-action:hover { background: var(--cream-2); color: var(--forest); }
+    .cm-mini-menu {
+      position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px;
+      background: var(--paper); border: 1px solid var(--border-strong);
+      border-radius: 10px; box-shadow: var(--shadow-hover);
+      padding: 4px; display: none; z-index: 50;
+    }
+    .cm-student-actions.open .cm-mini-menu { display: block; }
+    .cm-mini-menu a {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+      border-radius: 6px; color: var(--ink); font-size: 12.5px; text-decoration: none;
+    }
+    .cm-mini-menu a:hover { background: var(--cream-2); }
+
+    /* List view */
+    .cm-list { display: none; }
+    body[data-view="list"] .cm-grid { display: none; }
+    body[data-view="list"] .cm-list { display: block; }
+
+    .cm-list-table { width: 100%; }
+    .cm-list-table .student-link {
+      display: inline-flex; align-items: center; gap: 12px;
+      color: var(--ink); text-decoration: none; font-weight: 700;
+    }
+    .cm-list-table .student-link:hover { color: var(--forest); }
+    .cm-list-table .student-link img,
+    .cm-list-table .student-link .initials {
+      width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+    }
+    .cm-list-table .student-link .initials {
+      background: linear-gradient(135deg, var(--brand-primary, #1b4332), color-mix(in srgb, var(--brand-primary, #1b4332), black 22%));
+      color: #fff; font-size: 13px; font-weight: 700;
+      display: grid; place-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="cm-shell wide">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Student <em>roster</em></h1>
+          <div class="cm-subtitle">{{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %}</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to classroom</a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-info">
+      <span class="icon"><i class="fas fa-chalkboard-user"></i></span>
+      <div class="body">
+        <h4>{{ subject.subject_name }}</h4>
+        <p>
+          {% if selected_semester %}{{ selected_semester.semester_name }}{% else %}No active semester{% endif %}
+          {% if selected_semester %} · {{ selected_semester.start_date|date:'Y' }}–{{ selected_semester.end_date|date:'Y' }}{% endif %}
+        </p>
+      </div>
+      <div class="meta-pills">
+        <span class="meta-pill"><i class="fas fa-users"></i> {{ students|length }} student{{ students|length|pluralize }}</span>
+        {% if subject.assign_teacher %}
+          <span class="meta-pill gold"><i class="fas fa-user-tie"></i> {{ subject.assign_teacher.profile.first_name }} {{ subject.assign_teacher.profile.last_name }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="cm-search-row">
+      <div class="cm-search">
+        <i class="fas fa-search"></i>
+        <input type="text" id="studentSearch" placeholder="Search students by name or email…" />
+      </div>
+      <select class="cm-sort" id="sortDropdown">
+        <option value="lastname">Sort by last name</option>
+        <option value="firstname">Sort by first name</option>
+        <option value="email">Sort by email</option>
+      </select>
+      <div class="cm-view-toggle" role="tablist" aria-label="View mode">
+        <button type="button" data-view="grid" class="active"><i class="fas fa-th-large"></i> Grid</button>
+        <button type="button" data-view="list"><i class="fas fa-list"></i> List</button>
+      </div>
+    </div>
+
+    <div class="cm-grid cl-carousel" id="studentGrid">
+      {% for student in students %}
+        <div class="cm-student-card"
+             data-firstname="{{ student.profile.first_name|lower }}"
+             data-lastname="{{ student.profile.last_name|lower }}"
+             data-email="{{ student.email|lower }}">
+          <span class="cm-student-num">#{{ forloop.counter }}</span>
+          <div class="cm-student-avatar">
+            {% if student.profile.student_photo %}
+              <img src="{{ student.profile.student_photo.url }}" alt="{{ student.profile.first_name }}" />
+            {% else %}
+              <div class="initials">{{ student.profile.first_name|slice:":1"|upper }}{{ student.profile.last_name|slice:":1"|upper }}</div>
+            {% endif %}
+          </div>
+          <h3 class="cm-student-name">{{ student.profile.last_name }}, {{ student.profile.first_name }}</h3>
+          <div class="cm-student-email" title="{{ student.email }}">{{ student.email }}</div>
+          <div class="cm-student-meta">
+            {% if student.profile.year_level %}<span class="cm-mini-pill"><i class="fas fa-layer-group"></i> {{ student.profile.year_level }}</span>{% endif %}
+            {% if student.profile.section %}<span class="cm-mini-pill"><i class="fas fa-people-group"></i> {{ student.profile.section }}</span>{% endif %}
+          </div>
+          <div class="cm-row-actions">
+            <a href="{% url 'student_subject_attendanceCM' subject.id student.id %}" class="cm-btn ghost">
+              <i class="far fa-calendar-check"></i> Attendance
+            </a>
+          </div>
+        </div>
+      {% empty %}
+        <div class="cm-empty" style="grid-column: 1 / -1;">
+          <i class="fas fa-users"></i>
+          <div class="lead">No students enrolled</div>
+          <div>Once students enroll in this subject, they'll appear here.</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if students %}
+      <div class="cm-card cm-list">
+        <div class="cm-table-wrap">
+          <table class="cm-table cm-list-table" id="studentTable">
+            <thead>
+              <tr>
+                <th style="width: 56px; text-align: center;">#</th>
+                <th>Student</th>
+                <th>Email</th>
+                <th>Year level</th>
+                <th>Section</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in students %}
+                <tr data-firstname="{{ student.profile.first_name|lower }}" data-lastname="{{ student.profile.last_name|lower }}" data-email="{{ student.email|lower }}">
+                  <td style="text-align: center;"><span class="cm-pill">{{ forloop.counter }}</span></td>
+                  <td>
+                    <a href="{% url 'student_subject_attendanceCM' subject.id student.id %}" class="student-link">
+                      {% if student.profile.student_photo %}
+                        <img src="{{ student.profile.student_photo.url }}" alt="" />
+                      {% else %}
+                        <span class="initials">{{ student.profile.first_name|slice:":1"|upper }}{{ student.profile.last_name|slice:":1"|upper }}</span>
+                      {% endif %}
+                      {{ student.profile.last_name }}, {{ student.profile.first_name }}
+                    </a>
+                  </td>
+                  <td><span class="cm-time">{{ student.email|default:"—" }}</span></td>
+                  <td>{% if student.profile.year_level %}<span class="cm-pill">{{ student.profile.year_level }}</span>{% else %}<span class="cm-pill muted">—</span>{% endif %}</td>
+                  <td>{% if student.profile.section %}<span class="cm-pill">{{ student.profile.section }}</span>{% else %}<span class="cm-pill muted">—</span>{% endif %}</td>
+                  <td style="text-align: right; white-space: nowrap;">
+                    <a href="{% url 'student_subject_attendanceCM' subject.id student.id %}" class="cm-row-icon-btn view" title="View attendance">
+                      <i class="fas fa-calendar-check"></i>
+                    </a>
+                    {% if student.email %}
+                      <a href="mailto:{{ student.email }}" class="cm-row-icon-btn edit" title="Email student">
+                        <i class="fas fa-envelope"></i>
+                      </a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script>
+    function cmToggleMini(btn) {
+      var wrap = btn.closest('.cm-student-actions');
+      var was = wrap.classList.contains('open');
+      document.querySelectorAll('.cm-student-actions.open').forEach(function (w) { w.classList.remove('open'); });
+      if (!was) wrap.classList.add('open');
+    }
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.cm-student-actions')) {
+        document.querySelectorAll('.cm-student-actions.open').forEach(function (w) { w.classList.remove('open'); });
+      }
+    });
+
+    document.getElementById('studentSearch').addEventListener('input', function (e) {
+      var qRaw = (e.target.value || '').trim();
+      var q = qRaw.toLowerCase();
+      var filter = function (el) {
+        var first = (el.dataset.firstname || '').toLowerCase();
+        var last = (el.dataset.lastname || '').toLowerCase();
+        var email = (el.dataset.email || '').toLowerCase();
+        var match = !q || first.includes(q) || last.includes(q) || email.includes(q) || (last + ', ' + first).includes(q);
+        el.style.display = match ? '' : 'none';
+        if (match && window.ClHighlight) window.ClHighlight.wrap(el, qRaw);
+        else if (window.ClHighlight) window.ClHighlight.clear(el);
+      };
+      document.querySelectorAll('.cm-student-card').forEach(filter);
+      document.querySelectorAll('#studentTable tbody tr').forEach(filter);
+    });
+
+    document.getElementById('sortDropdown').addEventListener('change', function (e) {
+      var key = e.target.value;
+      var sortKey = key === 'firstname' ? 'firstname' : (key === 'email' ? 'email' : 'lastname');
+      var grid = document.getElementById('studentGrid');
+      var cards = Array.from(grid.querySelectorAll('.cm-student-card'));
+      cards.sort(function (a, b) {
+        return (a.dataset[sortKey] || '').localeCompare(b.dataset[sortKey] || '');
+      });
+      cards.forEach(function (c) { grid.appendChild(c); });
+
+      var tbody = document.querySelector('#studentTable tbody');
+      if (tbody) {
+        var rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.sort(function (a, b) {
+          return (a.dataset[sortKey] || '').localeCompare(b.dataset[sortKey] || '');
+        });
+        rows.forEach(function (r, i) {
+          tbody.appendChild(r);
+          var cell = r.querySelector('.cm-pill');
+          if (cell) cell.textContent = i + 1;
+        });
+      }
+    });
+
+    document.querySelectorAll('.cm-view-toggle button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('.cm-view-toggle button').forEach(function (x) { x.classList.remove('active'); });
+        b.classList.add('active');
+        document.body.setAttribute('data-view', b.dataset.view);
+      });
+    });
+    document.body.setAttribute('data-view', 'grid');
+  </script>
+</body>
+</html>

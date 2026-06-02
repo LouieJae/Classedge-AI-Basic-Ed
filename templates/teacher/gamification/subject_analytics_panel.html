@@ -1,0 +1,346 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}{{ subject.subject_name }} · Analytics{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gamification/teacher/subject_analytics_panel.css' %}" />
+{% endblock %}
+
+{% block content %}
+{% include "includes/_list_page_theme.html" %}
+
+<div class="cl-page sa-page">
+
+  <a href="{% url 'dashboard' %}" class="cl-back-btn">
+    <i class="fas fa-arrow-left"></i> Back to dashboard
+  </a>
+
+  <div class="cl-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      <h2>{{ subject.subject_name }} <em>analytics</em></h2>
+      <p>
+        {% if subject.subject_code %}{{ subject.subject_code }} &middot; {% endif %}
+        {{ student_rows|length }} enrolled student{{ student_rows|length|pluralize }}
+      </p>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="subject-analytics">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <!-- KPI tiles ─────────────────────────────────────────────────── -->
+  <div class="sa-tiles">
+    <div class="sa-tile sa-tile-brand">
+      <span class="sa-tile-icon"><i class="fas fa-chart-line"></i></span>
+      <div class="sa-tile-body">
+        <div class="sa-tile-label">Class average</div>
+        <div class="sa-tile-value">{{ avg_score }}<span class="unit">%</span></div>
+      </div>
+    </div>
+    <div class="sa-tile {% if at_risk_count > 0 %}sa-tile-danger{% else %}sa-tile-success{% endif %}">
+      <span class="sa-tile-icon"><i class="fas fa-triangle-exclamation"></i></span>
+      <div class="sa-tile-body">
+        <div class="sa-tile-label">At-risk students</div>
+        <div class="sa-tile-value">{{ at_risk_count }}<span class="unit">/ {{ student_rows|length }}</span></div>
+      </div>
+      <i class="fas fa-circle-info sa-tile-help"
+         title="Score &lt; 65 → at-risk · weighted by graded attendance and submission completion"></i>
+    </div>
+    <div class="sa-tile sa-tile-info">
+      <span class="sa-tile-icon"><i class="fas fa-circle-check"></i></span>
+      <div class="sa-tile-body">
+        <div class="sa-tile-label">Completion</div>
+        <div class="sa-tile-value">{{ completion_pct }}<span class="unit">%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts row 1: histogram (wide) + risk donut ───────────────── -->
+  <div class="sa-grid-2-1">
+
+    <article class="sa-card">
+      <header class="sa-card-head">
+        <h3 class="sa-card-title"><i class="fas fa-chart-column"></i>Score <em>distribution</em></h3>
+        <span class="sa-card-meta">{{ student_rows|length }} student{{ student_rows|length|pluralize }}</span>
+      </header>
+      <div class="sa-card-body">
+        <div class="sa-canvas-wrap"><canvas id="saScoreDist"></canvas></div>
+      </div>
+    </article>
+
+    <article class="sa-card">
+      <header class="sa-card-head">
+        <h3 class="sa-card-title"><i class="fas fa-shield-halved"></i>Risk <em>breakdown</em></h3>
+        <span class="sa-card-meta">By level</span>
+      </header>
+      <div class="sa-card-body">
+        <div class="sa-canvas-wrap is-donut"><canvas id="saRiskDonut"></canvas></div>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- Charts row 2: by-type horizontal bar (full width) ─────────── -->
+  <article class="sa-card">
+    <header class="sa-card-head">
+      <h3 class="sa-card-title"><i class="fas fa-clipboard-list"></i>Average by <em>activity type</em></h3>
+      <span class="sa-card-meta">{{ type_chart|length }} type{{ type_chart|length|pluralize }}</span>
+    </header>
+    <div class="sa-card-body">
+      <div class="sa-canvas-wrap is-wide"><canvas id="saByType"></canvas></div>
+    </div>
+  </article>
+
+  <!-- Student table ─────────────────────────────────────────────── -->
+  <article class="sa-card">
+    <header class="sa-card-head">
+      <h3 class="sa-card-title"><i class="fas fa-users"></i>Enrolled <em>students</em></h3>
+      <span class="sa-card-meta">Sorted by risk &middot; {{ student_rows|length }} total</span>
+    </header>
+    {% if student_rows %}
+      <div class="sa-table-wrap">
+        <table class="sa-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Average score</th>
+              <th>Risk</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in student_rows %}
+              <tr>
+                <td>
+                  <a href="{% url 'subject_student_detail' subject.id row.student.id %}" class="sa-student-link">
+                    {{ row.student.get_full_name|default:row.student.username }}
+                  </a>
+                </td>
+                <td>
+                  <div class="sa-score-cell">
+                    <div class="sa-score-bar">
+                      <div class="sa-score-bar-fill {% if row.avg_score < 50 %}is-low{% elif row.avg_score < 75 %}is-mid{% endif %}" style="width:{{ row.avg_score }}%;"></div>
+                    </div>
+                    <span class="sa-score-val">{{ row.avg_score }}%</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="sa-risk-badge sa-risk-{{ row.risk_level }}">{{ row.risk_level|capfirst }}</span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="sa-empty">
+        <div class="icon"><i class="fas fa-user-graduate"></i></div>
+        <h3>No students enrolled</h3>
+        <p>No one is enrolled in this course for the current semester yet.</p>
+      </div>
+    {% endif %}
+  </article>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  (function () {
+    'use strict'
+    if (typeof Chart === 'undefined') return
+
+    function readToken(name, fallback) {
+      var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+      return v || fallback
+    }
+
+    var c = {
+      forest:    readToken('--forest', '#1b4332'),
+      forest2:   readToken('--forest-2', '#2d5a47'),
+      gold:      readToken('--gold', '#b7925a'),
+      rose:      readToken('--rose', '#c08479'),
+      ink:       readToken('--ink', '#2d3142'),
+      inkDim:    readToken('--ink-dim', '#6c7080'),
+      inkMuted:  readToken('--ink-muted', '#a0a4b8'),
+      border:    readToken('--border', 'rgba(45,49,66,0.08)'),
+      cream:     readToken('--cream', '#faf7f2'),
+    }
+
+    Chart.defaults.color = c.inkDim
+    Chart.defaults.borderColor = c.border
+    Chart.defaults.font.family = readToken('--display', 'Inter, sans-serif')
+    Chart.defaults.font.size = 12
+
+    function _palette () {
+      return (window.ClBrand && ClBrand.palette()) ||
+             [c.forest, c.gold, c.rose, c.forest2, c.inkDim, c.inkMuted]
+    }
+
+    // ─── 1. Score Distribution histogram ───
+    var distEl = document.getElementById('saScoreDist')
+    if (distEl) {
+      var distLabels = [{% for b in score_distribution %}'{{ b.label }}'{% if not forloop.last %}, {% endif %}{% endfor %}]
+      var distData = [{% for b in score_distribution %}{{ b.count }}{% if not forloop.last %}, {% endif %}{% endfor %}]
+      function buildDistColors (p) {
+        return distLabels.map(function (lbl) {
+          if (lbl === '0–50' || lbl === '51–60') return p[2] // rose (locked)
+          if (lbl === '61–70')                   return p[1] // gold (locked)
+          return p[0]                                        // brand-driven
+        })
+      }
+      var distColors = buildDistColors(_palette())
+      var distChart = new Chart(distEl, {
+        type: 'bar',
+        data: {
+          labels: distLabels,
+          datasets: [{
+            label: 'Students',
+            data: distData,
+            backgroundColor: distColors,
+            borderRadius: 6,
+            maxBarThickness: 48,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: c.ink,
+              titleColor: c.cream,
+              bodyColor: c.cream,
+              callbacks: {
+                label: function (ctx) { return ctx.parsed.y + ' student' + (ctx.parsed.y === 1 ? '' : 's') }
+              }
+            },
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: c.inkDim } },
+            y: {
+              beginAtZero: true,
+              precision: 0,
+              ticks: { stepSize: 1, color: c.inkMuted },
+              grid: { color: c.border, drawBorder: false },
+            },
+          },
+        },
+      })
+      if (window.ClBrand) {
+        ClBrand.register(distChart, function (p) {
+          distChart.data.datasets[0].backgroundColor = buildDistColors(p)
+          distChart.update()
+        })
+      }
+    }
+
+    // ─── 2. Risk donut ───
+    var riskEl = document.getElementById('saRiskDonut')
+    if (riskEl) {
+      var riskCounts = [{{ risk_distribution.low }}, {{ risk_distribution.medium }}, {{ risk_distribution.high }}]
+      var riskTotal = riskCounts.reduce(function (a, b) { return a + b }, 0)
+      function buildRiskColors (p) { return [p[0], p[1], p[2]] }
+      var riskChart = new Chart(riskEl, {
+        type: 'doughnut',
+        data: {
+          labels: ['Low', 'Medium', 'High'],
+          datasets: [{
+            data: riskCounts,
+            backgroundColor: buildRiskColors(_palette()),
+            borderColor: readToken('--paper', '#fff'),
+            borderWidth: 2,
+            hoverOffset: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '62%',
+          plugins: {
+            legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } },
+            tooltip: {
+              backgroundColor: c.ink,
+              titleColor: c.cream,
+              bodyColor: c.cream,
+              callbacks: {
+                label: function (ctx) {
+                  var pct = riskTotal ? Math.round(ctx.parsed / riskTotal * 100) : 0
+                  return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)'
+                }
+              }
+            },
+          },
+        },
+      })
+      if (window.ClBrand) {
+        ClBrand.register(riskChart, function (p) {
+          riskChart.data.datasets[0].backgroundColor = buildRiskColors(p)
+          riskChart.update()
+        })
+      }
+    }
+
+    // ─── 3. Avg score by type horizontal bar ───
+    var typeEl = document.getElementById('saByType')
+    if (typeEl) {
+      var typeLabels = [{% for k, v in type_chart.items %}'{{ k|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}]
+      var typeData = [{% for k, v in type_chart.items %}{{ v }}{% if not forloop.last %}, {% endif %}{% endfor %}]
+      function buildTypeColors (p) {
+        return typeData.map(function (v) {
+          if (v < 50) return p[2] // rose (locked)
+          if (v < 75) return p[1] // gold (locked)
+          return p[0]              // brand-driven
+        })
+      }
+      var typeColors = buildTypeColors(_palette())
+      var typeChart = new Chart(typeEl, {
+        type: 'bar',
+        data: {
+          labels: typeLabels,
+          datasets: [{
+            data: typeData,
+            backgroundColor: typeColors,
+            borderRadius: 6,
+            maxBarThickness: 30,
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: c.ink,
+              titleColor: c.cream,
+              bodyColor: c.cream,
+              callbacks: {
+                label: function (ctx) { return ctx.parsed.x + '%' }
+              }
+            },
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: 100,
+              ticks: { color: c.inkMuted, callback: function (v) { return v + '%' } },
+              grid: { color: c.border, drawBorder: false },
+            },
+            y: {
+              grid: { display: false },
+              ticks: { color: c.inkDim },
+            },
+          },
+        },
+      })
+      if (window.ClBrand) {
+        ClBrand.register(typeChart, function (p) {
+          typeChart.data.datasets[0].backgroundColor = buildTypeColors(p)
+          typeChart.update()
+        })
+      }
+    }
+  })()
+</script>
+<script src="{% static 'js/tours/cl-tour-subject-analytics.js' %}" defer></script>
+{% endblock %}

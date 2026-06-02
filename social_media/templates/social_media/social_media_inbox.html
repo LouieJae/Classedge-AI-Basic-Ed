@@ -1,0 +1,1809 @@
+{% extends is_student_role|yesno:"student_base.html,base_operation.html" %}
+{% load static %}
+
+{% block title %}Messages{% endblock %}
+
+{% block extra_css %}
+  {% if is_student_role %}
+    {% include "student/_legacy_stack.html" %}
+  {% else %}
+    {% include "teacher/_legacy_stack.html" %}
+  {% endif %}
+  <link rel="stylesheet" href="{% static 'css/inbox-styles.css' %}" />
+  {% if is_student_role %}
+    <link rel="stylesheet" href="{% static 'css/inbox-student-theme.css' %}" />
+  {% endif %}
+
+  <style>
+    {% if is_student_role %}
+    /* ─── Bridge: map operations-palette vars used below onto the
+       student_theme.css variables, so the inbox renders correctly when
+       extended from student_base.html. Without this, --paper/--cream/
+       --forest/--ink/etc. resolve to nothing and the layout collapses. */
+    body[data-theme] {
+      --paper: var(--surface);
+      --cream: var(--bg-2);
+      --cream-2: var(--surface-2);
+      --forest: var(--gold);
+      --forest-2: var(--gold);
+      --forest-light: rgba(244, 183, 64, 0.18);
+      --gold-bg: rgba(244, 183, 64, 0.10);
+      --rose: var(--coral);
+      --rose-soft: rgba(255, 107, 107, 0.16);
+      --ink: var(--text);
+      --ink-dim: var(--text-dim);
+      --ink-muted: var(--text-muted);
+      --shadow: 0 8px 32px -16px rgba(0, 0, 0, 0.35);
+    }
+    body[data-theme="light"] {
+      --paper: var(--surface);
+      --cream: var(--bg-2);
+      --cream-2: var(--surface-2);
+      --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -12px rgba(0,0,0,0.10);
+    }
+
+    /* Page-level title now defined canonically in student_theme.css */
+    {% else %}
+    /* ─── Operation-side (teacher/registrar/admin) only.
+       The inbox references student-theme vars (--text, --surface, --coral,
+       --surface-2, --bg-2) further down. base_operation.html only defines
+       --ink, --paper, --rose, --cream-2, --cream. Alias them so dark-mode
+       rules stay legible. This block lives in the `else` branch of the
+       student-role check above so we don't create a circular reference
+       with the student bridge (which maps --ink from --text). */
+    body[data-theme] {
+      --text: var(--ink);
+      --text-dim: var(--ink-dim);
+      --text-muted: var(--ink-muted);
+      --surface: var(--paper);
+      --surface-2: var(--cream-2);
+      --bg-2: var(--cream);
+      --coral: var(--rose);
+    }
+    body[data-theme="light"] {
+      --text: var(--ink, #2d3142);
+      --text-dim: var(--ink-dim, #6c7080);
+      --text-muted: var(--ink-muted, #a0a4b8);
+      --surface: var(--paper, #ffffff);
+      --surface-2: var(--cream-2, #f3ede2);
+      --bg-2: var(--cream, #faf7f2);
+      --coral: var(--rose, #c08479);
+    }
+    body[data-theme="dark"] {
+      --text: var(--ink, #e8eaf0);
+      --text-dim: var(--ink-dim, #a9aebe);
+      --text-muted: var(--ink-muted, #6d7388);
+      --surface: var(--paper, #1a2420);
+      --surface-2: var(--cream-2, #161f1a);
+      --bg-2: var(--cream, #0f1714);
+      --coral: var(--rose, #d6a097);
+    }
+    {% endif %}
+
+    /* ─── Shell + header ───────────────────────── */
+    .msg-shell { padding: 8px 0; min-width: 0; }
+    .msg-shell, .msg-shell * { box-sizing: border-box; }
+
+    .msg-titlebar {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .msg-titlebar .page-title { margin-bottom: 4px; }
+    .msg-titlebar .page-sub { font-size: 13.5px; color: var(--ink-dim); }
+    .msg-status-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      color: var(--ink-dim);
+      font-weight: 500;
+    }
+    .msg-status-chip .pulse {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #4caf50;
+      box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.5);
+      animation: msgPulse 2s infinite;
+    }
+    @keyframes msgPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.5); }
+      70%  { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+    }
+
+    /* ─── Card shell ───────────────────────────── */
+    main:has(.msg-shell) { padding-bottom: 24px !important; }
+    .msg-shell {
+      display: flex;
+      flex-direction: column;
+      height: calc(100dvh - 136px);
+      min-height: 0;
+    }
+    .msg-titlebar { flex: 0 0 auto; }
+    .msg-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      flex: 1 1 0;
+      min-height: 0;
+      max-height: none;
+    }
+    /* ─── Mobile/tablet: Messenger-style two-screen flow ─────────
+       Switch the card from grid → flex column; show only one of the
+       two children at any time. List is the default; tapping a row
+       adds .chat-active to .msg-card (in inbox-logic.js) which flips
+       which child is visible. The chat header's back arrow strips
+       .chat-active to return to the list. */
+    @media (max-width: 880px) {
+      .msg-card {
+        display: block !important;
+        grid-template-columns: none;
+        position: relative;
+        overflow: hidden;
+      }
+      .msg-card > .msg-side,
+      .msg-card > .msg-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        display: flex !important;
+        flex-direction: column;
+        border-right: none !important;
+        transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+        will-change: transform;
+      }
+      .msg-card > .msg-side { transform: translateX(0); z-index: 1; }
+      .msg-card > .msg-panel { transform: translateX(100%); z-index: 2; }
+      .msg-card.chat-active > .msg-side { transform: translateX(-25%); z-index: 1; }
+      .msg-card.chat-active > .msg-panel { transform: translateX(0); z-index: 2; }
+      @media (prefers-reduced-motion: reduce) {
+        .msg-card > .msg-side,
+        .msg-card > .msg-panel { transition: none; }
+      }
+      /* Back chevron in the chat header — always tappable on narrow
+         screens (inbox-styles.css hides it >=1025px). */
+      .msg-panel .chat-back-btn {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        margin-right: 6px;
+        color: var(--ink-dim) !important;
+        text-decoration: none !important;
+        transition: background 0.15s, color 0.15s;
+      }
+      .msg-panel .chat-back-btn:hover {
+        background: var(--cream-2);
+        color: var(--ink) !important;
+      }
+    }
+    @media (min-width: 881px) {
+      /* Desktop has both columns visible; back button not needed
+         (inbox-styles.css already hides it >=1025px; cover 881–1024). */
+      .msg-panel .chat-back-btn { display: none !important; }
+    }
+
+    html, body[data-theme] {
+      background: var(--paper) !important;
+      background-image: none !important;
+      overflow: hidden !important;
+      height: 100dvh !important;
+    }
+    body[data-theme]::before { display: none !important; }
+    .app { height: 100dvh !important; min-height: 0 !important; overflow: hidden !important; }
+    main { height: 100dvh !important; overflow: hidden !important; }
+
+    @media (max-width: 768px) {
+      .cl-tabbar { display: none !important; }
+      body.has-cl-tabbar,
+      body.has-cl-tabbar .app,
+      body.has-cl-tabbar .ll-shell,
+      body.has-cl-tabbar .student-shell,
+      body.has-cl-tabbar .cl-page {
+        padding-bottom: 0 !important;
+      }
+    }
+
+    @media (max-width: 880px), (max-height: 640px) {
+      .topbar { display: none !important; }
+      main { padding: 0 !important; }
+      main:has(.msg-shell) { padding: 0 !important; }
+      .page-content { animation: none !important; }
+      .msg-shell { height: 100dvh !important; padding: 0 !important; }
+      .msg-titlebar { display: none !important; }
+      .msg-mobile-burger {
+        display: inline-grid !important;
+        place-items: center;
+      }
+    }
+    @media (min-width: 881px) and (min-height: 641px) {
+      .msg-mobile-burger { display: none !important; }
+    }
+
+    @media (max-width: 640px) {
+
+      /* ── Strip page-level chrome ───────────────────────────────── */
+      .msg-titlebar { display: none !important; }
+      .msg-side-section-label { display: none !important; }
+
+      html, body[data-theme] { overflow: hidden; height: 100dvh; }
+      .msg-shell { padding: 0; margin: 0; height: 100dvh; }
+      .msg-card {
+        border-radius: 0 !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        margin: 0;
+        width: 100%;
+        height: 100dvh;
+        min-height: 0;
+        background: var(--paper);
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+      }
+      body.has-cl-tabbar .msg-card { height: 100dvh; }
+
+      /* ── Side rail (conversation list) ─────────────────────────── */
+      .msg-side {
+        background: var(--paper);
+        border-right: 0;
+      }
+      /* Head row — Messenger-style: user pill on the left, action
+         icons on the right. Replaces the empty "lonely-icons" look. */
+      .msg-side-title { display: none !important; }
+      .msg-side-head {
+        padding: 12px 12px 8px;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      /* Brand label (mobile-only). Compact "ClassChat" wordmark
+         using the same italic em-accent treatment as the sidebar's
+         "ClassEdge" brand. */
+      .msg-side-brand {
+        display: inline-flex;
+        align-items: center;
+        font-family: var(--display);
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+        line-height: 1;
+        flex: 0 1 auto;
+        min-width: 0;
+      }
+      .msg-side-brand em {
+        font-style: italic;
+        color: var(--brand-primary, #b7925a);
+        font-weight: 700;
+      }
+      /* Bigger, thumb-comfortable action icons (40×40 = within Apple/
+         Material recommended 44px hit area when combined with row gap). */
+      .msg-icon-btn {
+        width: 40px; height: 40px;
+        border: 1px solid var(--border);
+        background: var(--paper);
+      }
+      .msg-icon-btn i { font-size: 14px; }
+
+      .msg-search-bar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: var(--paper);
+        padding: 0 12px 10px;
+      }
+      .msg-search-wrap input {
+        font-size: 16px;
+        padding: 12px 14px 12px 40px;
+        background: var(--paper);
+        border: 1px solid var(--border);
+      }
+      .msg-search-wrap input:focus {
+        background: var(--paper);
+        border-color: var(--brand-primary, #b7925a);
+      }
+      .msg-search-wrap i { left: 16px; font-size: 13px; }
+
+      /* ── Contact rows: tap-friendly ────────────────────────────── */
+      /* Top padding compensates for the hidden "Conversations" section
+         label — without it, the first (potentially active/highlighted)
+         row crowds the sticky search bar. 14px gives it the same
+         breathing room as desktop without re-adding the label. */
+      .msg-contacts { padding: 14px 0 16px; }
+      /* Falcon's <Link> uses .nav-link → .d-flex.p-3 inside it; we
+         widen and grow it to a comfortable 72px row. */
+      .msg-contacts .nav-link .d-flex.p-3 {
+        padding: 12px 14px !important;
+        gap: 12px;
+        align-items: center;
+        min-height: 72px;
+      }
+      .msg-contacts .nav-link,
+      .msg-contacts .chat-contact {
+        border-radius: 0 !important;
+        margin: 0;
+        border-bottom: 1px solid var(--border) !important;
+      }
+      .msg-contacts .nav-link.active,
+      .msg-contacts .chat-contact.active {
+        /* On mobile the active state mainly matters in the brief
+           moment before navigating into the chat — keep the soft
+           tint but drop the inset-edge so flush rows look clean. */
+        box-shadow: none !important;
+      }
+      .msg-contacts .avatar.avatar-xl {
+        width: 52px !important;
+        height: 52px !important;
+        min-width: 52px;
+        flex: 0 0 52px;
+      }
+      .msg-contacts .avatar.avatar-xl img {
+        width: 52px !important;
+        height: 52px !important;
+      }
+      /* Online dot — bump up to match the larger avatar. */
+      .msg-contacts .avatar.status-online::after,
+      .msg-contacts .avatar.status-offline::after {
+        width: 13px; height: 13px;
+        bottom: 1px; right: 1px;
+        border-width: 2.5px;
+      }
+      .msg-contacts .chat-contact-title {
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        line-height: 1.25 !important;
+      }
+      .msg-contacts .chat-contact-content,
+      .msg-contacts .chat-contact-content * {
+        font-size: 13px !important;
+        line-height: 1.35 !important;
+      }
+      .msg-contacts .message-time {
+        font-size: 11.5px !important;
+        color: var(--ink-muted) !important;
+      }
+
+      /* ── Chat panel (mobile, chat-active) ────────────────────────
+         Surgical fix for the "composer floats mid-screen when you
+         scroll" bug shown in the screenshot. Topbar and tab bar
+         stay visible — the only change is locking page scroll while
+         a chat is open. The card already has a calc() height that
+         fits between the topbar and the tab bar (`100dvh - 96 - 64
+         - safe-area`), so with the page unable to scroll, the card
+         can't drift upward and the composer stays glued to the bottom
+         of the card (just above the bottom tab bar).
+         Mobile Safari ignores `overflow: hidden` on body alone, so
+         we use the standard `position: fixed` body trick. The JS in
+         inbox-logic.js saves window.scrollY into `top` before
+         applying the lock and restores it on unlock. */
+      body.cl-chat-active {
+        overflow: hidden !important;
+        position: fixed !important;
+        left: 0;
+        right: 0;
+        width: 100%;
+      }
+
+      .msg-panel { background: var(--paper); }
+      .msg-panel .chat-content-header {
+        padding: 10px 12px !important;
+        gap: 6px;
+      }
+      .msg-panel .chat-content-header h5 {
+        font-size: 15px !important;
+      }
+      .msg-panel .chat-content-header .chat-back-btn {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 16px;
+        margin-right: 2px !important;
+      }
+      .msg-panel .chat-content-header .btn-chat-info {
+        width: 38px; height: 38px;
+      }
+
+      /* Bigger composer hit area — thumb sits naturally at the
+         bottom of the screen, so make sure the send target is
+         obvious without forcing the user to hunt. */
+      .msg-panel .chat-editor-area {
+        padding: 10px 10px !important;
+        padding-bottom: max(10px, env(safe-area-inset-bottom, 10px)) !important;
+        gap: 6px;
+      }
+
+      /* ── Empty state — simplified, no decorative tilt ──────────── */
+      .msg-panel-empty {
+        padding: 36px 24px;
+        background: var(--paper);
+        gap: 12px;
+      }
+      .msg-panel-empty .ill {
+        width: 64px; height: 64px;
+        border-radius: 20px;
+        font-size: 26px;
+        transform: none;
+        box-shadow: none;
+      }
+      .msg-panel-empty h2 { font-size: 18px; }
+      .msg-panel-empty p { font-size: 13px; max-width: 280px; }
+    }
+
+    /* ─── Sidebar ──────────────────────────────── */
+    .msg-side {
+      display: flex; flex-direction: column;
+      background: var(--paper);
+      border-right: 1px solid var(--border);
+      min-width: 0;
+      /* Lock the sidebar to the card height so the inner contacts list
+         can scroll. Without these, the list grows with content and gets
+         clipped by .msg-card's overflow:hidden, leaving no scrollbar. */
+      height: 100%;
+      max-height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .msg-side-head {
+      padding: 18px 18px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+    .msg-side-title {
+      font-family: var(--display);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+    .msg-side-icons {
+      display: inline-flex; gap: 4px;
+    }
+    /* Brand label is mobile-only — hide it on desktop (≥641px) so
+       the existing "Inbox" h2 stays the canonical title there. Using
+       a min-width media query instead of a default `display: none`
+       avoids cascade-order issues: the previous "default: none"
+       lived AFTER the @media (max-width: 640px) block in the file
+       and out-cascaded its `display: inline-flex` rule, hiding the
+       label on phones too. */
+    @media (min-width: 641px) {
+      .msg-side-brand { display: none !important; }
+    }
+    .msg-icon-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--ink-dim);
+      display: inline-grid; place-items: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .msg-icon-btn:hover {
+      background: var(--paper);
+      color: var(--ink);
+      border-color: var(--border);
+    }
+    .msg-icon-btn:active { transform: scale(0.96); }
+    .msg-icon-btn i { font-size: 13px; }
+
+    .msg-search-bar {
+      padding: 4px 14px 12px;
+      flex: 0 0 auto;
+    }
+    .msg-search-wrap { position: relative; }
+    .msg-search-wrap input {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--body);
+      font-size: 14px;
+      color: var(--ink);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .msg-search-wrap input:hover {
+      border-color: var(--border-strong, var(--border));
+    }
+    .msg-search-wrap input:focus {
+      outline: none;
+      border-color: var(--brand-primary, #1b4332);
+      box-shadow: 0 0 0 3px var(--brand-primary-soft);
+    }
+    .msg-search-wrap input::placeholder { color: var(--ink-muted); }
+    .msg-search-wrap i {
+      position: absolute; left: 14px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--brand-primary, #b7925a);
+      font-size: 13px;
+      pointer-events: none;
+      opacity: 0.7;
+    }
+    .msg-search-wrap input:focus + i,
+    .msg-search-wrap:focus-within i {
+      opacity: 1;
+    }
+
+    .msg-side-section-label {
+      padding: 6px 18px 4px;
+      font-family: var(--body);
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--ink-muted);
+      flex: 0 0 auto;
+    }
+
+    /* Contacts list — only scrolling region inside the sidebar.
+       The sibling head/search/section-label rows are flex:0 0 auto so
+       they stay pinned and the conversation list takes remaining space. */
+    .msg-contacts {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 0;
+      padding: 0 8px 12px;
+      scrollbar-gutter: stable;
+    }
+    .msg-contacts::-webkit-scrollbar { width: 6px; }
+    .msg-contacts::-webkit-scrollbar-thumb {
+      background: var(--border-strong, rgba(255,255,255,0.14));
+      border-radius: 3px;
+    }
+    .msg-contacts::-webkit-scrollbar-thumb:hover {
+      background: var(--ink-muted, rgba(255,255,255,0.28));
+    }
+    .msg-contacts::-webkit-scrollbar-track { background: transparent; }
+
+    /* Reskin Bootstrap nav tabs that JS injects into #chat-list.
+       The injected rows use classes `.chat-contact.nav-item.active`
+       (NOT `.nav-link`) — selectors must match that hierarchy or the
+       hover + active highlight silently never fires. */
+    .msg-contacts .nav-tabs { border: none !important; }
+    .msg-contacts .nav-link,
+    .msg-contacts .chat-contact {
+      position: relative;
+      border: none !important;
+      background: transparent !important;
+      border-radius: var(--radius-sm) !important;
+      padding: 0 !important;
+      margin: 1px 0;
+      transition: background 0.15s ease, box-shadow 0.15s ease;
+      color: var(--ink) !important;
+      cursor: pointer;
+    }
+    .msg-contacts .nav-link:hover,
+    .msg-contacts .chat-contact:hover {
+      background: color-mix(in srgb, var(--brand-primary, #b7925a) 8%, transparent) !important;
+    }
+    .msg-contacts .nav-link.active,
+    .msg-contacts .chat-contact.active {
+      background: var(--brand-primary-soft) !important;
+      /* inset box-shadow draws the active-edge marker WITHIN the row's
+         border-radius/overflow window instead of being a ::before bar
+         that the row's `overflow: hidden` clips. */
+      box-shadow: inset 3px 0 0 var(--brand-primary, #b7925a);
+    }
+    .msg-contacts .nav-link.active .chat-contact-title,
+    .msg-contacts .chat-contact.active .chat-contact-title {
+      color: var(--brand-primary, #b7925a) !important;
+    }
+    .msg-contacts .chat-contact-title {
+      font-size: 13.5px !important;
+      font-weight: 600 !important;
+      color: var(--ink) !important;
+      font-family: var(--body) !important;
+    }
+    .msg-contacts .chat-contact-content {
+      font-size: 12px !important;
+      color: var(--ink-dim) !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      padding-right: 0 !important;
+      margin-right: 0;
+    }
+    /* The Falcon markup wraps the preview in a <div class="min-w-0"> —
+       Bootstrap's .min-w-0 sets min-width:0 but the inner .pe-3 padding
+       eats horizontal room and the title's time chip pushes the preview
+       further. Force the wrapper to a fixed 100% width so the inner
+       content can ellipsis-clip rather than overflowing the row. */
+    .msg-contacts .chat-contact-body .min-w-0 {
+      width: 100%;
+      min-width: 0 !important;
+      max-width: 100%;
+      overflow: hidden;
+    }
+    .msg-contacts .chat-contact-content.pe-3 {
+      padding-right: 0 !important;
+    }
+    /* Belt-and-suspenders: clip any wide child of a contact row at the
+       row's right edge. Without this, an HTML/img-bearing last-message
+       (the JS sometimes injects emoji <img>s) blows past the sidebar
+       boundary and ignores text-overflow rules. */
+    .msg-contacts .nav-link {
+      overflow: hidden;
+    }
+    .msg-contacts .chat-contact-content * {
+      max-width: 100%;
+      vertical-align: middle;
+    }
+    .msg-contacts .chat-contact-content img {
+      max-height: 1.1em;
+      width: auto;
+    }
+    .msg-contacts .message-time {
+      font-size: 11px !important;
+      color: var(--ink-muted) !important;
+      font-weight: 500 !important;
+      flex-shrink: 0;
+    }
+    /* Contact row — keep the avatar a fixed circle, give the body the
+       remaining space, and clip overflow so long names/last-messages
+       truncate with an ellipsis instead of pushing the time off-row. */
+    .msg-contacts .nav-link .d-flex.p-3 {
+      padding: 10px 12px !important;
+      gap: 10px;
+      align-items: center;
+    }
+    .msg-contacts .avatar.avatar-xl {
+      width: 42px !important;
+      height: 42px !important;
+      min-width: 42px;
+      flex: 0 0 42px;
+      position: relative;
+      display: inline-block;
+    }
+    .msg-contacts .avatar.avatar-xl img {
+      width: 42px !important;
+      height: 42px !important;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+    .msg-contacts .avatar.avatar-xl img {
+      width: 42px !important;
+      height: 42px !important;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+    .msg-contacts .chat-contact-body,
+    .msg-contacts .chat-contact-body.flex-1 {
+      /* Aggressive shrink — Falcon's .flex-1 is `flex:1` (= 1 1 0%)
+         which allows shrinking but only if min-width:0. Force both. */
+      flex: 1 1 0 !important;
+      min-width: 0 !important;
+      width: 0;          /* let flex distribute remaining width */
+      max-width: 100%;
+      overflow: hidden;
+    }
+    .msg-contacts .chat-contact-body .d-flex.justify-content-between {
+      gap: 8px;
+      align-items: baseline;
+      min-width: 0;
+      width: 100%;
+    }
+    .msg-contacts .chat-contact-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+      flex: 1 1 auto;
+      max-width: 100%;
+    }
+    .msg-contacts .message-time {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+    /* Online/offline status dot — sits at the avatar's bottom-right.
+       The "halo" (2px border) needs to match the row surface so the
+       cut-out reads as a clean ring. Use the brand-soft tint on the
+       active row so the dot's halo doesn't disappear into the
+       background. The dot also wears a small outer glow so it's
+       legible on both light and dark themes. */
+    .msg-contacts .avatar.status-online::after,
+    .msg-contacts .avatar.status-offline::after {
+      content: '';
+      position: absolute;
+      bottom: 2px; right: 2px;
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      box-sizing: content-box;
+      border: 2px solid var(--paper, var(--surface, #fff));
+      box-shadow: 0 0 0 1px var(--border, rgba(0, 0, 0, 0.08));
+      z-index: 1;
+    }
+    .msg-contacts .avatar.status-online::after  { background: #22c55e; }
+    .msg-contacts .avatar.status-offline::after { background: var(--ink-muted, var(--text-muted, #94a3b8)); }
+    /* On the active conversation, the row tints to --brand-primary-soft,
+       so flip the halo to match (otherwise the dot's white border looks
+       cut on the left where it bleeds into the row tint). */
+    .msg-contacts .nav-link.active .avatar.status-online::after,
+    .msg-contacts .nav-link.active .avatar.status-offline::after,
+    .msg-contacts .chat-contact.active .avatar.status-online::after,
+    .msg-contacts .chat-contact.active .avatar.status-offline::after {
+      border-color: color-mix(in srgb, var(--brand-primary-soft), var(--paper, var(--surface, #fff)) 40%);
+    }
+    /* Hide Falcon's "settings cog" dropdown overlay on contact rows.
+       The original Falcon design used this for a per-row context menu, but
+       the icon doesn't fit the gamification look and was clipping into the
+       conversation title. Keep the dropdown DOM (sibling JS still references
+       it) but hide it visually. */
+    .msg-contacts .dropdown-chat,
+    .msg-contacts .hover-actions {
+      display: none !important;
+    }
+
+    /* Loading + empty placeholders inside #chat-list */
+    #chat-list > p.text-center,
+    #chat-list > p.text-muted {
+      display: block;
+      padding: 56px 18px !important;
+      margin: 0 !important;
+      text-align: center;
+      color: var(--ink-dim) !important;
+      font-size: 13px;
+      font-style: italic;
+      font-family: var(--display);
+      line-height: 1.5;
+    }
+    #chat-list > p.text-center::before {
+      content: '\f4ad';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      display: block;
+      font-size: 24px;
+      color: var(--brand-primary, #b7925a);
+      margin-bottom: 12px;
+      font-style: normal;
+    }
+    #chat-list > p.text-danger {
+      display: block;
+      padding: 56px 18px !important;
+      margin: 0 !important;
+      text-align: center;
+      color: var(--rose) !important;
+      font-size: 13px;
+      font-style: italic;
+      font-family: var(--display);
+    }
+    #chat-list > p.text-danger::before {
+      content: '\f071';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      display: block;
+      font-size: 22px;
+      color: var(--rose);
+      margin-bottom: 12px;
+      font-style: normal;
+    }
+
+    /* ─── Main panel ───────────────────────────── */
+    .msg-panel {
+      display: flex; flex-direction: column;
+      min-height: 0;
+      height: 100%;
+      max-height: 100%;
+      overflow: hidden;
+      background: var(--paper);
+    }
+    /* The JS injects a tab-pane (with .h-100) inside .msg-panel that
+       holds the header, message stream, and editor. Force it into a
+       column flex so the editor stays pinned to the bottom even when
+       the message list overflows. Without this, a long conversation
+       pushes the input form below the visible card and the user can't
+       see or click into the textbox. */
+    .msg-panel > .tab-pane,
+    .msg-panel > .card-chat-pane,
+    .msg-panel > .tab-pane.active {
+      display: flex !important;
+      flex-direction: column !important;
+      flex: 1 1 auto;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+    /* Force the JS-injected header to never grow/shrink. */
+    .msg-panel .chat-content-header {
+      flex: 0 0 auto;
+    }
+
+    /* ─── Chat content header (JS-injected) ─────── */
+    .msg-panel .chat-content-header {
+      padding: 14px 22px !important;
+      border-bottom: 1px solid var(--border);
+      background: var(--paper);
+      flex-shrink: 0;
+    }
+    .msg-panel .chat-content-header h5 {
+      font-family: var(--display) !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      color: var(--ink) !important;
+      letter-spacing: -0.01em !important;
+      line-height: 1.2 !important;
+      margin: 0 !important;
+    }
+    /* Polish the small status line under the name */
+    .msg-panel .chat-content-header [id^="status-text-"] {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px !important;
+      color: var(--ink-dim) !important;
+      font-style: italic;
+      font-family: var(--body) !important;
+      margin-top: 2px;
+      line-height: 1.3 !important;
+    }
+    .msg-panel .chat-content-header [id^="status-text-"]::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--ink-muted);
+      flex-shrink: 0;
+    }
+    /* Online state — JS adds .text-success when presence is "online".
+       Clean dot, no halo (the previous box-shadow glow read as noise
+       against the dark header). Color tracks the semantic --success
+       token so it stays legible on both light and dark themes. */
+    .msg-panel .chat-content-header [id^="status-text-"].text-success {
+      color: var(--success, #2e7d32) !important;
+      font-style: normal;
+    }
+    .msg-panel .chat-content-header [id^="status-text-"].text-success::before {
+      background: var(--success, #22c55e);
+      box-shadow: none;
+    }
+    /* Polish the back button on mobile */
+    .msg-panel .chat-content-header .chat-back-btn {
+      color: var(--ink-dim) !important;
+      transition: color 0.15s;
+    }
+    .msg-panel .chat-content-header .chat-back-btn:hover {
+      color: var(--ink) !important;
+    }
+    /* Group "info" cog button */
+    .msg-panel .chat-content-header .btn-chat-info {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--paper) !important;
+      color: var(--ink-dim) !important;
+      box-shadow: none !important;
+      display: inline-grid; place-items: center;
+      transition: all 0.15s;
+    }
+    .msg-panel .chat-content-header .btn-chat-info:hover {
+      background: var(--cream-2) !important;
+      color: var(--ink) !important;
+      border-color: var(--brand-primary-soft);
+    }
+
+    /* Empty state — minimal & centered */
+    .msg-panel-empty {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 48px 32px;
+      text-align: center;
+      gap: 16px;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(183, 146, 90, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 70% 80%, var(--brand-primary-soft) 0%, transparent 55%),
+        var(--paper);
+    }
+    .msg-panel-empty .ill {
+      width: 84px; height: 84px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, var(--brand-primary-soft) 0%, var(--brand-primary-soft) 100%);
+      display: grid; place-items: center;
+      font-size: 34px;
+      color: var(--ink);
+      box-shadow: 0 12px 32px -10px var(--brand-primary-soft);
+      transform: rotate(-4deg);
+    }
+    .msg-panel-empty h2 {
+      font-family: var(--display);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .msg-panel-empty h2 em {
+      font-style: italic;
+      color: var(--brand-primary, #b7925a);
+      font-weight: 500;
+    }
+    .msg-panel-empty p {
+      font-size: 13.5px;
+      color: var(--ink-dim);
+      max-width: 320px;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* ─── Chat messages stream (JS-injected) ──── */
+    .msg-panel .chat-messages {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 18px 22px;
+      background:
+        radial-gradient(circle at 25% 15%, rgba(244, 183, 64, 0.04) 0%, transparent 45%),
+        radial-gradient(circle at 80% 85%, rgba(78, 205, 196, 0.04) 0%, transparent 50%),
+        var(--paper);
+    }
+    .msg-panel .chat-messages::-webkit-scrollbar { width: 6px; }
+    .msg-panel .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--border-strong);
+      border-radius: 3px;
+    }
+
+    /* ─── Bubble layout polish (Messenger-grade UX) ──────────
+       Falcon caps each .msg-row at 70% of chat width and lets the
+       bubble + action icons share that budget. With long text the
+       bubble eats the 70% and the action icons get clipped off the
+       right edge. We instead let the row span the full available
+       width and cap the *bubble* directly so the action column is
+       always reachable. */
+    .msg-panel .chat-message-wrapper {
+      margin: 0 12px 6px !important;
+      align-items: flex-end;
+    }
+    /* Bubble layout — directly override Falcon's chat-message-content
+       rules. The Falcon defaults (`width: fit-content; max-width: 100%;
+       min-width: 30px; flex-shrink: 0`) work for them because their
+       chain has a definite-width parent, but in this redesign every
+       flex ancestor is shrink-to-fit, so `100%` resolves circularly
+       and one-character-per-line columns appear. We replace those
+       rules with absolute-pixel caps that have no anchor to ambient
+       layout. */
+    .msg-panel .msg-row {
+      gap: 6px;
+      align-items: center;
+      min-width: 0;
+      max-width: none;
+    }
+    .msg-panel .msg-row .chat-message-content {
+      width: auto !important;
+      max-width: 520px !important;
+      min-width: 0 !important;
+      flex: 0 1 auto !important;
+      overflow-wrap: anywhere;
+      word-break: normal;
+      white-space: pre-wrap;
+    }
+    .msg-panel .msg-hover-actions {
+      flex-shrink: 0;
+    }
+    .msg-panel .chat-message-wrapper .profile-image {
+      width: 28px !important;
+      height: 28px !important;
+      flex-shrink: 0;
+      align-self: flex-end;
+      margin-bottom: 2px;
+    }
+    .msg-panel .chat-message-content {
+      padding: 9px 14px !important;
+      line-height: 1.4;
+      font-size: 14px;
+      /* No shadow on bubbles — flat fill keeps the design clean and
+         removes the warm halo that read as a gold/cream glow. */
+      box-shadow: none !important;
+    }
+    .msg-panel .msg-row.sent .chat-message-content {
+      border-radius: 18px 18px 4px 18px !important;
+    }
+    .msg-panel .msg-row.received .chat-message-content {
+      border-radius: 18px 18px 18px 4px !important;
+    }
+
+    /* ─── Bubble palette overrides ──────────────────────────
+       inbox-student-theme.css sets --chat-received-bg to
+       var(--surface-2) which is the same near-white as the chat-
+       messages background in light mode, so received bubbles
+       disappear. Override the palette per theme + restyle the
+       sent bubble as a vivid gold→coral gradient pill so the
+       conversation reads at a glance. */
+    body[data-theme="light"] {
+      /* Sent bubble — flat brand-primary fill, no gradient/glow.
+         Previously a 135deg gradient with a color-mix fallback was
+         producing a warm-tinted blob at the bubble's bottom-right
+         that read as a "gold glow" on cool-branded tenants. */
+      --chat-sent-bg: var(--brand-primary, #b7925a);
+      --chat-sent-color: #ffffff;
+      --chat-received-bg: #ebe6dc;
+      --chat-received-color: #1a1a2e;
+    }
+    body[data-theme="dark"] {
+      --chat-sent-bg: var(--brand-primary, #f4b740);
+      --chat-sent-color: #ffffff;
+      --chat-received-bg: rgba(255, 255, 255, 0.06);
+      /* `--text` only exists in the student theme. In the operation
+         (teacher/registrar/admin) theme the equivalent is `--ink`.
+         Fall through both so the received bubble stays legible in every
+         dark-mode entry point. */
+      --chat-received-color: var(--text, var(--ink, #e8eaf0));
+    }
+    /* Inline `style="background-color: var(--chat-sent-bg)"` from
+       buildMsgContent only accepts colors — gradients need the
+       `background` shorthand. Force it on the sent bubble. */
+    .msg-panel .msg-row.sent .chat-message-content[style] {
+      background: var(--chat-sent-bg) !important;
+      color: var(--chat-sent-color) !important;
+    }
+    .msg-panel .msg-row.received .chat-message-content[style] {
+      background: var(--chat-received-bg) !important;
+      color: var(--chat-received-color) !important;
+    }
+    /* Light mode: subtle border + lift shadow on the warm-gray
+       received bubbles. */
+    body[data-theme="light"] .msg-panel .msg-row.received .chat-message-content {
+      border: 1px solid rgba(15, 20, 35, 0.04);
+      box-shadow: 0 1px 2px rgba(15, 20, 35, 0.05);
+    }
+    body[data-theme="light"] .msg-panel .msg-row.sent .chat-message-content {
+      box-shadow: 0 4px 14px -4px rgba(244, 160, 42, 0.45);
+    }
+    body[data-theme="dark"] .msg-panel .msg-row.received .chat-message-content {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    body[data-theme="dark"] .msg-panel .msg-row.sent .chat-message-content {
+      box-shadow: 0 4px 16px -4px rgba(244, 183, 64, 0.45);
+    }
+
+    body[data-theme="dark"] .msg-card {
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.04) inset,
+        0 12px 36px -16px rgba(0, 0, 0, 0.6),
+        0 0 0 1px color-mix(in srgb, var(--brand-primary, #b7925a) 12%, transparent);
+    }
+    body[data-theme="dark"] .msg-side {
+      background: var(--paper);
+    }
+    body[data-theme="dark"] .msg-side-head {
+      border-bottom: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 10%, var(--border));
+    }
+    body[data-theme="dark"] .msg-side-title {
+      color: var(--ink);
+    }
+    body[data-theme="dark"] .msg-side-section-label {
+      color: color-mix(in srgb, var(--brand-primary, #b7925a) 35%, var(--ink-muted));
+    }
+    body[data-theme="dark"] .msg-icon-btn {
+      color: var(--ink-dim);
+    }
+    body[data-theme="dark"] .msg-icon-btn:hover {
+      background: color-mix(in srgb, var(--brand-primary, #b7925a) 14%, transparent);
+      border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent);
+      color: var(--ink);
+    }
+    body[data-theme="dark"] .msg-status-chip {
+      background: color-mix(in srgb, var(--brand-primary, #b7925a) 6%, var(--paper));
+      border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 18%, var(--border));
+    }
+    body[data-theme="dark"] .msg-contacts .chat-contact:hover,
+    body[data-theme="dark"] .msg-contacts .chat-contacts-list .chat-contact:hover {
+      background: color-mix(in srgb, var(--brand-primary, #b7925a) 10%, transparent) !important;
+    }
+    body[data-theme="dark"] .msg-contacts .chat-contact.active,
+    body[data-theme="dark"] .msg-contacts .chat-contacts-list .chat-contact.active {
+      background: color-mix(in srgb, var(--brand-primary, #b7925a) 18%, transparent) !important;
+      border-left: 3px solid var(--brand-primary, #b7925a);
+    }
+    body[data-theme="dark"] .msg-panel .chat-head,
+    body[data-theme="dark"] .msg-panel .card-header {
+      border-bottom: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 10%, var(--border)) !important;
+    }
+    body[data-theme="dark"] .msg-panel .chat-messages {
+      background: var(--paper);
+    }
+    body[data-theme="dark"] .msg-panel .chat-editor-area,
+    body[data-theme="dark"] .msg-panel .chat-editor {
+      border-top: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 10%, var(--border)) !important;
+      background: var(--paper) !important;
+    }
+    /* Links inside the gold sent bubble need higher contrast */
+    .msg-panel .msg-row.sent .chat-message-text a {
+      color: #ffffff !important;
+      text-decoration: underline;
+    }
+
+    .msg-panel .chat-message-content img:not(.emoji):not(.profile-image) {
+      display: block;
+      max-width: 100%;
+      max-height: 280px;
+      width: auto;
+      height: auto;
+      border-radius: 12px;
+      margin: 4px 0;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    @supports selector(:has(img)) {
+      .msg-panel .chat-message-content:has(> img:only-child),
+      .msg-panel .chat-message-content:has(> a > img:only-child) {
+        padding: 4px !important;
+      }
+    }
+    /* The empty reaction container reserves vertical space — collapse
+       it when there are no reactions so bubbles sit closer together.
+       Covers both .reaction-bubble-container (used by historical /
+       paged-fetch renders) and .reaction-display (used by realtime
+       WebSocket renders) so the column height stays in sync between
+       the two paths and the avatar stays aligned with the bubble. */
+    .msg-panel .reaction-bubble-container:empty,
+    .msg-panel .reaction-display:empty {
+      display: none !important;
+    }
+    /* Tighten the timestamp gap. Force a readable color regardless of the
+       host theme — `.text-500` is a Falcon utility that defaults to a near-
+       black gray, which becomes invisible against the dark operation
+       theme. Pin it to `--ink-dim` (operations) / `--text-dim` (student)
+       with a safe fallback. */
+    .msg-panel .chat-timestamp {
+      margin-top: 2px !important;
+      opacity: 0.85;
+      color: var(--ink-dim, var(--text-dim, #a9aebe)) !important;
+    }
+    .msg-panel .chat-timestamp .read-check {
+      color: inherit;
+    }
+    /* Typing indicator — Falcon's .text-muted was invisible on the
+       dark student theme, so we own the chrome via .cl-typing-indicator
+       and animate three dots so it reads as activity rather than just a
+       grey label. */
+    .msg-panel .cl-typing-indicator {
+      /* No !important on display so the inline `style="display:none"`
+         can hide it when no one is typing. JS clears the inline style
+         (style.display = "") when the peer starts typing, letting this
+         inline-flex layout take over. */
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 100px;
+      background: var(--brand-primary-soft);
+      color: var(--brand-primary, #b7925a);
+      font-size: 12px;
+      font-style: italic;
+      font-weight: 500;
+      width: max-content;
+      max-width: 70%;
+    }
+    .msg-panel .cl-typing-indicator em { font-style: italic; color: inherit; }
+    .msg-panel .cl-typing-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .msg-panel .cl-typing-dots span {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--brand-primary, #b7925a);
+      opacity: 0.45;
+      animation: cl-typing-bounce 1.2s ease-in-out infinite;
+    }
+    .msg-panel .cl-typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .msg-panel .cl-typing-dots span:nth-child(3) { animation-delay: 0.30s; }
+    @keyframes cl-typing-bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+      30%           { transform: translateY(-3px); opacity: 1; }
+    }
+    /* Burst grouping: only show the inline timestamp on the last message
+       of a sender's burst (different next sender, or >5min gap, or last
+       in thread). Tap any other bubble to reveal its time via `.visible`. */
+    .msg-panel .chat-message-wrapper:not([data-burst-end="1"]) .chat-timestamp {
+      display: none !important;
+    }
+    .msg-panel .chat-message-wrapper:not([data-burst-end="1"]) .chat-timestamp.visible {
+      display: flex !important;
+    }
+
+    /* On mobile, hide hover-actions until the user taps a bubble (the
+       JS in inbox-logic.js toggles .show-actions on .msg-row). When
+       hidden, the bubble can stretch the full row width — when they
+       appear, they replace ~96px on the action side. */
+    @media (max-width: 880px) {
+      /* Phones: bubble caps at viewport-minus-margins, taking nearly
+         the full chat width since actions are hidden until tap. */
+      .msg-panel .msg-row { gap: 4px; }
+      .msg-panel .msg-row .chat-message-content {
+        max-width: calc(100vw - 80px) !important;
+      }
+      .msg-panel .chat-messages { padding: 12px 8px; }
+      .msg-panel .chat-message-wrapper { margin: 0 4px 5px !important; }
+      .msg-panel .msg-row .chat-message-content { font-size: 14.5px; }
+      .msg-panel .msg-hover-actions {
+        opacity: 0;
+        visibility: hidden !important;
+        width: 0;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .msg-panel .msg-row.show-actions .msg-hover-actions {
+        opacity: 1 !important;
+        visibility: visible !important;
+        width: auto;
+        overflow: visible;
+      }
+      .msg-panel .chat-message-wrapper .profile-image {
+        width: 26px !important;
+        height: 26px !important;
+      }
+    }
+
+    /* ─── Chat editor (JS-injected: form.chat-editor-area) ───
+       The outer surface pulls a soft brand tint into the cream surface
+       so the composer feels brand-cohesive with the rest of the
+       operations chrome. Inner bubble stays --paper so the input still
+       reads as the elevated "where to type" target. */
+    .msg-panel .chat-editor-area {
+      flex-shrink: 0;
+      display: flex !important;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px !important;
+      border-top: 1px solid var(--border) !important;
+      background: linear-gradient(180deg,
+        color-mix(in srgb, var(--brand-primary-soft) 35%, var(--cream-2)),
+        var(--cream)) !important;
+      position: relative;
+    }
+    .msg-panel .chat-editor-area .chat-bubble-wrapper {
+      flex: 1 1 auto;
+      min-width: 0;
+      background: var(--paper) !important;
+      border: 1px solid var(--border-strong) !important;
+      border-radius: 22px !important;
+      padding: 8px 14px !important;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .msg-panel .chat-editor-area .chat-bubble-wrapper:focus-within {
+      border-color: var(--brand-primary, #b7925a) !important;
+      box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+    }
+    /* The actual contenteditable input — the part that wasn't typeable */
+    .msg-panel .chat-editor-area .chat-input,
+    .msg-panel .chat-editor-area .emojiarea-editor {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+      min-height: 22px;
+      max-height: 140px;
+      overflow-y: auto;
+      outline: none !important;
+      border: none !important;
+      background: transparent !important;
+      color: var(--ink) !important;
+      caret-color: var(--ink) !important;
+      font-family: var(--body) !important;
+      font-size: 14px !important;
+      line-height: 1.45 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      -webkit-user-select: text !important;
+      user-select: text !important;
+      cursor: text !important;
+    }
+    .msg-panel .chat-editor-area .chat-input[contenteditable="true"]:empty::before,
+    .msg-panel .chat-editor-area .emojiarea-editor[contenteditable="true"]:empty::before {
+      content: attr(data-placeholder);
+      color: var(--ink-muted) !important;
+      pointer-events: none;
+    }
+    /* Paperclip + emoji icons next to the bubble */
+    .msg-panel .chat-editor-area .chat-file-upload,
+    .msg-panel .chat-editor-area .emoji-icon {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      display: inline-grid; place-items: center;
+      color: var(--ink-dim) !important;
+      background: transparent !important;
+      border: 1px solid transparent !important;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    .msg-panel .chat-editor-area .chat-file-upload:hover,
+    .msg-panel .chat-editor-area .emoji-icon:hover {
+      background: var(--cream-2) !important;
+      color: var(--ink) !important;
+      border-color: var(--border);
+    }
+    /* Send button — brand-primary pill. Shadow tracks brand so it
+       repaints on any tenant instead of staying locked-gold. */
+    .msg-panel .chat-editor-area .chat-send-btn {
+      background: var(--brand-primary, #b7925a) !important;
+      border: 1px solid var(--brand-primary, #b7925a) !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      padding: 8px 18px !important;
+      border-radius: 100px !important;
+      box-shadow: 0 4px 14px -4px var(--brand-primary-soft) !important;
+      transition: all 0.15s;
+    }
+    .msg-panel .chat-editor-area .chat-send-btn:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px -4px var(--brand-primary-soft) !important;
+    }
+    .msg-panel .chat-editor-area .chat-send-btn:active {
+      transform: translateY(0);
+    }
+    /* Reply preview bar (top of editor when replying) */
+    .msg-panel .reply-preview-bar {
+      background: var(--cream-2) !important;
+      border-top: 1px solid var(--border) !important;
+      padding: 10px 14px !important;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+    .msg-panel .reply-preview-bar.active { display: flex !important; }
+    .msg-panel .reply-preview-bar .reply-preview-content {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .msg-panel .reply-preview-bar .reply-preview-sender {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--brand-primary, #b7925a) !important;
+      letter-spacing: 0.04em;
+    }
+    .msg-panel .reply-preview-bar .reply-preview-text {
+      font-size: 12.5px;
+      color: var(--ink-dim) !important;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .msg-panel .reply-preview-bar .reply-cancel-btn {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--ink-dim) !important;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .msg-panel .reply-preview-bar .reply-cancel-btn:hover {
+      background: var(--coral) !important;
+      border-color: var(--coral);
+      color: #fff !important;
+    }
+    .msg-panel .reply-preview-bar > i.fa-reply,
+    .msg-panel .reply-preview-bar > i.fas.fa-reply {
+      color: var(--brand-primary, #b7925a) !important;
+    }
+
+    /* ─── File-preview chip (attached file, before send) ──── */
+    /* The base CSS uses light Falcon vars and was unreadable in the
+       gamification dark theme. NB: the wrapper element with
+       id="file-preview-{userId}" also has class "file-preview-box" and
+       uses inline `style="display:none|flex"` to toggle visibility, so
+       we MUST NOT force `display` here — the JS toggle would break and
+       the chip would stay on screen after sending. */
+    .msg-panel .file-preview-box {
+      background: var(--cream-2) !important;
+      color: var(--ink) !important;
+      border: 1px solid var(--border-strong) !important;
+      border-radius: 12px;
+      padding: 6px 10px !important;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+    }
+    /* Empty wrapper (no file attached) — keep it hidden even though it
+       still carries .file-preview-box. Gives the JS room to flip it on
+       via inline `style="display: flex"`. */
+    .msg-panel #file-preview-:not(:empty) { display: flex; }
+    .msg-panel [id^="file-preview-"]:empty {
+      display: none !important;
+      padding: 0 !important;
+      border: none !important;
+      background: transparent !important;
+    }
+    .msg-panel .file-preview-box * {
+      color: var(--ink) !important;
+    }
+    .msg-panel .file-preview-box .file-name {
+      color: var(--ink) !important;
+      font-weight: 500;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .msg-panel .file-preview-box .file-size {
+      color: var(--ink-dim) !important;
+      font-size: 11px;
+    }
+    .msg-panel .file-preview-box .file-icon,
+    .msg-panel .file-preview-box i {
+      color: var(--brand-primary, #b7925a) !important;
+    }
+    /* Close/remove button on the chip */
+    .msg-panel .file-preview-box button,
+    .msg-panel .file-preview-box .remove-file-btn,
+    .msg-panel .file-preview-box .btn-close {
+      background: transparent !important;
+      border: none !important;
+      color: var(--ink-dim) !important;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: inline-grid; place-items: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .msg-panel .file-preview-box button:hover,
+    .msg-panel .file-preview-box .remove-file-btn:hover {
+      background: var(--coral) !important;
+      color: #fff !important;
+    }
+
+    /* ─── In-message file attachments (the .msg-content-file bubble) ─
+       File-icon square has a brand-primary background with white glyph
+       inside — never recolor the icon to brand-primary, or it vanishes
+       into its own background. The standalone download chevron sits on
+       the cream-2 wrapper so it tracks brand for color. */
+    .msg-panel .msg-content-file {
+      background: var(--cream-2) !important;
+      border: 1px solid var(--border-strong) !important;
+      color: var(--ink) !important;
+    }
+    .msg-panel .msg-content-file .file-name { color: var(--ink) !important; }
+    .msg-panel .msg-content-file .file-size { color: var(--ink-dim) !important; }
+    .msg-panel .msg-content-file .file-icon {
+      background: var(--brand-primary, #b7925a) !important;
+      color: #ffffff !important;
+    }
+    .msg-panel .msg-content-file .fa-download {
+      color: var(--brand-primary, #b7925a) !important;
+      opacity: 1 !important;
+    }
+
+    /* ─── Hover-action buttons on chat bubbles (Reply / React / More) ─
+       These were rendered with a Falcon gray that's nearly invisible on
+       the dark gamification surface, so the user thought the reply
+       feature had been removed. Re-color and make them slightly visible
+       even when not hovered (opacity 0.55) so they're discoverable. */
+    .msg-panel .msg-hover-actions {
+      opacity: 0.55;
+      visibility: visible !important;
+    }
+    .msg-panel .msg-row:hover .msg-hover-actions,
+    .msg-panel .chat-message-content:hover ~ .msg-hover-actions,
+    .msg-panel .msg-hover-actions:hover {
+      opacity: 1 !important;
+    }
+    .msg-panel .msg-hover-actions .msg-action-btn {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: inline-grid; place-items: center;
+      background: var(--cream-2) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--ink-dim) !important;
+      transition: all 0.15s;
+    }
+    .msg-panel .msg-hover-actions .msg-action-btn:hover {
+      background: var(--brand-primary, #b7925a) !important;
+      color: #1a1a2e !important;
+      border-color: var(--brand-primary, #b7925a) !important;
+      transform: scale(1.05);
+    }
+    .msg-panel .msg-hover-actions .reply-button:hover i { transform: scaleX(-1); }
+    .msg-panel .msg-hover-actions .reply-button:hover {
+      box-shadow: 0 4px 12px -4px var(--gold-glow);
+    }
+
+    /* "More" dropdown menu on bubble actions */
+    .msg-panel .msg-more-dropdown {
+      background: var(--paper) !important;
+      border: 1px solid var(--border-strong) !important;
+      box-shadow: 0 12px 32px -8px rgba(0,0,0,0.4) !important;
+    }
+    .msg-panel .msg-more-dropdown .dropdown-item {
+      color: var(--ink) !important;
+    }
+    .msg-panel .msg-more-dropdown .dropdown-item:hover {
+      background: var(--cream-2) !important;
+      color: var(--ink) !important;
+    }
+    .msg-panel .msg-more-dropdown .dropdown-item.text-danger {
+      color: var(--coral) !important;
+    }
+
+    /* ─── Reply-quoted block above a message bubble ─────── */
+    .msg-panel .msg-reply-block {
+      margin-bottom: 4px;
+      max-width: 280px;
+    }
+    .msg-panel .msg-reply-label {
+      font-size: 10.5px;
+      color: var(--ink-muted) !important;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .msg-panel .msg-reply-label i { color: var(--brand-primary, #b7925a) !important; }
+    .msg-panel .msg-reply-quoted {
+      background: var(--cream-2) !important;
+      border-left: 3px solid var(--brand-primary, #b7925a);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .msg-panel .msg-reply-quoted:hover { background: var(--surface-2) !important; }
+    .msg-panel .reply-quoted-text {
+      font-size: 12px;
+      color: var(--ink-dim) !important;
+    }
+
+    /* ─── Modal & offcanvas in the design system ─ */
+    #createGroupModal .modal-content,
+    #groupChatInfoOffcanvas {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--body);
+      border-radius: var(--radius);
+    }
+    #createGroupModal .modal-header,
+    #groupChatInfoOffcanvas .offcanvas-header {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 22px;
+    }
+    #createGroupModal .modal-title,
+    #groupChatInfoOffcanvas .offcanvas-title {
+      font-family: var(--display);
+      color: var(--ink);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    #createGroupModal .modal-body { padding: 22px; }
+    #createGroupModal .form-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink-dim);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    #createGroupModal .form-control,
+    #createGroupModal input[type="file"],
+    #createGroupModal input[type="text"] {
+      background: var(--cream);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-family: var(--body);
+      font-size: 14px;
+      color: var(--ink);
+      padding: 10px 12px;
+    }
+    #createGroupModal .form-control:focus {
+      border-color: var(--brand-primary, #1b4332);
+      box-shadow: 0 0 0 3px var(--brand-primary-soft);
+    }
+    #createGroupModal .modal-footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 22px;
+    }
+    #createGroupModal .btn-success {
+      background: var(--brand-primary, #1b4332);
+      border-color: var(--brand-primary, #1b4332);
+      font-weight: 600;
+      border-radius: 100px;
+      padding: 8px 22px;
+    }
+    #createGroupModal .btn-success:hover {
+      background: var(--brand-primary, #1b4332);
+      border-color: var(--brand-primary, #1b4332);
+    }
+    #createGroupModal .btn-close,
+    #groupChatInfoOffcanvas .btn-close {
+      filter: opacity(0.6);
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="msg-shell">
+
+  <!-- Title strip -->
+  <div class="msg-titlebar">
+    <div>
+      <h1 class="page-title">Messages</h1>
+      <div class="page-sub">Stay in touch with classmates, colleagues, and group chats.</div>
+    </div>
+    <span class="msg-status-chip">
+      <span class="pulse"></span>
+      Online
+    </span>
+  </div>
+
+  <!-- Media Preview Modal -->
+  <div class="media-modal-overlay" id="mediaModal">
+    <button class="modal-close-btn" id="mediaModalClose" aria-label="Close">×</button>
+    <div class="media-modal-content" id="mediaModalContent"></div>
+  </div>
+
+  <!-- Inbox card -->
+  <div class="msg-card" id="chatCard">
+    <!-- Sidebar -->
+    <aside class="msg-side">
+      <div class="msg-side-head">
+        <button type="button" class="msg-icon-btn msg-mobile-burger" data-sidebar-toggle
+                aria-label="Open menu" title="Open menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h2 class="msg-side-title">Inbox</h2>
+        <span class="msg-side-brand" aria-hidden="true">Class<em>Chat</em></span>
+        <div class="msg-side-icons">
+          <a href="{% url 'social_media_friends' %}" class="msg-icon-btn" title="Add friend" aria-label="Add friend">
+            <i class="fas fa-user-plus"></i>
+          </a>
+          <button type="button" class="msg-icon-btn" title="New group" aria-label="New group"
+                  data-bs-toggle="modal" data-bs-target="#createGroupModal">
+            <i class="fas fa-users"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="msg-search-bar">
+        <div class="msg-search-wrap">
+          <i class="fas fa-search"></i>
+          <input type="text" id="contactSearchInput" placeholder="Search conversations…" onkeyup="searchContacts()">
+        </div>
+      </div>
+
+      <div class="msg-side-section-label">Conversations</div>
+
+      <div class="msg-contacts contacts-list scrollbar-overlay">
+        <div class="nav nav-tabs border-0 flex-column" id="chat-list">
+          <p class="text-center">Loading conversations…</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat Panel -->
+    <section class="msg-panel tab-content card-chat-content" id="chat-panel">
+      <div class="msg-panel-empty">
+        <div class="ill"><i class="fas fa-comments"></i></div>
+        <h2>Start a <em>conversation</em></h2>
+        <p>Pick a conversation on the left, or invite a friend to begin a new chat.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ─── Create Group Modal ───────────────────────────── -->
+<div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="createGroupForm" onsubmit="event.preventDefault(); createGroupChat();">
+        <div class="modal-header">
+          <h5 class="modal-title" id="createGroupModalLabel">Create new group</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Teacher-only: create a group from a subject's class roster.
+               The selector hides itself if the /teacher_subjects/ endpoint
+               returns no rows (i.e., the current user isn't teaching). -->
+          <div class="mb-3" id="groupFromSubjectSection" style="display:none;">
+            <label for="groupFromSubject" class="form-label">Create from class roster <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+            <select class="form-control" id="groupFromSubject">
+              <option value="">— Pick a subject to auto-fill members —</option>
+            </select>
+            <small class="text-muted" style="font-size:12px;">Selecting a subject adds every student enrolled in it this semester.</small>
+          </div>
+          <div class="mb-3">
+            <label for="groupPhoto" class="form-label">Group photo</label>
+            <input type="file" class="form-control" id="groupPhoto" accept="image/*">
+          </div>
+          <div class="mb-3">
+            <label for="groupName" class="form-label">Group name</label>
+            <input type="text" class="form-control" id="groupName" required>
+          </div>
+          <div class="mb-3" id="groupMembersSection">
+            <label for="groupMembers" class="form-label">Members</label>
+            <div id="groupMembersList" class="form-check-group">
+              <p class="text-muted mb-0" style="font-size:13px;font-style:italic;">Loading friends…</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Create group</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Group Chat Info Offcanvas ────────────────────── -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="groupChatInfoOffcanvas" aria-labelledby="groupChatInfoOffcanvasLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="groupChatInfoOffcanvasLabel">Group info</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <div id="groupAddMemberSection" style="display:none;margin:0 0 16px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);font-weight:700;margin:0 0 8px;">Add members</p>
+      <div style="position:relative;">
+        <input type="text" id="groupAddMemberSearch" class="form-control form-control-sm" placeholder="Search your friends…" autocomplete="off" style="font-size:13px;" />
+        <div id="groupAddMemberResults" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--bs-card-bg,#fff);border:1px solid rgba(0,0,0,.08);border-radius:8px;max-height:260px;overflow:auto;z-index:2;box-shadow:0 8px 24px rgba(0,0,0,.08);"></div>
+      </div>
+    </div>
+    <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);font-weight:700;margin:0 0 12px;">Members</p>
+    <div id="groupChatMembersList" data-group-id="">
+      <p class="text-muted" style="font-size:13px;font-style:italic;">Loading members…</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const CURRENT_USER_ID = {{ request.user.id }};
+
+  /* inbox-logic.js auto-reopens the previously viewed chat from localStorage
+     (`activeChatId`, `activeChatName`, `activeChatPhoto`, `activeIsGroup`).
+     If the friend was unfriended, the seed was wiped, or the user simply has
+     no chats yet, this leaves a phantom name + "Loading status…" line in the
+     header even though no real data is loaded. Clear those keys before
+     inbox-logic.js runs, so the empty state is shown until the user clicks
+     a real conversation. */
+  ['activeChatId', 'activeChatName', 'activeChatPhoto', 'activeIsGroup']
+    .forEach(function (k) { try { localStorage.removeItem(k); } catch (_) {} });
+
+  /* Reparent Bootstrap overlays to <body> so they escape any ancestor
+     stacking context (e.g., base_operation's .app { z-index: 1 }). Without
+     this, .modal-backdrop (appended to <body>, z-index 1050) can render
+     above the modal (which lives inside .app and is therefore capped at
+     .app's stacking context level). */
+  (function reparentOverlays() {
+    var ids = ['createGroupModal', 'groupChatInfoOffcanvas', 'mediaModal'];
+    function move() {
+      ids.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && el.parentNode !== document.body) {
+          document.body.appendChild(el);
+        }
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', move);
+    } else {
+      move();
+    }
+  })();
+</script>
+<script src="{% static 'js/inbox-logic.js' %}"></script>
+{% endblock %}

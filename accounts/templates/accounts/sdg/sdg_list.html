@@ -1,0 +1,21 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}SDG{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="cl-page">
+        <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-globe me-2"></i>Sustainable Development Goals</h2>
+        <p>Manage the SDG catalog used across COIL programs and student tagging.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script src="{% static 'accounts/sdg/sdg_list.js' %}"></script>
+{% endblock %}

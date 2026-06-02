@@ -1,0 +1,251 @@
+  /* ── Score Change Logs — design-token redesign ─────────────────────── */
+  .scl-page { animation: sclFade 0.5s ease both; }
+  @keyframes sclFade { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+
+  .scl-meta-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .scl-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    background: var(--cream-2);
+    border: 1px solid var(--cream-2);
+    color: var(--ink-dim);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .scl-pill i { color: var(--brand-primary, #b7925a); }
+  .scl-pill strong { color: var(--ink); font-weight: 600; }
+  .scl-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    color: var(--ink-dim);
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+  }
+  .scl-back:hover { background: var(--cream-2); color: var(--ink); border-color: var(--ink-dim); transform: translateY(-1px); }
+
+  /* Section card */
+  .scl-card {
+    background: var(--paper);
+    border: 1px solid var(--cream-2);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 22px;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.03);
+  }
+  .scl-card-head {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--cream-2);
+    background: var(--cream-2);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .scl-card-title {
+    font-family: var(--display, "Fraunces", serif);
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--ink);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .scl-card-title em { color: var(--brand-primary, #b7925a); font-style: italic; font-weight: 400; }
+  .scl-card-count {
+    font-family: var(--display, "Fraunces", serif);
+    font-style: italic;
+    color: var(--ink-dim);
+    font-size: 13px;
+  }
+  .scl-card-body { padding: 18px 22px; }
+
+  /* Tables */
+  .scl-table-wrap { overflow-x: auto; }
+  .scl-table { width: 100%; border-collapse: collapse; font-family: var(--body); margin: 0; }
+  .scl-table thead th {
+    background: transparent;
+    color: var(--ink-dim);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--cream-2);
+    white-space: nowrap;
+  }
+  .scl-table tbody td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--cream-2);
+    color: var(--ink);
+    font-size: 13.5px;
+    vertical-align: middle;
+  }
+  .scl-table tbody tr:hover td { background: var(--cream); }
+  .scl-table tbody tr:last-child td { border-bottom: none; }
+
+  .scl-index {
+    display: inline-grid; place-items: center;
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--cream-2);
+    color: var(--ink-dim);
+    font-family: var(--display, "Fraunces", serif);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .scl-student {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 500;
+  }
+  .scl-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--ink), var(--ink));
+    color: var(--cream);
+    display: grid; place-items: center;
+    font-family: var(--display, "Fraunces", serif);
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .scl-score {
+    font-family: var(--display, "Fraunces", serif);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .scl-score-out {
+    color: var(--ink-muted);
+    font-size: 11px;
+    font-family: "Inter Tight", sans-serif;
+    font-weight: 500;
+    margin-left: 2px;
+  }
+
+  /* Score change history specifics */
+  .scl-score-prev { color: var(--rose-deep); font-variant-numeric: tabular-nums; font-weight: 500; }
+  .scl-score-new { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .scl-arrow { color: var(--brand-primary, #b7925a); margin: 0 8px; }
+  .scl-time {
+    color: var(--ink-dim);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Editable toggle */
+  .scl-toggle {
+    position: relative;
+    display: inline-block;
+    width: 38px; height: 22px;
+  }
+  .scl-toggle input {
+    opacity: 0; width: 0; height: 0;
+  }
+  .scl-toggle-slider {
+    position: absolute; cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--cream-2);
+    border: 1px solid var(--ink-muted);
+    border-radius: 22px;
+    transition: all .2s ease;
+  }
+  .scl-toggle-slider::before {
+    content: ""; position: absolute;
+    width: 16px; height: 16px;
+    left: 2px; bottom: 2px;
+    background: var(--paper);
+    border-radius: 50%;
+    transition: transform .2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,.15);
+  }
+  .scl-toggle input:checked + .scl-toggle-slider {
+    background: var(--brand-primary, #1b4332);
+    border-color: var(--brand-primary, #1b4332);
+  }
+  .scl-toggle input:checked + .scl-toggle-slider::before {
+    transform: translateX(16px);
+  }
+
+  /* Empty state */
+  .scl-empty {
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--ink-dim);
+    font-family: var(--display, "Fraunces", serif);
+    font-style: italic;
+  }
+  .scl-empty i { color: var(--brand-primary, #b7925a); font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.7; }
+  .scl-empty .lead { font-size: 18px; font-weight: 500; color: var(--ink); margin-bottom: 4px; font-style: normal; font-family: var(--display, "Fraunces", serif); }
+
+  /* Card footer */
+  .scl-card-foot {
+    padding: 14px 24px;
+    border-top: 1px solid var(--cream-2);
+    background: var(--cream);
+    color: var(--ink-dim);
+    font-family: var(--display, "Fraunces", serif);
+    font-style: italic;
+    font-size: 13px;
+  }
+  .scl-card-foot strong { font-style: normal; color: var(--ink); font-weight: 600; }
+
+  /* DataTables theme override */
+  .scl-card-body .dataTables_wrapper { font-family: var(--body); font-size: 12.5px; color: var(--ink-dim); }
+  .scl-card-body .dataTables_filter input,
+  .scl-card-body .dataTables_length select {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 12.5px;
+    margin-left: 6px;
+  }
+  .scl-card-body .dataTables_filter input:focus,
+  .scl-card-body .dataTables_length select:focus {
+    outline: none;
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .scl-card-body .paginate_button {
+    border-radius: var(--radius-sm) !important;
+    border: 1px solid var(--border-strong) !important;
+    background: var(--paper) !important;
+    color: var(--ink-dim) !important;
+    margin: 0 2px !important;
+  }
+  .scl-card-body .paginate_button.current,
+  .scl-card-body .paginate_button.current:hover {
+    background: var(--brand-primary, #1b4332) !important;
+    color: var(--cream) !important;
+    border-color: var(--brand-primary, #1b4332) !important;
+  }
+  .scl-card-body .paginate_button:hover {
+    background: var(--cream-2) !important;
+    color: var(--ink) !important;
+    border-color: var(--brand-primary, #b7925a) !important;
+  }
+  .scl-card-body .dt-buttons .btn {
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    color: var(--ink-dim);
+    border-radius: var(--radius-sm);
+    font-family: var(--body);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    margin-right: 4px;
+    transition: all .15s ease;
+  }
+  .scl-card-body .dt-buttons .btn:hover {
+    background: var(--brand-primary, #1b4332);
+    color: var(--cream);
+    border-color: var(--brand-primary, #1b4332);
+  }

@@ -1,0 +1,231 @@
+{% extends is_student_role|yesno:"student_base.html,base.html" %}
+{% load static %}
+
+{% block title %}
+  Student Statement of Account
+{% endblock %}
+
+{% block content %}
+{% for finance in finances %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">
+            <i class="bi bi-file-earmark-text me-2"></i>Statement of Account
+        </h4>
+    </div>
+    
+    <div class="card-body">
+        <!-- Student Information -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-person-fill text-primary me-2"></i>
+                    <div>
+                        <small class="text-muted d-block">Student Name</small>
+                        <strong>{{ finance.student.first_name }} {{ finance.student.last_name }}</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-calendar-event text-primary me-2"></i>
+                    <div>
+                        <small class="text-muted d-block">Academic Term</small>
+                        <strong>{{ finance.academic_term.academic_term_code }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Miscellaneous Fees -->
+        <div class="mb-4">
+            <h5 class="border-bottom pb-2 mb-3">
+                <i class="bi bi-receipt text-primary me-2"></i>Miscellaneous Fees
+            </h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if misc_fees %}
+                            {% for fee in misc_fees %}
+                            <tr>
+                                <td>{{ fee.name }}</td>
+                                <td class="text-end">₱{{ fee.amount|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">No miscellaneous fees found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr class="fw-bold">
+                            <td>TOTAL MISC.</td>
+                            <td class="text-end">₱{{ total_misc|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="text-success">
+                            <td>Payments Applied</td>
+                            <td class="text-end">-₱{{ misc_payments_total|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="fw-bold border-top">
+                            <td>Remaining Balance</td>
+                            <td class="text-end">₱{{ misc_balance|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Laboratory & Tuition Fees -->
+        <div class="mb-4">
+            <h5 class="border-bottom pb-2 mb-3">
+                <i class="bi bi-book text-primary me-2"></i>Laboratory & Tuition Fees
+            </h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-center">No. of Units</th>
+                            <th class="text-center">Unit/hr</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if lab_fees %}
+                            <tr>
+                                <td>LABORATORY FEE</td>
+                                <td class="text-center">{{ lab_count }}</td>
+                                <td class="text-center">-</td>
+                                <td class="text-end">₱{{ total_lab|floatformat:2 }}</td>
+                            </tr>
+                        {% endif %}
+                        
+                        {% if tuition_fees %}
+                            <tr>
+                                <td>TUITION FEE</td>
+                                <td class="text-center">{{ total_units }}</td>
+                                <td class="text-center">-</td>
+                                <td class="text-end">₱{{ tuition_total|floatformat:2 }}</td>
+                            </tr>
+                        {% endif %}
+                        
+                        {% if not lab_fees and not tuition_fees %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No laboratory or tuition fees found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr class="fw-bold">
+                            <td colspan="3">TOTAL</td>
+                            <td class="text-end">₱{{ total_lab_tuition|floatformat:2 }}</td>
+                        </tr>
+                        {% if scholarship_total %}
+                        <tr class="text-info">
+                            <td colspan="3">Scholarship Amount</td>
+                            <td class="text-end">-₱{{ scholarship_total|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="fw-bold">
+                            <td colspan="3">Net Tuition After Scholarship</td>
+                            <td class="text-end">₱{{ adjusted_tuition_due|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="text-success">
+                            <td colspan="3">Payments Applied</td>
+                            <td class="text-end">-₱{{ tuition_payments_total|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="fw-bold border-top">
+                            <td colspan="3">Remaining Balance</td>
+                            <td class="text-end">₱{{ tuition_balance|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Other Fees -->
+        <div class="mb-4">
+            <h5 class="border-bottom pb-2 mb-3">
+                <i class="bi bi-list-check text-primary me-2"></i>Other Fees
+            </h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if other_fees %}
+                            {% for fee in other_fees %}
+                            <tr>
+                                <td>{{ fee.name }}</td>
+                                <td class="text-end">₱{{ fee.amount|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">No other fees found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr class="fw-bold">
+                            <td>TOTAL OTHER FEES</td>
+                            <td class="text-end">₱{{ total_other_fees|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="text-success">
+                            <td>Payments Applied</td>
+                            <td class="text-end">-₱{{ other_payments_total|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="fw-bold border-top">
+                            <td>Remaining Balance</td>
+                            <td class="text-end">₱{{ other_balance|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Outstanding Balance -->
+        <div class="alert alert-warning border-start border-warning border-4 mb-4" role="alert">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="alert-heading mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Outstanding Balance
+                    </h5>
+                </div>
+                <div>
+                    <h4 class="mb-0 fw-bold">₱{{ outstanding_balance|floatformat:2 }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="alert alert-info border-start border-info border-4" role="alert">
+            <h6 class="alert-heading">
+                <i class="bi bi-info-circle-fill me-2"></i>Important Notes
+            </h6>
+            <p class="mb-0 small">
+                Outstanding balance in excess of collectible and laboratory will be waived upon accomplishment of year program, subject to semestral renewal of memorandum of agreement.
+            </p>
+        </div>
+    </div>
+
+    <div class="card-footer bg-light text-muted text-center">
+        <small>
+            <i class="bi bi-calendar3 me-1"></i>Generated on {{ "now"|date:"F d, Y" }}
+        </small>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

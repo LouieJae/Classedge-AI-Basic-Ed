@@ -1,0 +1,79 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Transmutation Rules{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-sliders me-2"></i>Transmutation <em>Rules</em></h2>
+        <p>Map raw grade ranges to their transmuted values for each grading table.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="transmutation-list">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <a href="{% url 'create-transmutation' %}" class="cl-btn cl-btn-primary">
+          <i class="fas fa-plus"></i> New Rule
+        </a>
+      </div>
+    </div>
+
+    <div id="cl-trans-wrapper" class="cl-table-wrapper" data-cl-async-table data-base-url="{% url 'transmutation-list' %}">
+      {% include "includes/_list_table.html" %}
+    </div>
+  </div>
+
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      ClAsyncTable.init('#cl-trans-wrapper', { prefix: 'cl' });
+    });
+
+    // Action-menu hooks for rows rendered by _list_table.html.
+    // SweetAlert's confirmButtonColor takes a CSS color string, not a
+    // var(). We resolve the design tokens at runtime so the buttons
+    // track the tenant brand + semantic colors automatically.
+    function _swalToken(name, fallback) {
+      var v = getComputedStyle(document.documentElement)
+                .getPropertyValue(name).trim();
+      return v || fallback;
+    }
+    function confirmDelete(id) {
+      if (!window.Swal) {
+        if (confirm("Delete this transmutation rule?")) location.href = `/delete-transmutation/${id}/`;
+        return;
+      }
+      var BRAND  = _swalToken('--brand-primary', '#1b4332');
+      var DANGER = _swalToken('--danger', '#c0392b');
+      var MUTED  = _swalToken('--ink-muted', '#a0a4b8');
+      Swal.fire({
+        title: 'Delete this rule?',
+        text: "You won't be able to revert this.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: DANGER,
+        cancelButtonColor: MUTED,
+        confirmButtonText: 'Yes, delete'
+      }).then(result => {
+        if (!result.isConfirmed) return;
+        fetch(`/delete_transmutation/${id}/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        }).then(response => {
+          if (response.ok) {
+            Swal.fire({ title: 'Deleted', text: 'The rule has been removed.', icon: 'success', confirmButtonColor: BRAND })
+              .then(() => location.reload());
+          } else {
+            Swal.fire({ title: 'Error', text: 'There was an issue deleting this rule.', icon: 'error', confirmButtonColor: BRAND });
+          }
+        });
+      });
+    }
+  </script>
+  <script src="{% static 'js/tours/cl-tour-transmutation-list.js' %}" defer></script>
+{% endblock %}

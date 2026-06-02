@@ -1,0 +1,15 @@
+{% extends "central_content/base.html" %}
+{% block title %}{{ mode|title }} school{% endblock %}
+{% block content %}
+<div class="max-w-lg">
+  <h1 class="text-2xl font-semibold mb-4">
+    {% if mode == "create" %}Add school{% else %}Edit {{ school.name }}{% endif %}
+  </h1>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+    <a href="{% url 'school_list' %}" class="ml-2">Cancel</a>
+  </form>
+</div>
+{% endblock %}

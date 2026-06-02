@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% include "includes/_cm_head.html" with title="Classroom Mode — Activity Detail" %}
+    
+    <style>
+      /* Assessment Detail Styles */
+      body {
+        background: #f8f9fa;
+      }
+      
+      .classroom-container {
+        background: #ffffff;
+        border-radius: 12px;
+        margin: 20px;
+        padding: 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+      
+            
+      /* Hero Section */
+      .activity-hero {
+        background: linear-gradient(135deg, #fef6e4 0%, #f5e6c8 100%);
+        padding: 40px 30px;
+        border-bottom: 1px solid #e9ecef;
+      }
+      
+      .activity-title {
+        font-size: 36px;
+        font-weight: 700;
+        color: #2d3748;
+        margin: 0;
+        margin-bottom: 12px;
+      }
+      
+      .activity-type-badge {
+        display: inline-block;
+        padding: 8px 20px;
+        background: #E6954A;
+        color: white;
+        border-radius: 25px;
+        font-size: 14px;
+        font-weight: 600;
+        vertical-align: middle;
+      }
+      
+      /* Action Bar */
+      .action-bar {
+        position: sticky;
+        top: 0;
+        background: white;
+        padding: 20px 30px;
+        border-bottom: 1px solid #e9ecef;
+        z-index: 100;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+      }
+      
+      /* Content Section */
+      .activity-content {
+        padding: 40px 30px;
+      }
+      
+      /* Detail Cards */
+      .detail-card {
+        background: #ffffff;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 24px;
+        height: 100%;
+      }
+      
+      .detail-card h5 {
+        color: #4a5568;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 20px;
+      }
+      
+      .detail-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 16px;
+      }
+      
+      .detail-item:last-child {
+        margin-bottom: 0;
+      }
+      
+      .detail-icon {
+        width: 40px;
+        height: 40px;
+        background: #f7fafc;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        color: #4A83A8;
+        font-size: 18px;
+      }
+      
+      .detail-content {
+        flex: 1;
+      }
+      
+      .detail-label {
+        font-size: 12px;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      
+      .detail-value {
+        font-size: 16px;
+        color: #2d3748;
+        font-weight: 500;
+      }
+      
+      /* Schedule Card */
+      .schedule-card {
+        background: #f7fafc;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 24px;
+      }
+      
+      .schedule-item {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 20px;
+      }
+      
+      .schedule-item:last-child {
+        margin-bottom: 0;
+      }
+      
+      .schedule-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 6px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #4A83A8;
+      }
+      
+      .schedule-item.end::before {
+        background: #B55A74;
+      }
+      
+      .schedule-label {
+        font-size: 12px;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      
+      .schedule-time {
+        font-size: 18px;
+        color: #2d3748;
+        font-weight: 600;
+      }
+      
+      /* Status Messages */
+      .status-message {
+        padding: 16px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        display: inline-block;
+      }
+      
+      .status-absent {
+        background: #fee;
+        color: #B55A74;
+        border: 1px solid #fcc;
+      }
+      
+      .status-present {
+        background: #fff8e1;
+        color: #E6954A;
+        border: 1px solid #ffecb3;
+      }
+      
+      /* Schedule Styles */
+      .schedule-title {
+        color: #4a5568;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 20px;
+      }
+      
+      .schedule-date {
+        color: #718096;
+        font-size: 14px;
+        margin-top: 4px;
+      }
+      
+      /* Responsive */
+      @media (max-width: 768px) {
+        .activity-hero {
+          padding: 30px 20px;
+        }
+        
+        .activity-title {
+          font-size: 28px;
+        }
+        
+        .activity-hero .d-flex {
+          flex-direction: column;
+          align-items: flex-start !important;
+          gap: 15px;
+        }
+        
+        .action-bar {
+          padding: 15px 20px;
+          flex-direction: column;
+        }
+        
+        .activity-content {
+          padding: 30px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cm-shell">
+      <section class="cm-hero">
+        <div class="cm-hero-row">
+          <div>
+            <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+            <h1 class="cm-title">Assessment <em>detail</em></h1>
+            <div class="cm-subtitle">{{ activity.activity_name }} · {{ subject.subject_name }}</div>
+          </div>
+          <div class="cm-hero-actions">
+            <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to classroom</a>
+            <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+          </div>
+        </div>
+      </section>
+
+    <!-- Main Content -->
+    <div class="classroom-container fade-in">
+      <!-- Hero Section with Back Button -->
+      <div class="activity-hero">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h1 class="activity-title">{{ activity.activity_name }}</h1>
+            <span class="activity-type-badge">{{ activity.activity_type.name }}</span>
+          </div>
+          {% if activity.module %}
+            <a href="{% url 'view-subject-module' activity.module.id %}" class="btn btn-outline-secondary shadow-sm">
+              <i class="fas fa-arrow-left me-2"></i> Back to Lesson
+            </a>
+          {% elif activity.additional_modules.all %}
+            {% with first_module=activity.additional_modules.first %}
+              <a href="{% url 'view-subject-module' first_module.id %}" class="btn btn-outline-secondary shadow-sm">
+                <i class="fas fa-arrow-left me-2"></i> Back to Lesson
+              </a>
+            {% endwith %}
+          {% else %}
+            <a href="{% url 'classroom_mode' subject.id %}" class="btn btn-outline-secondary shadow-sm">
+              <i class="fas fa-arrow-left me-2"></i> Back to Classroom
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      {% if is_teacher or is_student %}
+        <div class="action-bar">
+          {% if is_teacher %}
+            {% if activity_ended %}
+              <a href="{% url 'DisplayQuestionsViewCM' activity.id %}" class="btn btn-warning">
+                <i class="fas fa-eye me-2"></i> View Result
+              </a>
+              <a href="{% url 'grade-assessment-cm' activity.id %}" class="btn btn-info">
+                <i class="fas fa-edit me-2"></i> Record Score
+              </a>
+            {% elif activity.classroom_mode %}
+              <a href="{% url 'teacherActivityViewCM' activity.id %}" class="btn btn-info">
+                <i class="fas fa-eye me-2"></i> View Result
+              </a>
+            {% else %}
+              <a href="{% url 'DisplayQuestionsViewCM' activity.id %}" class="btn btn-warning">
+                <i class="fas fa-eye me-2"></i> View Assessment
+              </a>
+            {% endif %}
+          {% endif %}
+
+          {% if is_student %}
+            {% if is_absent %}
+              <div class="status-message status-absent">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                You were marked as absent and cannot participate
+              </div>
+            {% elif activity.classroom_mode %}
+              <a href="{% url 'studentActivityViewCM' activity.id %}" class="btn btn-info">
+                <i class="fas fa-eye me-2"></i> View Result
+              </a>
+            {% elif is_present %}
+              <div class="status-message status-present">
+                <i class="fas fa-clock me-2"></i>
+                You are marked as present. Please wait for instructions
+              </div>
+            {% else %}
+              {% if activity_ended %}
+                <a href="{% url 'DisplayQuestionsViewCM' activity.id %}" class="btn btn-info">
+                  <i class="fas fa-eye me-2"></i> View Result
+                </a>
+              {% else %}
+                <a href="{% url 'DisplayQuestionsViewCM' activity.id %}" class="btn btn-success" onclick="return confirmActivityStart();">
+                  <i class="fas fa-pencil-alt me-2"></i> Answer Assessment
+                </a>
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <!-- Content Section -->
+      <div class="activity-content">
+        <div class="row">
+          <!-- Left Column - Details -->
+          <div class="col-lg-7 mb-4">
+            <div class="detail-card">
+              <h5>Assessment Details</h5>
+              
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="fas fa-book"></i>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Subject</div>
+                  <div class="detail-value">{{ activity.subject.subject_name }}</div>
+                </div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Term</div>
+                  <div class="detail-value">{{ activity.term.term_name }}</div>
+                </div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Instructions</div>
+                  <div class="detail-value">{{ activity.activity_instruction|default:"No instructions provided" }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Right Column - Schedule -->
+          <div class="col-lg-5 mb-4">
+            <div class="schedule-card">
+              <h5 class="schedule-title">
+                <i class="fas fa-clock me-2"></i> Schedule
+              </h5>
+              
+              <div class="schedule-item">
+                <div class="schedule-label">Start Time</div>
+                <div class="schedule-time">{{ activity.start_time|date:'H:i A' }}</div>
+                <div class="schedule-date">
+                  {{ activity.start_time|date:'d M Y' }}
+                </div>
+              </div>
+              
+              <div class="schedule-item end">
+                <div class="schedule-label">End Time</div>
+                <div class="schedule-time">{{ activity.end_time|date:'H:i A' }}</div>
+                <div class="schedule-date">
+                  {{ activity.end_time|date:'d M Y' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let answerActivityClicked = false;
+  
+      function confirmActivityStart() {
+        if (answerActivityClicked) {
+          return false; // Prevent double click
+        }
+  
+        answerActivityClicked = true;
+  
+        const btn = event.currentTarget;
+        btn.classList.add("disabled");
+        btn.style.pointerEvents = "none";
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Starting...`;
+  
+        return true; // Allow navigation
+      }
+    </script>
+
+    </div><!-- /cm-shell -->
+    {% include "includes/_cm_scripts.html" %}
+    <script src="{% static 'js/classroom-mode.js' %}"></script>
+  </body>
+</html>

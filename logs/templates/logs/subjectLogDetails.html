@@ -1,0 +1,67 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}
+  Activity Log
+{% endblock %}
+
+{% block content %}
+  <!-- Content Header (Page header) -->
+  <div class="card mb-3">
+    <div class="bg-holder d-none d-lg-block bg-card" style="background-image:url(../../assets/img/icons/spot-illustrations/corner-4.png);">
+    </div>
+    <!--/.bg-holder-->
+
+    <div class="card-body position-relative">
+      <div class="row">
+        <div class="col-lg-8">
+          <h3>Activity Logs</h3>
+          <p class="mb-0">Timeline of all activities in the subject.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="card mb-3">
+    <div class="card-header bg-body-tertiary">
+      <h5 class="mb-0">Subject Activity Timeline</h5>
+    </div>
+    <div class="card-body px-sm-4 px-md-8 px-lg-6 px-xxl-8">
+      <div class="timeline-vertical">
+        {% for log in latest_logs %}
+          <div class="timeline-item {% cycle 'timeline-item-start' 'timeline-item-end' %}">
+            <div class="timeline-icon icon-item icon-item-lg text-primary border-300">
+              {% if 'new activity' in log.message|lower %}
+                <span class="fs-8 fas fa-edit"></span>
+              {% elif 'new module' in log.message|lower %}
+                <span class="fs-8 fas fa-book"></span>
+              {% else %}
+                <span class="fs-8 fas fa-info-circle"></span>
+              {% endif %}
+            </div>
+            <div class="row">
+              <div class="col-lg-6 timeline-item-time">
+                <div>
+                  <p class="fs-10 mb-0 fw-semi-bold">{{ log.created_at|date:'Y' }}</p>
+                  <p class="fs-11 text-600">{{ log.created_at|date:'d F' }}</p>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="timeline-item-content">
+                  <div class="timeline-item-card">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h5 class="mb-0">{{ log.subject }}</h5>
+                      <span class="badge bg-success text-white">{{ log.created_at|date:'h:i A' }}</span>
+                    </div>
+                    <p class="fs-10 mb-0">{{ log.message }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

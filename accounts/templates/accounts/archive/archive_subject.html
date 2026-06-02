@@ -1,0 +1,146 @@
+{% extends is_student_role|yesno:'student_base.html,base_operation.html' %}
+{% load static %}
+{% block title %}{{ subject.subject_name }} — Archive{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'accounts/archive/archive_subject.css' %}" />
+
+<div class="as-shell">
+  <a href="{% url 'archive-index' %}" class="as-back"><i class="fas fa-arrow-left"></i> Back to archive</a>
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">{{ subject.subject_name }}</h1>
+      <div class="as-topbar-sub">
+        {% if subject.subject_code %}<span class="sub-item"><i class="fas fa-hashtag"></i>{{ subject.subject_code }}</span>{% endif %}
+        <span class="sub-item"><i class="fas fa-calendar"></i>{{ semester.semester_name|default:semester }}</span>
+        <span class="sub-item">({{ semester.start_date|date:"M Y" }} &ndash; {{ semester.end_date|date:"M Y" }})</span>
+      </div>
+    </div>
+  </div>
+
+  {% if is_admin_view %}
+  <!-- Class roster (teacher/admin) -->
+  <div class="as-card">
+    <div class="as-card-head">
+      <h2 class="as-card-title">
+        <span class="as-card-title-icon"><i class="fas fa-users"></i></span> Class Roster
+      </h2>
+      {% if roster_rows %}<span class="as-card-count">{{ roster_rows|length }} student{{ roster_rows|length|pluralize }}</span>{% endif %}
+    </div>
+    {% if roster_rows %}
+      {% for row in roster_rows %}
+        <a class="as-row" href="{% url 'account_profile_view' row.student.id %}">
+          <div class="as-row-icon"><i class="fas fa-user-graduate"></i></div>
+          <div class="as-row-name">
+            <div class="ttl">{{ row.student.first_name }} {{ row.student.last_name }}</div>
+            <div class="meta">
+              Activities {{ row.activities_submitted }} / {{ row.activities_total }} &middot;
+              Modules {{ row.modules_done }} / {{ row.modules_total }}
+            </div>
+          </div>
+          <div class="as-row-stat">
+            <strong>{{ row.total_score|floatformat:'0' }}</strong> pts
+          </div>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div class="as-empty"><i class="fas fa-users"></i> No enrolled students recorded.</div>
+    {% endif %}
+  </div>
+
+  <!-- Activities listing (no per-student score; roster has aggregates) -->
+  <div class="as-card">
+    <div class="as-card-head">
+      <h2 class="as-card-title">
+        <span class="as-card-title-icon"><i class="fas fa-clipboard-list"></i></span> Activities
+      </h2>
+      <span class="as-card-count">{{ activities_count }} total</span>
+    </div>
+    {% if activities_count == 0 %}
+      <div class="as-empty"><i class="fas fa-clipboard-list"></i> No activities recorded.</div>
+    {% endif %}
+  </div>
+
+  <!-- Modules listing -->
+  <div class="as-card">
+    <div class="as-card-head">
+      <h2 class="as-card-title">
+        <span class="as-card-title-icon"><i class="fas fa-book-open"></i></span> Modules
+      </h2>
+      <span class="as-card-count">{{ modules_count }} total</span>
+    </div>
+    {% if modules_count == 0 %}
+      <div class="as-empty"><i class="fas fa-book-open"></i> No modules recorded.</div>
+    {% endif %}
+  </div>
+  {% else %}
+
+  <!-- Activities (student) -->
+  <div class="as-card">
+    <div class="as-card-head">
+      <h2 class="as-card-title">
+        <span class="as-card-title-icon"><i class="fas fa-clipboard-list"></i></span> Activities
+      </h2>
+      {% if activity_rows %}<span class="as-card-count">{{ activity_rows|length }} total</span>{% endif %}
+    </div>
+    {% if activity_rows %}
+      {% for row in activity_rows %}
+        <a class="as-row" href="{% url 'my-assessment-score' row.activity.local_id %}">
+          <div class="as-row-icon"><i class="fas fa-file-lines"></i></div>
+          <div class="as-row-name">
+            <div class="ttl">{{ row.activity.activity_name }}</div>
+            <div class="meta">
+              {% if row.activity.activity_type %}{{ row.activity.activity_type.name }} &middot; {% endif %}
+              {% if row.activity.end_time %}Due {{ row.activity.end_time|date:"M d, Y" }}{% endif %}
+            </div>
+          </div>
+          <div class="as-row-stat">
+            {% if row.submitted %}
+              <strong>{{ row.score|default_if_none:'—'|floatformat:'0' }}</strong>
+              {% if row.max_score %} / {{ row.max_score|floatformat:'0' }}{% endif %}
+              <div style="margin-top:4px;"><span class="as-pill done"><i class="fas fa-check"></i> Submitted</span></div>
+            {% else %}
+              <span class="as-pill missed"><i class="fas fa-times"></i> Missed</span>
+            {% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div class="as-empty"><i class="fas fa-clipboard-list"></i> No activities recorded.</div>
+    {% endif %}
+  </div>
+
+  <!-- Modules -->
+  <div class="as-card">
+    <div class="as-card-head">
+      <h2 class="as-card-title">
+        <span class="as-card-title-icon"><i class="fas fa-book-open"></i></span> Modules
+      </h2>
+      {% if module_rows %}<span class="as-card-count">{{ module_rows|length }} total</span>{% endif %}
+    </div>
+    {% if module_rows %}
+      {% for row in module_rows %}
+        <a class="as-row" href="{% url 'archive-module' row.module.id %}">
+          <div class="as-row-icon"><i class="fas fa-book"></i></div>
+          <div class="as-row-name">
+            <div class="ttl">{{ row.module.file_name|default:row.module }}</div>
+            <div class="meta">
+              {% if row.completed %}Fully read{% else %}{{ row.progress|floatformat:'0' }}% read{% endif %}
+            </div>
+          </div>
+          <div class="as-row-stat">
+            {% if row.completed %}
+              <span class="as-pill done"><i class="fas fa-check-circle"></i> Done</span>
+            {% else %}
+              <span class="as-pill locked"><i class="fas fa-circle-half-stroke"></i> Partial</span>
+            {% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div class="as-empty"><i class="fas fa-book-open"></i> No modules recorded.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,377 @@
+{% comment %}
+[Classedge LMS] Reusable multi-step form styles + script tag.
+Include once inside {% block extra_css %} on any form page that uses the
+stepper. Paired with /static/js/cl-stepper.js which auto-binds to any
+<form data-cl-stepper>.
+
+Usage in your template:
+
+  {% include "includes/_stepper.html" %}
+
+  <form method="post" data-cl-stepper class="needs-validation" novalidate>
+    {% csrf_token %}
+
+    {# Top progress bar — one .cl-stepper-dot per step, in order. #}
+    <div class="cl-stepper-head" data-cl-stepper-nav>
+      <button type="button" class="cl-stepper-dot is-active">
+        <span class="cl-stepper-num">1</span>
+        <span class="cl-stepper-label">Basics</span>
+      </button>
+      <button type="button" class="cl-stepper-dot">
+        <span class="cl-stepper-num">2</span>
+        <span class="cl-stepper-label">Schedule</span>
+      </button>
+      …
+    </div>
+
+    {# Each section becomes a step. The is-active class flips between them. #}
+    <section class="cl-step is-active" data-step="basics" data-step-title="Basics">
+      …fields…
+    </section>
+    <section class="cl-step" data-step="schedule" data-step-title="Schedule">
+      …fields…
+    </section>
+    <section class="cl-step" data-step="review" data-step-title="Review" data-step-review>
+      <dl class="cl-review-list">
+        <div class="cl-review-row">
+          <dt>Activity name</dt>
+          <dd data-cl-review-for="activity_name">—</dd>
+        </div>
+        …
+      </dl>
+    </section>
+
+    {# Footer — prev/next/submit. Engine wires these via data attributes. #}
+    <div class="cl-stepper-footer">
+      <button type="button" class="btn-pill" data-cl-stepper-prev>
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <span class="cl-stepper-counter" data-cl-stepper-counter>1 / 4</span>
+      <button type="button" class="btn-pill primary" data-cl-stepper-next>
+        Next <i class="fas fa-arrow-right"></i>
+      </button>
+      <button type="submit" class="btn-pill primary" data-cl-stepper-submit style="display:none">
+        Create <i class="fas fa-check"></i>
+      </button>
+    </div>
+  </form>
+{% endcomment %}
+
+{% load static %}
+<style>
+  /* ─── Stepper progress bar (top) ──────────────────── */
+  /* Horizontal track of dots + labels. Connector line auto-fills
+     between active dots so the user reads it as a journey. */
+  .cl-stepper-head {
+    display: flex; align-items: stretch; justify-content: space-between;
+    gap: 0;
+    margin: 0 0 28px;
+    padding: 0;
+    list-style: none;
+    position: relative;
+  }
+  /* The connector line is a ::before pseudo on the track itself, so
+     each dot sits above it via z-index. */
+  .cl-stepper-head::before {
+    content: '';
+    position: absolute;
+    top: 18px; left: 24px; right: 24px;
+    height: 2px;
+    background: var(--border-strong);
+    z-index: 0;
+    border-radius: 100px;
+  }
+  .cl-stepper-dot {
+    flex: 1 1 0;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--body);
+    color: var(--ink-muted);
+    transition: color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    z-index: 1;
+  }
+  .cl-stepper-dot .cl-stepper-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--paper);
+    border: 2px solid var(--border-strong);
+    color: var(--ink-dim);
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cl-stepper-dot .cl-stepper-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.2;
+  }
+  /* Done (past) dot — solid brand fill with checkmark replacing the
+     step number. `font-size: 0` collapses the original "1/2/3" text;
+     the ::after content adds the checkmark glyph and re-establishes
+     its own font-size. */
+  .cl-stepper-dot.is-done .cl-stepper-num {
+    background: var(--brand-primary, #b7925a);
+    border-color: var(--brand-primary, #b7925a);
+    color: #fff;
+    font-size: 0;
+  }
+  .cl-stepper-dot.is-done .cl-stepper-num::after {
+    content: '\f00c'; /* fa-check */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 13px;
+  }
+  .cl-stepper-dot.is-done { color: var(--brand-primary, #b7925a); }
+  /* Active (current) dot — ring + brand text */
+  .cl-stepper-dot.is-active .cl-stepper-num {
+    background: var(--paper);
+    border-color: var(--brand-primary, #b7925a);
+    color: var(--brand-primary, #b7925a);
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px var(--brand-primary-soft);
+  }
+  .cl-stepper-dot.is-active { color: var(--ink); }
+  .cl-stepper-dot:hover .cl-stepper-num { border-color: var(--brand-primary, #b7925a); }
+  .cl-stepper-dot:focus-visible { outline: none; }
+  .cl-stepper-dot:focus-visible .cl-stepper-num { box-shadow: 0 0 0 4px var(--brand-primary-soft); }
+
+  /* Connector fill behind the dots — drawn from done-dots only */
+  .cl-stepper-head { counter-reset: clstep; }
+
+  /* ─── Step body — show/hide ───────────────────────── */
+  .cl-step {
+    display: none;
+    animation: clStepIn 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .cl-step.is-active { display: block; }
+  @keyframes clStepIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Step-title strip ────────────────────────────── */
+  .cl-step-eyebrow {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin: 0 0 14px;
+  }
+  .cl-step-eyebrow .cl-step-eyebrow-num {
+    color: var(--brand-primary, #b7925a);
+  }
+  .cl-step-eyebrow .cl-step-eyebrow-divider {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── Review step list ────────────────────────────── */
+  .cl-review-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 24px;
+    margin: 0;
+    padding: 0;
+  }
+  @media (max-width: 720px) {
+    .cl-review-list { grid-template-columns: 1fr; }
+  }
+  .cl-review-row {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 12px 14px;
+    background: var(--cream-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .cl-review-row.full { grid-column: 1 / -1; }
+  .cl-review-row dt {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin: 0;
+  }
+  .cl-review-row dd {
+    margin: 0;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 500;
+    word-break: break-word;
+  }
+  .cl-review-row dd.is-empty {
+    color: var(--ink-muted);
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  /* ─── Footer (prev / counter / next / submit) ─────── */
+  .cl-stepper-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    padding: 18px 22px;
+    margin-top: 24px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    position: sticky;
+    bottom: 16px;
+    z-index: 5;
+  }
+  .cl-stepper-footer .cl-stepper-counter {
+    font-family: var(--display);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    color: var(--ink-dim);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    flex: 1;
+    text-align: center;
+  }
+  .cl-stepper-footer .btn-pill[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* ─── Mobile breakpoints ──────────────────────────── */
+  @media (max-width: 720px) {
+    .cl-stepper-head { margin-bottom: 22px; }
+    .cl-stepper-head::before { top: 16px; }
+    .cl-stepper-dot .cl-stepper-num { width: 32px; height: 32px; font-size: 12px; }
+    /* Only show the active step's label on phone — others collapse to
+       just the dot so the strip doesn't wrap to two lines */
+    .cl-stepper-dot .cl-stepper-label { display: none; }
+    .cl-stepper-dot.is-active .cl-stepper-label { display: inline; font-size: 11.5px; }
+    .cl-stepper-footer { position: static; padding: 14px 16px; }
+  }
+
+  /* Reduced motion — skip slide-in and dot scale */
+  @media (prefers-reduced-motion: reduce) {
+    .cl-step { animation: none; }
+    .cl-stepper-dot.is-active .cl-stepper-num { transform: none; }
+  }
+
+  /* ─── Canonical file-input — applies to every stepper ────────────
+     One source of truth for `<input type="file">` styling across all
+     create/update steppers (course, material, assessment, etc.). The
+     browser's default "Choose File / no file chosen" is replaced with
+     a brand-primary pill button via ::file-selector-button, plus a
+     cream-tinted outer surface that matches the other .field inputs.
+
+     Selector match patterns:
+       • .field > input[type="file"]            → material, course, assessment
+       • .field > .custom-file > input[type=file] → Django ClearableFileInput wrap
+       • .form-panel input[type="file"].form-control → legacy assessment markup
+
+     Skipped on purpose:
+       • .dropzone > input[type="file"]         → primary drag-drop uploads
+         have their own absolute-positioned, opacity 0 styling. The
+         dropzone-input rule lives in _material-form-assets.html and
+         takes precedence over this rule when both apply. */
+  .field > input[type="file"],
+  .field > .custom-file > input[type="file"],
+  .form-panel input[type="file"].form-control {
+    width: 100%;
+    padding: 0;
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 13px;
+    line-height: 1.4;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field > input[type="file"]:hover,
+  .field > .custom-file > input[type="file"]:hover,
+  .form-panel input[type="file"].form-control:hover {
+    border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 40%, var(--border-strong));
+  }
+  .field > input[type="file"]:focus,
+  .field > .custom-file > input[type="file"]:focus,
+  .form-panel input[type="file"].form-control:focus {
+    outline: none;
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  /* The native "Choose File" button restyled as a brand pill. Supported
+     in Chrome 89+, Firefox 82+, Safari 14.1+. Older browsers fall back
+     to the unstyled native button — the outer surface still reads as
+     part of the design. */
+  .field > input[type="file"]::file-selector-button,
+  .field > .custom-file > input[type="file"]::file-selector-button,
+  .form-panel input[type="file"].form-control::file-selector-button,
+  .field > input[type="file"]::-webkit-file-upload-button,
+  .field > .custom-file > input[type="file"]::-webkit-file-upload-button,
+  .form-panel input[type="file"].form-control::-webkit-file-upload-button {
+    margin: 0 12px 0 0;
+    padding: 10px 16px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    border: none;
+    border-right: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 25%, var(--border));
+    font-family: var(--body);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .field > input[type="file"]:hover::file-selector-button,
+  .field > .custom-file > input[type="file"]:hover::file-selector-button,
+  .form-panel input[type="file"].form-control:hover::file-selector-button,
+  .field > input[type="file"]:hover::-webkit-file-upload-button,
+  .field > .custom-file > input[type="file"]:hover::-webkit-file-upload-button,
+  .form-panel input[type="file"].form-control:hover::-webkit-file-upload-button {
+    background: var(--brand-primary, #b7925a);
+    color: #fff;
+    border-right-color: var(--brand-primary, #b7925a);
+  }
+  /* Django ClearableFileInput wraps an existing file in "Currently:
+     <a>filename</a> [✓] Clear   Change: <input type=file>". Keep the
+     anchor + label tokens readable in both themes. */
+  .field .custom-file a {
+    color: var(--brand-primary, #b7925a);
+    font-weight: 600;
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .field .custom-file a:hover { text-decoration: underline; }
+  .field .custom-file label {
+    display: inline;
+    margin: 0 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink-dim);
+  }
+
+  /* Inline validation feedback styling lives in cl-form-validation.css
+     (loaded globally via base templates). The cl-form-validation engine
+     auto-injects `.cl-field-feedback` slots and writes label-prefixed
+     messages into them. */
+</style>
+
+<script src="{% static 'js/cl-stepper.js' %}" defer></script>

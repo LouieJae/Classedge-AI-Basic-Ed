@@ -1,0 +1,443 @@
+{% extends is_student_role|yesno:"student_base.html,base.html" %}
+{% load static %}
+{% block title %}{{ subject.subject_name }}{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="row mb-2 mt-2">
+  <div class="col-sm-6">
+    <h3 class="m-0">{{ subject.subject_name }}</h3>
+  </div>
+
+  {% if is_teacher %}
+    <div class="col-sm-6">
+      <ol class="breadcrumb float-end">
+        {% if not is_archive %}
+          <!-- Only show in current semester -->
+          <a href="{% url 'enter_classroom_mode_view' subject.id %}" class="btn btn-primary">
+            <i class="fas fa-chalkboard-teacher"></i> Smart Classroom Mode
+          </a>&nbsp;
+          <a href="javascript:void(0);" class="btn btn-success" id="classActionButton"
+             data-subject-id="{{ subject.id }}" data-is-active="false">
+            <i class="fas fa-chalkboard-teacher"></i> Start Class
+          </a>
+        {% endif %}
+      </ol>
+    </div>
+  {% endif %}
+</div>
+
+<div class="row justify-content-center mb-2">
+  <div class="col-md-12">
+    <p class="text-muted">
+      Explore activities, lessons, and more for {{ subject.subject_name }}{% if is_archive %} (Archived Semester){% endif %}.
+    </p>
+  </div>
+</div>
+
+<!-- Three pie charts -->
+<div class="row mb-2">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header text-white fw-bold bg-success text-center">Ongoing Activities</div>
+      <div class="card-body" style="height: 200px;">
+        <canvas id="ongoingActivitiesChart" class="activity-chart"></canvas>
+        <p id="noDataOngoing" class="text-center text-muted" style="display:none;">No ongoing activities</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header text-white fw-bold bg-success text-center">Upcoming Activities</div>
+      <div class="card-body" style="height: 200px;">
+        <canvas id="upcomingActivitiesChart" class="activity-chart"></canvas>
+        <p id="noDataUpcoming" class="text-center text-muted" style="display:none;">No upcoming activities</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header text-white fw-bold bg-success text-center">Activities to be Graded</div>
+      <div class="card-body" style="height: 200px;">
+        <canvas id="activitiesToBeGradedChart" class="activity-chart"></canvas>
+        <p id="noDataGradingNeeded" class="text-center text-muted" style="display:none;">No activities to be graded</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Completed Activities Chart -->
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="form-group">
+      <label for="activityTypeSelect">Select Activity Type:</label>
+      <select id="activityTypeSelect" class="form-control mb-2"></select>
+    </div>
+    <div class="card shadow-sm">
+      <div class="card-header text-white fw-bold bg-success text-center">Completed Activity Summary</div>
+      <div class="card-body" style="height: 300px;">
+        <canvas id="finishedActivitiesChart" class="activity-chart"></canvas>
+        <p id="noDataFinished" class="text-center text-muted" style="display:none;">No completed activities</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Lessons (organized by week) -->
+<div class="row mb-4">
+  <div class="col-md-12 mx-auto">
+    <div class="card shadow-sm">
+      <div class="card-header bg-success d-flex justify-content-between align-items-center">
+        <span class="text-white fw-bold">
+          Lessons &nbsp;<sup>(Organized by Week)</sup>
+          {% if is_archive %}<span class="badge bg-secondary ms-2">Archived</span>{% endif %}
+        </span>
+        <div class="dropdown">
+          <button class="btn btn-light dropdown-toggle" type="button" id="monthSelector"
+                  data-bs-toggle="dropdown" aria-expanded="false">
+            Select Month
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="monthSelector" id="monthDropdown"></ul>
+        </div>
+      </div>
+
+      <div class="accordion" id="lessonAccordion">
+        <div id="lesson-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // Small helper so JS knows if we’re in an archived semester
+  const IS_ARCHIVE = {{ is_archive|yesno:"true,false" }};
+  const SUBJECT_ID = "{{ subject.id }}";
+  const SELECTED_SEMESTER_ID = "{{ selected_semester_id|default:'' }}";
+</script>
+
+<script>
+  // pastel pie helper...
+  const createPieChart = (chartId, labels, data, links, noDataId) => {
+    const ctx = document.getElementById(chartId)?.getContext('2d');
+    if (!ctx) return;
+
+    const pastelColors = ["#FFB3BA","#FFDFBA","#FFFFBA","#BAFFC9","#BAE1FF","#E6C9F9","#FFC6FF","#D4A5A5","#B5EAD7","#C7CEEA"];
+
+    if (data.length > 0) {
+      const chart = new Chart(ctx, {
+        type: 'pie',
+        data: { labels: labels.map(l => l.length > 15 ? l.slice(0,15)+'…' : l),
+          datasets: [{ data, backgroundColor: pastelColors.slice(0, data.length), borderColor: "rgba(255,255,255,0.8)", borderWidth: 2 }]
+        },
+        options: {
+          onClick: (evt, arr) => { if (arr.length) location.href = links[arr[0].index]; },
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'left', align:'start', labels:{ usePointStyle:true, padding:15, font:{ size:12, family:"Arial, sans-serif", weight:"bold" } },
+            onClick: function(e, item){ const i=item.index; if(links[i]) location.href=links[i]; } } }
+        }
+      });
+    } else {
+      document.getElementById(chartId).style.display='none';
+      document.getElementById(noDataId).style.display='block';
+    }
+  };
+
+  // Fill from context (same as your page)
+  const ongoingActivitiesLabels = [{% for a in ongoing_activities %}'{{ a.activity_name }}',{% endfor %}];
+  const ongoingActivitiesData   = [{% for a in ongoing_activities %}1,{% endfor %}];
+  const ongoingActivitiesLinks  = [{% for a in ongoing_activities %}'{% url "assessment-details" a.id %}?semester={{ selected_semester_id }}',{% endfor %}];
+  createPieChart('ongoingActivitiesChart', ongoingActivitiesLabels, ongoingActivitiesData, ongoingActivitiesLinks, 'noDataOngoing');
+
+  const upcomingActivitiesLabels = [{% for a in upcoming_activities %}'{{ a.activity_name }}',{% endfor %}];
+  const upcomingActivitiesData   = [{% for a in upcoming_activities %}1,{% endfor %}];
+  const upcomingActivitiesLinks  = [{% for a in upcoming_activities %}'#',{% endfor %}];
+  createPieChart('upcomingActivitiesChart', upcomingActivitiesLabels, upcomingActivitiesData, upcomingActivitiesLinks, 'noDataUpcoming');
+
+  const gradingNeededLabels = [{% for act, cnt in activities_with_grading_needed %}'{{ act.activity_name }}',{% endfor %}];
+  const gradingNeededData   = [{% for act, cnt in activities_with_grading_needed %}{{ cnt }},{% endfor %}];
+  const gradingNeededLinks  = [{% for act, cnt in activities_with_grading_needed %}'{% url "grade_essays" act.id %}?semester={{ selected_semester_id }}',{% endfor %}];
+  createPieChart('activitiesToBeGradedChart', gradingNeededLabels, gradingNeededData, gradingNeededLinks, 'noDataGradingNeeded');
+</script>
+
+<script>
+  // Month dropdown + lessons fetch (note the ?semester= param)
+  document.addEventListener("DOMContentLoaded", function () {
+    const semesterMonths = {{ semester_months|safe }};
+    const monthDropdown = document.getElementById("monthDropdown");
+    const monthSelectorButton = document.getElementById("monthSelector");
+
+    // Build month items
+    if (monthDropdown) {
+      semesterMonths.forEach(month => {
+        const a = document.createElement("a");
+        a.className = "dropdown-item month-option";
+        a.dataset.month = month;
+        a.textContent = month;
+        monthDropdown.appendChild(a);
+      });
+
+      const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
+      // Prefer current calendar month if it exists in this semester; else default to the FIRST semester month
+      const defaultMonth = semesterMonths.includes(currentMonthName) ? currentMonthName : (semesterMonths[0] || null);
+
+      if (defaultMonth) {
+        const opt = monthDropdown.querySelector(`[data-month="${defaultMonth}"]`);
+        if (opt) opt.classList.add('active');
+        monthSelectorButton.textContent = `Select Month: ${defaultMonth}`;
+        fetchScheduleData(defaultMonth);
+      }
+
+      monthDropdown.addEventListener('click', (e) => {
+        const a = e.target.closest('.month-option');
+        if (!a) return;
+        document.querySelectorAll('.month-option.active').forEach(el => el.classList.remove('active'));
+        a.classList.add('active');
+        monthSelectorButton.textContent = `Month: ${a.dataset.month}`;
+        fetchScheduleData(a.dataset.month);
+      });
+    }
+
+    function fetchScheduleData(selectedMonth) {
+        const lessonListContainer = document.getElementById("lesson-list");
+    
+        // in fetchScheduleData(...)
+    const qsSemester = SELECTED_SEMESTER_ID ? `&semester=${SELECTED_SEMESTER_ID}` : '';
+    const apiUrl = `/api/schedules/${SUBJECT_ID}/?month=${encodeURIComponent(selectedMonth)}${qsSemester}&t=${Date.now()}`;
+        
+      fetch(apiUrl)
+        .then(r => r.json())
+        .then(scheduleData => {
+          lessonListContainer.innerHTML = '';
+          
+          // Update available months from actual semester data
+          const availableMonths = [...new Set((scheduleData.schedule_data || []).map(w => w.month))];
+          
+          // Update month dropdown to only show available months
+          const monthDropdown = document.getElementById("monthDropdown");
+          const monthSelectorButton = document.getElementById("monthSelector");
+          
+          let actualSelectedMonth = selectedMonth;
+          let weeks = [];
+          
+          if (monthDropdown && availableMonths.length > 0) {
+            monthDropdown.innerHTML = '';
+            availableMonths.forEach(month => {
+              const a = document.createElement("a");
+              a.className = "dropdown-item month-option";
+              a.dataset.month = month;
+              a.textContent = month;
+              monthDropdown.appendChild(a);
+            });
+            
+            // If selected month is not available, use first available month
+            actualSelectedMonth = availableMonths.includes(selectedMonth) ? selectedMonth : availableMonths[0];
+            
+            const opt = monthDropdown.querySelector(`[data-month="${actualSelectedMonth}"]`);
+            if (opt) opt.classList.add('active');
+            monthSelectorButton.textContent = `Month: ${actualSelectedMonth}`;
+            
+            // Auto-switch to available month and re-fetch if needed
+            if (actualSelectedMonth !== selectedMonth && availableMonths.length > 0) {
+              fetchScheduleData(actualSelectedMonth);
+              return;
+            }
+          }
+          
+          // Always filter weeks based on the actual selected month
+          weeks = (scheduleData.schedule_data || []).filter(w => w.month === actualSelectedMonth);
+
+          if (!weeks.length) {
+            lessonListContainer.innerHTML = '<p class="text-center mt-3 text-muted">No schedule available for this subject in the selected month.</p>';
+            return;
+          }
+
+          weeks.forEach((week, wIdx) => {
+            if (!week.lessons || !week.lessons.length) return;
+
+            const weekId = `week${wIdx+1}Lessons`;
+            const item = document.createElement('div');
+            item.className = 'accordion-item';
+
+            const hdr = document.createElement('h2');
+            hdr.className = 'accordion-header';
+            hdr.id = `heading${wIdx}`;
+
+            const btn = document.createElement('button');
+            btn.className = 'accordion-button collapsed d-flex justify-content-between';
+            btn.type = 'button';
+            btn.dataset.bsToggle = 'collapse';
+            btn.dataset.bsTarget = `#${weekId}`;
+            btn.setAttribute('aria-expanded', 'false');
+            btn.setAttribute('aria-controls', weekId);
+            
+            const scheduleTimesText = week.schedule_times && week.schedule_times.length > 0 
+              ? `<small class="text-muted ms-2">(${week.schedule_times.join(', ')})</small>` 
+              : '';
+            
+            btn.innerHTML = `
+              <span><i class="fas fa-calendar-week text-primary me-2"></i> ${week.week} ${scheduleTimesText}</span>
+              <span class="badge bg-primary">${week.lessons.length} Lesson${week.lessons.length > 1 ? 's' : ''}</span>
+            `;
+
+            const bodyWrap = document.createElement('div');
+            bodyWrap.id = weekId;
+            bodyWrap.className = 'accordion-collapse collapse';
+            bodyWrap.setAttribute('aria-labelledby', `heading${wIdx}`);
+            bodyWrap.dataset.bsParent = '#lessonAccordion';
+
+            const body = document.createElement('div');
+            body.className = 'accordion-body';
+
+            const lessonList = document.createElement('ul');
+            lessonList.className = 'list-group mt-2';
+
+            week.lessons.forEach((lesson, lIdx) => {
+              const lessonId = `lesson${wIdx+1}_${lIdx+1}`;
+              const li = document.createElement('li');
+              li.className = 'list-group-item';
+
+              const iconClass = iconForType(lesson.type);
+              const headBtn = document.createElement('button');
+              headBtn.className = 'accordion-button collapsed d-flex justify-content-between';
+              headBtn.type = 'button';
+              headBtn.dataset.bsToggle = 'collapse';
+              headBtn.dataset.bsTarget = `#${lessonId}`;
+              headBtn.setAttribute('aria-expanded', 'false');
+              headBtn.setAttribute('aria-controls', lessonId);
+              
+              const dateRange = `${lesson.start_date} to ${lesson.end_date}`;
+              headBtn.innerHTML = `
+                <span><i class="${iconClass} me-2"></i> ${lesson.lesson}</span>
+                <small class="text-muted">${dateRange}</small>
+              `;
+
+              const ctn = document.createElement('div');
+              ctn.id = lessonId;
+              ctn.className = 'accordion-collapse collapse';
+              ctn.setAttribute('aria-labelledby', lessonId);
+              ctn.dataset.bsParent = `#${weekId}`;
+
+              const lb = document.createElement('div');
+              lb.className = 'accordion-body';
+
+              lb.innerHTML = `
+                <p><strong>Description:</strong> ${lesson.description || "No description available"}</p>
+                <p><strong>Date Range:</strong> ${lesson.start_date} to ${lesson.end_date}</p>
+                <a href="/view-module/${lesson.module_id}/" class="btn btn-primary btn-sm me-2">
+                  <i class="fas fa-eye"></i> View
+                </a>
+                ${lesson.allow_download && lesson.file_url ? `
+                  <a href="${lesson.file_url}" download class="btn btn-outline-secondary btn-sm me-2">
+                    <i class="fas fa-download"></i> Download
+                  </a>` : ''}
+                {% if is_teacher %}
+                  ${!IS_ARCHIVE ? `
+                    <a href="/updateModule/${lesson.module_id}" class="btn btn-warning btn-sm me-2"><i class="fas fa-edit"></i> Edit</a>
+                    <a href="/deleteModule/${lesson.module_id}" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Delete</a>
+                  ` : ``}
+                {% endif %}
+              `;
+
+              if (lesson.activities && lesson.activities.length) {
+                let actHtml = `<p class="mb-2 mt-3"><strong>Activities:</strong></p><ul class="list-group mt-2">`;
+                lesson.activities.forEach(a => {
+                  const actIcon = iconForActivityType(a.activity_type);
+                  actHtml += `
+                    <li class="list-group-item d-flex align-items-center justify-content-between">
+                      <div class="d-flex align-items-center">
+                        <i class="${actIcon} text-primary me-3 fs-5"></i>
+                        <div>
+                          <a href="/activity_detail/${a.activity_id}/?semester={{ selected_semester_id }}" class="fw-bold text-decoration-none">
+                            ${a.activity_name}
+                          </a>
+                          <small class="d-block text-muted">
+                            <i class="fas fa-tag me-1"></i> ${a.activity_type}
+                            <i class="fas fa-clock ms-3 me-1"></i> ${a.start_time || "TBD"} - ${a.end_time || "TBD"}
+                          </small>
+                        </div>
+                      </div>
+                      <a href="/activity_detail/${a.activity_id}/?semester={{ selected_semester_id }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-arrow-right"></i>
+                      </a>
+                    </li>`;
+                });
+                actHtml += `</ul>`;
+                lb.innerHTML += actHtml;
+              }
+
+              ctn.appendChild(lb);
+              li.appendChild(headBtn);
+              li.appendChild(ctn);
+              lessonList.appendChild(li);
+            });
+
+            body.appendChild(lessonList);
+            bodyWrap.appendChild(body);
+            hdr.appendChild(btn);
+            item.appendChild(hdr);
+            item.appendChild(bodyWrap);
+            lessonListContainer.appendChild(item);
+          });
+        })
+        .catch(err => {
+          document.getElementById("lesson-list").innerHTML =
+            '<p class="text-center mt-3 text-danger">Failed to load schedule.</p>';
+        });
+    }
+
+    function formatTime(range) {
+      if (!range) return "N/A";
+      const [a, b] = range.split(" to ");
+      return `${to12(a)} to ${to12(b)}`;
+    }
+    function to12(t) {
+      const [h, m] = t.split(":"); let H = parseInt(h, 10); let p = "AM";
+      if (H >= 12) { p="PM"; if (H>12) H-=12; }
+      return `${H}:${m} ${p}`;
+    }
+    function iconForType(t) {
+      if (!t) return "far fa-file-alt text-secondary";
+      switch (t.toLowerCase()) {
+        case "pdf": return "far fa-file-pdf text-danger";
+        case "image": return "far fa-file-image text-success";
+        case "video": return "far fa-file-video text-primary";
+        case "word": return "far fa-file-word text-primary";
+        case "excel": return "far fa-file-excel text-success";
+        case "powerpoint": return "far fa-file-powerpoint text-warning";
+        case "zip": return "far fa-file-archive text-secondary";
+        case "text": return "far fa-file-alt text-dark";
+        case "youtube": return "fab fa-youtube text-danger";
+        case "vimeo": return "fab fa-vimeo text-primary";
+        case "sway": return "fas fa-cloud text-info";
+        case "embed": return "fas fa-code text-teal";
+        default: return "far fa-file text-secondary";
+      }
+    }
+    function iconForActivityType(t) {
+      if (!t) return "fas fa-tasks text-secondary";
+      switch (t.toLowerCase()) {
+        case "assignment": return "fas fa-file-alt text-primary";
+        case "attendance": return "fas fa-user-check text-success";
+        case "participation": return "fas fa-users text-danger";
+        case "lesson": return "fas fa-book-open text-dark";
+        case "video conference": return "fas fa-video text-info";
+        case "quiz": return "fas fa-pencil-alt text-warning";
+        case "exam": return "fas fa-file-signature text-purple";
+        case "special activity": return "fas fa-star text-secondary";
+        case "url": return "fas fa-link text-purple";
+        default: return "fas fa-tasks text-secondary";
+      }
+    }
+  });
+</script>
+
+<link rel="stylesheet" href="{% static 'course/view_subject_dashboard_archived.css' %}" />
+
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}Play & Learn — {{ subject.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gamification/student/side_activity.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="sa-shell">
+
+  <div class="sa-head">
+    <div>
+      <div class="sa-eyebrow">Play &amp; Learn</div>
+      <h1 class="sa-title">{{ subject.name }} <em>activities</em></h1>
+      <p class="sa-sub">Pick an activity to earn XP and sharpen your skills.</p>
+    </div>
+    <div class="sa-head-actions">
+      <button type="button" class="cl-tour-replay" data-cl-tour="side-activity-list">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      {% if not is_student_role %}
+      <a href="{% url 'side_activity_create' subject.pk %}" class="sa-create-btn">
+        <i class="fas fa-plus"></i> Create Activity
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if activity_list %}
+  <div class="sa-summary">
+    <span class="sa-summary-chip"><i class="fas fa-layer-group"></i> <strong>{{ activity_list|length }}</strong> activit{{ activity_list|length|pluralize:"y,ies" }}</span>
+  </div>
+  {% endif %}
+
+  <div id="saList" class="sa-grid">
+    {% for item in activity_list %}
+    <div class="card sa-card{% if item.completed %} is-done{% endif %}" data-sub-type="{{ item.activity.sub_type }}">
+      {% if item.completed %}
+      <span class="sa-completed" title="Completed"><i class="fas fa-check"></i></span>
+      {% endif %}
+
+      <div class="sa-card-top">
+        <div class="sa-card-icon" aria-hidden="true"></div>
+        <div class="sa-card-type">{{ item.activity.get_sub_type_display }}</div>
+      </div>
+
+      <h3 class="sa-card-title">{{ item.activity.title }}</h3>
+
+      <div class="sa-card-meta">
+        <span class="quest-xp">{{ item.activity.xp_reward }} XP</span>
+        <span class="sa-card-time"><i class="far fa-clock"></i> ~{{ item.activity.estimated_minutes }} min</span>
+      </div>
+
+      <div class="sa-card-foot">
+        <a href="{% url 'side_activity_play' item.activity.pk %}" class="sa-play">
+          {% if item.completed %}Play Again{% else %}Play{% endif %}
+        </a>
+      </div>
+
+      {% if not is_student_role %}
+      <div class="sa-card-admin">
+        <a href="{% url 'side_activity_edit' item.activity.pk %}"><i class="fas fa-pen"></i> Edit</a>
+        <form method="post" action="{% url 'side_activity_delete' item.activity.pk %}" style="display:inline;"
+              onsubmit="return confirm('Delete this activity?');">
+          {% csrf_token %}
+          <button type="submit"><i class="fas fa-trash"></i> Delete</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% empty %}
+    <div class="sa-empty">
+      <i class="fas fa-gamepad"></i>
+      No activities available for this subject yet.
+    </div>
+    {% endfor %}
+  </div>
+
+  <a href="{% url 'material-list' subject.pk %}" class="sa-back">
+    <i class="fas fa-arrow-left"></i> Back to {{ subject.name }}
+  </a>
+
+</div>
+
+<script src="{% static 'js/tours/cl-tour-side-activity-list.js' %}" defer></script>
+{% endblock %}

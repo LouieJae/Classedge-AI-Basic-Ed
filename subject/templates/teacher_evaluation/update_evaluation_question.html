@@ -1,0 +1,63 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Edit Question{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+  {% include "includes/_form_card.html" %}
+  {% include "subject/_evaluation_form_styles.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-edit me-2"></i>Edit Evaluation Question</h2>
+        <p>Update the question text or toggle whether it appears in new assignments.</p>
+      </div>
+      <div class="cl-actions">
+        <a href="{% url 'list_questions' %}" class="cl-btn">
+          <i class="fas fa-arrow-left"></i> Back to questions
+        </a>
+      </div>
+    </div>
+
+    <div class="cl-form-card">
+      <form method="post" action="{% url 'update_evaluation_question' question.id %}" data-cl-loading data-cl-loading-label="Updating…">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="cl-form-alert error">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
+
+        <div class="cl-form-section">
+          <h6><i class="fas fa-pen"></i> Question Details</h6>
+          <div class="cl-form-grid">
+            <div class="cl-field full">
+              <label for="{{ form.question_text.id_for_label }}">Question Text <span class="req">*</span></label>
+              {{ form.question_text }}
+              {% if form.question_text.errors %}<div class="err">{{ form.question_text.errors|striptags }}</div>{% endif %}
+              <div class="hint">Phrase as a single, scoreable prompt — students rate this on the evaluation form.</div>
+            </div>
+
+            <div class="cl-field full">
+              <label class="evf-toggle-card">
+                {{ form.is_active }}
+                <span class="evf-toggle-body">
+                  <span style="font-family: var(--display); font-size: 14.5px; font-weight: 500; color: var(--ink); display: block;">Active</span>
+                  <span class="evf-toggle-desc">When inactive, this question stays archived and won't attach to new assignments.</span>
+                </span>
+              </label>
+              {% if form.is_active.errors %}<div class="err">{{ form.is_active.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="cl-form-actions">
+          <button type="submit" class="cl-btn cl-btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+          <a href="{% url 'list_questions' %}" class="cl-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

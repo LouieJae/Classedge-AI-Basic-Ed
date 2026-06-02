@@ -1,0 +1,332 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}
+  Edit Question
+{% endblock %}
+
+{% block content %}
+
+    <!-- Content Header -->
+  <div class="row mb-2 align-items-center">
+    <div class="col-sm-6">
+      <h3>Edit Question for {{ activity.activity_name }}</h3>
+    </div>
+  </div>
+
+
+    <!-- Main Content -->
+  <div class="card shadow-lg border-0 mb-4">
+    <div class="card-header bg-success text-white py-3">
+      <h6 class="m-0 font-weight-bold text-uppercase">Edit Question Details</h6>
+    </div>
+
+    <div class="card-body px-5 py-4">
+      <form method="post" data-cl-loading data-cl-loading-label="Updating…">
+        {% csrf_token %}
+
+              <!-- Question Text -->
+        <div class="form-group">
+          <label for="question_text">Question:</label>
+          <textarea id="question_text" name="question_text" class="form-control shadow-sm" required>{{ question.question_text }}</textarea>
+        </div>
+
+              <!-- Score Input -->
+        <div class="form-group">
+          <label for="score">Score:</label>
+          <input type="number" id="score" name="score" class="form-control shadow-sm" value="{{ question.score }}" required />
+        </div>
+
+        {% if question.quiz_type == 'Multiple Choice' %}
+                <!-- Multiple Choice Section -->
+          <div id="choices">
+            <label>Choices:</label>
+            {% for choice in question.choices %}
+              <div class="input-group mb-3 choice-container">
+                <input type="radio" name="correct_answer" value="{{ forloop.counter0 }}" {% if forloop.counter0 == question.correct_answer %}checked{% endif %} class="me-2">
+                <input type="text" name="choices" class="form-control ml-2" value="{{ choice }}" required>
+                <button type="button" class="btn btn-danger btn-sm ml-2 remove-choice">Remove</button>
+              </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="btn btn-info mt-2" onclick="addChoice()">Add Another Choice</button>
+
+        {% elif question.quiz_type == 'Matching Type' %}
+        <div id="matching_pairs">
+          {% for left, right in matching_pairs %}
+            <div class="input-group mb-3 pair-container">
+              <input type="text" name="matching_left" class="form-control" value="{{ left }}" required>
+              <input type="text" name="matching_right" class="form-control ml-2" value="{{ right }}" required>
+              <button type="button" class="btn btn-danger btn-sm ml-2 remove-pair">Remove</button>
+            </div>
+          {% endfor %}
+        </div>
+      
+        <div id="additional_right_options" class="mt-4">
+          <label>Additional Right Side Options (Distractors):</label>
+          {% for extra in extra_right %}
+            <div class="input-group mb-3">
+              <input type="text" name="extra_right" class="form-control" value="{{ extra }}">
+              <button type="button" class="btn btn-danger btn-sm ml-2 remove-right">Remove</button>
+            </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-secondary mt-2" onclick="addRightOption()">Add Another Right Side Option</button>
+
+        {% elif question.quiz_type == 'Calculated Numeric' %}
+                <!-- Calculated Numeric Section -->
+
+                <!-- MathJax Preview -->
+          <div class="mt-3">
+            <label>Preview (Question):</label>
+            <p id="mathjax-preview-question"></p>
+          </div>
+          <div class="form-group">
+            <label for="correct_answer">Correct Answer:</label>
+            <input type="text" id="correct_answer" name="correct_answer" class="form-control shadow-sm" value="{{ question.correct_answer }}" required>
+          </div>
+
+          <div class="mt-3">
+            <label>Preview (Answer):</label>
+            <p id="mathjax-preview-answer"></p>
+          </div>
+
+        {% elif question.quiz_type == 'True/False' %}
+                <!-- True/False Section -->
+          <div class="form-group">
+            <label for="correct_answer">Correct Answer:</label>
+            <select id="correct_answer" name="correct_answer" class="form-control shadow-sm" required>
+              <option value="True" {% if question.correct_answer == 'True' %}selected{% endif %}>True</option>
+              <option value="False" {% if question.correct_answer == 'False' %}selected{% endif %}>False</option>
+            </select>
+          </div>
+
+        {% elif question.quiz_type == 'Essay' or question.quiz_type == 'Document' %}
+                <!-- Essay or Document Section -->
+          <div class="form-group mt-3">
+            <label for="rubric_section"><strong>Rubric Criteria</strong></label>
+            <div class="alert alert-info">
+              <small>Add criteria and points for grading this question. Total points should equal 100%.</small>
+            </div>
+            <div id="rubric_items">
+              <!-- Existing rubric items will be loaded here -->
+              {% for rubric_item in rubric_items %}
+              <div class="input-group mb-2 rubric-item">
+                <select name="rubric_id" class="form-control rubric-select" style="flex: 1;">
+                  {% for rubric in rubrics %}
+                    <option value="{{ rubric.id }}" {% if rubric.id == rubric_item.rubric.id %}selected{% endif %}>
+                      {{ rubric.rubric_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <input type="number" name="rubric_points" class="form-control rubric-point" 
+                  value="{{ rubric_item.point }}" placeholder="Points (%)" 
+                  min="1" max="100" step="0.01" required style="width: 100px;">
+                <button type="button" class="btn btn-danger btn-sm remove-rubric">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addRubricItem()">Add Criteria</button>
+              <span id="total_percentage" class="badge bg-primary">Total: {{ total_rubric_percentage }}%</span>
+            </div>
+          </div>
+        {% elif question.quiz_type == 'Fill in the Blank' %}
+        <div class="form-group">
+          <label for="correct_answer">Correct Answer:</label>
+          <input type="text" id="correct_answer" name="correct_answer" 
+                  class="form-control shadow-sm" 
+                  value="{{ question.correct_answer|default:'' }}" required>
+        </div>
+        {% endif %}
+
+              <!-- Submit & Back Buttons -->
+        <div class="text-end mt-4">
+          <a onclick="history.back()" class="btn btn-secondary btn-lg rounded-pill shadow-lg px-5">Back</a>
+          <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-lg px-5">Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<!-- JavaScript -->
+  <script src="{% static 'activity/question/update_question.js' %}"></script>
+        
+  <!-- Add rubric item functionality -->
+  <script>
+    // Initialize with available rubrics from Django context
+    document.addEventListener("DOMContentLoaded", function() {
+      const availableRubrics = {{ rubrics|safe|default:"[]" }};
+      
+      // Initialize total percentage calculations
+      updateTotalPercentage();
+    });
+    
+    // Add rubric item for Essay and Document questions
+    function addRubricItem() {
+      // Try to use the rubrics from context first
+      const contextRubrics = {{ rubrics|safe|default:"[]" }};
+      
+      if (contextRubrics && contextRubrics.length > 0) {
+        // Use the rubrics from context
+        processRubrics(contextRubrics);
+      } else {
+        // Fall back to fetching from API (filter by subject)
+        const subjectId = {{ subject.id|default:'null' }};
+        const apiUrl = subjectId ? `/api/rubrics/?subject_id=${subjectId}` : '/api/rubrics/';
+        
+        fetch(apiUrl)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok: ' + response.status);
+            }
+            return response.json();
+          })
+          .then(data => {
+            // Process the data
+            const rubrics = Array.isArray(data) ? data : (data.results || []);
+            processRubrics(rubrics);
+          })
+          .catch(error => {
+            Swal.fire({
+              title: 'Error',
+              text: 'Failed to load available rubrics',
+              icon: 'error'
+            });
+          });
+      }
+      
+      // Function to process rubrics data (extracted to avoid code duplication)
+      function processRubrics(rubrics) {
+        // Get all currently selected rubric IDs
+        const selectedRubricIds = Array.from(document.querySelectorAll('select[name="rubric_id"]'))
+          .map(select => select.value)
+          .filter(val => val !== '');
+        
+        // Filter out already selected rubrics
+        const availableRubrics = rubrics.filter(rubric => 
+          !selectedRubricIds.includes(rubric.id.toString())
+        );
+        
+        if (availableRubrics.length === 0) {
+          // No available rubrics
+          Swal.fire({
+            title: 'No Available Rubrics',
+            text: 'All rubrics have been assigned or no rubrics exist.',
+            icon: 'warning'
+          });
+          return;
+        }
+        
+        // Create a temporary selection dialog
+        Swal.fire({
+          title: 'Select Rubric',
+          input: 'select',
+          inputOptions: Object.fromEntries(
+            availableRubrics.map(rubric => [rubric.id, rubric.rubric_name])
+          ),
+          inputPlaceholder: 'Select a rubric',
+          showCancelButton: true,
+          inputValidator: (value) => {
+            return new Promise((resolve) => {
+              if (value) {
+                resolve();
+              } else {
+                resolve('You need to select a rubric');
+              }
+            });
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            const selectedRubricId = result.value;
+            const selectedRubric = availableRubrics.find(r => r.id.toString() === selectedRubricId);
+            
+            if (selectedRubric) {
+              // Create the rubric item container
+              const itemContainer = document.createElement('div');
+              itemContainer.classList.add('input-group', 'mb-2', 'rubric-item');
+              
+              // Create the select dropdown for the rubric
+              const rubricSelect = document.createElement('select');
+              rubricSelect.name = 'rubric_id';
+              rubricSelect.classList.add('form-control', 'rubric-select');
+              rubricSelect.style.flex = '1';
+              
+              // Add options for all available rubrics
+              rubrics.forEach(rubric => {
+                const option = document.createElement('option');
+                option.value = rubric.id;
+                option.textContent = rubric.rubric_name;
+                option.selected = rubric.id.toString() === selectedRubricId;
+                rubricSelect.appendChild(option);
+              });
+              
+              // Create the points input
+              const pointInput = document.createElement('input');
+              pointInput.type = 'number';
+              pointInput.name = 'rubric_points';
+              pointInput.classList.add('form-control', 'rubric-point');
+              pointInput.placeholder = 'Points (%)';
+              pointInput.min = '1';
+              pointInput.max = '100';
+              pointInput.step = '0.01';
+              pointInput.required = true;
+              pointInput.style.width = '100px';
+              pointInput.addEventListener('input', updateTotalPercentage);
+              
+              // Create the delete button
+              const deleteButton = document.createElement('button');
+              deleteButton.type = 'button';
+              deleteButton.classList.add('btn', 'btn-danger', 'btn-sm', 'remove-rubric');
+              deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+              deleteButton.onclick = function () {
+                itemContainer.remove();
+                updateTotalPercentage();
+              };
+              
+              // Assemble the item
+              itemContainer.appendChild(rubricSelect);
+              itemContainer.appendChild(pointInput);
+              itemContainer.appendChild(deleteButton);
+              
+              // Add to the DOM
+              document.getElementById('rubric_items').appendChild(itemContainer);
+              
+              // Update total percentage
+              updateTotalPercentage();
+            }
+          }
+        });
+      }
+    }
+    
+    // Calculate and update the total percentage of rubric points
+    function updateTotalPercentage() {
+      const rubricPoints = document.querySelectorAll('.rubric-point');
+      let totalPercentage = 0;
+      rubricPoints.forEach(pointInput => {
+        totalPercentage += parseFloat(pointInput.value) || 0;
+      });
+      document.getElementById('total_percentage').textContent = `Total: ${totalPercentage.toFixed(2)}%`;
+      
+      // Highlight if total is not 100%
+      const totalElement = document.getElementById('total_percentage');
+      if (Math.abs(totalPercentage - 100) < 0.01) {
+        totalElement.classList.remove('bg-danger');
+        totalElement.classList.add('bg-success');
+      } else {
+        totalElement.classList.remove('bg-success');
+        totalElement.classList.add('bg-danger');
+      }
+    }
+  </script>
+
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <!-- Add SweetAlert for better dialogs -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+{% endblock %}

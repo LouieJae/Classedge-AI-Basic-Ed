@@ -1,0 +1,300 @@
+  .ann-page { animation: annFade 0.6s ease both; min-width: 0; }
+  .ann-page, .ann-page * { box-sizing: border-box; }
+  @keyframes annFade { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ─── Topbar stacking on small screens ─── */
+  .ann-page .topbar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .ann-page .topbar > div:first-child { min-width: 0; flex: 1 1 240px; }
+
+  .ann-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+    margin-bottom: 16px;
+    transition: all 0.18s ease;
+  }
+  .ann-back:hover {
+    background: var(--cream-2); color: var(--ink);
+    border-color: var(--brand-primary, #b7925a);
+    text-decoration: none;
+    transform: translateX(-2px);
+  }
+  .ann-back i { font-size: 11px; transition: transform 0.18s ease; }
+  .ann-back:hover i { transform: translateX(-2px); }
+
+  .ann-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+  }
+  /* The text inside reads better when constrained — limit only the prose
+     column, not the card itself. */
+  .ann-head, .ann-body, .ann-foot {
+    max-width: 100%;
+  }
+  .ann-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 360px; height: 360px;
+    background: radial-gradient(circle at top right, rgba(183, 146, 90, 0.10), transparent 65%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .ann-card > * { position: relative; z-index: 1; }
+
+  .ann-head {
+    padding: 28px 36px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ann-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 14px;
+    border-radius: 100px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    font-family: var(--body);
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent);
+    margin-bottom: 14px;
+  }
+  .ann-title {
+    font-family: var(--display);
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1.15;
+    margin: 0 0 12px;
+    word-break: break-word;
+  }
+  .ann-meta {
+    display: flex; flex-wrap: wrap; gap: 20px;
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--ink-dim);
+  }
+  .ann-meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .ann-meta i { color: var(--brand-primary, #b7925a); }
+
+  .ann-body {
+    padding: 30px 36px 12px;
+  }
+  .formatted-text {
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+  .formatted-text p { margin: 0 0 14px; }
+  .formatted-text h1, .formatted-text h2, .formatted-text h3, .formatted-text h4 {
+    font-family: var(--display);
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin: 22px 0 10px;
+    font-weight: 500;
+  }
+  .formatted-text h1 { font-size: 24px; }
+  .formatted-text h2 { font-size: 21px; }
+  .formatted-text h3 { font-size: 18px; }
+  .formatted-text a {
+    color: var(--brand-primary, #b7925a);
+    text-decoration: none;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .formatted-text a:hover { border-bottom-color: var(--brand-primary, #b7925a); color: var(--ink); }
+  .formatted-text img {
+    max-width: 100%; height: auto;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    margin: 12px 0;
+  }
+  .formatted-text blockquote {
+    margin: 16px 0;
+    padding: 12px 18px;
+    background: var(--cream);
+    border-left: 3px solid var(--brand-primary, #b7925a);
+    border-radius: 4px;
+    color: var(--ink-dim);
+    font-style: italic;
+  }
+  .formatted-text ul, .formatted-text ol {
+    margin: 8px 0 14px 22px;
+    padding: 0;
+  }
+  .formatted-text li { margin-bottom: 6px; }
+  .formatted-text code {
+    background: var(--cream-2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .formatted-text pre {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 13px;
+    max-width: 100%;
+  }
+  /* Tables in the announcement body horizontally scroll on phones rather than
+     forcing the whole card to overflow. */
+  .formatted-text { overflow-wrap: anywhere; word-wrap: break-word; }
+  .formatted-text > table,
+  .formatted-text .table-wrap {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .formatted-text table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 13.5px;
+  }
+  .formatted-text th,
+  .formatted-text td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  .formatted-text th {
+    background: var(--cream-2);
+    font-family: var(--body);
+    font-weight: 600;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px;
+  }
+
+  .ann-events {
+    border-top: 1px dashed var(--border);
+    padding-top: 18px;
+    margin-top: 4px;
+  }
+  .ann-events-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--body);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 12px;
+  }
+  .ann-events-label i { color: var(--brand-primary, #b7925a); }
+  .ann-events-list { display: flex; flex-wrap: wrap; gap: 10px; }
+  .ann-event-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.18s ease;
+  }
+  .ann-event-chip:hover {
+    background: var(--brand-primary-soft);
+    border-color: var(--brand-primary, #b7925a);
+    color: var(--ink);
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+  .ann-event-chip i.fa-calendar-day { color: var(--brand-primary, #b7925a); }
+  .ann-event-date { color: var(--ink-dim); font-weight: 500; }
+  .ann-event-arrow { font-size: 10px; margin-left: 4px; transition: transform 0.18s ease; }
+  .ann-event-chip:hover .ann-event-arrow { transform: translateX(3px); }
+
+  .ann-foot {
+    padding: 18px 36px;
+    background: var(--cream);
+    border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+    font-family: var(--display);
+    font-style: italic;
+    color: var(--ink-dim);
+    font-size: 13px;
+  }
+  .ann-foot strong { color: var(--ink); font-weight: 500; font-style: normal; }
+  .ann-foot-divider {
+    width: 1px; height: 16px;
+    background: var(--border-strong);
+    display: inline-block;
+  }
+
+  /* ─── Responsive breakpoints ───────────────────── */
+  @media (max-width: 900px) {
+    .ann-head { padding: 24px 28px 18px; }
+    .ann-body { padding: 24px 28px 10px; }
+    .ann-foot { padding: 16px 28px; }
+    .ann-title { font-size: 26px; }
+    .ann-card::before { width: 240px; height: 240px; }
+  }
+  @media (max-width: 700px) {
+    .ann-page .topbar { align-items: stretch; }
+    .ann-page .topbar > div:first-child { flex-basis: 100%; }
+    .ann-back { align-self: flex-start; }
+    .ann-head { padding: 22px 22px 16px; }
+    .ann-body { padding: 22px 22px 8px; }
+    .ann-foot { padding: 14px 22px; gap: 12px; }
+    .ann-title { font-size: 22px; }
+    .ann-meta { gap: 12px; font-size: 12.5px; }
+    .formatted-text { font-size: 14.5px; }
+    .formatted-text h1 { font-size: 21px; }
+    .formatted-text h2 { font-size: 19px; }
+    .formatted-text h3 { font-size: 17px; }
+    .ann-event-chip { font-size: 12.5px; padding: 8px 12px; }
+    .ann-events-list { gap: 8px; }
+  }
+  @media (max-width: 480px) {
+    .ann-back { width: 100%; justify-content: center; padding: 10px 14px; }
+    .ann-head { padding: 18px 16px 14px; }
+    .ann-body { padding: 18px 16px 6px; }
+    .ann-foot {
+      padding: 14px 16px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .ann-foot-divider { display: none; }
+    .ann-title { font-size: 19px; line-height: 1.25; }
+    .ann-eyebrow { font-size: 10px; padding: 3px 11px; letter-spacing: 0.14em; margin-bottom: 10px; }
+    .ann-meta { gap: 8px 14px; }
+    .ann-event-chip {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    .ann-event-chip .ann-event-name { flex: 1 1 auto; min-width: 0; }
+    .ann-card::before { width: 180px; height: 180px; }
+    .formatted-text { font-size: 14px; }
+    .formatted-text img { margin: 8px 0; }
+    .formatted-text blockquote { padding: 10px 14px; }
+    .formatted-text pre { padding: 12px; font-size: 12.5px; }
+  }

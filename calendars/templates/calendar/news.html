@@ -1,0 +1,267 @@
+{% extends is_student_role|yesno:"student_base.html,base_operation.html" %}
+{% load static %}
+
+{% block title %}News{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link rel="stylesheet" href="{% static 'calendar/news.css' %}" />
+{% if is_student_role %}
+<style>
+  body[data-theme] {
+    --paper: var(--surface);
+    --cream: var(--bg-2);
+    --cream-2: var(--surface-2);
+    --forest: var(--gold);
+    --forest-2: var(--gold);
+    --forest-light: rgba(244, 183, 64, 0.18);
+    --gold-bg: rgba(244, 183, 64, 0.10);
+    --rose: var(--coral);
+    --rose-soft: rgba(255, 107, 107, 0.16);
+    --ink: var(--text);
+    --ink-dim: var(--text-dim);
+    --ink-muted: var(--text-muted);
+    --shadow: 0 8px 32px -16px rgba(0, 0, 0, 0.35);
+  }
+  body[data-theme="light"] {
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -12px rgba(0,0,0,0.10);
+  }
+  /* Page-level title uses canonical .page-title / .page-sub from student_theme.css */
+</style>
+{% endif %}
+{% endblock %}
+
+
+{% block content %}
+<div class="news-shell">
+
+  <!-- ─── Header + search ────────────────────────────── -->
+  <div class="news-header">
+    <div>
+      <h1 class="page-title">News &amp; <em>updates</em></h1>
+      <div class="page-sub">Announcements on the left · events and holidays on the right.</div>
+    </div>
+    <div class="news-search">
+      <span class="ico"><i class="fas fa-search" aria-hidden="true"></i></span>
+      <input id="newsSearch" type="text" placeholder="Search title or description…" autocomplete="off" />
+    </div>
+  </div>
+
+  <!-- ─── Campus News carousel ─────────────────────────── -->
+  <section class="cn-card" aria-label="Campus News">
+    <header class="cn-head">
+      <div class="cn-head-l">
+        <div class="cn-head-icon"><i class="fas fa-bullhorn"></i></div>
+        <div>
+          <h2 class="cn-head-title">Campus <em>news</em></h2>
+          <div class="cn-head-sub">Latest posts straight from the campus page</div>
+        </div>
+      </div>
+      {% if articles %}<span class="cn-head-count">{{ articles|length }} post{{ articles|length|pluralize }}</span>{% endif %}
+    </header>
+
+    {% if articles %}
+      <div class="cn-stage" id="cnStage"
+           data-autoplay="5000"
+           role="region" aria-roledescription="carousel" aria-live="polite">
+        {% for article in articles %}
+          <a class="cn-slide {% if forloop.first %}is-active{% endif %}"
+             href="{{ article.permalink_url }}" target="_blank" rel="noopener"
+             aria-roledescription="slide" aria-label="Slide {{ forloop.counter }} of {{ articles|length }}">
+            {% if article.image_url %}
+              <img src="{{ article.image_url }}" alt="" loading="lazy" />
+            {% else %}
+              <img src="{% static 'images/SNCFI-logo.png' %}" alt="" loading="lazy" />
+            {% endif %}
+            <div class="cn-caption">
+              <div class="cn-caption-byline">
+                {% if article.profile_picture_url %}<img src="{{ article.profile_picture_url }}" alt="" />{% endif %}
+                <span class="who">
+                  <span class="name">{{ article.posted_by }}</span>
+                  <span class="when">· {{ article.created_time }}</span>
+                </span>
+                <span class="pill"><i class="fab fa-facebook" aria-hidden="true"></i> Facebook</span>
+              </div>
+              <h3 class="cn-caption-title">{{ article.message|default:"View this campus post" }}</h3>
+            </div>
+          </a>
+        {% endfor %}
+
+        {% if articles|length > 1 %}
+          <button class="cn-ctrl prev" id="cnPrev" type="button" aria-label="Previous slide">
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+          </button>
+          <button class="cn-ctrl next" id="cnNext" type="button" aria-label="Next slide">
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+          </button>
+          <div class="cn-dots" id="cnDots" role="tablist" aria-label="Choose slide">
+            {% for article in articles %}
+              <button type="button" class="cn-dot {% if forloop.first %}is-active{% endif %}"
+                      data-idx="{{ forloop.counter0 }}"
+                      role="tab" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                      aria-label="Slide {{ forloop.counter }}"></button>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+    {% else %}
+      <div class="cn-empty">
+        <div class="ico"><i class="fas fa-rss"></i></div>
+        <div class="lead">No campus posts yet</div>
+        <p>Facebook posts from the campus page will appear here automatically.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- ─── Two-column section grid ────────────────────── -->
+  <div class="news-grid" id="newsGrid">
+
+    <!-- ═════════════ Announcements card ═════════════ -->
+    <section class="news-card is-announcements" data-card="announcement">
+      <header class="news-card-head">
+        <div class="news-card-head-l">
+          <div class="news-card-icon"><i class="fas fa-bullhorn"></i></div>
+          <div>
+            <h2 class="news-card-title">Announcements</h2>
+            <div class="news-card-sub">Posted by departments and admins</div>
+          </div>
+        </div>
+        <span class="news-card-count">{{ announcement_count }}</span>
+      </header>
+
+      <div class="news-list">
+        {% for ann in announcements %}
+          <a class="news-row is-announcement"
+             data-kind="announcement"
+             data-text="{{ ann.title|lower }} {{ ann.description|default_if_none:''|lower }}"
+             href="{% url 'announcement_details' ann.id %}">
+            <div class="news-date">
+              <div class="news-date-month">{{ ann.date|date:"M" }}</div>
+              <div class="news-date-day">{{ ann.date|date:"d" }}</div>
+              <div class="news-date-year">{{ ann.date|date:"Y" }}</div>
+            </div>
+            <div class="news-body">
+              <h3 class="news-row-title">{{ ann.title }}</h3>
+              <div class="news-row-meta">
+                <span><i class="fas fa-user-circle"></i>{{ ann.created_by.get_full_name|default:ann.created_by.username }}</span>
+                {% if ann.subject %}
+                  <span class="dot"></span>
+                  <span><i class="fas fa-chalkboard-teacher"></i>{{ ann.subject.subject_name }}</span>
+                {% elif ann.department %}
+                  <span class="dot"></span>
+                  <span><i class="fas fa-building"></i>{{ ann.department.name }}</span>
+                {% endif %}
+                {% if ann.events.all %}
+                  <span class="dot"></span>
+                  <span><i class="fas fa-link"></i>{{ ann.events.count }} linked event{{ ann.events.count|pluralize }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="news-row-aside">
+              <span class="news-chip-type t-announcement"><i class="fas fa-bullhorn"></i> News</span>
+              <div class="news-row-arrow"><i class="fas fa-arrow-right"></i></div>
+            </div>
+          </a>
+        {% empty %}
+          <div class="news-list-empty">
+            <div class="ico"><i class="fas fa-bullhorn"></i></div>
+            <div class="lead">No announcements yet</div>
+            <div>New posts from departments and admins will show up here.</div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- ═════════════ Events + Holidays card ═════════════ -->
+    <section class="news-card is-events" data-card="event">
+      <header class="news-card-head">
+        <div class="news-card-head-l">
+          <div class="news-card-icon"><i class="fas fa-calendar-day"></i></div>
+          <div>
+            <h2 class="news-card-title">Events &amp; Holidays</h2>
+            <div class="news-card-sub">Upcoming on the school calendar</div>
+          </div>
+        </div>
+        <span class="news-card-count">{{ event_count|add:holiday_count }}</span>
+      </header>
+
+      <div class="news-list">
+        {% for ev in events %}
+          <a class="news-row is-event"
+             data-kind="event"
+             data-text="{{ ev.title|lower }} {{ ev.description|default_if_none:''|lower }} {{ ev.location|default_if_none:''|lower }}"
+             href="{% url 'event_details' ev.id %}">
+            <div class="news-date">
+              <div class="news-date-month">{{ ev.start_date|date:"M" }}</div>
+              <div class="news-date-day">{{ ev.start_date|date:"d" }}</div>
+              <div class="news-date-year">{{ ev.start_date|date:"Y" }}</div>
+            </div>
+            <div class="news-body">
+              <h3 class="news-row-title">{{ ev.title }}</h3>
+              <div class="news-row-meta">
+                {% if ev.time %}
+                  <span><i class="far fa-clock"></i>{{ ev.time|time:"g:i A" }}</span>
+                {% endif %}
+                {% if ev.location %}
+                  {% if ev.time %}<span class="dot"></span>{% endif %}
+                  <span><i class="fas fa-location-dot"></i>{{ ev.location|truncatechars:32 }}</span>
+                {% endif %}
+                {% if ev.end_date and ev.end_date != ev.start_date %}
+                  {% if ev.time or ev.location %}<span class="dot"></span>{% endif %}
+                  <span><i class="fas fa-arrow-right-long"></i>{{ ev.end_date|date:"M d" }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="news-row-aside">
+              <span class="news-chip-type t-event"><i class="fas fa-calendar-day"></i> Event</span>
+              <div class="news-row-arrow"><i class="fas fa-arrow-right"></i></div>
+            </div>
+          </a>
+        {% endfor %}
+
+        {% for h in holidays %}
+          <div class="news-row is-holiday"
+               data-kind="holiday"
+               data-text="{{ h.title|lower }} {{ h.holiday_type|lower }}">
+            <div class="news-date">
+              <div class="news-date-month">{{ h.date|date:"M" }}</div>
+              <div class="news-date-day">{{ h.date|date:"d" }}</div>
+              <div class="news-date-year">{{ h.date|date:"Y" }}</div>
+            </div>
+            <div class="news-body">
+              <h3 class="news-row-title">{{ h.title }}</h3>
+              <div class="news-row-meta">
+                <span><i class="fas fa-calendar-check"></i>{{ h.date|date:"l" }}</span>
+                <span class="dot"></span>
+                <span>{{ h.get_holiday_type_display }}</span>
+                <span class="dot"></span>
+                <span>{% if h.department %}{{ h.department.name }}{% else %}Institution-wide{% endif %}</span>
+              </div>
+            </div>
+            <div class="news-row-aside">
+              <span class="news-chip-type t-holiday"><i class="fas fa-umbrella-beach"></i> Holiday</span>
+            </div>
+          </div>
+        {% endfor %}
+
+        {% if not events and not holidays %}
+          <div class="news-list-empty">
+            <div class="ico"><i class="fas fa-calendar-day"></i></div>
+            <div class="lead">No events scheduled</div>
+            <div>Upcoming events and holidays will appear here.</div>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- No-match state for the search -->
+    <div class="news-no-match" id="newsNoMatch">
+      <i class="fas fa-search"></i>
+      No items match your search.
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'calendar/news.js' %}"></script>
+{% endblock %}

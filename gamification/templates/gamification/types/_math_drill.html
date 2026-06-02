@@ -1,0 +1,88 @@
+{% load static %}
+{% comment %}Timed math drill — JS-driven, included by side_activity_play.html{% endcomment %}
+
+<div id="math-drill-container">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <span style="font-size:.9rem;color:var(--muted);" id="md-progress">Problem 1 / ?</span>
+    <span id="md-timer" style="font-size:1.25rem;font-weight:700;color:var(--primary);font-variant-numeric:tabular-nums;">--:--</span>
+  </div>
+
+  <div id="md-expression" style="font-size:2rem;font-weight:700;color:var(--text);text-align:center;margin:2rem 0 1.5rem;font-variant-numeric:tabular-nums;"></div>
+
+  <div style="display:flex;gap:.75rem;align-items:center;justify-content:center;margin-bottom:1rem;">
+    <input type="number" id="md-answer" placeholder="Answer"
+           style="width:140px;padding:.75rem 1rem;font-size:1.25rem;border:1px solid var(--border);border-radius:8px;text-align:center;background:var(--surface-2);color:var(--text);">
+    <button type="button" id="md-next-btn"
+            style="padding:.75rem 1.5rem;font-size:1rem;border:none;border-radius:8px;background:var(--primary);color:#fff;cursor:pointer;">Next</button>
+  </div>
+
+  <div id="md-feedback" style="text-align:center;font-size:.9rem;min-height:1.5em;"></div>
+</div>
+
+<script src="{% static 'js/side_activities/timer.js' %}"></script>
+<script src="{% static 'js/side_activities/submit.js' %}"></script>
+<script>
+(function() {
+  var sa = window.SIDE_ACTIVITY;
+  var content = sa.content;
+  var problems = content.problems || [];
+  var timeLimit = content.time_limit || 60;
+  var currentIdx = 0;
+  var correct = 0;
+  var startTime = Date.now();
+
+  var progressEl = document.getElementById('md-progress');
+  var expressionEl = document.getElementById('md-expression');
+  var answerInput = document.getElementById('md-answer');
+  var nextBtn = document.getElementById('md-next-btn');
+  var feedbackEl = document.getElementById('md-feedback');
+  var timerEl = document.getElementById('md-timer');
+
+  function showProblem(idx) {
+    if (idx >= problems.length) {
+      finish();
+      return;
+    }
+    var p = problems[idx];
+    progressEl.textContent = 'Problem ' + (idx + 1) + ' / ' + problems.length;
+    expressionEl.textContent = p.expression;
+    answerInput.value = '';
+    feedbackEl.textContent = '';
+    answerInput.focus();
+  }
+
+  function checkAndAdvance() {
+    if (currentIdx >= problems.length) return;
+    var userAnswer = parseFloat(answerInput.value);
+    var expected = problems[currentIdx].answer;
+    if (userAnswer === expected) {
+      correct++;
+      feedbackEl.style.color = '#22c55e';
+      feedbackEl.textContent = 'Correct!';
+    } else {
+      feedbackEl.style.color = '#ef4444';
+      feedbackEl.textContent = 'Answer: ' + expected;
+    }
+    currentIdx++;
+    setTimeout(function() { showProblem(currentIdx); }, 400);
+  }
+
+  function finish() {
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+    if (clock) clock.stop();
+    var score = problems.length > 0 ? correct / problems.length : 0;
+    submitAttempt(sa.id, score, elapsed, {correct: correct, total: problems.length});
+  }
+
+  nextBtn.addEventListener('click', checkAndAdvance);
+  answerInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') checkAndAdvance();
+  });
+
+  var clock = startTimer(timeLimit, timerEl, function() {
+    finish();
+  });
+
+  showProblem(0);
+})();
+</script>

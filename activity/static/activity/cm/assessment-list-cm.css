@@ -1,0 +1,134 @@
+/* Assessment list — Classroom Mode.
+ * Extracted from activity/templates/activity/assessments/assessment-list-cm.html
+ * so the page styles can be cached + audited like every other refactored
+ * page. The CM shell (loaded by _cm_head.html) provides the base
+ * tokens; the rules below are page-specific.
+ *
+ * Cohesive doctrine: every decorative icon background, focus ring,
+ * pagination active state, and trigger-button hover tracks
+ * --brand-primary so the page repaints when the tenant brand
+ * changes. Categorical surfaces (.danger row-action) stay locked.
+ */
+.cm-toolbar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 14px; }
+.cm-card-meta { color: var(--ink-dim); font-size: 12px; }
+.cm-table .row-num {
+  display: inline-grid; place-items: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332);
+  font-weight: 700; font-size: 12px;
+}
+.cm-table .activity-name { font-weight: 600; color: var(--ink); }
+
+.cm-switch { position: relative; display: inline-block; width: 38px; height: 22px; }
+.cm-switch input { opacity: 0; width: 0; height: 0; }
+.cm-switch .slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: var(--border-strong); border-radius: 22px; transition: 0.2s;
+}
+.cm-switch .slider::before {
+  position: absolute; content: '';
+  height: 16px; width: 16px;
+  left: 3px; bottom: 3px;
+  background: #fff; border-radius: 50%; transition: 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.cm-switch input:checked + .slider { background: var(--brand-primary, #1b4332); }
+.cm-switch input:checked + .slider::before { transform: translateX(16px); }
+
+.cm-row-actions { position: relative; }
+.cm-row-actions .trigger {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--paper); color: var(--ink-dim);
+  display: inline-grid; place-items: center;
+  cursor: pointer; transition: all 0.15s;
+}
+.cm-row-actions .trigger:hover { background: var(--cream-2); color: var(--brand-primary, #1b4332); border-color: var(--ink-muted); }
+/* Menu uses position: fixed so the .cm-card's `overflow: hidden`
+   (needed for rounded-corner clipping) can't clip it. The JS sets
+   top/left from the trigger's getBoundingClientRect() each time it
+   opens, and re-positions on scroll/resize while open. */
+.cm-row-actions .menu {
+  position: fixed; top: 0; left: 0;
+  background: var(--paper); border: 1px solid var(--border-strong);
+  border-radius: 12px; box-shadow: var(--shadow-hover);
+  padding: 6px; min-width: 160px;
+  z-index: 1000; display: none;
+}
+.cm-row-actions.open .menu { display: block; }
+.cm-row-actions .menu a, .cm-row-actions .menu button {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; width: 100%; border-radius: 8px;
+  border: none; background: transparent;
+  color: var(--ink); font-size: 13px;
+  text-decoration: none; cursor: pointer; text-align: left;
+}
+.cm-row-actions .menu a:hover, .cm-row-actions .menu button:hover { background: var(--cream-2); }
+.cm-row-actions .menu .danger { color: var(--rose); }
+
+.dataTables_wrapper { padding: 12px 18px; }
+.dataTables_filter input,
+.dataTables_length select {
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 100px !important;
+  padding: 7px 14px !important;
+  background: var(--paper) !important;
+  color: var(--ink) !important;
+  font-size: 13px !important;
+}
+.dataTables_filter input:focus,
+.dataTables_length select:focus {
+  outline: none !important;
+  border-color: var(--brand-primary, #1b4332) !important;
+  box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+.dataTables_info { color: var(--ink-dim); font-size: 12.5px; padding-top: 12px !important; }
+
+.dataTables_wrapper .pagination { margin: 8px 0 0; gap: 4px; }
+.dataTables_wrapper .pagination .page-item { margin: 0; }
+.dataTables_wrapper .pagination .page-link {
+  min-width: 36px;
+  padding: 7px 12px;
+  border-radius: 100px !important;
+  background: var(--paper);
+  border: 1px solid var(--border-strong);
+  color: var(--ink) !important;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+  transition: all 0.18s ease;
+}
+.dataTables_wrapper .pagination .page-link:hover {
+  background: var(--cream-2);
+  color: var(--brand-primary, #1b4332) !important;
+  border-color: var(--brand-primary, #1b4332);
+  transform: translateY(-1px);
+}
+.dataTables_wrapper .pagination .page-item.active .page-link,
+.dataTables_wrapper .pagination .page-item.active .page-link:hover {
+  background: var(--brand-primary, #1b4332) !important;
+  color: var(--cream) !important;
+  border-color: var(--brand-primary, #1b4332) !important;
+  box-shadow: 0 4px 10px -3px var(--brand-primary-soft);
+}
+.dataTables_wrapper .pagination .page-item.disabled .page-link {
+  background: var(--cream-2);
+  color: var(--ink-muted) !important;
+  border-color: var(--border);
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.dataTables_wrapper .pagination .page-item.disabled .page-link:hover {
+  background: var(--cream-2);
+  color: var(--ink-muted) !important;
+  border-color: var(--border);
+  transform: none;
+}
+.dataTables_length label, .dataTables_filter label {
+  color: var(--ink-dim); font-size: 12.5px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 8px;
+}

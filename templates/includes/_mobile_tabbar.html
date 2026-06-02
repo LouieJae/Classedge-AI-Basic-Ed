@@ -1,0 +1,253 @@
+{% load static %}
+{# Compute role flags once so the template stays readable. #}
+{% with user=request.user %}
+{% with route_name=request.resolver_match.url_name|default:'' %}
+
+{% if request.GET.chat_with %}
+  {# no tab bar on active chat conversation #}
+{% else %}
+
+<nav class="cl-tabbar" aria-label="Mobile navigation" data-cl-tabbar>
+  {# ── Tab 1: Dashboard / Home ─────────────────────────────────────── #}
+  <a class="cl-tab {% if route_name == 'dashboard' or route_name == 'home_view' or 'dashboard' in route_name %}is-active{% endif %}"
+     href="{% url 'dashboard' %}">
+    <span class="cl-tab-icon"><i class="fas fa-house"></i></span>
+    <span class="cl-tab-label">Home</span>
+  </a>
+
+  {# ── Tab 2: Courses ──────────────────────────────────────────────── #}
+  <a class="cl-tab {% if route_name == 'course-list' or '/material/' in request.path or '/course/' in request.path or '/subject' in request.path %}is-active{% endif %}"
+     href="{% url 'course-list' %}">
+    <span class="cl-tab-icon"><i class="fas fa-book"></i></span>
+    <span class="cl-tab-label">Courses</span>
+  </a>
+
+  {# ── Tab 3: Center FAB — primary action per role ─────────────────── #}
+  <button type="button" class="cl-tab cl-tab-fab" data-cl-tabbar-fab
+          aria-label="Quick actions" aria-haspopup="true" aria-expanded="false">
+    <span class="cl-tab-fab-inner">
+      <i class="fas fa-bolt"></i>
+    </span>
+  </button>
+
+  {# ── Tab 4: Messages (with unread badge) ─────────────────────────── #}
+  <a class="cl-tab {% if 'inbox' in request.path or 'social_media' in route_name or 'message' in route_name %}is-active{% endif %}"
+     href="{% url 'social_media_inbox' %}">
+    <span class="cl-tab-icon">
+      <i class="fas fa-envelope"></i>
+      {% if unread_messages_count %}
+        <span class="cl-tab-badge">{{ unread_messages_count }}</span>
+      {% endif %}
+    </span>
+    <span class="cl-tab-label">Messages</span>
+  </a>
+
+  {# ── Tab 5: More — opens action sheet ────────────────────────────── #}
+  <button type="button" class="cl-tab" data-cl-tabbar-more
+          aria-label="More" aria-haspopup="dialog" aria-expanded="false">
+    <span class="cl-tab-icon"><i class="fas fa-ellipsis"></i></span>
+    <span class="cl-tab-label">More</span>
+  </button>
+</nav>
+
+{# ─── FAB action sheet — role-specific quick actions ──────────────── #}
+<div class="cl-tabbar-sheet-backdrop" data-cl-tabbar-sheet-backdrop hidden></div>
+<div class="cl-tabbar-sheet" data-cl-tabbar-sheet="fab" role="dialog" aria-modal="true" aria-label="Quick actions" hidden>
+  <div class="cl-tabbar-sheet-handle"></div>
+  <div class="cl-tabbar-sheet-head">
+    <h3>Quick <em>actions</em></h3>
+    <button type="button" class="cl-tabbar-sheet-close" data-cl-tabbar-sheet-close aria-label="Close">
+      <i class="fas fa-xmark"></i>
+    </button>
+  </div>
+  <div class="cl-tabbar-sheet-body">
+    {% if user.is_student %}
+      <a class="cl-sheet-item" href="{% url 'course-list' %}">
+        <span class="cl-sheet-item-icon"><i class="fas fa-clipboard-check"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">Self check-in</span>
+          <span class="cl-sheet-item-sub">Mark attendance for today's class</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </a>
+      <a class="cl-sheet-item" href="{% url 'student_dashboard' %}">
+        <span class="cl-sheet-item-icon"><i class="fas fa-trophy"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">My progress</span>
+          <span class="cl-sheet-item-sub">XP, badges, and streaks</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </a>
+      <a class="cl-sheet-item" href="{% url 'calendars' %}">
+        <span class="cl-sheet-item-icon"><i class="fas fa-calendar-days"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">Calendar</span>
+          <span class="cl-sheet-item-sub">Schedule & upcoming activities</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </a>
+    {% elif user.is_teacher %}
+      <button type="button" class="cl-sheet-item" data-cl-pick="material">
+        <span class="cl-sheet-item-icon"><i class="fas fa-folder-plus"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">New material</span>
+          <span class="cl-sheet-item-sub">Pick a course to add a lesson</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </button>
+      <button type="button" class="cl-sheet-item" data-cl-pick="assessment">
+        <span class="cl-sheet-item-icon"><i class="fas fa-pen-to-square"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">New assessment</span>
+          <span class="cl-sheet-item-sub">Pick a course, then a type</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </button>
+      <a class="cl-sheet-item" href="{% url 'subject_announcements' %}">
+        <span class="cl-sheet-item-icon"><i class="fas fa-bullhorn"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">Announcement</span>
+          <span class="cl-sheet-item-sub">Post to a course</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </a>
+    {% else %}
+      {# Admin / registrar / program-head / academic-director fall here #}
+      <a class="cl-sheet-item" href="{% url 'enroll-student' %}">
+        <span class="cl-sheet-item-icon"><i class="fas fa-user-graduate"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">Enroll student</span>
+          <span class="cl-sheet-item-sub">Assign a student to a course</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </a>
+      <a class="cl-sheet-item" href="{% url 'create-course' %}">
+        <span class="cl-sheet-item-icon"><i class="fas fa-book-medical"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">New subject</span>
+          <span class="cl-sheet-item-sub">Add a course offering</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </a>
+      <a class="cl-sheet-item" href="{% url 'semester-list' %}">
+        <span class="cl-sheet-item-icon"><i class="fas fa-calendar-days"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">Term management</span>
+          <span class="cl-sheet-item-sub">Semesters & terms</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+{# ─── "More" action sheet — overflow destinations ─────────────────── #}
+<div class="cl-tabbar-sheet" data-cl-tabbar-sheet="more" role="dialog" aria-modal="true" aria-label="More navigation" hidden>
+  <div class="cl-tabbar-sheet-handle"></div>
+  <div class="cl-tabbar-sheet-head">
+    <h3>More</h3>
+    <button type="button" class="cl-tabbar-sheet-close" data-cl-tabbar-sheet-close aria-label="Close">
+      <i class="fas fa-xmark"></i>
+    </button>
+  </div>
+  <div class="cl-tabbar-sheet-body cl-tabbar-sheet-grid">
+    <a class="cl-sheet-grid-item" href="{% url 'calendars' %}">
+      <span class="cl-sheet-grid-icon"><i class="fas fa-calendar-alt"></i></span>
+      <span class="cl-sheet-grid-label">Calendar</span>
+    </a>
+    <a class="cl-sheet-grid-item" href="{% url 'news' %}">
+      <span class="cl-sheet-grid-icon"><i class="fas fa-newspaper"></i></span>
+      <span class="cl-sheet-grid-label">News</span>
+    </a>
+    <a class="cl-sheet-grid-item" href="{% url 'gamification_leaderboard' %}">
+      <span class="cl-sheet-grid-icon"><i class="fas fa-trophy"></i></span>
+      <span class="cl-sheet-grid-label">Leaderboard</span>
+    </a>
+    {% if user.is_teacher %}
+      <a class="cl-sheet-grid-item" href="{% url 'grade-book' %}">
+        <span class="cl-sheet-grid-icon"><i class="fas fa-pen"></i></span>
+        <span class="cl-sheet-grid-label">Gradebook</span>
+      </a>
+      <a class="cl-sheet-grid-item" href="{% url 'attendance-report' %}">
+        <span class="cl-sheet-grid-icon"><i class="fas fa-clipboard-check"></i></span>
+        <span class="cl-sheet-grid-label">Attendance</span>
+      </a>
+      <a class="cl-sheet-grid-item" href="{% url 'schedule' %}">
+        <span class="cl-sheet-grid-icon"><i class="fas fa-calendar-week"></i></span>
+        <span class="cl-sheet-grid-label">Schedules</span>
+      </a>
+    {% endif %}
+    {% if user.is_student %}
+      <a class="cl-sheet-grid-item" href="{% url 'grades' %}">
+        <span class="cl-sheet-grid-icon"><i class="fas fa-chart-bar"></i></span>
+        <span class="cl-sheet-grid-label">Grades</span>
+      </a>
+    {% endif %}
+    <a class="cl-sheet-grid-item" href="{% url 'sign_out' %}">
+      <span class="cl-sheet-grid-icon cl-sheet-grid-icon-danger"><i class="fas fa-sign-out-alt"></i></span>
+      <span class="cl-sheet-grid-label">Sign out</span>
+    </a>
+  </div>
+</div>
+
+{% if user.is_teacher %}
+<div class="cl-tabbar-sheet" data-cl-tabbar-sheet="picker-material" role="dialog" aria-modal="true" aria-label="Choose a course for the new material" hidden>
+  <div class="cl-tabbar-sheet-handle"></div>
+  <div class="cl-tabbar-sheet-head">
+    <h3>Pick a <em>course</em></h3>
+    <button type="button" class="cl-tabbar-sheet-close" data-cl-tabbar-sheet-close aria-label="Close">
+      <i class="fas fa-xmark"></i>
+    </button>
+  </div>
+  <div class="cl-tabbar-sheet-body">
+    <p class="cl-sheet-hint">Choose a course to add a new lesson to.</p>
+    {% for s in cl_quick_subjects %}
+      <a class="cl-sheet-item" href="{% url 'create-material' subject_id=s.id %}">
+        <span class="cl-sheet-item-icon"><i class="fas fa-book"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">{{ s.subject_name }}</span>
+          <span class="cl-sheet-item-sub">{% if s.subject_code %}{{ s.subject_code }}{% else %}Course{% endif %}</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </a>
+    {% empty %}
+      <div class="cl-sheet-empty">
+        <i class="fas fa-book-open"></i>
+        <p>You aren't teaching any course yet. Ask a registrar to assign you to a course.</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="cl-tabbar-sheet" data-cl-tabbar-sheet="picker-assessment" role="dialog" aria-modal="true" aria-label="Choose a course for the new assessment" hidden>
+  <div class="cl-tabbar-sheet-handle"></div>
+  <div class="cl-tabbar-sheet-head">
+    <h3>Pick a <em>course</em></h3>
+    <button type="button" class="cl-tabbar-sheet-close" data-cl-tabbar-sheet-close aria-label="Close">
+      <i class="fas fa-xmark"></i>
+    </button>
+  </div>
+  <div class="cl-tabbar-sheet-body">
+    <p class="cl-sheet-hint">Choose a course — you'll pick the assessment type next.</p>
+    {% for s in cl_quick_subjects %}
+      <a class="cl-sheet-item" href="{% url 'add-assessment' subject_id=s.id %}">
+        <span class="cl-sheet-item-icon"><i class="fas fa-pen-to-square"></i></span>
+        <span class="cl-sheet-item-body">
+          <span class="cl-sheet-item-title">{{ s.subject_name }}</span>
+          <span class="cl-sheet-item-sub">{% if s.subject_code %}{{ s.subject_code }}{% else %}Course{% endif %}</span>
+        </span>
+        <i class="fas fa-chevron-right cl-sheet-item-chev"></i>
+      </a>
+    {% empty %}
+      <div class="cl-sheet-empty">
+        <i class="fas fa-pen-to-square"></i>
+        <p>You aren't teaching any course yet. Ask a registrar to assign you to a course.</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endwith %}
+{% endwith %}

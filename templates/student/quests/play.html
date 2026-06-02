@@ -1,0 +1,32 @@
+{% extends 'student_base.html' %}
+{% block content %}
+<div class="container" style="max-width:640px;padding:24px;">
+  {% if quest %}
+    <p style="color:#888;">{{ remaining }} quests remaining</p>
+    <h1>{{ quest.title }}</h1>
+    <p>{{ quest.body }}</p>
+    <form method="post" action="{% url 'quest_play_submit' quest.id %}">{% csrf_token %}
+      {% if quest.kind == 'quiz' %}
+        {% for opt in quest.payload.options %}
+          <label style="display:block;"><input type="radio" name="answer" value="{{ forloop.counter0 }}" required> {{ opt }}</label>
+        {% endfor %}
+      {% elif quest.kind == 'reading_check' %}
+        <div style="background:#f5f5f5;padding:12px;margin:12px 0;">{{ quest.payload.reading }}</div>
+        <p>{{ quest.payload.question }}</p>
+        <textarea name="answer" rows="4" required style="width:100%;"></textarea>
+      {% elif quest.kind == 'task' %}
+        <div style="background:#f5f5f5;padding:12px;margin:12px 0;">Rubric: {{ quest.payload.rubric }}</div>
+        {% if quest.payload.self_check %}
+          <label><input type="checkbox" name="answer" value="done" required> I have completed this task</label>
+        {% else %}
+          <textarea name="answer" rows="4" required style="width:100%;" placeholder="Describe your work"></textarea>
+        {% endif %}
+      {% endif %}
+      <button type="submit" class="btn btn-primary" style="margin-top:12px;">Submit</button>
+    </form>
+  {% else %}
+    <h1>All quests complete!</h1>
+    <p><a href="{% url 'quest_map_picker' %}">Back to quest map</a></p>
+  {% endif %}
+</div>
+{% endblock %}

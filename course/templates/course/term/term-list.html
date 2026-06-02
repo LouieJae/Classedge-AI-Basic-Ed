@@ -1,0 +1,36 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Terms{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-calendar-week me-2"></i>Term <em>Catalog</em></h2>
+        <p>Define grading periods that segment a semester. Defaults to the active semester; switch the scope filter to see all.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="term-list">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        {% if perms.course.add_term %}
+          <a href="{% url 'create-term' %}" class="cl-btn cl-btn-primary">
+            <i class="fas fa-plus"></i> New Term
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="cl-term-wrapper" class="cl-table-wrapper" data-cl-async-table data-base-url="{% url 'term-list' %}">
+      {% include "includes/_list_table.html" %}
+    </div>
+  </div>
+
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script src="{% static 'course/term/term-list.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-term-list.js' %}" defer></script>
+{% endblock %}

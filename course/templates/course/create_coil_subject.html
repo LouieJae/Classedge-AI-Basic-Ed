@@ -1,0 +1,70 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}
+    Add COIL Subject
+{% endblock %}
+
+{% block content %}
+  <!-- Content Header -->
+  <div class="row mb-2">
+    <div class="col-sm-6 text-end" 
+      <h3 class="m-0">Add COIL Subject</h3>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card shadow mb-4">
+    <div class="card-body">
+    <form method="POST" action="{% url 'create_coil_subject' %}">
+          {% csrf_token %}
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="id_subject_name" class="form-label fw-bold">Course Title</label>
+                {{ form.subject_name }}
+              </div>
+              <div class="col-md-6">
+                <label for="id_duration" class="form-label fw-bold">Duration</label>
+                {{ form.duration }}
+              </div>
+              <div class="col-md-6">
+                <label for="id_assign_teacher" class="form-label fw-bold">Assign Teacher</label>
+                {{ form.assign_teacher }}
+              </div>
+              <div class="col-md-6">
+                <label for="id_target_sdgs" class="form-label fw-bold">Target SDGs</label>
+                {{ form.target_sdgs }}
+              </div>
+              <div class="col-md-6">
+                <label for="id_industry_partners" class="form-label fw-bold">Partner University</label>
+                {{ form.industry_partners }}
+              </div>
+              <div class="col-md-6">
+                <label for="id_issued_by" class="form-label fw-bold">Issued By</label>
+                {{ form.issued_by }}
+              </div>
+              <div class="col-md-6">
+                <label for="id_issued_under" class="form-label fw-bold">Issued Under</label>
+                {{ form.issued_under }}
+              </div>
+              <div class="col-md-6">
+                <label for="id_issued_on" class="form-label fw-bold">Issued On</label>
+                {{ form.issued_on }}
+              </div>
+              <div class="col-12">
+                <label for="id_subject_description" class="form-label fw-bold">Description</label>
+                {{ form.subject_description }}
+              </div>
+            </div>
+          </div>
+          <div class="text-end mt-3">
+            <a href="{% url 'coil_subjectList' %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success">Save</button>
+          </div>
+        </form>
+    </div>
+  </div>
+{% endblock %}
+

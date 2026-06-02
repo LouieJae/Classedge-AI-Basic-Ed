@@ -1,0 +1,668 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'course/attendance/attendance-report.css' %}" />
+{% endblock %}
+
+{% block title %}Attendance Report Per Course{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="att-shell">
+
+  <!-- Hero -->
+  <div class="att-hero">
+    <div>
+      <h1 class="page-title">Attendance <em>Report</em></h1>
+      <div class="page-sub">A per-course log of who was present, who wasn't, and why &middot; filter, search, and export at a glance.</div>
+    </div>
+    <div class="att-hero-actions">
+      <button type="button" class="cl-tour-replay" data-cl-tour="attendance-report">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      {% if perms.course.add_attendance %}
+        <button type="button" id="attTakeBtn" class="att-btn att-btn--primary">
+          <i class="fas fa-user-check" aria-hidden="true"></i> Take Attendance
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if messages %}
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+      {% for message in messages %}
+        <div style="padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;
+                    background: {% if 'success' in message.tags %}var(--brand-primary-soft){% elif 'error' in message.tags %}var(--rose-soft){% else %}var(--cream-2){% endif %};
+                    color: {% if 'success' in message.tags %}var(--ink){% elif 'error' in message.tags %}var(--rose){% else %}var(--ink-dim){% endif %};">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Compact summary -->
+  <div class="att-summary">
+    <div class="att-summary-total">
+      <div class="num">{{ stats.total }}</div>
+      <div class="lbl">
+        total record{{ stats.total|pluralize }}
+        <span class="dim">· {{ stats.unique_students }} student{{ stats.unique_students|pluralize }} · {{ stats.unique_subjects }} course{{ stats.unique_subjects|pluralize }}</span>
+      </div>
+    </div>
+
+    <div class="att-summary-bar" aria-hidden="true">
+      <span class="seg s-present" style="width: {{ stats.present_pct }}%;" title="Present {{ stats.present_pct }}%"></span>
+      <span class="seg s-late"    style="width: {{ stats.late_pct }}%;"    title="Late {{ stats.late_pct }}%"></span>
+      <span class="seg s-excused" style="width: {{ stats.excused_pct }}%;" title="Excused {{ stats.excused_pct }}%"></span>
+      <span class="seg s-absent"  style="width: {{ stats.absent_pct }}%;"  title="Absent {{ stats.absent_pct }}%"></span>
+    </div>
+
+    <div class="att-summary-legend">
+      <span class="chip c-present"><i class="fas fa-circle-check"></i> Present <strong>{{ stats.present }}</strong> <span class="pct">{{ stats.present_pct }}%</span></span>
+      <span class="chip c-late"><i class="fas fa-clock"></i> Late <strong>{{ stats.late }}</strong> <span class="pct">{{ stats.late_pct }}%</span></span>
+      <span class="chip c-excused"><i class="fas fa-circle-info"></i> Excused <strong>{{ stats.excused }}</strong> <span class="pct">{{ stats.excused_pct }}%</span></span>
+      <span class="chip c-absent"><i class="fas fa-circle-xmark"></i> Absent <strong>{{ stats.absent }}</strong> <span class="pct">{{ stats.absent_pct }}%</span></span>
+    </div>
+  </div>
+
+  <!-- Today's classes (collapsible) -->
+  {% if today_classes %}
+    <details class="att-today" open>
+      <summary class="att-today-summary">
+        <span class="att-today-summary-left">
+          <i class="fas fa-bolt"></i>
+          <span><strong>Today's classes</strong> · {{ today_classes|length }} scheduled — open self-attendance during the class window.</span>
+        </span>
+        <i class="fas fa-chevron-down att-today-chev" aria-hidden="true"></i>
+      </summary>
+      <div class="att-today-list">
+        {% for tc in today_classes %}
+          <div class="att-today-item">
+            <div class="att-today-meta">
+              <div class="att-today-name">{{ tc.subject.subject_name }}</div>
+              <div class="att-today-time">
+                <i class="far fa-clock"></i>{{ tc.schedule_start|time:"g:i A" }} &ndash; {{ tc.schedule_end|time:"g:i A" }}
+              </div>
+            </div>
+            <form method="post" action="{% url 'toggle_self_attendance' tc.subject.id %}" class="att-today-form">
+              {% csrf_token %}
+              {% if tc.self_on %}
+                <button type="submit" class="att-today-toggle" data-on="true" title="Self-attendance is open — click to close.">
+                  <i class="fas fa-toggle-on"></i> Close
+                </button>
+              {% elif tc.window_open %}
+                <button type="submit" class="att-today-toggle" data-on="false" title="Open self-attendance for this class.">
+                  <i class="fas fa-toggle-off"></i> Open
+                </button>
+              {% else %}
+                <button type="button" class="att-today-toggle is-disabled" data-on="false"
+                        title="Available 15 minutes before class starts and until class ends." disabled>
+                  <i class="fas fa-lock"></i> Locked
+                </button>
+              {% endif %}
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    </details>
+  {% endif %}
+
+  <!-- Compact filter toolbar -->
+  <form method="GET" id="filterForm" class="att-toolbar">
+    {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+    {% if per_page and per_page != 25 %}<input type="hidden" name="per_page" value="{{ per_page }}">{% endif %}
+
+    <div class="att-toolbar-row">
+      <span class="att-toolbar-label"><i class="fas fa-sliders"></i> Filter{% if active_filter_count %} <span class="pill">{{ active_filter_count }}</span>{% endif %}</span>
+
+      <select name="course_id" aria-label="Course">
+        <option value="">All Program</option>
+        {% for course in courses %}
+          <option value="{{ course.id }}" {% if request.GET.course_id == course.id|stringformat:"s" %}selected{% endif %}>{{ course.name }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="subject_id" aria-label="Subject">
+        <option value="">All Courses</option>
+        {% for subject in subjects %}
+          <option value="{{ subject.id }}" {% if request.GET.subject_id == subject.id|stringformat:"s" %}selected{% endif %}>{{ subject.subject_name }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="status_id" aria-label="Status">
+        <option value="">All Statuses</option>
+        {% for st in attendance_status_list %}
+          <option value="{{ st.id }}" {% if request.GET.status_id == st.id|stringformat:"s" %}selected{% endif %}>{{ st.status }}</option>
+        {% endfor %}
+      </select>
+
+      <span class="att-toolbar-dates">
+        <input type="date" name="from_date" value="{{ from_date }}" aria-label="From date">
+        <span class="att-toolbar-dash">→</span>
+        <input type="date" name="to_date" value="{{ to_date }}" aria-label="To date">
+      </span>
+
+      <span class="att-toolbar-actions">
+        <a href="{% url 'attendance-report' %}" class="att-btn att-btn--ghost" title="Reset filters">
+          <i class="fas fa-rotate-left"></i>
+        </a>
+        <button type="submit" class="att-btn att-btn--primary">
+          <i class="fas fa-filter"></i> Apply
+        </button>
+      </span>
+    </div>
+  </form>
+
+  <!-- Records -->
+  <div class="att-report">
+    <div class="att-report-head">
+      <div class="att-report-title-wrap">
+        <div class="ico"><i class="fas fa-list-check"></i></div>
+        <div>
+          <h2 class="att-report-title">Attendance <em>records</em></h2>
+          <div class="att-count">{{ total_count }} record{{ total_count|pluralize }}{% if search_query %} matching &ldquo;{{ search_query }}&rdquo;{% endif %}</div>
+        </div>
+      </div>
+    </div>
+
+    <form method="GET" id="searchForm" class="att-search-row">
+      {% if request.GET.course_id %}<input type="hidden" name="course_id" value="{{ request.GET.course_id }}">{% endif %}
+      {% if request.GET.subject_id %}<input type="hidden" name="subject_id" value="{{ request.GET.subject_id }}">{% endif %}
+      {% if request.GET.status_id %}<input type="hidden" name="status_id" value="{{ request.GET.status_id }}">{% endif %}
+      {% if from_date %}<input type="hidden" name="from_date" value="{{ from_date }}">{% endif %}
+      {% if to_date %}<input type="hidden" name="to_date" value="{{ to_date }}">{% endif %}
+      <div class="att-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" name="q" id="attSearchInput" value="{{ search_query }}" placeholder="Search student, subject, or status…" autocomplete="off" />
+        <span class="att-search-spinner" id="attSearchSpinner" aria-hidden="true">
+          <i class="fas fa-circle-notch fa-spin"></i>
+        </span>
+        {% if search_query %}
+          <button type="button" class="att-search-clear" id="attSearchClear" title="Clear search">&times;</button>
+        {% endif %}
+      </div>
+      <label class="att-perpage">
+        Show
+        <select name="per_page" id="attPerPage">
+          <option value="10"  {% if per_page == 10 %}selected{% endif %}>10</option>
+          <option value="25"  {% if per_page == 25 %}selected{% endif %}>25</option>
+          <option value="50"  {% if per_page == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+        per page
+      </label>
+    </form>
+
+    {% if attendance_records %}
+      <div class="att-table-wrap">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Course</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in attendance_records %}
+              {% with last=record.student.profile.last_name|default:record.student.last_name first=record.student.profile.first_name|default:record.student.first_name %}
+              <tr data-att-row="{{ record.id }}">
+                <td>
+                  <a class="att-student"
+                     href="{% url 'student_subject_attendance' record.subject.id record.student.id %}?view=calendar"
+                     title="View {{ first }} {{ last }}'s attendance calendar"
+                     style="text-decoration:none;color:inherit;">
+                    <span class="att-avatar">{{ first|slice:":1"|upper }}{{ last|slice:":1"|upper }}</span>
+                    <span class="att-student-meta">
+                      <span class="att-student-name">{{ last }}, {{ first }}</span>
+                      {% if record.student.username %}<span class="att-student-id">{{ record.student.username }}</span>{% endif %}
+                    </span>
+                  </a>
+                </td>
+                <td class="att-cell-subject">{{ record.subject.subject_name }}</td>
+                <td class="att-cell-date">
+                  {{ record.date|date:"M j, Y" }}
+                  <small>{{ record.date|date:"l" }}</small>
+                </td>
+                <td data-att-status-cell>
+                  {% with status_lower=record.status.status|lower %}
+                    <span class="att-status
+                      {% if 'present' in status_lower %}att-status--present
+                      {% elif 'absent' in status_lower %}att-status--absent
+                      {% elif 'late' in status_lower or 'tardy' in status_lower %}att-status--late
+                      {% elif 'excus' in status_lower %}att-status--excused
+                      {% endif %}">
+                      {{ record.status.status|default:"—" }}
+                    </span>
+                  {% endwith %}
+                </td>
+                <td style="text-align:right;">
+                  <button type="button" class="att-btn att-edit-btn"
+                          data-att-edit
+                          data-att-id="{{ record.id }}"
+                          data-att-student="{{ last }}, {{ first }}"
+                          data-att-subject="{{ record.subject.subject_name }}"
+                          data-att-date="{{ record.date|date:'M j, Y' }}"
+                          data-att-status-id="{{ record.status.id|default:'' }}"
+                          data-att-remark="{{ record.remark|default:'' }}"
+                          title="Edit attendance">
+                    <i class="fas fa-pen"></i> Edit
+                  </button>
+                </td>
+              </tr>
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <div class="att-pagination">
+          <div class="att-pag-info">
+            Showing {{ page_obj.start_index }}&ndash;{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+          </div>
+          <ul class="att-pag-list">
+            {% if page_obj.has_previous %}
+              <li><a href="?{% if querystring %}{{ querystring }}&{% endif %}page=1" title="First"><i class="fas fa-angles-left"></i></a></li>
+              <li><a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}" title="Previous"><i class="fas fa-angle-left"></i></a></li>
+            {% else %}
+              <li><span class="disabled"><i class="fas fa-angles-left"></i></span></li>
+              <li><span class="disabled"><i class="fas fa-angle-left"></i></span></li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+              {% if num == page_obj.number %}
+                <li><span class="current">{{ num }}</span></li>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li><a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+              {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                <li><a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+              {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                <li><span class="ellipsis">…</span></li>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <li><a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}" title="Next"><i class="fas fa-angle-right"></i></a></li>
+              <li><a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.paginator.num_pages }}" title="Last"><i class="fas fa-angles-right"></i></a></li>
+            {% else %}
+              <li><span class="disabled"><i class="fas fa-angle-right"></i></span></li>
+              <li><span class="disabled"><i class="fas fa-angles-right"></i></span></li>
+            {% endif %}
+          </ul>
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="att-empty">
+        <div class="ico"><i class="fas fa-clipboard-list" aria-hidden="true"></i></div>
+        <div class="lead">No attendance records</div>
+        <div class="sub">
+          {% if search_query or active_filter_count %}
+            Nothing matches the current filters. Try widening the date range, clearing the search, or hitting reset.
+          {% else %}
+            Records will appear here once attendance is taken. Use the <strong>Take Attendance</strong> button above to start.
+          {% endif %}
+        </div>
+        {% if search_query or active_filter_count %}
+          <div class="actions">
+            <a href="{% url 'attendance-report' %}" class="att-btn">
+              <i class="fas fa-rotate-left"></i> Clear filters
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Edit attendance modal -->
+<div id="attEditModal" class="att-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="attEditModalTitle" hidden>
+  <div class="att-modal" style="width:min(460px,100%);">
+    <div class="att-modal-head">
+      <div class="att-modal-head-text">
+        <h2 class="att-modal-title" id="attEditModalTitle">Edit <em>attendance</em></h2>
+        <div class="att-modal-sub" id="attEditModalSub"></div>
+      </div>
+      <button type="button" class="att-modal-close" data-att-edit-close aria-label="Close">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="att-modal-body" style="padding:18px 22px;">
+      <div class="att-field" style="margin-bottom:14px;">
+        <label for="attEditStatus">Status</label>
+        <select id="attEditStatus">
+          {% for st in attendance_status_list %}
+            <option value="{{ st.id }}">{{ st.status }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="att-field">
+        <label for="attEditRemark">Remark (optional)</label>
+        <textarea id="attEditRemark" rows="3"
+                  style="width:100%;padding:9px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--paper);font-family:var(--body);font-size:13px;color:var(--ink);resize:vertical;"></textarea>
+      </div>
+      <div id="attEditError" style="display:none;margin-top:10px;padding:8px 12px;border-radius:var(--radius-sm);background:var(--rose-soft);color:var(--rose);font-size:12px;"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border);background:var(--cream);">
+      <button type="button" class="att-btn" data-att-edit-close>Cancel</button>
+      <button type="button" class="att-btn att-btn--primary" id="attEditSave">
+        <i class="fas fa-check"></i> Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Subject picker modal — opens when teacher clicks Take Attendance -->
+{% if perms.course.add_attendance %}
+<div id="attSubjectModal" class="att-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="attSubjectModalTitle" hidden>
+  <div class="att-modal">
+    <div class="att-modal-head">
+      <div class="att-modal-head-text">
+        <h2 class="att-modal-title" id="attSubjectModalTitle">Take <em>attendance</em></h2>
+        <div class="att-modal-sub">Pick a course to record today's roll call &middot; {{ subjects|length }} available</div>
+      </div>
+      <button type="button" class="att-modal-close" data-att-modal-close aria-label="Close">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="att-modal-search">
+      <i class="fas fa-search" aria-hidden="true"></i>
+      <input id="attSubjectFilter" type="text" placeholder="Search subjects" autocomplete="off" />
+    </div>
+    <div class="att-modal-body" id="attSubjectList">
+      {% for subj in subjects %}
+        <a class="att-subj-item"
+           data-subj-name="{{ subj.subject_name|lower }}{% if subj.subject_short_name %} {{ subj.subject_short_name|lower }}{% endif %}"
+           href="{% url 'record-attendance' subj.id %}">
+          <span class="att-subj-thumb">
+            {% if subj.subject_photo %}
+              <img src="{{ subj.subject_photo.url }}" alt="{{ subj.subject_name }}">
+            {% else %}
+              <i class="fas fa-book"></i>
+            {% endif %}
+          </span>
+          <span class="att-subj-meta">
+            <span class="att-subj-name">{{ subj.subject_name }}</span>
+            {% if subj.subject_short_name or subj.subject_type %}
+              <span class="att-subj-sub">
+                {% if subj.subject_short_name %}{{ subj.subject_short_name }}{% endif %}
+                {% if subj.subject_short_name and subj.subject_type %} &middot; {% endif %}
+                {% if subj.subject_type %}{{ subj.subject_type }}{% endif %}
+              </span>
+            {% endif %}
+          </span>
+          <span class="att-subj-go"><i class="fas fa-arrow-right"></i></span>
+        </a>
+      {% empty %}
+        <div class="att-modal-empty">No course available.</div>
+      {% endfor %}
+      <div class="att-modal-empty" id="attSubjectEmpty" style="display:none;">No courses match your search.</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  (function () {
+    const DEBOUNCE_MS = 220;
+    let timer = null;
+    let lastQuery = (document.getElementById('attSearchInput')?.value ?? '').trim();
+    let inflight = null;
+
+    function getInput()   { return document.getElementById('attSearchInput'); }
+    function getSpinner() { return document.getElementById('attSearchSpinner'); }
+    function getReport()  { return document.querySelector('.att-report'); }
+
+    function buildUrl(overrides) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete('page');
+      Object.entries(overrides || {}).forEach(([k, v]) => {
+        if (v === '' || v === null || v === undefined) params.delete(k);
+        else params.set(k, v);
+      });
+      return window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    }
+
+    function applyHtml(html, restoreFocus) {
+      const parser  = new DOMParser();
+      const doc     = parser.parseFromString(html, 'text/html');
+      const newCard = doc.querySelector('.att-report');
+      const oldCard = getReport();
+      if (!newCard || !oldCard) return;
+
+      const oldInput = getInput();
+      const wasFocused = restoreFocus && oldInput && document.activeElement === oldInput;
+      const cursorStart = oldInput ? oldInput.selectionStart : null;
+      const cursorEnd   = oldInput ? oldInput.selectionEnd   : null;
+      const desiredVal  = oldInput ? oldInput.value : null;
+
+      oldCard.replaceWith(newCard);
+
+      const newInput = getInput();
+      if (newInput) {
+        if (desiredVal !== null && desiredVal !== newInput.value) newInput.value = desiredVal;
+        if (wasFocused) {
+          newInput.focus();
+          try { newInput.setSelectionRange(cursorStart ?? newInput.value.length, cursorEnd ?? newInput.value.length); } catch (_) {}
+        }
+      }
+    }
+
+    function fetchAndReplace(url, restoreFocus) {
+      const spinner = getSpinner();
+      if (spinner) spinner.classList.add('show');
+      const tbody = getReport()?.querySelector('tbody');
+      if (tbody) tbody.classList.add('is-loading');
+
+      if (inflight) inflight.abort();
+      const controller = new AbortController();
+      inflight = controller;
+
+      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: controller.signal })
+        .then((res) => res.text())
+        .then((html) => {
+          applyHtml(html, restoreFocus);
+          window.history.replaceState({}, '', url);
+        })
+        .catch((err) => { if (err.name !== 'AbortError') console.error('Search error:', err); })
+        .finally(() => {
+          if (inflight === controller) inflight = null;
+          const sp = getSpinner();
+          if (sp) sp.classList.remove('show');
+        });
+    }
+
+    function scheduleSearch(immediate) {
+      const input = getInput();
+      if (!input) return;
+      const q = input.value.trim();
+      if (q === lastQuery) return;
+      lastQuery = q;
+      if (timer) clearTimeout(timer);
+      const run = () => fetchAndReplace(buildUrl({ q: q || null }), true);
+      if (immediate) run();
+      else timer = setTimeout(run, DEBOUNCE_MS);
+    }
+
+    function clearSearch() {
+      const input = getInput();
+      if (!input) return;
+      input.value = '';
+      input.focus();
+      scheduleSearch(true);
+    }
+
+    document.addEventListener('input', function (e) {
+      if (e.target && e.target.id === 'attSearchInput') scheduleSearch(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (!e.target || e.target.id !== 'attSearchInput') return;
+      if (e.key === 'Escape') { e.preventDefault(); clearSearch(); }
+      else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (timer) clearTimeout(timer);
+        scheduleSearch(true);
+      }
+    });
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('#attSearchClear')) {
+        e.preventDefault();
+        clearSearch();
+      }
+    });
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.id === 'attPerPage') {
+        fetchAndReplace(buildUrl({ per_page: e.target.value }), false);
+      }
+    });
+
+    // Take Attendance → subject picker modal
+    var takeBtn = document.getElementById('attTakeBtn');
+    var modal   = document.getElementById('attSubjectModal');
+    var filter  = document.getElementById('attSubjectFilter');
+    var listEl  = document.getElementById('attSubjectList');
+    var emptyEl = document.getElementById('attSubjectEmpty');
+
+    // Move the modal up to <body> so it can escape any animated /
+    // transformed ancestor (e.g. .page-content's fadeUp). Otherwise
+    // `position: fixed` gets scoped to the nearest transformed parent,
+    // which makes the backdrop cover only the main content area and
+    // pins the modal card in the corner of the column.
+    if (modal && modal.parentNode !== document.body) {
+      document.body.appendChild(modal);
+    }
+
+    function openModal() {
+      if (!modal) return;
+      modal.classList.add('is-open');
+      modal.removeAttribute('hidden');
+      document.body.style.overflow = 'hidden';
+      if (filter) { filter.value = ''; applyFilter(''); setTimeout(function () { filter.focus(); }, 30); }
+    }
+    function closeModal() {
+      if (!modal) return;
+      modal.classList.remove('is-open');
+      modal.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+    }
+    function applyFilter(q) {
+      if (!listEl) return;
+      var query = (q || '').trim().toLowerCase();
+      var items = listEl.querySelectorAll('.att-subj-item');
+      var visible = 0;
+      items.forEach(function (item) {
+        var name = item.getAttribute('data-subj-name') || '';
+        var match = !query || name.indexOf(query) !== -1;
+        item.style.display = match ? '' : 'none';
+        if (match) visible++;
+      });
+      if (emptyEl) emptyEl.style.display = (visible === 0 && items.length > 0) ? '' : 'none';
+    }
+
+    if (takeBtn) takeBtn.addEventListener('click', openModal);
+    if (modal) {
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal || e.target.closest('[data-att-modal-close]')) closeModal();
+      });
+    }
+    if (filter) filter.addEventListener('input', function () { applyFilter(filter.value); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal && modal.classList.contains('is-open')) closeModal();
+    });
+
+    // ── Inline edit attendance ────────────────────────────────
+    var editModal   = document.getElementById('attEditModal');
+    var editStatus  = document.getElementById('attEditStatus');
+    var editRemark  = document.getElementById('attEditRemark');
+    var editSub     = document.getElementById('attEditModalSub');
+    var editError   = document.getElementById('attEditError');
+    var editSave    = document.getElementById('attEditSave');
+    var currentEditId = null;
+
+    if (editModal && editModal.parentNode !== document.body) document.body.appendChild(editModal);
+
+    function getCsrf() {
+      var el = document.querySelector('input[name=csrfmiddlewaretoken]');
+      return el ? el.value : '';
+    }
+    function openEdit(btn) {
+      currentEditId = btn.getAttribute('data-att-id');
+      editSub.textContent = btn.getAttribute('data-att-student') + ' · ' +
+                            btn.getAttribute('data-att-subject') + ' · ' +
+                            btn.getAttribute('data-att-date');
+      if (editStatus) editStatus.value = btn.getAttribute('data-att-status-id') || '';
+      if (editRemark) editRemark.value = btn.getAttribute('data-att-remark') || '';
+      if (editError) { editError.style.display = 'none'; editError.textContent = ''; }
+      editModal.classList.add('is-open');
+      editModal.removeAttribute('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeEdit() {
+      if (!editModal) return;
+      editModal.classList.remove('is-open');
+      editModal.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+      currentEditId = null;
+    }
+    function statusClass(label) {
+      var l = (label || '').toLowerCase();
+      if (l.indexOf('present') !== -1) return 'att-status--present';
+      if (l.indexOf('absent')  !== -1) return 'att-status--absent';
+      if (l.indexOf('late')    !== -1 || l.indexOf('tardy') !== -1) return 'att-status--late';
+      if (l.indexOf('excus')   !== -1) return 'att-status--excused';
+      return '';
+    }
+    function saveEdit() {
+      if (!currentEditId) return;
+      var fd = new FormData();
+      fd.append('status_id', editStatus.value);
+      fd.append('remark', editRemark.value);
+      editSave.disabled = true;
+      var updateUrl = '{% url "update_attendance_status" 0 %}'.replace(/\/0\/$/, '/' + currentEditId + '/');
+      fetch(updateUrl, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd,
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+        .then(function (res) {
+          if (!res.ok || !res.data.success) throw new Error(res.data.error || 'Update failed');
+          // Patch the row's status cell in place.
+          var row = document.querySelector('tr[data-att-row="' + currentEditId + '"]');
+          if (row) {
+            var cell = row.querySelector('[data-att-status-cell]');
+            if (cell) {
+              cell.innerHTML = '<span class="att-status ' + statusClass(res.data.status) + '">' +
+                               (res.data.status || '—') + '</span>';
+            }
+            var btn = row.querySelector('[data-att-edit]');
+            if (btn) {
+              btn.setAttribute('data-att-status-id', editStatus.value);
+              btn.setAttribute('data-att-remark', editRemark.value);
+            }
+          }
+          closeEdit();
+        })
+        .catch(function (err) {
+          if (editError) { editError.textContent = err.message; editError.style.display = ''; }
+        })
+        .finally(function () { editSave.disabled = false; });
+    }
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-att-edit]');
+      if (btn) { e.preventDefault(); openEdit(btn); return; }
+      if (e.target.closest && e.target.closest('[data-att-edit-close]')) { e.preventDefault(); closeEdit(); return; }
+      if (e.target === editModal) closeEdit();
+    });
+    if (editSave) editSave.addEventListener('click', saveEdit);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && editModal && editModal.classList.contains('is-open')) closeEdit();
+    });
+  })();
+</script>
+<script src="{% static 'js/tours/cl-tour-attendance-report.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,74 @@
+  .imp-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 18px; }
+  @media (max-width: 1024px) { .imp-grid { grid-template-columns: 1fr; } }
+
+  .imp-drop {
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--cream);
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  .imp-drop:hover, .imp-drop.dragover {
+    border-color: var(--brand-primary, #b7925a);
+    background: var(--brand-primary-soft);
+  }
+  .imp-drop i { font-size: 40px; color: var(--brand-primary, #b7925a); display: block; margin-bottom: 12px; }
+  .imp-drop-title { font-family: var(--display); font-size: 18px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+  .imp-drop-sub { font-family: var(--display); font-style: italic; font-size: 13px; color: var(--ink-dim); }
+  .imp-drop input[type="file"] { display: none; }
+  .imp-file-name {
+    margin-top: 14px;
+    padding: 9px 14px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--ink);
+    display: none;
+    text-align: left;
+  }
+  .imp-file-name.show { display: flex; align-items: center; gap: 8px; }
+  .imp-file-name i { color: var(--ink); }
+
+  .imp-side {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+  }
+  .imp-side h3 {
+    font-family: var(--display); font-size: 15px; font-weight: 500;
+    color: var(--ink); margin: 0 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .imp-side h3 i { color: var(--brand-primary, #b7925a); }
+  .imp-side ul { list-style: none; padding: 0; margin: 0; }
+  .imp-side li {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 7px 0;
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .imp-side li i { color: var(--ink); margin-top: 3px; flex-shrink: 0; }
+
+  .imp-template-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 14px;
+    padding: 10px 16px;
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    text-decoration: none;
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s ease;
+  }
+  .imp-template-link:hover { background: var(--paper); border-color: var(--brand-primary, #b7925a); transform: translateY(-1px); }

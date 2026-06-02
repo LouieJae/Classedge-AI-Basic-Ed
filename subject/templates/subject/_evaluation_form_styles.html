@@ -1,0 +1,342 @@
+{% comment %}
+  Shared styles for the teacher-evaluation form pages
+  (create/update_evaluation_question, create/update_teacher_evaluation).
+  Class prefix: .evf-
+{% endcomment %}
+<style>
+  .evf-page { animation: evfFade 0.5s ease both; }
+  @keyframes evfFade { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+
+  .evf-card {
+    background: var(--paper);
+    border: 1px solid var(--cream-2);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.03);
+  }
+  .evf-card-head {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--cream-2);
+    background: var(--cream-2);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .evf-card-title {
+    font-family: var(--display);
+    font-size: 17px; font-weight: 500;
+    color: var(--ink); margin: 0;
+    letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .evf-card-title em { color: var(--brand-primary, #b7925a); font-style: italic; font-weight: 400; }
+  .evf-card-title i { color: var(--brand-primary, #b7925a); }
+  .evf-card-body { padding: 26px 28px; display: flex; flex-direction: column; gap: 18px; }
+
+  .evf-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+  @media (max-width: 760px) { .evf-grid { grid-template-columns: 1fr; } }
+
+  .evf-field { display: flex; flex-direction: column; gap: 6px; }
+  .evf-field label,
+  .evf-field .form-label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin: 0;
+  }
+  .evf-field input[type="text"],
+  .evf-field input[type="email"],
+  .evf-field input[type="number"],
+  .evf-field select,
+  .evf-field textarea,
+  .evf-field .form-control,
+  .evf-field .form-select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 13.5px;
+    transition: all .15s ease;
+  }
+  .evf-field textarea { min-height: 100px; resize: vertical; }
+  .evf-field input:focus,
+  .evf-field select:focus,
+  .evf-field textarea:focus,
+  .evf-field .form-control:focus,
+  .evf-field .form-select:focus {
+    outline: none;
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+
+  /* Multi-select question pickers */
+  .evf-field select[multiple] {
+    min-height: 200px;
+    padding: 10px;
+    background: var(--paper);
+  }
+  .evf-field select[multiple] option {
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    color: var(--ink);
+    font-size: 13px;
+  }
+  .evf-field select[multiple] option:checked {
+    background: var(--brand-primary, #b7925a) linear-gradient(0deg, var(--ink), var(--ink));
+    color: var(--cream);
+  }
+
+  /* Toggle card (used for is_active / is_visible booleans) */
+  .evf-toggle-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 18px !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: 12px !important;
+    background: var(--paper) !important;
+    cursor: pointer;
+    transition: all .18s ease;
+    margin: 0 !important;
+    position: relative; overflow: hidden;
+  }
+  .evf-toggle-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--brand-primary, #b7925a);
+    opacity: 0.4;
+    transition: opacity .18s ease;
+  }
+  .evf-toggle-card:hover { border-color: var(--brand-primary, #b7925a) !important; }
+  .evf-toggle-card:hover::before { opacity: 1; }
+  .evf-toggle-card input[type="checkbox"] {
+    width: 20px !important; height: 20px !important;
+    border: 2px solid var(--border-strong);
+    border-radius: 6px;
+    accent-color: var(--ink);
+    cursor: pointer;
+    margin: 0 !important;
+    flex-shrink: 0;
+    order: 2; margin-left: auto !important;
+  }
+  .evf-toggle-card .evf-toggle-body {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .evf-toggle-card label,
+  .evf-toggle-card .evf-toggle-body > label {
+    margin: 0 !important;
+    font-family: var(--display) !important;
+    font-size: 14.5px !important;
+    font-weight: 500 !important;
+    color: var(--ink) !important;
+    text-transform: none !important;
+    letter-spacing: -0.005em !important;
+    cursor: pointer;
+  }
+  .evf-toggle-desc {
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    line-height: 1.4;
+  }
+  .evf-toggle-card:has(input[type="checkbox"]:checked) {
+    border-color: var(--brand-primary, #b7925a) !important;
+    background: var(--brand-primary-soft) !important;
+  }
+  .evf-toggle-card:has(input[type="checkbox"]:checked)::before { background: var(--brand-primary, #b7925a); opacity: 1; }
+
+  /* ── Question picker (checkbox-card list) ─────────────────────── */
+  .evf-q-picker {
+    border: 1px solid var(--cream-2);
+    border-radius: 12px;
+    background: var(--paper);
+    overflow: hidden;
+  }
+  .evf-q-toolbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: var(--cream);
+    border-bottom: 1px solid var(--cream-2);
+    flex-wrap: wrap;
+  }
+  .evf-q-search { position: relative; flex: 1; min-width: 200px; }
+  .evf-q-search input {
+    width: 100%;
+    padding: 9px 12px 9px 36px !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-sm) !important;
+    background: var(--paper) !important;
+    color: var(--ink) !important;
+    font-size: 13px !important;
+    font-family: var(--body) !important;
+  }
+  .evf-q-search input:focus {
+    outline: none !important;
+    border-color: var(--brand-primary, #b7925a) !important;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+  }
+  .evf-q-search i {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-muted); font-size: 12px; pointer-events: none;
+  }
+  .evf-q-quickactions { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .evf-q-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    background: var(--paper);
+    color: var(--ink-dim);
+    font-family: var(--body);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .evf-q-chip:hover { background: var(--cream-2); color: var(--ink); border-color: var(--brand-primary, #b7925a); }
+
+  .evf-q-list {
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .evf-q-list::-webkit-scrollbar { width: 6px; }
+  .evf-q-list::-webkit-scrollbar-thumb { background: var(--cream-2); border-radius: 4px; }
+
+  .evf-q-card {
+    display: grid;
+    grid-template-columns: auto 36px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1.5px solid var(--cream-2);
+    border-radius: 10px;
+    background: var(--paper);
+    cursor: pointer;
+    transition: all .15s ease;
+    margin: 0 !important;
+    position: relative;
+    overflow: hidden;
+  }
+  .evf-q-card::before {
+    content: ""; position: absolute;
+    left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--brand-primary, #b7925a);
+    opacity: 0;
+    transition: opacity .15s ease;
+  }
+  .evf-q-card:hover { border-color: var(--brand-primary, #b7925a); transform: translateX(2px); }
+  .evf-q-card:hover::before { opacity: 0.5; }
+  .evf-q-card input[type="checkbox"] {
+    appearance: none;
+    width: 20px; height: 20px;
+    border: 2px solid var(--border-strong);
+    border-radius: 5px;
+    background: var(--paper);
+    cursor: pointer;
+    position: relative;
+    transition: all .15s ease;
+    margin: 0;
+    flex-shrink: 0;
+  }
+  .evf-q-card input[type="checkbox"]:checked {
+    background: var(--brand-primary, #b7925a);
+    border-color: var(--brand-primary, #b7925a);
+  }
+  .evf-q-card input[type="checkbox"]:checked::after {
+    content: "✓";
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    color: var(--cream);
+    font-size: 12px; font-weight: 700; line-height: 1;
+  }
+  .evf-q-num {
+    display: inline-grid; place-items: center;
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--cream-2);
+    color: var(--ink-dim);
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    flex-shrink: 0;
+  }
+  .evf-q-text {
+    color: var(--ink);
+    font-size: 13.5px;
+    line-height: 1.45;
+    font-family: var(--body);
+  }
+  .evf-q-card-status {
+    color: var(--ink-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .evf-q-card:has(input[type="checkbox"]:checked) {
+    border-color: var(--brand-primary, #b7925a);
+    background: var(--brand-primary-soft);
+  }
+  .evf-q-card:has(input[type="checkbox"]:checked)::before { background: var(--brand-primary, #b7925a); opacity: 1; }
+  .evf-q-card:has(input[type="checkbox"]:checked) .evf-q-num {
+    background: var(--brand-primary, #b7925a); color: var(--cream);
+  }
+  .evf-q-card:has(input[type="checkbox"]:checked) .evf-q-card-status {
+    color: var(--ink);
+  }
+
+  .evf-q-empty {
+    padding: 30px 16px;
+    text-align: center;
+    color: var(--ink-muted);
+    font-style: italic;
+    font-family: var(--display);
+    font-size: 13px;
+  }
+  .evf-q-summary {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+    padding: 10px 14px;
+    background: var(--cream);
+    border-top: 1px solid var(--cream-2);
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+  .evf-q-summary strong {
+    color: var(--ink); font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .evf-q-summary .evf-q-error {
+    color: var(--rose-deep); font-style: italic; font-size: 12px;
+  }
+
+  .evf-actions {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    padding: 18px 28px;
+    border-top: 1px solid var(--cream-2);
+    background: var(--cream);
+  }
+  .evf-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-family: var(--body); font-size: 13px; font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--border-strong);
+    background: var(--paper); color: var(--ink-dim);
+    cursor: pointer; transition: all 0.18s ease;
+  }
+  .evf-btn:hover { transform: translateY(-1px); }
+  .evf-btn.primary { background: var(--brand-primary, #b7925a); color: var(--cream); border-color: var(--brand-primary, #b7925a); }
+  .evf-btn.primary:hover { background: var(--brand-primary, #b7925a); border-color: var(--brand-primary, #b7925a); }
+</style>

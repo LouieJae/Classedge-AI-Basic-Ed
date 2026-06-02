@@ -1,0 +1,30 @@
+{% extends "accounts/interface/_auth_shell.html" %}
+
+{% block title %}Forgot password · {{ SCHOOL_NAME }}{% endblock %}
+
+{% block brand_eyebrow %}Account · Recovery{% endblock %}
+{% block brand_headline %}Reset your <em>password</em>.{% endblock %}
+{% block brand_sub %}Enter the email tied to your account and we'll send a one-time code to verify it's you.{% endblock %}
+
+{% block form_panel %}
+  <span class="form-eyebrow">Step 1 of 3</span>
+  <h2 class="form-title">Forgot <em>password</em>?</h2>
+  <p class="form-greet">Tell us your school email and we'll send a 6-digit code to it.</p>
+
+  <form method="POST" action="">
+    {% csrf_token %}
+
+    <div class="field">
+      <label for="email">Email address</label>
+      <input type="email" id="email" name="email" placeholder="you@school.edu" required autocomplete="email" autofocus>
+    </div>
+
+    <button type="submit" class="btn-submit">
+      <i class="fas fa-paper-plane"></i> Send OTP
+    </button>
+  </form>
+
+  <a href="{% url 'admin_login_view' %}" class="sub-link">
+    Remembered it? <strong>Back to login</strong>
+  </a>
+{% endblock %}

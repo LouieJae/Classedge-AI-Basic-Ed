@@ -1,0 +1,480 @@
+{% extends is_student_role|yesno:"student_base.html,base_operation.html" %}
+{% load static %}
+
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'course/attendance/student_subject_attendance.css' %}" />
+{% endblock %}
+
+{% block title %}Attendance — {{ student.profile.last_name }}, {{ student.profile.first_name }}{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="ssa-shell">
+
+  <!-- Hero -->
+  <div class="ssa-hero">
+    <div>
+      <div class="ssa-hero-meta"><span class="dot"></span> Student attendance · {{ subject.subject_name }}</div>
+      <div class="ssa-id">
+        <span class="ssa-avatar">
+          {{ student.first_name|slice:":1"|upper }}{{ student.last_name|slice:":1"|upper }}
+        </span>
+        <span class="ssa-id-meta">
+          <span class="ssa-id-name">{{ student.last_name }}, {{ student.first_name }}</span>
+          <span class="ssa-id-sub">
+            {% if student.username %}{{ student.username }} · {% endif %}
+            {% if selected_semester %}{{ selected_semester.semester_name }} ({{ selected_semester.start_date|date:"M d, Y" }} – {{ selected_semester.end_date|date:"M d, Y" }}){% else %}All semesters{% endif %}
+          </span>
+        </span>
+      </div>
+    </div>
+    <div class="ssa-hero-actions">
+      <a href="{% url 'attendance-report' %}" class="ssa-btn ssa-btn--ghost">
+        <i class="fas fa-arrow-left"></i> Back to roster
+      </a>
+    </div>
+  </div>
+
+  {% if messages %}
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+      {% for message in messages %}
+        <div style="padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;
+                    background: {% if 'success' in message.tags %}var(--brand-primary-soft){% elif 'error' in message.tags %}var(--rose-soft){% else %}var(--cream-2){% endif %};
+                    color: {% if 'success' in message.tags %}var(--ink){% elif 'error' in message.tags %}var(--rose){% else %}var(--ink-dim){% endif %};">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Summary stats -->
+  {% if status_counts %}
+    <div class="ssa-stats">
+      <div class="ssa-stat ssa-stat--total">
+        <div class="ssa-stat-label"><i class="fas fa-database"></i> Total</div>
+        <div class="ssa-stat-value">{{ attendance_rows|length }}</div>
+        <div class="ssa-stat-sub">{{ total_points }} graded pt{{ total_points|pluralize }}</div>
+      </div>
+      {% for row in status_counts %}
+        {% with sl=row.status__status|lower %}
+          <div class="ssa-stat {% if 'present' in sl %}ssa-stat--present{% elif 'absent' in sl %}ssa-stat--absent{% elif 'late' in sl or 'tardy' in sl %}ssa-stat--late{% elif 'excus' in sl %}ssa-stat--excused{% endif %}">
+            <div class="ssa-stat-label">
+              <i class="fas {% if 'present' in sl %}fa-circle-check{% elif 'absent' in sl %}fa-circle-xmark{% elif 'late' in sl or 'tardy' in sl %}fa-clock{% elif 'excus' in sl %}fa-circle-info{% else %}fa-circle{% endif %}"></i>
+              {{ row.status__status }}
+            </div>
+            <div class="ssa-stat-value">{{ row.total }}</div>
+            <div class="ssa-stat-sub">record{{ row.total|pluralize }}</div>
+          </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Toolbar -->
+  <div class="ssa-toolbar">
+    <form method="get">
+      {% if selected_semester %}<input type="hidden" name="semester" value="{{ selected_semester.id }}">{% endif %}
+      <input type="hidden" name="view" value="{{ view_mode }}">
+      <input type="month" name="month" value="{{ year }}-{{ month|stringformat:'02d' }}">
+      <button type="submit" class="ssa-btn ssa-btn--primary">
+        <i class="fas fa-calendar-day"></i> Go
+      </button>
+    </form>
+
+    <div class="ssa-seg">
+      <a href="?{% if selected_semester %}semester={{selected_semester.id}}&{% endif %}view=calendar&month={{ year }}-{{ month|stringformat:'02d' }}"
+         class="{% if view_mode == 'calendar' %}is-active{% endif %}">
+        <i class="fas fa-calendar"></i> Calendar
+      </a>
+      <a href="?{% if selected_semester %}semester={{selected_semester.id}}&{% endif %}view=table"
+         class="{% if view_mode != 'calendar' %}is-active{% endif %}">
+        <i class="fas fa-table-list"></i> Table
+      </a>
+    </div>
+
+    <div class="ssa-spacer"></div>
+
+    <button type="button" class="ssa-btn ssa-btn--primary" data-ssa-export-open>
+      <i class="fas fa-file-export"></i> Export
+    </button>
+  </div>
+
+  {% if view_mode == 'calendar' %}
+    <div class="ssa-card">
+      <div class="ssa-card-head">
+        <div>
+          <h2 class="ssa-card-title">{{ month_name }} <em>{{ year }}</em></h2>
+          <div class="ssa-card-sub">Click any day with a record to edit it.</div>
+        </div>
+      </div>
+      <div class="ssa-cal-wrap">
+        <table class="ssa-cal">
+          <thead>
+            <tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
+          </thead>
+          <tbody>
+            {% for week in weeks %}
+              <tr>
+                {% for cell in week %}
+                  {% with sl=cell.label|lower %}
+                  <td class="{% if not cell.in_month %}is-out{% endif %} {% if cell.rec %}has-rec{% endif %}"
+                      {% if cell.rec %}
+                        style="cursor:pointer;"
+                        data-ssa-edit
+                        data-att-id="{{ cell.rec.id }}"
+                        data-att-status-id="{{ cell.rec.status.id|default:'' }}"
+                        data-att-status-label="{{ cell.label }}"
+                        data-att-remark="{{ cell.rec.remark|default:'' }}"
+                        data-att-date="{{ cell.date|date:'M j, Y' }}"
+                      {% endif %}>
+                    <div class="ssa-day-n">
+                      <span>{{ cell.date.day }}</span>
+                    </div>
+                    {% if cell.rec %}
+                      <span class="ssa-pill
+                        {% if 'present' in sl %}ssa-pill--present
+                        {% elif 'absent' in sl %}ssa-pill--absent
+                        {% elif 'late' in sl or 'tardy' in sl %}ssa-pill--late
+                        {% elif 'excus' in sl %}ssa-pill--excused
+                        {% endif %}">{{ cell.label }}</span>
+                      {% if cell.rec.remark %}
+                        <div class="ssa-remark" title="{{ cell.rec.remark }}">{{ cell.rec.remark|truncatechars:36 }}</div>
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                  {% endwith %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="ssa-legend">
+        <strong style="font-family:var(--display);color:var(--ink);font-weight:500;">Legend:</strong>
+        <span class="ssa-pill ssa-pill--present">Present</span>
+        <span class="ssa-pill ssa-pill--absent">Absent</span>
+        <span class="ssa-pill ssa-pill--late">Late</span>
+        <span class="ssa-pill ssa-pill--excused">Excused</span>
+      </div>
+    </div>
+
+  {% else %}
+    <div class="ssa-card">
+      <div class="ssa-card-head">
+        <div>
+          <h2 class="ssa-card-title">Attendance <em>records</em></h2>
+          <div class="ssa-card-sub">{{ attendance_rows|length }} record{{ attendance_rows|length|pluralize }}</div>
+        </div>
+      </div>
+
+      {% if attendance_rows %}
+        <div class="ssa-table-wrap">
+          <table class="ssa-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Remark</th>
+                <th>Graded</th>
+                <th>Points</th>
+                <th>Marked By</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rec, pts in attendance_rows %}
+                {% with sl=rec.status.status|lower %}
+                <tr data-att-row="{{ rec.id }}">
+                  <td style="white-space:nowrap;">{{ rec.date|date:"M j, Y" }}<br><small style="color:var(--ink-muted);font-style:italic;">{{ rec.date|date:"l" }}</small></td>
+                  <td data-att-status-cell>
+                    {% if rec.status %}
+                      <span class="ssa-pill
+                        {% if 'present' in sl %}ssa-pill--present
+                        {% elif 'absent' in sl %}ssa-pill--absent
+                        {% elif 'late' in sl or 'tardy' in sl %}ssa-pill--late
+                        {% elif 'excus' in sl %}ssa-pill--excused
+                        {% endif %}">{{ rec.status.status }}</span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td style="color:var(--ink-dim);">{{ rec.remark|default_if_none:"—"|default:"—" }}</td>
+                  <td>
+                    {% if rec.graded %}
+                      <span class="ssa-pill ssa-pill--present">Yes</span>
+                    {% else %}
+                      <span class="ssa-pill">No</span>
+                    {% endif %}
+                  </td>
+                  <td><strong>{{ pts }}</strong></td>
+                  <td style="color:var(--ink-dim);">{% if rec.teacher %}{{ rec.teacher.last_name }}, {{ rec.teacher.first_name }}{% else %}—{% endif %}</td>
+                  <td style="text-align:right;white-space:nowrap;">
+                    <button type="button" class="ssa-btn ssa-btn--icon"
+                            data-ssa-edit
+                            data-att-id="{{ rec.id }}"
+                            data-att-status-id="{{ rec.status.id|default:'' }}"
+                            data-att-status-label="{{ rec.status.status|default:'' }}"
+                            data-att-remark="{{ rec.remark|default:'' }}"
+                            data-att-date="{{ rec.date|date:'M j, Y' }}"
+                            title="Edit">
+                      <i class="fas fa-pen"></i>
+                    </button>
+                    <button type="button" class="ssa-btn ssa-btn--icon ssa-btn--danger"
+                            data-ssa-delete
+                            data-att-id="{{ rec.id }}"
+                            title="Delete">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if total_points %}
+          <div class="ssa-card-foot">
+            <strong>Total Graded Points: <em>{{ total_points }}</em></strong>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="ssa-empty">
+          <div class="ico"><i class="fas fa-clipboard-list"></i></div>
+          <div class="lead">No attendance records</div>
+          <div class="sub">Records will appear here once attendance is taken for this student.</div>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+<!-- Export Modal -->
+<div id="ssaExportModal" class="ssa-modal-backdrop" role="dialog" aria-modal="true" hidden>
+  <div class="ssa-modal">
+    <div class="ssa-modal-head">
+      <div>
+        <h2 class="ssa-modal-title">Export <em>attendance</em></h2>
+        <div class="ssa-modal-sub">{{ student.get_full_name }} · {{ subject.subject_name }}</div>
+      </div>
+      <button type="button" class="ssa-modal-close" data-ssa-modal-close><i class="fas fa-times"></i></button>
+    </div>
+    <form id="ssaExportForm" method="GET" action="{% url 'export_student_attendance' subject.id student.id %}">
+      <div class="ssa-modal-body">
+        {% if selected_semester %}<input type="hidden" name="semester" value="{{ selected_semester.id }}">{% endif %}
+        <div class="ssa-field">
+          <label for="ssaStart">Start date</label>
+          <input type="date" id="ssaStart" name="start_date" required>
+        </div>
+        <div class="ssa-field">
+          <label for="ssaEnd">End date</label>
+          <input type="date" id="ssaEnd" name="end_date" required>
+        </div>
+        <div style="color:var(--ink-muted);font-size:12px;font-style:italic;">
+          <i class="fas fa-circle-info"></i> Includes student, subject, semester, and attendance for the selected range.
+        </div>
+      </div>
+      <div class="ssa-modal-foot">
+        <button type="button" class="ssa-btn" data-ssa-modal-close>Cancel</button>
+        <button type="submit" class="ssa-btn ssa-btn--primary"><i class="fas fa-download"></i> Export</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="ssaEditModal" class="ssa-modal-backdrop" role="dialog" aria-modal="true" hidden>
+  <div class="ssa-modal">
+    <div class="ssa-modal-head">
+      <div>
+        <h2 class="ssa-modal-title">Edit <em>attendance</em></h2>
+        <div class="ssa-modal-sub" id="ssaEditSub"></div>
+      </div>
+      <button type="button" class="ssa-modal-close" data-ssa-modal-close><i class="fas fa-times"></i></button>
+    </div>
+    <div class="ssa-modal-body">
+      <div class="ssa-field">
+        <label for="ssaEditStatus">Status</label>
+        <select id="ssaEditStatus"></select>
+      </div>
+      <div class="ssa-field">
+        <label for="ssaEditRemark">Remark (optional)</label>
+        <textarea id="ssaEditRemark" rows="3"></textarea>
+      </div>
+      <div class="ssa-modal-error" id="ssaEditError"></div>
+    </div>
+    <div class="ssa-modal-foot">
+      <button type="button" class="ssa-btn" data-ssa-modal-close>Cancel</button>
+      <button type="button" class="ssa-btn ssa-btn--primary" id="ssaEditSave"><i class="fas fa-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function getCsrf() {
+    var el = document.querySelector('input[name=csrfmiddlewaretoken]');
+    if (el) return el.value;
+    var m = document.cookie.split('; ').find(function (r) { return r.indexOf('csrftoken=') === 0; });
+    return m ? m.split('=')[1] : '';
+  }
+  function openModal(id) {
+    var m = document.getElementById(id); if (!m) return;
+    if (m.parentNode !== document.body) document.body.appendChild(m);
+    m.classList.add('is-open'); m.removeAttribute('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(id) {
+    var m = document.getElementById(id); if (!m) return;
+    m.classList.remove('is-open'); m.setAttribute('hidden', '');
+    document.body.style.overflow = '';
+  }
+  function closeAny() {
+    ['ssaExportModal','ssaEditModal'].forEach(closeModal);
+  }
+
+  // Export modal default dates
+  var startEl = document.getElementById('ssaStart');
+  var endEl   = document.getElementById('ssaEnd');
+  function fmt(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  {% if selected_semester %}
+    var semStart = new Date('{{ selected_semester.start_date|date:"Y-m-d" }}');
+    var semEnd   = new Date('{{ selected_semester.end_date|date:"Y-m-d" }}');
+    var today    = new Date();
+    if (startEl) startEl.value = fmt(semStart);
+    if (endEl)   endEl.value   = fmt(semEnd < today ? semEnd : today);
+  {% else %}
+    var today = new Date();
+    var prior = new Date(); prior.setDate(today.getDate() - 30);
+    if (startEl) startEl.value = fmt(prior);
+    if (endEl)   endEl.value   = fmt(today);
+  {% endif %}
+
+  var exportForm = document.getElementById('ssaExportForm');
+  if (exportForm) {
+    exportForm.addEventListener('submit', function (e) {
+      var s = new Date(startEl.value), en = new Date(endEl.value);
+      if (s > en) { e.preventDefault(); alert('Start date cannot be after end date.'); }
+    });
+  }
+
+  // Wire export open / global close
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('[data-ssa-export-open]')) { openModal('ssaExportModal'); return; }
+    if (e.target.closest && e.target.closest('[data-ssa-modal-close]')) { closeAny(); return; }
+    if (e.target.classList && e.target.classList.contains('ssa-modal-backdrop')) closeAny();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAny();
+  });
+
+  // ── Edit ───────────────────────────────────────────────
+  var editSel    = document.getElementById('ssaEditStatus');
+  var editRemark = document.getElementById('ssaEditRemark');
+  var editSub    = document.getElementById('ssaEditSub');
+  var editErr    = document.getElementById('ssaEditError');
+  var editSave   = document.getElementById('ssaEditSave');
+  var currentId  = null;
+  var statusesLoaded = false;
+
+  function loadStatuses(then) {
+    if (statusesLoaded) { if (then) then(); return; }
+    fetch('{% url "get_attendance_statuses" %}')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        editSel.innerHTML = '<option value="">— Select —</option>';
+        (data.statuses || []).forEach(function (s) {
+          var o = document.createElement('option');
+          o.value = s.id; o.textContent = s.status;
+          editSel.appendChild(o);
+        });
+        statusesLoaded = true;
+        if (then) then();
+      })
+      .catch(function () { if (then) then(); });
+  }
+
+  function openEdit(btn) {
+    currentId = btn.getAttribute('data-att-id');
+    editSub.textContent = btn.getAttribute('data-att-date') || '';
+    editRemark.value = btn.getAttribute('data-att-remark') || '';
+    editErr.style.display = 'none'; editErr.textContent = '';
+    loadStatuses(function () {
+      editSel.value = btn.getAttribute('data-att-status-id') || '';
+    });
+    openModal('ssaEditModal');
+  }
+
+  function statusClass(label) {
+    var l = (label || '').toLowerCase();
+    if (l.indexOf('present') !== -1) return 'ssa-pill--present';
+    if (l.indexOf('absent')  !== -1) return 'ssa-pill--absent';
+    if (l.indexOf('late')    !== -1 || l.indexOf('tardy') !== -1) return 'ssa-pill--late';
+    if (l.indexOf('excus')   !== -1) return 'ssa-pill--excused';
+    return '';
+  }
+
+  function saveEdit() {
+    if (!currentId) return;
+    if (!editSel.value) { editErr.textContent = 'Please select a status.'; editErr.style.display = ''; return; }
+    var fd = new FormData();
+    fd.append('status_id', editSel.value);
+    fd.append('remark', editRemark.value);
+    editSave.disabled = true;
+    fetch('/update_attendance_status/' + currentId + '/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+      body: fd,
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.data.success) throw new Error(res.data.error || 'Update failed');
+        // Patch in-place when possible (table view), else reload.
+        var row = document.querySelector('tr[data-att-row="' + currentId + '"]');
+        if (row) {
+          var cell = row.querySelector('[data-att-status-cell]');
+          if (cell) {
+            cell.innerHTML = '<span class="ssa-pill ' + statusClass(res.data.status) + '">' + (res.data.status || '—') + '</span>';
+          }
+          closeAny();
+        } else {
+          location.reload();
+        }
+      })
+      .catch(function (err) { editErr.textContent = err.message; editErr.style.display = ''; })
+      .finally(function () { editSave.disabled = false; });
+  }
+
+  if (editSave) editSave.addEventListener('click', saveEdit);
+
+  // Edit triggers (calendar cells + table buttons)
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('[data-ssa-edit]');
+    if (t) { e.preventDefault(); openEdit(t); }
+  });
+
+  // ── Delete ─────────────────────────────────────────────
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('[data-ssa-delete]');
+    if (!t) return;
+    e.preventDefault();
+    if (!confirm('Delete this attendance record? This cannot be undone.')) return;
+    var id = t.getAttribute('data-att-id');
+    fetch('/delete_attendance/' + id + '/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.success) {
+          var row = document.querySelector('tr[data-att-row="' + id + '"]');
+          if (row) row.parentNode.removeChild(row); else location.reload();
+        } else {
+          alert(d.error || 'Failed to delete.');
+        }
+      })
+      .catch(function () { alert('An error occurred while deleting.'); });
+  });
+})();
+</script>
+{% endblock %}

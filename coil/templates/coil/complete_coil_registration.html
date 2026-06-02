@@ -1,0 +1,265 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Complete COIL school registration</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    :root {
+      --paper: #ffffff;
+      --cream: #f7f2e7;
+      --cream-2: #efe7d3;
+      --ink: #1f2421;
+      --ink-dim: #5b5f5a;
+      --ink-muted: #8a8e88;
+      --forest: #1b4332;
+      --gold: #b7925a;
+      --rose-deep: #8a3741;
+      --rose-soft: rgba(196,80,90,0.10);
+      --border: #e5dfd1;
+      --border-strong: #d3cab4;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --shadow: 0 8px 28px rgba(31, 36, 33, 0.08);
+      --display: 'Fraunces', Georgia, serif;
+      --body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--body);
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, var(--brand-primary-soft), rgba(31,36,33,0.65)),
+        url("{% static 'assets/img/hccci-build.jpg' %}") no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+    }
+
+    .cc-shell {
+      width: 100%;
+      max-width: 560px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .cc-banner {
+      padding: 28px 32px 22px;
+      background: linear-gradient(135deg, var(--forest) 0%, #234d3d 60%, var(--gold) 160%);
+      color: var(--cream);
+    }
+    .cc-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(247,242,231,0.78);
+      margin-bottom: 8px;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .cc-eyebrow i { color: var(--gold); }
+    .cc-title {
+      font-family: var(--display);
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+    .cc-title em {
+      font-style: italic;
+      color: var(--gold);
+      font-weight: 500;
+    }
+    .cc-sub {
+      margin: 8px 0 0;
+      font-size: 13px;
+      color: rgba(247,242,231,0.82);
+      line-height: 1.5;
+    }
+
+    .cc-body { padding: 28px 32px 32px; }
+
+    .cc-field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .cc-field label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin: 0;
+    }
+    .cc-field label .req { color: var(--gold); margin-left: 2px; }
+
+    .cc-field input[type="text"],
+    .cc-field input[type="email"],
+    .cc-field input[type="number"],
+    .cc-field input[type="tel"],
+    .cc-field .form-control {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-family: var(--body);
+      font-size: 13.5px;
+      color: var(--ink);
+      background: var(--paper);
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .cc-field input:focus,
+    .cc-field .form-control:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-secondary, #b7925a) 18%, transparent);
+    }
+    .cc-field input[readonly] {
+      background: var(--cream);
+      color: var(--ink-dim);
+      cursor: not-allowed;
+    }
+    .cc-field .hint {
+      font-size: 11.5px;
+      color: var(--ink-muted);
+    }
+    .cc-field .errors {
+      font-size: 12px;
+      color: var(--rose-deep);
+    }
+
+    .cc-choices {
+      display: flex; flex-direction: column; gap: 10px;
+      margin-top: 4px;
+    }
+    .cc-choice {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--paper);
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    .cc-choice:hover { border-color: var(--forest); background: var(--cream); }
+    .cc-choice input[type="radio"] {
+      accent-color: var(--forest);
+      width: 16px; height: 16px;
+      margin: 0;
+    }
+    .cc-choice-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .cc-foot {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 18px;
+      margin-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .cc-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 22px;
+      border-radius: var(--radius-sm);
+      font-family: var(--body);
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--forest);
+      background: var(--forest);
+      color: var(--cream);
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    .cc-btn:hover {
+      background: var(--gold);
+      border-color: var(--gold);
+    }
+
+    .cc-meta {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      letter-spacing: 0.04em;
+    }
+    .cc-meta i { color: var(--gold); }
+  </style>
+</head>
+<body>
+
+<div class="cc-shell">
+
+  <header class="cc-banner">
+    <div class="cc-eyebrow"><i class="fas fa-handshake"></i> COIL invitation</div>
+    <h1 class="cc-title">Complete your <em>school registration</em></h1>
+    <p class="cc-sub">A few quick details and you're officially on the COIL partner roster.</p>
+  </header>
+
+  <div class="cc-body">
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="cc-field">
+        <label>School name</label>
+        <input type="text" class="form-control" value="{{ form.instance.school_name }}" readonly>
+      </div>
+
+      <div class="cc-field">
+        <label for="id_school_domain">School domain <span class="req">*</span></label>
+        {{ form.school_domain }}
+        {% if form.school_domain.errors %}<div class="errors">{{ form.school_domain.errors.0 }}</div>{% endif %}
+        <span class="hint">Your institution's email domain (e.g. <code>hccci.edu.ph</code>).</span>
+      </div>
+
+      <div class="cc-field">
+        <label for="id_student_participating">Student participant limit <span class="req">*</span></label>
+        {{ form.student_participating }}
+        {% if form.student_participating.errors %}<div class="errors">{{ form.student_participating.errors.0 }}</div>{% endif %}
+        <span class="hint">Maximum number of students you plan to enroll in COIL programs.</span>
+      </div>
+
+      <div class="cc-field">
+        <label>Do you accept the invitation?</label>
+        <div class="cc-choices">
+          {% for choice in form.status %}
+            <label class="cc-choice">
+              {{ choice.tag }}
+              <span class="cc-choice-label">{{ choice.choice_label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        {% if form.status.errors %}<div class="errors">{{ form.status.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="cc-foot">
+        <button type="submit" class="cc-btn">
+          <i class="fas fa-paper-plane"></i> Submit response
+        </button>
+      </div>
+    </form>
+
+    <div class="cc-meta">
+      <i class="fas fa-shield-halved"></i> Secure token-verified invite
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,88 @@
+{% extends "accounts/interface/_auth_shell.html" %}
+
+{% block title %}Verify OTP · {{ SCHOOL_NAME }}{% endblock %}
+
+{% block brand_eyebrow %}Account · Verify{% endblock %}
+{% block brand_headline %}Check your <em>email</em>.{% endblock %}
+{% block brand_sub %}We sent a one-time code to your school email. It's good for 10 minutes.{% endblock %}
+
+{% block form_panel %}
+  <span class="form-eyebrow">Step 2 of 3</span>
+  <h2 class="form-title">Verify <em>OTP</em></h2>
+  <p class="form-greet">Code sent to <strong>{{ email }}</strong>. Enter the 6 digits below.</p>
+
+  <form method="POST" action="" id="otp-form">
+    {% csrf_token %}
+
+    <div class="otp-grid">
+      <input type="text" class="otp-input" id="otp1" maxlength="1" pattern="[0-9]*" inputmode="numeric" required placeholder=" ">
+      <input type="text" class="otp-input" id="otp2" maxlength="1" pattern="[0-9]*" inputmode="numeric" required placeholder=" ">
+      <input type="text" class="otp-input" id="otp3" maxlength="1" pattern="[0-9]*" inputmode="numeric" required placeholder=" ">
+      <input type="text" class="otp-input" id="otp4" maxlength="1" pattern="[0-9]*" inputmode="numeric" required placeholder=" ">
+      <input type="text" class="otp-input" id="otp5" maxlength="1" pattern="[0-9]*" inputmode="numeric" required placeholder=" ">
+      <input type="text" class="otp-input" id="otp6" maxlength="1" pattern="[0-9]*" inputmode="numeric" required placeholder=" ">
+    </div>
+
+    <input type="hidden" name="otp" id="otp-value">
+
+    <button type="submit" class="btn-submit">
+      <i class="fas fa-shield-halved"></i> Verify code
+    </button>
+  </form>
+
+  <a href="{% url 'otp_reset' %}" class="sub-link">
+    Didn't get the code? <strong>Resend OTP</strong>
+  </a>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const inputs = document.querySelectorAll('.otp-input');
+      const form = document.getElementById('otp-form');
+      const hidden = document.getElementById('otp-value');
+
+      // Auto-advance
+      inputs.forEach((input, index) => {
+        input.addEventListener('input', function () {
+          this.value = this.value.replace(/[^0-9]/g, '');
+          if (this.value.length === 1 && index < inputs.length - 1) {
+            inputs[index + 1].focus();
+          }
+        });
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Backspace' && index > 0 && this.value === '') {
+            inputs[index - 1].focus();
+          }
+        });
+        input.addEventListener('paste', function (e) {
+          const text = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+          if (text.length >= inputs.length) {
+            e.preventDefault();
+            inputs.forEach((inp, i) => inp.value = text[i] || '');
+            inputs[inputs.length - 1].focus();
+          }
+        });
+      });
+
+      // Concatenate before submit
+      form.addEventListener('submit', function (e) {
+        let value = '';
+        inputs.forEach(input => value += input.value);
+        hidden.value = value;
+        if (value.length !== 6) {
+          e.preventDefault();
+          // Highlight any empty cells
+          inputs.forEach(input => {
+            if (!input.value) {
+              input.style.borderColor = 'var(--rose)';
+              input.style.boxShadow = '0 0 0 3px var(--rose-soft)';
+            }
+          });
+        }
+      });
+
+      if (inputs[0]) inputs[0].focus();
+    });
+  </script>
+{% endblock %}

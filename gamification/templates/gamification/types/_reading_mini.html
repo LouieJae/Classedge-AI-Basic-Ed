@@ -1,0 +1,23 @@
+{% comment %}Reading comprehension mini — included inside <form> by side_activity_play.html{% endcomment %}
+
+<div style="margin-bottom:2rem;padding:1.25rem;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;max-height:20rem;overflow-y:auto;">
+  <p style="font-size:1rem;color:var(--text);line-height:1.8;white-space:pre-line;">{{ content.passage }}</p>
+</div>
+
+{% for q in content.questions %}
+<div style="margin-bottom:2rem;padding-bottom:1.5rem;{% if not forloop.last %}border-bottom:1px solid var(--border);{% endif %}">
+  <p style="font-size:1.05rem;color:var(--text);line-height:1.6;margin-bottom:.75rem;">
+    <span style="color:var(--muted);font-weight:600;">Q{{ forloop.counter }}.</span> {{ q.question }}
+  </p>
+
+  <div style="display:flex;flex-direction:column;gap:.6rem;">
+    {% for choice in q.choices %}
+    <label style="display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--surface-2);transition:border-color .15s;">
+      <input type="radio" name="answer_{{ forloop.parentloop.counter0 }}" value="{{ forloop.counter0 }}"
+             style="accent-color:var(--primary);width:18px;height:18px;flex-shrink:0;" required>
+      <span style="color:var(--text);font-size:.95rem;">{{ choice }}</span>
+    </label>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}

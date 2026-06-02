@@ -1,0 +1,432 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Add Test Items · {{ activity.activity_name }}{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+  {% include "activity/assessments/_assessment-form-assets.html" %}
+{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'activity/question/create_quiz_type.css' %}" />
+
+<div class="activity-shell">
+
+  <a href="{% url 'material-list' id=subject.id %}" class="activity-back">
+    <i class="fas fa-arrow-left"></i> Back to my materials
+  </a>
+
+  <div class="activity-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      <h1 class="page-title">Add test <em>items</em></h1>
+      <div class="page-sub">
+        {{ subject.subject_code }} &middot; {{ subject.subject_name }}
+        <span style="opacity:0.5;">·</span>
+        <span class="fw-semibold" style="color: var(--ink);">{{ activity.activity_name }}</span>
+      </div>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="create-quiz-type">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <div class="form-grid">
+
+    <!-- ═══════════════════════ MAIN COLUMN ═══════════════════════ -->
+    <div class="form-main">
+
+      {% if not is_participation %}
+      <!-- Picker -->
+      <div class="form-card">
+        <div class="form-section">
+          <h3 class="form-section-title">Pick a question type</h3>
+
+          <span class="qc-picker-group-label">Auto-graded</span>
+          <div class="qc-picker-grid">
+            <button type="button" class="qc-picker-tile" data-add-type="Multiple Choice" aria-label="Add Multiple Choice question">
+              <span class="qc-tile-icon"><i class="fas fa-list-ul"></i></span>
+              <span class="qc-tile-body">
+                <span class="qc-tile-name">Multiple Choice</span>
+                <span class="qc-tile-desc">One correct option from a list.</span>
+              </span>
+            </button>
+            <button type="button" class="qc-picker-tile" data-add-type="True/False" aria-label="Add True / False question">
+              <span class="qc-tile-icon"><i class="fas fa-toggle-on"></i></span>
+              <span class="qc-tile-body">
+                <span class="qc-tile-name">True / False</span>
+                <span class="qc-tile-desc">Quick binary answer.</span>
+              </span>
+            </button>
+            <button type="button" class="qc-picker-tile" data-add-type="Fill in the Blank" aria-label="Add Fill in the Blank question">
+              <span class="qc-tile-icon"><i class="fas fa-keyboard"></i></span>
+              <span class="qc-tile-body">
+                <span class="qc-tile-name">Fill in the Blank</span>
+                <span class="qc-tile-desc">Short typed answer.</span>
+              </span>
+            </button>
+            <button type="button" class="qc-picker-tile" data-add-type="Matching Type" aria-label="Add Matching Type question">
+              <span class="qc-tile-icon"><i class="fas fa-link"></i></span>
+              <span class="qc-tile-body">
+                <span class="qc-tile-name">Matching Type</span>
+                <span class="qc-tile-desc">Pair items across two columns.</span>
+              </span>
+            </button>
+            <button type="button" class="qc-picker-tile" data-add-type="Calculated Numeric" aria-label="Add Calculated Numeric question">
+              <span class="qc-tile-icon"><i class="fas fa-calculator"></i></span>
+              <span class="qc-tile-body">
+                <span class="qc-tile-name">Calculated Numeric</span>
+                <span class="qc-tile-desc">Numeric / LaTeX answer.</span>
+              </span>
+            </button>
+          </div>
+
+          <span class="qc-picker-group-label">Manually graded</span>
+          <div class="qc-picker-grid is-manual">
+            <button type="button" class="qc-picker-tile" data-add-type="Essay" aria-label="Add Essay question">
+              <span class="qc-tile-icon"><i class="fas fa-align-left"></i></span>
+              <span class="qc-tile-body">
+                <span class="qc-tile-name">Essay</span>
+                <span class="qc-tile-desc">Open written response scored by rubric.</span>
+              </span>
+            </button>
+            <button type="button" class="qc-picker-tile" data-add-type="Document" aria-label="Add Document Upload question">
+              <span class="qc-tile-icon"><i class="fas fa-file-upload"></i></span>
+              <span class="qc-tile-body">
+                <span class="qc-tile-name">Document Upload</span>
+                <span class="qc-tile-desc">Students submit a file; rubric-scored.</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <!-- Major Assessment: single-tile picker -->
+      <div class="form-card">
+        <div class="form-section">
+          <h3 class="form-section-title">Major Assessment</h3>
+          <div class="qc-picker-grid is-manual">
+            <button type="button" class="qc-picker-tile" data-add-type="Participation" aria-label="Add Major Assessment">
+              <span class="qc-tile-icon"><i class="fas fa-users"></i></span>
+              <span class="qc-tile-body">
+                <span class="qc-tile-name">Major Assessment</span>
+                <span class="qc-tile-desc">Award points to each student.</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Question cards (filled by question-cards.js) -->
+      <div class="form-card">
+        <div class="form-section">
+          <h3 class="form-section-title">Your test items</h3>
+
+          <div id="question-cards"></div>
+
+          {% if not is_participation %}
+          <div class="qc-empty">
+            <div class="qc-empty-icon"><i class="fas fa-pen-to-square"></i></div>
+            <div class="qc-empty-title">No questions yet</div>
+            <div class="qc-empty-help">
+              Click a question type above, or use the Add button below.
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="qc-add-row">
+            <button type="button" id="add-question-btn" class="btn-pill primary"
+                    data-bs-toggle="tooltip" title="Add question (Ctrl+Enter)">
+              <i class="fas fa-plus"></i> Add question
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════ SIDE COLUMN ═══════════════════════ -->
+    <div class="form-side">
+
+      <!-- Progress -->
+      <div class="form-card">
+        <div class="form-section">
+          <h3 class="form-section-title">Progress</h3>
+
+          {% if show_exact_badge %}
+            <div id="points-side-stat"
+                 class="qc-side-stat {% if total_points == expected_total %}is-on-target{% elif total_points > expected_total %}is-over{% else %}is-under{% endif %}">
+              <span class="qc-stat-label">Points</span>
+              <span>
+                <span class="qc-stat-value"><span id="total-points-display">{{ total_points }}</span></span>
+                <span class="qc-stat-target">/ {{ expected_total }}</span>
+              </span>
+            </div>
+          {% endif %}
+
+          <div class="qc-side-stat">
+            <span class="qc-stat-label">Questions</span>
+            <span class="qc-stat-value"><span id="question-count-display">{{ questions|length }}</span></span>
+          </div>
+
+          <!-- Hidden span the question-cards.js script can also update if it
+               targets the original ID — keeps backwards compat. -->
+          <span id="points-badge" hidden>{{ total_points }}</span>
+        </div>
+      </div>
+
+      <!-- Default points + apply-all -->
+      {% if not is_participation %}
+      <div class="form-card">
+        <div class="form-section">
+          <h3 class="form-section-title">Default points</h3>
+
+          <form method="post" action="{% url 'set_default_points' activity.id %}"
+                class="field" style="margin-bottom: 10px;">
+            {% csrf_token %}
+            <label for="qc-default-points">Points per new question</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input id="qc-default-points" type="number" name="default_points"
+                     class="form-control" style="flex:1;"
+                     step="0.5" min="0" value="{{ default_question_points|default_if_none:'' }}"
+                     placeholder="e.g. 2">
+              <button type="submit" class="btn-pill primary" style="padding:8px 16px;">Set</button>
+            </div>
+            <span class="field-help">Applied to questions you add from now on.</span>
+          </form>
+
+          {% if default_question_points %}
+          <form method="post" action="{% url 'apply_default_points' activity.id %}"
+                class="mb-0" id="qcApplyAllForm">
+            {% csrf_token %}
+            <button type="submit" class="btn-pill" id="qcApplyAllBtn"
+                    data-default-pts="{{ default_question_points }}"
+                    style="width:100%; justify-content:center;">
+              <i class="fas fa-redo-alt"></i> Apply to all existing
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Bulk import -->
+      <div class="form-card">
+        <div class="form-section">
+          <h3 class="form-section-title">Bulk import</h3>
+          <p class="field-help" style="margin-bottom: 10px;">
+            Upload a CSV or Excel file to add multiple questions at once.
+          </p>
+          <button type="button" class="btn-pill" style="width:100%; justify-content:center;"
+                  data-bs-toggle="modal" data-bs-target="#importModal">
+            <i class="fas fa-file-import"></i> Import CSV / Excel
+          </button>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ FOOTER — Save ═══════════════════════ -->
+  <div class="form-footer-card">
+    <div class="form-actions"> 
+      <form id="saveAllQuestionsForm" method="post" action="{% url 'save_all_questions' activity.id %}" class="mb-0"
+            data-cl-loading data-cl-loading-label="Saving…">
+        {% csrf_token %}
+        <button type="submit" id="saveAllQuestionsBtn" class="btn-pill primary">
+          <i class="fas fa-check"></i> Save all questions
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ Import Modal ═══════════════════════ -->
+  <div class="modal fade" id="importModal" tabindex="-1" data-bs-backdrop="false" data-bs-keyboard="true" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content"
+            action="{% url 'import_questions_unified' activity.id %}"
+            method="post" enctype="multipart/form-data"
+            data-cl-loading data-cl-loading-label="Importing…">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Import questions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="field" style="margin-bottom: 14px;">
+            <label for="importTypeSelect">Question type</label>
+            <select name="import_type" id="importTypeSelect" class="form-control">
+              <option value="mc">Multiple Choice</option>
+              <option value="tf">True / False</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom: 14px;">
+            <label>Download template</label>
+            <div style="display:flex; gap:8px;">
+              <a id="importTemplateCsvLink" href="{% url 'download_import_template' %}?type=mc&format=csv"
+                 class="btn-pill" style="padding:8px 14px;">
+                <i class="fas fa-file-csv"></i> CSV
+              </a>
+              <a id="importTemplateXlsxLink" href="{% url 'download_import_template' %}?type=mc&format=xlsx"
+                 class="btn-pill" style="padding:8px 14px;">
+                <i class="fas fa-file-excel"></i> Excel
+              </a>
+            </div>
+            <span class="field-help">Header row is required and matches the chosen type.</span>
+          </div>
+          <div class="field" style="margin-bottom: 6px;">
+            <label for="qcImportFile">File (CSV or Excel)</label>
+            <input id="qcImportFile" type="file" name="csv_file" accept=".csv,.xlsx,.xls" class="form-control" required>
+          </div>
+          <span class="field-help">
+            <strong>MC:</strong> <code>question_text, points, choice1, choice2, choice3, choice4, correct_answer</code><br>
+            <strong>T/F:</strong> <code>question_text, points, correct_answer</code> (True / False)<br>
+            Leave <code>points</code> blank to use the assessment's default.
+          </span>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-pill" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-pill primary"><i class="fas fa-upload"></i> Upload</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<script src="{% static 'activity/question/create_quiz_type.js' %}"></script>
+<script src="{% static 'js/question-cards.js' %}?v=20260526b"></script>
+<script>
+(function () {
+  var initial = {{ questions_json|safe }};
+  var rubrics = {{ rubrics_json|safe }};
+  var isParticipation = {{ is_participation|yesno:"true,false" }};
+  var qc = new QuestionCards({
+    containerId: "question-cards",
+    batchUrl: "{% url 'batch_save_questions' activity.id %}",
+    uploadFileUrl: "{% url 'upload_question_file' activity.id %}",
+    saveFormId: "saveAllQuestionsForm",
+    csrfToken: "{{ csrf_token }}",
+    defaultPoints: {{ default_question_points|default_if_none:"0" }},
+    lastType: "{% if is_participation %}Participation{% else %}{{ last_used_quiz_type.name|default:'Multiple Choice' }}{% endif %}",
+    subjectId: {{ subject.id|default:"null" }},
+    initialQuestions: initial,
+    rubrics: rubrics,
+    skipRestoreBanner: {{ skip_restore_banner|yesno:"true,false" }},
+  });
+
+  // Major Assessment has only one possible item type — seed it automatically.
+  if (isParticipation && (!initial || initial.length === 0)) {
+    qc.addCard({ quiz_type: "Participation" });
+  }
+
+  // Keep the side-panel "Points" tile tone in sync with the live total. The
+  // question-cards.js script updates #total-points-display, but the visual
+  // tone (on-target / under / over) is on the parent stat wrapper.
+  {% if show_exact_badge %}
+  var pointsStat = document.getElementById("points-side-stat");
+  var pointsDisplay = document.getElementById("total-points-display");
+  var expected = {{ expected_total }};
+  function syncPointsTone() {
+    if (!pointsStat || !pointsDisplay) return;
+    var v = parseFloat(pointsDisplay.textContent) || 0;
+    pointsStat.classList.remove("is-on-target", "is-under", "is-over");
+    if (v === expected) pointsStat.classList.add("is-on-target");
+    else if (v > expected) pointsStat.classList.add("is-over");
+    else pointsStat.classList.add("is-under");
+  }
+  // Observe changes to the points-display text — fires whenever a card edit
+  // recalculates totals.
+  if (pointsDisplay) {
+    new MutationObserver(syncPointsTone).observe(pointsDisplay, {
+      childList: true, characterData: true, subtree: true,
+    });
+  }
+  {% endif %}
+
+  // The autosave on `beforeunload` can race with the "Set" / "Apply to all"
+  // form posts and overwrite the server-side changes. For these forms, run
+  // the autosave first (awaited), then suppress the beforeunload autosave,
+  // then submit normally so the redirected page sees fresh session data.
+  function persistThenSubmit(form) {
+    if (!form) return;
+    form.addEventListener("submit", function (e) {
+      if (form.dataset._qcHandled === "1") return;
+      e.preventDefault();
+      var questions = qc.serialize();
+      fetch(qc.batchUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": qc.csrfToken },
+        body: JSON.stringify(questions),
+      }).catch(function () { /* ignore */ }).finally(function () {
+        qc._suppressUnloadSave = true;
+        form.dataset._qcHandled = "1";
+        form.submit();
+      });
+    });
+  }
+  document.querySelectorAll(
+    "form[action='{% url 'set_default_points' activity.id %}'], " +
+    "form[action='{% url 'apply_default_points' activity.id %}']"
+  ).forEach(persistThenSubmit);
+
+  // Import-modal: keep template download links in sync with selected type.
+  (function () {
+    var sel = document.getElementById("importTypeSelect");
+    var csvLink = document.getElementById("importTemplateCsvLink");
+    var xlsxLink = document.getElementById("importTemplateXlsxLink");
+    if (!sel || !csvLink || !xlsxLink) return;
+    var csvBase = csvLink.getAttribute("href").split("?")[0];
+    var xlsxBase = xlsxLink.getAttribute("href").split("?")[0];
+    sel.addEventListener("change", function () {
+      csvLink.setAttribute("href", csvBase + "?type=" + sel.value + "&format=csv");
+      xlsxLink.setAttribute("href", xlsxBase + "?type=" + sel.value + "&format=xlsx");
+    });
+  })();
+
+  // Custom 2-step inline confirm for "Apply to all" (replaces native confirm()).
+  var applyForm = document.getElementById("qcApplyAllForm");
+  var applyBtn  = document.getElementById("qcApplyAllBtn");
+  if (applyForm && applyBtn) {
+    var armed = false, armTimer = null;
+    var origHTML = applyBtn.innerHTML;
+    function disarm() {
+      armed = false;
+      applyBtn.innerHTML = origHTML;
+      applyBtn.style.background = "";
+      applyBtn.style.color = "";
+      applyBtn.style.borderColor = "";
+      if (armTimer) { clearTimeout(armTimer); armTimer = null; }
+    }
+    applyForm.addEventListener("submit", function (e) {
+      if (applyForm.dataset._qcHandled === "1") return;
+      if (!armed) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        armed = true;
+        applyBtn.style.background = "var(--rose-soft, rgba(192,132,121,0.18))";
+        applyBtn.style.color = "var(--rose, #c08479)";
+        applyBtn.style.borderColor = "var(--rose, #c08479)";
+        var pts = applyBtn.getAttribute("data-default-pts") || "";
+        applyBtn.innerHTML =
+          '<i class="fas fa-exclamation-triangle"></i> Click again to set all to ' + pts + ' pts';
+        if (window.clToast) clToast("Click 'Apply to all' again to confirm.", "warning", 4000);
+        armTimer = setTimeout(disarm, 4000);
+      }
+    }, true);
+  }
+
+  // Honor the suppression flag by patching _autoSaveNow.
+  var _origAutoSave = qc._autoSaveNow.bind(qc);
+  qc._autoSaveNow = function () {
+    if (qc._suppressUnloadSave) return;
+    return _origAutoSave();
+  };
+})();
+</script>
+
+<script src="{% static 'js/tours/cl-tour-create-quiz-type.js' %}" defer></script>
+{% endblock %}

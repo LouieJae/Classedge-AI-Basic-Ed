@@ -1,0 +1,691 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+
+{% block title %}API Keys{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<link rel="stylesheet" href="{% static 'accounts/api_page/api_key_list.css' %}" />
+{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<div class="api-key-header">
+  <div class="row align-items-center">
+    <div class="col-md-8 mb-4">
+      <h2 class="mb-2"><i class="fas fa-key me-2"></i>API Key Management</h2>
+      <p class="mb-0 opacity-75">Securely manage your API keys for integrations and third-party access</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+      <button type="button" class="cl-tour-replay me-2" data-cl-tour="api-key-management">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      <button id="create-key-btn" class="btn btn-primary">
+        <i class="fas fa-plus-circle me-2"></i>Generate New Key
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4" id="statsCards" style="display: none;">
+  <div class="col-md-4 mb-3">
+    <div class="card card-stats">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="text-muted mb-1 small">Total Keys</p>
+            <h3 class="mb-0" id="totalKeys">0</h3>
+          </div>
+          <div class="text-primary">
+            <i class="fas fa-key fa-2x"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card" style="border-left: 4px solid #28a745;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="text-muted mb-1 small">Active Keys</p>
+            <h3 class="mb-0 text-success" id="activeKeys">0</h3>
+          </div>
+          <div class="text-success">
+            <i class="fas fa-check-circle fa-2x"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card" style="border-left: 4px solid #dc3545;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="text-muted mb-1 small">Inactive Keys</p>
+            <h3 class="mb-0 text-danger" id="inactiveKeys">0</h3>
+          </div>
+          <div class="text-danger">
+            <i class="fas fa-times-circle fa-2x"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- API Keys Table -->
+<div class="card">
+  <div class="card-header py-3">
+    <h5 class="mb-0"><i class="fas fa-list me-2"></i>API Keys</h5>
+  </div>
+  <div class="card-body">
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <div class="empty-state-icon">
+        <i class="fas fa-key"></i>
+      </div>
+      <h4 class="text-muted">No API Keys Yet</h4>
+      <p class="text-muted mb-4">Get started by generating your first API key</p>
+      <button class="btn btn-primary" onclick="document.getElementById('create-key-btn').click()">
+        <i class="fas fa-plus-circle me-2"></i>Generate Your First Key
+      </button>
+    </div>
+    
+    <!-- Table -->
+    <div class="table-responsive" id="tableContainer">
+      <table class="table table-hover align-middle" id="api-keys-table">
+        <thead class="table-light">
+          <tr>
+            <th><i class="fas fa-tag me-1"></i>Name</th>
+            <th><i class="fas fa-code me-1"></i>API Key</th>
+            <th><i class="fas fa-globe me-1"></i>Allowed Origin</th>
+            <th><i class="fas fa-toggle-on me-1"></i>Status</th>
+            <th><i class="fas fa-calendar me-1"></i>Created</th>
+            <th><i class="fas fa-clock me-1"></i>Last Used</th>
+            <th class="text-center"><i class="fas fa-cog me-1"></i>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Filled by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Create API Key Modal -->
+<div class="modal fade" id="createKeyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header border-0">
+        <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Generate New API Key</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body px-4 py-4">
+        <div class="alert alert-info d-flex align-items-start mb-4">
+          <i class="fas fa-info-circle me-2 mt-1"></i>
+          <div class="info-text">
+            <strong>Important:</strong> Your API key will be shown only once. Make sure to copy and store it securely.
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="new-key-name" class="form-label fw-semibold">
+            <i class="fas fa-tag me-1"></i>Integration Name <span class="text-danger">*</span>
+          </label>
+          <input type="text" id="new-key-name" class="form-control form-control-lg" placeholder="e.g. Mobile App, Partner Dashboard" required />
+          <small class="form-text text-muted">A descriptive name to identify this integration</small>
+        </div>
+        <div class="mb-3">
+          <label for="new-key-origin" class="form-label fw-semibold">
+            <i class="fas fa-globe me-1"></i>Allowed Origin <span class="text-muted">(Optional)</span>
+          </label>
+          <input type="text" id="new-key-origin" class="form-control form-control-lg" placeholder="e.g. https://example.com" />
+          <small class="form-text text-muted">Restrict API key usage to a specific domain</small>
+        </div>
+      </div>
+      <div class="modal-footer border-0 px-4 pb-4">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-success" id="save-new-key">
+          <i class="fas fa-key me-1"></i>Generate Key
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Show New Key Modal -->
+<div class="modal fade" id="showNewKeyModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header border-0 bg-success text-white">
+        <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>API Key Generated Successfully</h5>
+      </div>
+      <div class="modal-body px-4 py-4">
+        <div class="alert alert-warning d-flex align-items-start mb-4">
+          <i class="fas fa-exclamation-triangle me-2 mt-1"></i>
+          <div class="info-text">
+            <strong>Save this key now!</strong> For security reasons, you won't be able to see it again.
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Your New API Key:</label>
+          <div class="input-group input-group-lg">
+            <input type="text" id="new-key-display" class="form-control" readonly />
+            <button class="btn btn-outline-secondary" type="button" id="copy-new-key">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 px-4 pb-4">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+          <i class="fas fa-check me-1"></i>I've Saved My Key
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit API Key Modal -->
+<div class="modal fade" id="editKeyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header border-0">
+        <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit API Key</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body px-4 py-4">
+        <div class="mb-3">
+          <label for="edit-key-name" class="form-label fw-semibold">
+            <i class="fas fa-tag me-1"></i>Integration Name <span class="text-danger">*</span>
+          </label>
+          <input type="text" id="edit-key-name" class="form-control form-control-lg" required />
+        </div>
+        <div class="mb-3">
+          <label for="edit-key-origin" class="form-label fw-semibold">
+            <i class="fas fa-globe me-1"></i>Allowed Origin <span class="text-muted">(Optional)</span>
+          </label>
+          <input type="text" id="edit-key-origin" class="form-control form-control-lg" />
+        </div>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="edit-key-active" style="width: 3em; height: 1.5em;">
+          <label class="form-check-label fw-semibold ms-2" for="edit-key-active">
+            <i class="fas fa-toggle-on me-1"></i>Active Status
+          </label>
+        </div>
+        <small class="form-text text-muted d-block mt-2">Inactive keys cannot be used for API requests</small>
+      </div>
+      <div class="modal-footer border-0 px-4 pb-4">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="update-key-btn">
+          <i class="fas fa-save me-1"></i>Update Key
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const apiListUrl = "{% url 'api_key-list' %}";   // DRF router name
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                    document.cookie.split('; ')
+                      .find(row => row.startsWith('csrftoken='))
+                      ?.split('=')[1];
+
+  let currentKeyId = null;
+  let editModal = null;
+  let editNameInput = null;
+  let editOriginInput = null;
+  let editActiveInput = null;
+  let dataTable = null;
+  let showNewKeyModal = null;
+
+  function updateStats(data) {
+    const keys = data.results || data;
+    const totalKeys = keys.length;
+    const activeKeys = keys.filter(k => k.is_active).length;
+    const inactiveKeys = totalKeys - activeKeys;
+
+    document.getElementById('totalKeys').textContent = totalKeys;
+    document.getElementById('activeKeys').textContent = activeKeys;
+    document.getElementById('inactiveKeys').textContent = inactiveKeys;
+    document.getElementById('statsCards').style.display = totalKeys > 0 ? 'flex' : 'none';
+  }
+
+  function formatDate(dateString) {
+    if (!dateString) return '<span class="text-muted">Never</span>';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function formatDateTime(dateString) {
+    if (!dateString) return '<span class="text-muted">Never</span>';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  function truncateKey(key) {
+    if (key.length <= 20) return key;
+    return key.substring(0, 10) + '...' + key.substring(key.length - 10);
+  }
+
+  function loadApiKeys() {
+    fetch(apiListUrl)
+      .then(res => res.json())
+      .then(data => {
+        const keys = data.results || data;
+        
+        // Update stats
+        updateStats(data);
+
+        // Show/hide empty state
+        if (keys.length === 0) {
+          document.getElementById('emptyState').style.display = 'block';
+          document.getElementById('tableContainer').style.display = 'none';
+          return;
+        } else {
+          document.getElementById('emptyState').style.display = 'none';
+          document.getElementById('tableContainer').style.display = 'block';
+        }
+
+        // Destroy existing DataTable if it exists
+        if (dataTable) {
+          dataTable.destroy();
+        }
+
+        const tbody = document.querySelector('#api-keys-table tbody');
+        tbody.innerHTML = '';
+        keys.forEach(item => {
+          const statusBadge = item.is_active 
+            ? '<span class="badge bg-success status-badge"><i class="fas fa-check-circle me-1"></i>Active</span>'
+            : '<span class="badge bg-danger status-badge"><i class="fas fa-times-circle me-1"></i>Inactive</span>';
+          
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>
+              <div class="fw-semibold">${item.name}</div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <code class="api-key-code" title="${item.key}">${truncateKey(item.key)}</code>
+                <button type="button" class="btn btn-sm btn-outline-secondary copy-key-btn" data-key="${item.key}" title="Copy to clipboard">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+            </td>
+            <td>
+              <span class="text-muted">${item.allowed_origin || '<em>Any origin</em>'}</span>
+            </td>
+            <td>${statusBadge}</td>
+            <td><small>${formatDate(item.created_at)}</small></td>
+            <td><small>${formatDateTime(item.last_used_at)}</small></td>
+            <td>
+              <div class="action-btn-group justify-content-center">
+                <button type="button" class="btn btn-sm btn-outline-primary edit-key-btn" data-key-id="${item.id}" title="Edit key">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger delete-key-btn" data-key-id="${item.id}" title="Delete key">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          `;
+
+          const editBtn = tr.querySelector('.edit-key-btn');
+          const deleteBtn = tr.querySelector('.delete-key-btn');
+          const copyBtn = tr.querySelector('.copy-key-btn');
+
+          if (editBtn) {
+            editBtn.addEventListener('click', () => openEditModal(item));
+          }
+          if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => deleteApiKey(item));
+          }
+          if (copyBtn) {
+            copyBtn.addEventListener('click', (e) => {
+              copyKeyToClipboard(item.key, e.currentTarget);
+            });
+          }
+
+          tbody.appendChild(tr);
+        });
+
+        // Initialize DataTable
+        dataTable = $('#api-keys-table').DataTable({
+          responsive: true,
+          order: [[4, 'desc']], // Sort by Created column (descending)
+          pageLength: 10,
+          language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search API keys...",
+            lengthMenu: "Show _MENU_ entries",
+            info: "Showing _START_ to _END_ of _TOTAL_ keys",
+            infoEmpty: "No API keys available",
+            infoFiltered: "(filtered from _MAX_ total)",
+            zeroRecords: "No matching API keys found",
+            paginate: {
+              first: "First",
+              last: "Last",
+              next: "<i class='fas fa-chevron-right'></i>",
+              previous: "<i class='fas fa-chevron-left'></i>"
+            }
+          },
+          columnDefs: [
+            { orderable: false, targets: [1, 6] } // Disable sorting on Key and Actions columns
+          ]
+        });
+      })
+      .catch(err => {
+        console.error('Error loading API keys:', err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to load API keys. Please refresh the page.',
+        });
+      });
+  }
+
+  function openEditModal(item) {
+    if (!editModal || !editNameInput || !editOriginInput || !editActiveInput) {
+      return;
+    }
+    currentKeyId = item.id;
+    editNameInput.value = item.name || '';
+    editOriginInput.value = item.allowed_origin || '';
+    editActiveInput.checked = !!item.is_active;
+    editModal.show();
+    editNameInput.focus();
+  }
+
+  function copyKeyToClipboard(key, button) {
+    if (!key) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No API key to copy.',
+      });
+      return;
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(key)
+        .then(() => {
+          // Visual feedback on button
+          if (button) {
+            const originalHTML = button.innerHTML;
+            button.classList.remove('btn-outline-secondary');
+            button.classList.add('copy-btn-success');
+            button.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => {
+              button.classList.remove('copy-btn-success');
+              button.classList.add('btn-outline-secondary');
+              button.innerHTML = originalHTML;
+            }, 2000);
+          }
+          
+          // Toast notification
+          const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+          });
+          Toast.fire({
+            icon: 'success',
+            title: 'API key copied to clipboard'
+          });
+        })
+        .catch(() => {
+          fallbackCopyToClipboard(key);
+        });
+    } else {
+      fallbackCopyToClipboard(key);
+    }
+  }
+
+  function fallbackCopyToClipboard(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Copied',
+          text: 'API key copied to clipboard.',
+          timer: 2000,
+          showConfirmButton: false,
+          timerProgressBar: true,
+        });
+      } else {
+        throw new Error('Copy command was unsuccessful');
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Unable to copy to clipboard. Please copy the key manually.',
+      });
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }
+
+  function deleteApiKey(item) {
+    Swal.fire({
+      title: 'Delete API Key?',
+      html: `
+        <p>Are you sure you want to delete the API key:</p>
+        <p class="fw-bold text-danger">${item.name}</p>
+        <p class="text-muted small">This action cannot be undone and will immediately revoke access.</p>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '<i class="fas fa-trash me-1"></i>Yes, Delete It',
+      cancelButtonText: '<i class="fas fa-times me-1"></i>Cancel',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      reverseButtons: true
+    }).then((result) => {
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      fetch(`${apiListUrl}${item.id}/`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': csrftoken,
+        },
+      })
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Failed to delete API key');
+          }
+          return null;
+        })
+        .then(() => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Deleted!',
+            text: 'API key has been deleted successfully',
+            timer: 2000,
+            showConfirmButton: false,
+            timerProgressBar: true,
+          });
+          loadApiKeys();
+        })
+        .catch(err => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: err.message || 'An error occurred while deleting the API key.',
+          });
+        });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadApiKeys();
+
+    // Create key modal
+    const createModalEl = document.getElementById('createKeyModal');
+    const createModal = bootstrap.Modal.getOrCreateInstance(createModalEl);
+    const nameInput = document.getElementById('new-key-name');
+    const originInput = document.getElementById('new-key-origin');
+    const saveButton = document.getElementById('save-new-key');
+
+    document.getElementById('create-key-btn').addEventListener('click', () => {
+      // Show modal and reset fields
+      nameInput.value = '';
+      originInput.value = '';
+      createModal.show();
+      nameInput.focus();
+    });
+
+    saveButton.addEventListener('click', () => {
+      const name = nameInput.value.trim();
+      const allowedOrigin = originInput.value.trim();
+
+      if (!name) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Missing Information',
+          text: 'Please enter an integration name.',
+        });
+        return;
+      }
+
+      fetch(apiListUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken,
+        },
+        body: JSON.stringify({ name: name, allowed_origin: allowedOrigin })
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to create API key');
+          return res.json();
+        })
+        .then((newKey) => {
+          createModal.hide();
+          
+          // Show the new key in a modal
+          document.getElementById('new-key-display').value = newKey.key;
+          showNewKeyModal.show();
+          
+          loadApiKeys();
+        })
+        .catch(err => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: err.message || 'An error occurred while creating the API key.',
+          });
+        });
+    });
+
+    // Show new key modal
+    const showNewKeyModalEl = document.getElementById('showNewKeyModal');
+    showNewKeyModal = bootstrap.Modal.getOrCreateInstance(showNewKeyModalEl);
+    
+    document.getElementById('copy-new-key').addEventListener('click', () => {
+      const keyInput = document.getElementById('new-key-display');
+      keyInput.select();
+      copyKeyToClipboard(keyInput.value, document.getElementById('copy-new-key'));
+    });
+
+    // Edit key modal
+    const editModalEl = document.getElementById('editKeyModal');
+    editModal = bootstrap.Modal.getOrCreateInstance(editModalEl);
+    editNameInput = document.getElementById('edit-key-name');
+    editOriginInput = document.getElementById('edit-key-origin');
+    editActiveInput = document.getElementById('edit-key-active');
+    const updateButton = document.getElementById('update-key-btn');
+
+    updateButton.addEventListener('click', () => {
+      if (currentKeyId == null) {
+        return;
+      }
+
+      const name = editNameInput.value.trim();
+      const allowedOrigin = editOriginInput.value.trim();
+      const isActive = !!editActiveInput.checked;
+
+      if (!name) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Missing Information',
+          text: 'Please enter an integration name.',
+        });
+        return;
+      }
+
+      fetch(`${apiListUrl}${currentKeyId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken,
+        },
+        body: JSON.stringify({
+          name: name,
+          allowed_origin: allowedOrigin,
+          is_active: isActive,
+        }),
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to update API key');
+          return res.json();
+        })
+        .then(() => {
+          editModal.hide();
+          Swal.fire({
+            icon: 'success',
+            title: 'Updated!',
+            text: 'API key has been updated successfully',
+            timer: 2000,
+            showConfirmButton: false,
+            timerProgressBar: true,
+          });
+          loadApiKeys();
+        })
+        .catch(err => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: err.message || 'An error occurred while updating the API key.',
+          });
+        });
+    });
+  });
+</script>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+<script src="{% static 'js/tours/cl-tour-api-key-management.js' %}" defer></script>
+{% endblock %}

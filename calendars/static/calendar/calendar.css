@@ -1,0 +1,798 @@
+  /* ─── Page header ───────────────────────────────── */
+  .calendar-page .topbar { margin-bottom: 24px; }
+  .calendar-page .page-title em { font-style: normal; color: inherit; font-weight: inherit; }
+
+  /* ─── Calendar card (matches .growth pattern) ──── */
+  .calendar-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.7s 0.05s both ease;
+  }
+  .calendar-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle at top right, rgba(183, 146, 90, 0.07), transparent 65%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .calendar-card > * { position: relative; z-index: 1; }
+
+  /* ─── Legend ───────────────────────────────────── */
+  /* Each chip in the legend mirrors a real event chip so the user can map
+     a color/style to a row on the grid at a glance. */
+  .calendar-legend {
+    display: flex; flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 0 18px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--body);
+  }
+  .legend-item {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 12px 5px 9px;
+    border-radius: 100px;
+    font-size: 11.5px; font-weight: 600;
+    background: var(--cream-2);
+    color: var(--ink-dim);
+    border: 1px solid var(--border);
+  }
+  .legend-item::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--ink-muted);
+    flex-shrink: 0;
+  }
+  .legend-item.assessment-ongoing  { background: var(--brand-primary-soft);  color: var(--ink);     border-color: var(--brand-primary-soft); }
+  .legend-item.assessment-ongoing::before  { background: var(--ink); }
+  .legend-item.assessment-finished { background: var(--cream-2); color: var(--ink-muted); }
+  .legend-item.assessment-finished::before { background: var(--ink-muted); }
+  .legend-item.assessment-answered { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent); }
+  .legend-item.assessment-answered::before { background: var(--brand-primary, #b7925a); }
+  .legend-item.event             { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent); }
+  .legend-item.event::before             { background: var(--brand-primary, #b7925a); }
+  .legend-item.holiday           { background: var(--rose-soft); color: var(--rose); border-color: rgba(192, 132, 121, 0.30); }
+  .legend-item.holiday::before           { background: var(--rose); }
+  .legend-item.announcement      { background: rgba(45, 90, 71, 0.10); color: var(--ink); border-color: rgba(45, 90, 71, 0.20); }
+  .legend-item.announcement::before      { background: var(--ink); }
+
+  /* ─── FullCalendar overrides ───────────────────── */
+  .fc { background: transparent; font-family: var(--body); color: var(--ink); }
+
+  /* Toolbar */
+  .fc .fc-toolbar.fc-header-toolbar {
+    margin-bottom: 22px;
+    display: flex; flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .fc .fc-toolbar-chunk { display: flex; align-items: center; gap: 8px; }
+  .fc .fc-toolbar-title {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+
+  /* Toolbar buttons */
+  .fc .fc-button,
+  .fc .fc-button-primary {
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    color: var(--ink-dim);
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    text-transform: capitalize;
+    box-shadow: none;
+    transition: all 0.2s ease;
+    letter-spacing: 0;
+  }
+  .fc .fc-button:hover,
+  .fc .fc-button-primary:hover:not(:disabled) {
+    background: var(--cream-2);
+    color: var(--ink);
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+  .fc .fc-button-primary:not(:disabled).fc-button-active,
+  .fc .fc-button-primary:not(:disabled):active {
+    background: var(--brand-primary, #b7925a);
+    border-color: var(--brand-primary, #b7925a);
+    color: #ffffff;
+    box-shadow: none;
+  }
+  .fc .fc-button-primary:focus,
+  .fc .fc-button-primary:not(:disabled).fc-button-active:focus {
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .fc .fc-button-primary:disabled { opacity: 0.5; }
+  .fc .fc-today-button { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent); }
+  .fc .fc-today-button:hover:not(:disabled) { background: var(--brand-primary, #b7925a); color: var(--cream); border-color: var(--brand-primary, #b7925a); }
+
+  /* Segmented view switcher — Month / List on the right of the toolbar
+     join into a single pill so the user reads them as a control unit. */
+  .fc .fc-button-group {
+    display: inline-flex;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    background: var(--paper);
+    padding: 2px;
+    gap: 2px;
+  }
+  .fc .fc-button-group > .fc-button,
+  .fc .fc-button-group > .fc-button-primary {
+    border: none !important;
+    border-radius: calc(var(--radius-sm) - 3px) !important;
+    background: transparent;
+    padding: 6px 14px;
+    transform: none;
+  }
+  .fc .fc-button-group > .fc-button:hover:not(.fc-button-active):not(:disabled) {
+    background: var(--cream-2);
+    transform: none;
+  }
+  .fc .fc-button-group > .fc-button-primary:not(:disabled).fc-button-active {
+    background: var(--brand-primary, #b7925a);
+    color: #ffffff;
+    box-shadow: 0 2px 6px -2px var(--brand-primary-soft);
+  }
+  .fc .fc-button-group > .fc-button-primary:not(:disabled).fc-button-active:focus {
+    box-shadow: 0 2px 6px -2px var(--brand-primary-soft), 0 0 0 3px var(--brand-primary-soft);
+  }
+
+  /* Grid */
+  .fc-theme-standard .fc-scrollgrid,
+  .fc-theme-standard td,
+  .fc-theme-standard th {
+    border-color: var(--border) !important;
+  }
+  .fc-theme-standard .fc-scrollgrid {
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  /* Day-of-week header row */
+  .fc .fc-col-header-cell {
+    background: var(--cream-2);
+    padding: 10px 0;
+  }
+  .fc .fc-col-header-cell-cushion {
+    font-family: var(--body);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-dim);
+    padding: 6px 0;
+  }
+
+  /* Day cells */
+  .fc .fc-daygrid-day-frame { min-height: 116px; padding: 4px; }
+  .fc .fc-daygrid-day-top { flex-direction: row; padding: 4px 6px 0; }
+  .fc .fc-daygrid-day-number {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    padding: 2px;
+    min-width: 26px; height: 26px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .fc .fc-day-other .fc-daygrid-day-number { color: var(--ink-muted); opacity: 0.5; }
+  /* Today is a circular forest pip — much more "calendar app"-like than a
+     full-cell wash, which was fighting the event chips for contrast. */
+  .fc .fc-day-today { background: transparent !important; }
+  .fc .fc-day-today .fc-daygrid-day-number {
+    background: var(--ink);
+    color: var(--cream);
+    font-weight: 600;
+  }
+  .fc .fc-daygrid-day { transition: background 0.15s; }
+  .fc .fc-daygrid-day:hover { background: var(--cream-2); }
+  .fc .fc-day-sat .fc-daygrid-day-number,
+  .fc .fc-day-sun .fc-daygrid-day-number { color: var(--ink-dim); }
+
+  /* ─── Event chips — single design language ─────────── */
+  /* Drop FC's default coloring; we paint a thin left rail + tinted pill so
+     all event types share one rhythm. Inline color overrides from JS are
+     also dropped (see the event rendering pass below). */
+  .fc .fc-event {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 6px;
+    padding: 0;
+    margin: 2px 4px;
+    box-shadow: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .fc .fc-event:hover { transform: translateY(-1px); }
+  .fc .fc-event:focus, .fc .fc-event-selected { outline: none; box-shadow: 0 0 0 2px var(--brand-primary-soft); }
+  /* Custom inner — replaces FC's default content via eventContent. */
+  .cal-evt {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 9px 4px 8px;
+    border-radius: 6px;
+    font-family: var(--body);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    border-left: 3px solid var(--border-strong);
+    background: var(--cream-2);
+    color: var(--ink);
+    min-width: 0;
+    overflow: hidden;
+  }
+  .cal-evt .cal-evt-time {
+    font-weight: 700; font-size: 10.5px;
+    flex-shrink: 0;
+    opacity: 0.85;
+    font-variant-numeric: tabular-nums;
+  }
+  .cal-evt .cal-evt-title {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1; min-width: 0;
+  }
+  .fc .fc-event:hover .cal-evt { filter: brightness(0.97); box-shadow: 0 2px 8px -4px rgba(45, 49, 66, 0.18); }
+
+  /* Variant: assessment ongoing — solid forest pill, the "happening now" tone */
+  .fc-event.evt-assessment-ongoing .cal-evt {
+    background: var(--ink); color: var(--cream);
+    border-left-color: var(--brand-primary, #b7925a);
+  }
+  /* Variant: assessment upcoming — soft forest tint, anticipatory */
+  .fc-event.evt-assessment-upcoming .cal-evt {
+    background: var(--brand-primary-soft); color: var(--ink);
+    border-left-color: var(--brand-primary, #b7925a);
+  }
+  /* Variant: assessment finished — muted with strikethrough on the title */
+  .fc-event.evt-assessment-finished .cal-evt {
+    background: var(--cream-2); color: var(--ink-muted);
+    border-left-color: var(--ink-muted);
+    opacity: 0.85;
+  }
+  .fc-event.evt-assessment-finished .cal-evt-title { text-decoration: line-through; }
+  /* Variant: assessment answered — celebratory gold, "you've already done it" */
+  .fc-event.evt-assessment-answered .cal-evt {
+    background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a);
+    border-left-color: var(--brand-primary, #b7925a);
+  }
+  /* Variant: event (calendar event) — gold, the school-day highlight */
+  .fc-event.evt-event .cal-evt {
+    background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a);
+    border-left-color: var(--brand-primary, #b7925a);
+  }
+  /* Variant: holiday — rose so it reads as "no class" */
+  .fc-event.evt-holiday .cal-evt {
+    background: var(--rose-soft); color: var(--rose);
+    border-left-color: var(--rose);
+  }
+  /* Variant: announcement — quiet forest-2 list-item, low-priority broadcast */
+  .fc-event.evt-announcement .cal-evt {
+    background: rgba(45, 90, 71, 0.10); color: var(--ink);
+    border-left-color: var(--brand-primary, #b7925a);
+  }
+
+  /* "+N more" link */
+  .fc .fc-daygrid-more-link {
+    font-family: var(--body);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--brand-primary, #b7925a);
+    text-decoration: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin: 2px 4px;
+  }
+  .fc .fc-daygrid-more-link:hover { background: var(--brand-primary-soft); }
+
+  /* Popover (when "+more" clicked) */
+  .fc .fc-popover {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-hover);
+    overflow: hidden;
+  }
+  .fc .fc-popover-header {
+    background: var(--cream-2);
+    color: var(--ink);
+    font-family: var(--display);
+    font-weight: 500;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .fc .fc-popover-body { padding: 8px; }
+
+  /* ─── List view — editorial styling ─────────────────
+     Reskin FullCalendar's list mode to match the dashboard's row idiom:
+     editorial day headers (display font, eyebrow + date), each event a
+     soft cream row with a colored left rail keyed off the event variant,
+     a tabular-nums time on the left, an optional type badge, and a quiet
+     chevron on hover. We keep FC's table HTML but neutralize its borders
+     so each row reads as a card rather than a table cell. */
+  .fc .fc-list {
+    border: none;
+    background: transparent;
+    overflow: visible;
+  }
+  .fc .fc-list-table {
+    border-collapse: separate;
+    border-spacing: 0 8px;
+    margin-top: -8px;
+  }
+  .fc .fc-list-table > tbody > tr > td,
+  .fc .fc-list-table > tbody > tr > th {
+    border: none;
+  }
+
+  /* Day group header — editorial eyebrow + date, like a section divider.
+     FullCalendar's built-in list-view CSS pins these rows with
+     `position: sticky; top: 0` so each day's header stays visible while
+     scrolling through that day's events. With many days in the list,
+     the headers stack on top of each other at the top of the scroll
+     area and become unreadable. Force them back to normal flow so each
+     header scrolls away with its own events. */
+  .fc .fc-list-day,
+  .fc .fc-list-day > th,
+  .fc .fc-list-day-cushion {
+    position: static !important;
+    top: auto !important;
+    z-index: auto !important;
+  }
+  .fc .fc-list-day { background: transparent; }
+  .fc .fc-list-day > th {
+    background: transparent !important;
+    padding: 20px 0 4px !important;
+    border: none !important;
+  }
+  .fc .fc-list-day-cushion {
+    background: transparent !important;
+    padding: 0 4px 10px !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    display: flex !important;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .fc .fc-list-day-text,
+  .fc .fc-list-day-side-text {
+    font-family: var(--display);
+    text-decoration: none !important;
+    line-height: 1.2;
+  }
+  .fc .fc-list-day-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+  }
+  .fc .fc-list-day-side-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+  /* Day header for "today" gets a gold eyebrow tag */
+  .fc .fc-list-day.fc-day-today .fc-list-day-text { color: var(--brand-primary, #b7925a); }
+  .fc .fc-list-day.fc-day-today .fc-list-day-text::before {
+    content: 'Today · ';
+    font-family: var(--body);
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--brand-primary, #b7925a);
+    margin-right: 2px;
+    vertical-align: 2px;
+  }
+
+  /* Event row — the row itself is the card. Each <td> contributes one
+     visual segment of the same pill: rail+time on the left, body+chevron
+     on the right. Border-radius is applied to outer cells so the row
+     looks like a single rounded surface. */
+  .fc .fc-list-event { cursor: pointer; }
+  .fc .fc-list-event > td {
+    background: var(--cream);
+    padding: 14px 16px !important;
+    font-family: var(--body);
+    font-size: 13.5px;
+    color: var(--ink);
+    border-top: 1px solid var(--border) !important;
+    border-bottom: 1px solid var(--border) !important;
+    transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+    vertical-align: middle;
+  }
+  .fc .fc-list-event > td:first-child {
+    border-left: 1px solid var(--border) !important;
+    border-top-left-radius: var(--radius-sm);
+    border-bottom-left-radius: var(--radius-sm);
+    /* Left rail — colored per variant via the inherited fc-event class */
+    box-shadow: inset 3px 0 0 0 var(--border-strong);
+    padding-left: 18px !important;
+  }
+  .fc .fc-list-event > td:last-child {
+    border-right: 1px solid var(--border) !important;
+    border-top-right-radius: var(--radius-sm);
+    border-bottom-right-radius: var(--radius-sm);
+  }
+  .fc .fc-list-event:hover > td {
+    background: var(--paper) !important;
+    border-color: var(--brand-primary, #b7925a) !important;
+  }
+  .fc .fc-list-event:hover > td:first-child {
+    box-shadow: inset 3px 0 0 0 var(--brand-primary, #b7925a);
+  }
+
+  /* Time column — display font, tabular for clean stacking */
+  .fc .fc-list-event-time {
+    font-family: var(--display);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 13px;
+    width: 1%;
+    white-space: nowrap;
+    padding-right: 6px !important;
+  }
+
+  /* Graphic column — replace FC's tiny dot with a clean square pill that
+     reads as a type tag. The dot itself is hidden in favor of the cell's
+     rail; we surface a small label via the variant class. */
+  .fc .fc-list-event-graphic {
+    width: 1%;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+  .fc .fc-list-event-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--border-strong);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Title — display font, with the link sitting on a forest tone */
+  .fc .fc-list-event-title { padding-left: 6px !important; }
+  .fc .fc-list-event-title a {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    line-height: 1.35;
+  }
+  .fc .fc-list-event:hover .fc-list-event-title a { color: var(--ink); }
+  /* Chevron after the title hints "open me" — generated, no markup change */
+  .fc .fc-list-event-title::after {
+    content: '\f054'; /* fa-chevron-right */
+    font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome;
+    font-weight: 900;
+    color: var(--ink-muted);
+    font-size: 10px;
+    margin-left: 10px;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
+    display: inline-block;
+  }
+  .fc .fc-list-event:hover .fc-list-event-title::after {
+    opacity: 1;
+    color: var(--brand-primary, #b7925a);
+    transform: translateX(3px);
+  }
+
+  /* Per-variant left rail color + dot — mirrors the chip palette so the
+     list view and the month view share one visual key. */
+  .fc-event.evt-assessment-ongoing  > td:first-child { box-shadow: inset 3px 0 0 0 var(--ink); }
+  .fc-event.evt-assessment-ongoing  .fc-list-event-dot { background: var(--ink); }
+  .fc-event.evt-assessment-upcoming > td:first-child { box-shadow: inset 3px 0 0 0 var(--ink); }
+  .fc-event.evt-assessment-upcoming .fc-list-event-dot { background: var(--ink); }
+  .fc-event.evt-assessment-finished > td:first-child { box-shadow: inset 3px 0 0 0 var(--ink-muted); }
+  .fc-event.evt-assessment-finished .fc-list-event-dot { background: var(--ink-muted); }
+  .fc-event.evt-assessment-finished .fc-list-event-title a { color: var(--ink-muted); text-decoration: line-through; }
+  .fc-event.evt-assessment-answered > td:first-child { box-shadow: inset 3px 0 0 0 var(--brand-primary, #b7925a); }
+  .fc-event.evt-assessment-answered .fc-list-event-dot { background: var(--brand-primary, #b7925a); }
+  .fc-event.evt-event               > td:first-child { box-shadow: inset 3px 0 0 0 var(--brand-primary, #b7925a); }
+  .fc-event.evt-event               .fc-list-event-dot { background: var(--brand-primary, #b7925a); }
+  .fc-event.evt-holiday             > td:first-child { box-shadow: inset 3px 0 0 0 var(--rose); }
+  .fc-event.evt-holiday             .fc-list-event-dot { background: var(--rose); }
+  .fc-event.evt-announcement        > td:first-child { box-shadow: inset 3px 0 0 0 var(--ink); }
+  .fc-event.evt-announcement        .fc-list-event-dot { background: var(--ink); }
+
+  /* Hover rail keeps the per-variant intent but brightens to gold to match
+     the rest of the app's interactive language. */
+  .fc-event.evt-assessment-ongoing:hover  > td:first-child,
+  .fc-event.evt-assessment-upcoming:hover > td:first-child,
+  .fc-event.evt-assessment-finished:hover > td:first-child,
+  .fc-event.evt-assessment-answered:hover > td:first-child,
+  .fc-event.evt-event:hover               > td:first-child,
+  .fc-event.evt-holiday:hover             > td:first-child,
+  .fc-event.evt-announcement:hover        > td:first-child {
+    box-shadow: inset 3px 0 0 0 var(--brand-primary, #b7925a);
+  }
+
+  /* Empty state — same idiom as dashboard empty cards */
+  .fc .fc-list-empty {
+    background: var(--cream-2);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--ink-dim);
+    padding: 56px 24px;
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 15px;
+  }
+  .fc .fc-list-empty-cushion { margin: 0; }
+
+  /* ─── Header action buttons (registrar / time keeper) ──────── */
+  /* Falcon's `.btn-falcon-primary` collapses to a near-invisible chip on
+     the dark operations theme, so we render our own pill in theme tokens. */
+  .cal-header-actions { flex-wrap: wrap; }
+  .cal-action-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    border-radius: 100px;
+    border: 1px solid var(--border-strong, var(--border));
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+    transition: all 0.15s ease;
+    line-height: 1;
+  }
+  .cal-action-btn i { color: var(--brand-primary, #b7925a); transition: color 0.15s ease; }
+  .cal-action-btn:hover {
+    background: var(--cream-2);
+    border-color: var(--brand-primary, #b7925a);
+    color: var(--ink);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--brand-primary, #b7925a) 35%, transparent);
+  }
+  .cal-action-btn:hover i { color: var(--ink); }
+  .cal-action-btn.primary {
+    background: var(--brand-primary, #b7925a);
+    border-color: var(--brand-primary, #b7925a);
+    color: #ffffff;
+  }
+  .cal-action-btn.primary i { color: #ffffff; }
+  .cal-action-btn.primary:hover {
+    filter: brightness(1.05);
+    box-shadow: 0 6px 18px -4px color-mix(in srgb, var(--brand-primary, #b7925a) 45%, transparent);
+    color: #ffffff;
+  }
+
+  /* ─── Modal backdrop: a touch stronger than Bootstrap's default so the
+     calendar grid recedes, but stay well away from pure black — that
+     makes the dark-mode modal (whose own background is #1a2420) look
+     like it's drowning in the backdrop. */
+  .modal-backdrop.show { opacity: 0.55 !important; }
+  /* Lift the modal off the backdrop in dark mode: brighter panel,
+     stronger shadow, a thin gold ring + a lighter border so edges read.
+     `--paper` is #1a2420 which is too close to --cream (#0f1714); push
+     the modal a few shades up so it doesn't melt into the page. */
+  body[data-theme="dark"] #addEventModal .modal-content,
+  body[data-theme="dark"] #registrarEventModal .modal-content,
+  body[data-theme="dark"] #registrarAnnouncementModal .modal-content {
+    background: #1f2a26 !important;
+    border-color: rgba(255,255,255,0.10) !important;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.85), 0 0 0 1px rgba(212,169,115,0.18) !important;
+  }
+  body[data-theme="dark"] #addEventModal .modal-header,
+  body[data-theme="dark"] #registrarEventModal .modal-header,
+  body[data-theme="dark"] #registrarAnnouncementModal .modal-header {
+    background: #1a2421 !important;
+    border-bottom-color: rgba(255,255,255,0.08) !important;
+  }
+  body[data-theme="dark"] #addEventModal .modal-title,
+  body[data-theme="dark"] #registrarEventModal .modal-title,
+  body[data-theme="dark"] #registrarAnnouncementModal .modal-title {
+    color: var(--brand-primary, #b7925a) !important;
+  }
+  body[data-theme="dark"] #addEventModal .btn-close,
+  body[data-theme="dark"] #registrarEventModal .btn-close,
+  body[data-theme="dark"] #registrarAnnouncementModal .btn-close {
+    filter: invert(0.85);
+  }
+  body[data-theme="dark"] #addEventModal .form-label,
+  body[data-theme="dark"] #registrarEventModal .form-label,
+  body[data-theme="dark"] #registrarAnnouncementModal .form-label {
+    color: var(--ink-dim) !important;
+  }
+
+  /* Input fields need a *visible* surface in dark mode. `--cream` is
+     #0f1714 which is darker than the modal panel itself, making the
+     border vanish. Slightly lighter slate + stronger border. */
+  body[data-theme="dark"] #addEventModal .form-control,
+  body[data-theme="dark"] #addEventModal .form-select,
+  body[data-theme="dark"] #addEventModal textarea,
+  body[data-theme="dark"] #registrarEventModal .form-control,
+  body[data-theme="dark"] #registrarEventModal .form-select,
+  body[data-theme="dark"] #registrarEventModal textarea,
+  body[data-theme="dark"] #registrarAnnouncementModal .form-control,
+  body[data-theme="dark"] #registrarAnnouncementModal .form-select,
+  body[data-theme="dark"] #registrarAnnouncementModal textarea {
+    background: #283330 !important;
+    border-color: rgba(255,255,255,0.18) !important;
+    color: var(--ink) !important;
+  }
+  body[data-theme="dark"] #addEventModal .form-control:focus,
+  body[data-theme="dark"] #addEventModal .form-select:focus,
+  body[data-theme="dark"] #addEventModal textarea:focus,
+  body[data-theme="dark"] #registrarEventModal .form-control:focus,
+  body[data-theme="dark"] #registrarEventModal .form-select:focus,
+  body[data-theme="dark"] #registrarEventModal textarea:focus,
+  body[data-theme="dark"] #registrarAnnouncementModal .form-control:focus,
+  body[data-theme="dark"] #registrarAnnouncementModal .form-select:focus,
+  body[data-theme="dark"] #registrarAnnouncementModal textarea:focus {
+    background: #323d3a !important;
+    border-color: var(--brand-primary, #b7925a) !important;
+    box-shadow: 0 0 0 3px rgba(212,169,115,0.18) !important;
+  }
+  body[data-theme="dark"] #addEventModal .form-control::placeholder,
+  body[data-theme="dark"] #registrarEventModal .form-control::placeholder,
+  body[data-theme="dark"] #registrarAnnouncementModal .form-control::placeholder,
+  body[data-theme="dark"] #addEventModal textarea::placeholder,
+  body[data-theme="dark"] #registrarEventModal textarea::placeholder,
+  body[data-theme="dark"] #registrarAnnouncementModal textarea::placeholder {
+    color: rgba(232,234,240,0.45);
+  }
+  /* Browser-native date/time pickers paint a black icon by default —
+     invert in dark mode so the calendar/clock glyph is visible. */
+  body[data-theme="dark"] #addEventModal input[type="date"]::-webkit-calendar-picker-indicator,
+  body[data-theme="dark"] #addEventModal input[type="time"]::-webkit-calendar-picker-indicator,
+  body[data-theme="dark"] #registrarEventModal input[type="date"]::-webkit-calendar-picker-indicator,
+  body[data-theme="dark"] #registrarEventModal input[type="time"]::-webkit-calendar-picker-indicator,
+  body[data-theme="dark"] #registrarAnnouncementModal input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+    opacity: 0.8;
+    cursor: pointer;
+  }
+
+  /* The "Link to events" list inside the announcement modal had a
+     hardcoded cream-2 background that's invisible on light cards;
+     pin it to theme tokens so it reads in both modes. */
+  #registrarAnnouncementModal #regAnnEventsList {
+    background: var(--cream-2) !important;
+    border-color: var(--border) !important;
+    color: var(--ink);
+  }
+  #registrarAnnouncementModal #regAnnEventsList .form-check-label { color: var(--ink); }
+  #registrarAnnouncementModal #regAnnEventsList .text-muted { color: var(--ink-dim) !important; }
+
+  /* ─── Modal (operations design) ────────────────── */
+  #addEventModal .modal-content , #registrarEventModal .modal-content , #registrarAnnouncementModal .modal-content {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-hover);
+    overflow: hidden;
+  }
+  #addEventModal .modal-header , #registrarEventModal .modal-header , #registrarAnnouncementModal .modal-header {
+    background: var(--cream-2);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+  }
+  #addEventModal .modal-title , #registrarEventModal .modal-title , #registrarAnnouncementModal .modal-title {
+    font-family: var(--display);
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  #addEventModal .btn-close , #registrarEventModal .btn-close , #registrarAnnouncementModal .btn-close { filter: none; opacity: 0.55; }
+  #addEventModal .btn-close:hover , #registrarEventModal .btn-close:hover , #registrarAnnouncementModal .btn-close:hover { opacity: 1; }
+  #addEventModal .modal-body , #registrarEventModal .modal-body , #registrarAnnouncementModal .modal-body { padding: 24px; }
+  #addEventModal .form-label , #registrarEventModal .form-label , #registrarAnnouncementModal .form-label {
+    font-family: var(--body);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+  }
+  #addEventModal .form-control, #registrarEventModal .form-control, #registrarAnnouncementModal .form-control,
+  #addEventModal .form-select , #registrarEventModal .form-select , #registrarAnnouncementModal .form-select {
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 14px;
+    padding: 10px 14px;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  #addEventModal .form-control:focus, #registrarEventModal .form-control:focus, #registrarAnnouncementModal .form-control:focus,
+  #addEventModal .form-select:focus , #registrarEventModal .form-select:focus , #registrarAnnouncementModal .form-select:focus {
+    background: var(--paper);
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+    outline: none;
+  }
+  #addEventModal .form-control-color , #registrarEventModal .form-control-color , #registrarAnnouncementModal .form-control-color { padding: 4px; height: 42px; }
+
+  #addEventModal .btn , #registrarEventModal .btn , #registrarAnnouncementModal .btn {
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+  }
+  #addEventModal .btn-secondary , #registrarEventModal .btn-secondary , #registrarAnnouncementModal .btn-secondary {
+    background: transparent;
+    color: var(--ink-dim);
+    border: 1px solid var(--border-strong);
+  }
+  #addEventModal .btn-secondary:hover , #registrarEventModal .btn-secondary:hover , #registrarAnnouncementModal .btn-secondary:hover {
+    background: var(--cream-2);
+    color: var(--ink);
+  }
+  #addEventModal .btn-success , #registrarEventModal .btn-success , #registrarAnnouncementModal .btn-success {
+    background: var(--ink);
+    color: var(--cream);
+    border: 1px solid var(--brand-primary, #b7925a);
+  }
+  #addEventModal .btn-success:hover , #registrarEventModal .btn-success:hover , #registrarAnnouncementModal .btn-success:hover {
+    background: var(--ink);
+    border-color: var(--brand-primary, #b7925a);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+  }
+
+  /* ─── Responsive ───────────────────────────────── */
+  @media (max-width: 900px) {
+    .calendar-card { padding: 22px 18px; }
+    .fc .fc-toolbar.fc-header-toolbar { gap: 8px; }
+    .fc .fc-toolbar-title { font-size: 20px; }
+    .fc .fc-daygrid-day-frame { min-height: 92px; }
+    .cal-evt { font-size: 11.5px; padding: 3px 8px 3px 7px; }
+  }
+  @media (max-width: 640px) {
+    .fc .fc-toolbar.fc-header-toolbar { flex-direction: column; align-items: stretch; }
+    .fc .fc-toolbar-chunk { justify-content: center; }
+    .fc .fc-toolbar-title { font-size: 18px; text-align: center; }
+    .fc .fc-button { padding: 7px 11px; font-size: 12px; }
+    .calendar-legend { gap: 6px; }
+    .legend-item { font-size: 11px; padding: 4px 10px 4px 8px; }
+    .calendar-card { padding: 18px 14px; }
+    .fc .fc-daygrid-day-frame { min-height: 76px; }
+    .fc .fc-daygrid-day-number { font-size: 12px; min-width: 22px; height: 22px; }
+    .cal-evt { font-size: 11px; gap: 4px; padding: 3px 7px 3px 6px; }
+    .cal-evt .cal-evt-time { font-size: 10px; }
+
+    /* List view — tighter rows on phones */
+    .fc .fc-list-day > th { padding: 14px 0 4px !important; }
+    .fc .fc-list-day-text { font-size: 16px; }
+    .fc .fc-list-day-side-text { font-size: 10px; letter-spacing: 0.12em; }
+    .fc .fc-list-event > td { padding: 11px 12px !important; font-size: 12.5px; }
+    .fc .fc-list-event > td:first-child { padding-left: 14px !important; }
+    .fc .fc-list-event-time { font-size: 12px; }
+    .fc .fc-list-event-title a { font-size: 13.5px; }
+    .fc .fc-list-event-title::after { display: none; }
+  }

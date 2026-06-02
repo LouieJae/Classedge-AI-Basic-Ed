@@ -1,0 +1,310 @@
+{% comment %}
+  Legal-consent modal partial. Include at the end of <body> in dashboard base templates.
+  Renders only when the request user has unconsented active legal documents
+  (driven by `accounts.context_processors.legal_modal_context`).
+
+  Context vars provided by that processor:
+    legal_modal_open  : bool
+    legal_modal_docs  : [{doc, is_pending}, ...]
+
+  Falls back to `docs` if rendered directly from /accept-legal/ page.
+{% endcomment %}
+{% with modal_docs=legal_modal_docs %}
+{% if legal_modal_open and modal_docs %}
+<style>
+  .legal-shell {
+    --legal-bg: var(--cream, #f5f7fb);
+    --legal-card: var(--paper, #ffffff);
+    --legal-text: var(--ink, #0f172a);
+    --legal-dim: var(--ink-dim, #64748b);
+    --legal-muted: var(--ink-muted, #94a3b8);
+    --legal-border: var(--border, #e5e7eb);
+    --legal-border-strong: var(--border-strong, #cbd5e1);
+    --legal-surface: rgba(99, 102, 241, 0.04);
+    --legal-accent: #6366f1;
+    --legal-accent-strong: #4f46e5;
+    --legal-accent-soft: rgba(99, 102, 241, 0.14);
+    --legal-chip-warn-bg: #fef3c7;
+    --legal-chip-warn-fg: #92400e;
+    --legal-chip-ok-bg: #dcfce7;
+    --legal-chip-ok-fg: #166534;
+    --legal-error-bg: #fef2f2;
+    --legal-error-fg: #991b1b;
+    --legal-error-bd: #fecaca;
+  }
+  body[data-theme="dark"] .legal-shell {
+    --legal-surface: rgba(123, 196, 165, 0.06);
+    --legal-accent: #8b5cf6;
+    --legal-accent-strong: #7c3aed;
+    --legal-accent-soft: rgba(139, 92, 246, 0.22);
+    --legal-chip-warn-bg: rgba(251, 191, 36, 0.18);
+    --legal-chip-warn-fg: #fbbf24;
+    --legal-chip-ok-bg: rgba(34, 197, 94, 0.18);
+    --legal-chip-ok-fg: #4ade80;
+    --legal-error-bg: rgba(239, 68, 68, 0.12);
+    --legal-error-fg: #fca5a5;
+    --legal-error-bd: rgba(239, 68, 68, 0.35);
+  }
+  body.legal-modal-open { overflow: hidden !important; }
+  .legal-shell {
+    position: fixed !important;
+    top: 0 !important; right: 0 !important; bottom: 0 !important; left: 0 !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    z-index: 2147483000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 2rem 1rem !important;
+    color: var(--legal-text);
+    background: rgba(15, 23, 42, 0.55) !important;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: legalFadeIn .18s ease-out;
+    pointer-events: auto;
+  }
+  body[data-theme="dark"] .legal-shell { background: rgba(0, 0, 0, 0.65) !important; }
+  @keyframes legalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes legalPopIn {
+    from { opacity: 0; transform: translateY(12px) scale(.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .legal-card {
+    position: relative;
+    width: 100%; max-width: 760px;
+    max-height: calc(100vh - 4rem);
+    display: flex; flex-direction: column;
+    background: var(--legal-card);
+    border: 1px solid var(--legal-border);
+    border-radius: 18px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.10);
+    overflow: hidden;
+    animation: legalPopIn .22s ease-out;
+  }
+  .legal-card .legal-body { flex: 1; overflow-y: auto; }
+  .legal-header {
+    padding: 2.25rem 2.5rem 1.5rem;
+    background: linear-gradient(135deg, var(--legal-accent-strong) 0%, var(--legal-accent) 60%, #8b5cf6 100%);
+    color: #fff;
+  }
+  .legal-header .pill {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.28);
+    color: #fff; font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 0.3rem 0.7rem; border-radius: 999px; margin-bottom: 0.9rem;
+  }
+  .legal-header h1 { font-size: 1.7rem; font-weight: 700; margin: 0 0 0.4rem; color: #fff; letter-spacing: -0.01em; }
+  .legal-header p { margin: 0; color: rgba(255,255,255,0.86); font-size: 0.97rem; }
+  .legal-body { padding: 1.75rem 2.5rem 2rem; }
+  .doc-list { display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.5rem; }
+  .doc-item { border: 1px solid var(--legal-border); border-radius: 12px; background: var(--legal-card); transition: border-color .15s, box-shadow .15s; }
+  .doc-item.is-open { border-color: var(--legal-accent-soft); box-shadow: 0 6px 18px var(--legal-accent-soft); }
+  .doc-toggle {
+    width: 100%; display: flex; align-items: center; gap: 0.85rem;
+    padding: 1rem 1.15rem; background: transparent; border: 0;
+    text-align: left; cursor: pointer; border-radius: 12px; color: inherit;
+  }
+  .doc-toggle:focus-visible { outline: 2px solid var(--legal-accent); outline-offset: 2px; }
+  .doc-icon {
+    width: 38px; height: 38px; flex: 0 0 auto; border-radius: 10px;
+    background: var(--legal-accent-soft); color: var(--legal-accent-strong);
+    display: flex; align-items: center; justify-content: center;
+  }
+  body[data-theme="dark"] .doc-icon { color: #c4b5fd; }
+  .doc-meta { flex: 1; min-width: 0; }
+  .doc-title { font-weight: 600; color: var(--legal-text); font-size: 0.98rem; }
+  .doc-sub { color: var(--legal-dim); font-size: 0.8rem; margin-top: 0.15rem; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+  .doc-sub .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--legal-muted); display: inline-block; }
+  .doc-badge { background: var(--legal-chip-warn-bg); color: var(--legal-chip-warn-fg); font-size: 0.7rem; font-weight: 600; padding: 0.22rem 0.55rem; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .doc-badge.done { background: var(--legal-chip-ok-bg); color: var(--legal-chip-ok-fg); }
+  .doc-chevron { color: var(--legal-muted); transition: transform .2s; }
+  .doc-item.is-open .doc-chevron { transform: rotate(180deg); color: var(--legal-accent); }
+  .doc-content { display: none; padding: 0 1.15rem 1.15rem; }
+  .doc-item.is-open .doc-content { display: block; }
+  .doc-scroll { max-height: 320px; overflow-y: auto; padding: 1rem 1.1rem; background: var(--legal-surface); border-radius: 10px; border: 1px solid var(--legal-border); color: var(--legal-text); font-size: 0.92rem; line-height: 1.55; }
+  .doc-effective { margin-top: 0.65rem; font-size: 0.78rem; color: var(--legal-dim); display: flex; align-items: center; gap: 0.4rem; }
+  .legal-consent { display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.95rem 1.1rem; background: var(--legal-surface); border: 1px solid var(--legal-border); border-radius: 12px; margin-bottom: 1.25rem; }
+  .legal-consent input { margin-top: 0.2rem; width: 1.05rem; height: 1.05rem; accent-color: var(--legal-accent-strong); }
+  .legal-consent label { color: var(--legal-text); font-size: 0.94rem; line-height: 1.4; cursor: pointer; }
+  .legal-consent.disabled { opacity: 0.55; }
+  .legal-consent.disabled label { cursor: not-allowed; }
+  .legal-actions { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+  .btn-agree { background: var(--legal-accent-strong); color: #fff; border: 0; padding: 0.7rem 1.4rem; border-radius: 10px; font-weight: 600; font-size: 0.95rem; transition: background .15s, transform .05s; flex: 1 1 auto; min-width: 200px; }
+  .btn-agree:hover:not(:disabled) { background: var(--legal-accent); }
+  .btn-agree:active:not(:disabled) { transform: translateY(1px); }
+  .btn-agree:disabled { background: var(--legal-accent-soft); color: rgba(255,255,255,0.7); cursor: not-allowed; }
+  .btn-logout { background: transparent; color: var(--legal-dim); border: 1px solid var(--legal-border-strong); padding: 0.7rem 1.2rem; border-radius: 10px; font-weight: 500; font-size: 0.95rem; text-decoration: none; }
+  .btn-logout:hover { background: var(--legal-surface); color: var(--legal-text); }
+  .legal-hint { margin-top: 0.85rem; font-size: 0.82rem; color: var(--legal-dim); display: flex; align-items: center; gap: 0.4rem; }
+  .legal-error { margin-top: 1rem; background: var(--legal-error-bg); color: var(--legal-error-fg); border: 1px solid var(--legal-error-bd); padding: 0.7rem 0.9rem; border-radius: 10px; font-size: 0.9rem; }
+  .hidden { display: none !important; }
+  @media (max-width: 540px) {
+    .legal-header { padding: 1.75rem 1.5rem 1.25rem; }
+    .legal-body { padding: 1.5rem 1.5rem 1.75rem; }
+    .legal-header h1 { font-size: 1.4rem; }
+  }
+</style>
+
+<div class="legal-shell" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+  <div class="legal-card" role="document">
+    <div class="legal-header">
+      <span class="pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        {% if legal_modal_is_first_time %}Welcome{% else %}Policy Update{% endif %}
+      </span>
+      <h1 id="legalModalTitle">
+        {% if legal_modal_is_first_time %}Review and accept to get started{% else %}Review and accept to continue{% endif %}
+      </h1>
+      <p>
+        {% if legal_modal_is_first_time %}
+          Before using your account, please review and accept the documents below.
+        {% else %}
+          We've made changes to the documents below. Please read each one and confirm to keep using your account.
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="legal-body">
+      <div class="doc-list" id="legalDocs">
+        {% for entry in modal_docs %}
+        <div class="doc-item {% if entry.is_pending %}is-open{% endif %}" data-doc-type="{{ entry.doc.doc_type }}">
+          <button type="button" class="doc-toggle" data-toggle-doc="{{ entry.doc.doc_type }}">
+            <span class="doc-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+            </span>
+            <span class="doc-meta">
+              <div class="doc-title">{{ entry.doc.title }}</div>
+              <div class="doc-sub">
+                <span>Version {{ entry.doc.version }}</span>
+                <span class="dot"></span>
+                <span>Effective {{ entry.doc.effective_date|date:"M j, Y" }}</span>
+              </div>
+            </span>
+            {% if entry.is_pending %}
+              <span class="doc-badge">Review</span>
+            {% else %}
+              <span class="doc-badge done">Accepted</span>
+            {% endif %}
+            <svg class="doc-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="doc-content">
+            <div class="doc-scroll">{{ entry.doc.content|safe }}</div>
+            <div class="doc-effective">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Effective date: {{ entry.doc.effective_date|date:"F j, Y" }}{% if entry.doc.effective_date %} &middot; {{ entry.doc.effective_date|date:"g:i A" }}{% endif %}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="doc-scroll">No documents are currently active.</div>
+        {% endfor %}
+      </div>
+
+      <div class="legal-consent {% if not modal_docs %}disabled{% endif %}" id="legalConsent">
+        <input type="checkbox" id="legalCheck" {% if not modal_docs %}disabled{% endif %}>
+        <label for="legalCheck">I have read and agree to all the documents listed above.</label>
+      </div>
+
+      <div class="legal-actions">
+        <button class="btn-agree" id="legalSubmit" disabled>Agree &amp; Continue</button>
+        <a class="btn-logout" href="/sign_out/">Log out</a>
+      </div>
+
+      <div class="legal-hint" id="legalHint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span id="legalHintText">Open each document marked "Review" to enable the checkbox.</span>
+      </div>
+
+      <div id="legalError" class="legal-error hidden"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    // Portal every .legal-shell instance to <body> so it escapes any ancestor
+    // that creates a containing block (transform/filter/perspective/contain),
+    // which would otherwise make `position: fixed` measure against that ancestor.
+    // If duplicates exist (e.g. an old cached page render), keep only the last.
+    const shells = Array.from(document.querySelectorAll(".legal-shell"));
+    shells.forEach((s, i) => {
+      if (i < shells.length - 1) { s.remove(); return; }
+      if (s.parentElement !== document.body) document.body.appendChild(s);
+    });
+    document.body.classList.add("legal-modal-open");
+    const pendingTypes = new Set([
+      {% for entry in modal_docs %}{% if entry.is_pending %}"{{ entry.doc.doc_type }}",{% endif %}{% endfor %}
+    ]);
+    const expanded = new Set();
+
+    document.querySelectorAll("#legalDocs .doc-item").forEach((item) => {
+      const type = item.dataset.docType;
+      if (item.classList.contains("is-open")) expanded.add(type);
+      const toggle = item.querySelector(".doc-toggle");
+      toggle.addEventListener("click", () => {
+        item.classList.toggle("is-open");
+        if (item.classList.contains("is-open")) expanded.add(type);
+        refresh();
+      });
+    });
+
+    const checkbox = document.getElementById("legalCheck");
+    const button = document.getElementById("legalSubmit");
+    const consent = document.getElementById("legalConsent");
+    const hint = document.getElementById("legalHint");
+    const hintText = document.getElementById("legalHintText");
+
+    function refresh() {
+      const allSeen = [...pendingTypes].every((t) => expanded.has(t));
+      const hasDocs = pendingTypes.size > 0;
+      checkbox.disabled = !allSeen || !hasDocs;
+      consent.classList.toggle("disabled", checkbox.disabled);
+      button.disabled = !(allSeen && hasDocs && checkbox.checked);
+      if (!hasDocs) {
+        hintText.textContent = "There are no documents to accept right now.";
+      } else if (!allSeen) {
+        const remaining = [...pendingTypes].filter((t) => !expanded.has(t)).length;
+        hintText.textContent = remaining === 1
+          ? "Open the remaining document to enable the checkbox."
+          : `Open the remaining ${remaining} documents to enable the checkbox.`;
+        hint.classList.remove("hidden");
+      } else if (!checkbox.checked) {
+        hintText.textContent = "Tick the box above to enable the Agree button.";
+      } else {
+        hint.classList.add("hidden");
+      }
+    }
+    checkbox.addEventListener("change", refresh);
+    refresh();
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      const errorBox = document.getElementById("legalError");
+      errorBox.classList.add("hidden");
+      try {
+        const response = await fetch("/api/legal-consents/accept-all/", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.cookie.split("csrftoken=")[1]?.split(";")[0] || "",
+          },
+          body: JSON.stringify({ accepted: true }),
+        });
+        if (!response.ok) throw new Error(await response.text());
+        document.body.classList.remove("legal-modal-open");
+        window.location.reload();
+      } catch (err) {
+        errorBox.textContent = "Could not record your acceptance. Please try again.";
+        errorBox.classList.remove("hidden");
+        button.disabled = false;
+      }
+    });
+  })();
+</script>
+{% endif %}
+{% endwith %}

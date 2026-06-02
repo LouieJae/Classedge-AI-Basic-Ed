@@ -1,0 +1,288 @@
+{% extends is_student_role|yesno:"student_base.html,base_operation.html" %}
+{% load static %}
+
+{% block title %}{{ module.file_name }}{% endblock %}
+
+{% block extra_css %}
+{% if not is_student_role %}{% include "teacher/_legacy_stack.html" %}{% endif %}
+<link rel="stylesheet" href="{% static 'module/view-material.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="mv-page">
+
+  <!-- Topbar — title + back action -->
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">View <em>material</em></h1>
+      <p class="page-sub">{{ module.subject.subject_name }}{% if module.term %} · {{ module.term.term_name }}{% endif %}</p>
+    </div>
+    <a href="javascript:void(0);" onclick="window.history.back();" class="mv-back">
+      <i class="fas fa-arrow-left"></i> Back
+    </a>
+  </div>
+
+  <!-- Hero card -->
+  <section class="mv-hero">
+    <div class="mv-hero-row">
+      <div class="mv-hero-icon
+        {% if is_pdf or is_unknown %}kind-file
+        {% elif is_image %}kind-image
+        {% elif is_video or is_video_url or is_youtube or is_vimeo %}kind-video
+        {% elif is_url %}kind-url
+        {% elif module.iframe_code or is_sway %}kind-embed
+        {% endif %}">
+        {% if is_pdf %}<i class="fas fa-file-pdf"></i>
+        {% elif is_image %}<i class="fas fa-image"></i>
+        {% elif is_video or is_video_url %}<i class="fas fa-video"></i>
+        {% elif is_youtube %}<i class="fab fa-youtube"></i>
+        {% elif is_vimeo %}<i class="fab fa-vimeo-v"></i>
+        {% elif is_sway %}<i class="fas fa-cloud"></i>
+        {% elif is_url %}<i class="fas fa-link"></i>
+        {% elif module.iframe_code %}<i class="fas fa-code"></i>
+        {% else %}<i class="fas fa-file"></i>
+        {% endif %}
+      </div>
+
+      <div class="mv-hero-info">
+        <span class="mv-kind-chip
+          {% if is_pdf %}rose
+          {% elif is_image %}forest
+          {% elif is_video or is_video_url or is_youtube or is_vimeo %}rose
+          {% elif is_url %}gold
+          {% elif module.iframe_code or is_sway %}forest
+          {% endif %}">
+          {% if is_pdf %}<i class="fas fa-file-pdf"></i> PDF document
+          {% elif is_image %}<i class="fas fa-image"></i> Image
+          {% elif is_video or is_video_url %}<i class="fas fa-video"></i> Video
+          {% elif is_youtube %}<i class="fab fa-youtube"></i> YouTube
+          {% elif is_vimeo %}<i class="fab fa-vimeo-v"></i> Vimeo
+          {% elif is_sway %}<i class="fas fa-cloud"></i> Sway
+          {% elif is_url %}<i class="fas fa-link"></i> External link
+          {% elif module.iframe_code %}<i class="fas fa-code"></i> Embed
+          {% else %}<i class="fas fa-file"></i> Material
+          {% endif %}
+        </span>
+        <h2 class="mv-hero-title">{{ module.file_name }}</h2>
+        <div class="mv-hero-sub">
+          <span><i class="fas fa-book"></i><strong>{{ module.subject.subject_name }}</strong></span>
+          {% if module.term %}<span><i class="fas fa-bookmark"></i>{{ module.term.term_name }}</span>{% endif %}
+          {% if module.start_date %}<span><i class="far fa-calendar"></i>{{ module.start_date }}</span>{% endif %}
+        </div>
+      </div>
+
+      {% if module.file %}
+        <div class="mv-hero-actions">
+          <a href="{% url 'download' module.id %}" class="mv-btn primary">
+            <i class="fas fa-download"></i> Download
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if is_pdf and module.file %}
+      <div class="mv-progress">
+        <div class="mv-progress-row">
+          <span class="label"><i class="fas fa-bolt"></i> Reading progress</span>
+          <span class="value" id="reading-progress-text">{{ progress|default:0 }}%</span>
+        </div>
+        <div class="mv-bar">
+          <div class="mv-fill" id="progress-bar" style="width: {{ progress|default:0 }}%;"></div>
+        </div>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- Content -->
+  <div class="mv-card">
+    {% if module.description %}
+      <p class="mv-desc">{{ module.description }}</p>
+    {% endif %}
+
+    {% if module.iframe_code %}
+      <div class="mv-embed">{{ module.iframe_code|safe }}</div>
+    {% endif %}
+
+    {% if is_pdf and module.file %}
+      <div id="pdf-container" class="mv-pdf">
+        <canvas id="pdf-canvas"></canvas>
+        <button id="fullscreen-btn" class="mv-fs-btn" type="button" title="Fullscreen">
+          <i class="fas fa-expand"></i>
+        </button>
+        <div class="mv-pdf-controls">
+          <button id="prev-page" class="mv-pdf-nav" type="button" title="Previous (←)">
+            <i class="fas fa-caret-left"></i>
+          </button>
+          <span class="mv-pdf-page"><span id="page-num"></span> / <span id="page-count"></span></span>
+          <button id="next-page" class="mv-pdf-nav" type="button" title="Next (→)">
+            <i class="fas fa-caret-right"></i>
+          </button>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if is_image and module.file %}
+      <div id="image-container" class="mv-media">
+        <img src="{{ module.file.url }}" alt="{{ module.file_name }}">
+        <button id="image-fullscreen-btn" class="mv-fs-btn" type="button" title="Fullscreen">
+          <i class="fas fa-expand"></i>
+        </button>
+      </div>
+    {% endif %}
+
+    {% if is_video and module.file %}
+      <div class="mv-media">
+        <video controls>
+          <source src="{{ module.file.url }}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    {% endif %}
+
+    {% if is_video_url %}
+      <div class="mv-media">
+        <video controls>
+          <source src="{{ module.url }}">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    {% endif %}
+
+    {% if is_youtube or is_vimeo %}
+      <div class="mv-embed">
+        <iframe src="{{ embed_url }}"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture"></iframe>
+      </div>
+    {% endif %}
+
+    {% if is_sway %}
+      <div class="mv-embed">
+        <iframe src="{{ sway_embed_url }}" allowfullscreen></iframe>
+      </div>
+    {% endif %}
+
+    {% if is_office_embed %}
+      <div class="mv-embed">
+        <iframe src="{{ office_embed_url }}"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen"></iframe>
+      </div>
+    {% endif %}
+
+    {% if is_url %}
+      <div class="mv-link-tile">
+        <div class="ico"><i class="fas fa-external-link-alt"></i></div>
+        <h5>{{ module.file_name }}</h5>
+        <p>This material opens in a new tab.</p>
+        <a href="{{ module.url }}" target="_blank" rel="noopener" class="mv-btn primary">
+          <i class="fas fa-external-link-alt"></i> Open resource
+        </a>
+      </div>
+    {% endif %}
+
+    {% if is_unknown %}
+      <div class="mv-empty">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div class="lead">Unsupported file format</div>
+        <div class="sub">This content type can't be displayed in the viewer.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if is_pdf and module.file %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var url = '{{ module.file.url }}';
+    var pdfDoc = null;
+    var pageNum = {{ last_page }};
+    var canvas = document.getElementById('pdf-canvas');
+    var ctx = canvas.getContext('2d');
+    var fullscreenBtn = document.getElementById('fullscreen-btn');
+    var pdfContainer = document.getElementById('pdf-container');
+    var progressBar = document.getElementById('progress-bar');
+    var progressText = document.getElementById('reading-progress-text');
+    var prevBtn = document.getElementById('prev-page');
+    var nextBtn = document.getElementById('next-page');
+
+    function startModule() {
+      fetch("{% url 'start-module-session' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+      }).catch(error => console.error("Error updating progress:", error));
+    }
+    function stopModule() {
+      fetch("{% url 'stop-module-session' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+      }).catch(error => console.error("Error updating progress:", error));
+    }
+    window.addEventListener('beforeunload', stopModule);
+    startModule();
+
+    function renderPage(num) {
+      pdfDoc.getPage(num).then(function (page) {
+        var viewport = page.getViewport({ scale: 1.5 });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function () {
+          document.getElementById('page-num').textContent = num;
+          updateProgress(num, pdfDoc.numPages);
+          updateNavState(num, pdfDoc.numPages);
+        });
+      });
+    }
+    function updateNavState(currentPage, totalPages) {
+      if (prevBtn) prevBtn.disabled = currentPage <= 1;
+      if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+    }
+    function updateProgress(currentPage, totalPages) {
+      var progress = Math.round((currentPage / totalPages) * 100);
+      if (progressBar) progressBar.style.width = progress + '%';
+      if (progressText) progressText.textContent = progress + '%';
+      fetch("{% url 'module-progress' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+        body: JSON.stringify({ "module_id": "{{ module.id }}", "progress": progress, "last_page": currentPage })
+      }).catch(error => console.error("Error updating progress:", error));
+    }
+
+    pdfjsLib.getDocument(url).promise.then(function (pdfDoc_) {
+      pdfDoc = pdfDoc_;
+      document.getElementById('page-count').textContent = pdfDoc.numPages;
+      renderPage(pageNum);
+    });
+
+    prevBtn.addEventListener('click', function () {
+      if (pageNum <= 1) return;
+      pageNum--; renderPage(pageNum);
+    });
+    nextBtn.addEventListener('click', function () {
+      if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
+      pageNum++; renderPage(pageNum);
+    });
+    document.addEventListener('keydown', function (e) {
+      var tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowLeft') prevBtn.click();
+      else if (e.key === 'ArrowRight') nextBtn.click();
+    });
+    fullscreenBtn.addEventListener('click', function () {
+      if (!document.fullscreenElement) {
+        (pdfContainer.requestFullscreen
+          || pdfContainer.webkitRequestFullscreen
+          || pdfContainer.msRequestFullscreen).call(pdfContainer);
+        fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+      } else {
+        document.exitFullscreen();
+        fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+      }
+    });
+  });
+</script>
+{% endif %}
+
+{% if is_image and module.file %}
+<script src="{% static 'module/view-material.js' %}"></script>
+{% endif %}
+{% endblock %}

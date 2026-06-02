@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width: 960px;">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'legal-document-list' %}">Legal Documents</a></li>
+      <li class="breadcrumb-item active">
+        {% if mode == 'create' %}New{% else %}Edit {{ doc.doc_type }} v{{ doc.version }}{% endif %}
+      </li>
+    </ol>
+  </nav>
+
+  <h1 class="h3 mb-3">
+    {% if mode == 'create' %}New Legal Document{% else %}Edit Legal Document{% endif %}
+  </h1>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <label for="{{ form.doc_type.id_for_label }}" class="form-label">Document Type</label>
+        {{ form.doc_type }}
+        {% if form.doc_type.errors %}<div class="text-danger small">{{ form.doc_type.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-4">
+        <label for="{{ form.version.id_for_label }}" class="form-label">Version</label>
+        {{ form.version }}
+        {% if form.version.errors %}<div class="text-danger small">{{ form.version.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-4">
+        <label for="{{ form.effective_date.id_for_label }}" class="form-label">Effective Date</label>
+        {{ form.effective_date }}
+        {% if form.effective_date.errors %}<div class="text-danger small">{{ form.effective_date.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="{{ form.title.id_for_label }}" class="form-label">Title</label>
+      {{ form.title }}
+      {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors|join:", " }}</div>{% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label for="{{ form.content.id_for_label }}" class="form-label">Content</label>
+      {{ form.content }}
+      <div class="form-text">{{ form.content.help_text }}</div>
+      {% if form.content.errors %}<div class="text-danger small">{{ form.content.errors|join:", " }}</div>{% endif %}
+    </div>
+
+    <div class="form-check mb-4">
+      {{ form.is_active }}
+      <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+        Set as active (deactivates other documents of the same type and prompts users to re-consent)
+      </label>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary">
+        {% if mode == 'create' %}Create{% else %}Save Changes{% endif %}
+      </button>
+      <a href="{% url 'legal-document-list' %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

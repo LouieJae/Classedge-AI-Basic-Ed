@@ -1,0 +1,952 @@
+{% extends is_student_role|yesno:"student_base.html,base.html" %}
+{% load static %}
+{% block title %}
+  {{ subject.subject_name }}
+{% endblock %}
+{% block content %}
+ 
+  <!-- Content Header (Page header) -->
+  <div class="row mb-2 align-items-center">
+    <div class="col-12 col-md-6 mb-2 mb-md-0">
+      <h3 class="m-0">{{ subject.subject_name }}</h3>
+    </div>
+    {% if is_teacher %}
+      <div class="col-12 col-md-6">
+        <div class="d-flex flex-wrap justify-content-start justify-content-md-end align-items-center gap-2">
+          {% now 'Y-m-d' as today_date %}
+          {% if selected_semester.start_date|date:'Y-m-d' <= today_date and selected_semester.end_date|date:'Y-m-d' >= today_date %}
+            <a href="{% url 'enter_classroom_mode_view' subject.id %}" class="btn btn-primary"><i class="fas fa-chalkboard-teacher"></i> Smart Classroom Mode</a>
+            <a href="javascript:void(0);" class="btn btn-success" id="classActionButton" data-subject-id="{{ subject.id }}" data-is-active="false"><i class="fas fa-chalkboard-teacher"></i> Start Class</a>
+            <div id="classroomTimerDisplay" class="badge bg-secondary d-flex align-items-center justify-content-center classroom-timer" style="display:none;">
+              <i class="fas fa-clock me-2"></i><span id="classroomTimerText">00:00:00</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+ 
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-12">
+      <p class="text-muted">Explore activities, lessons, and more for {{ subject.subject_name }}.</p>
+    </div>
+    <div></div>
+  </div>
+ 
+        <!-- Row of Pie Charts inside Cards -->
+  <div class="row mb-2">
+    <!-- Ongoing Activities Chart -->
+    <div class="col-12 col-md-4 mb-3 mb-md-0">
+      <div class="card shadow-sm">
+        <div class="card-header text-white fw-bold bg-success text-center">Ongoing Activities</div>
+        <div class="card-body" style="height: 200px;">
+          <canvas id="ongoingActivitiesChart" class="activity-chart"></canvas>
+          <p id="noDataOngoing" class="text-center text-muted" style="display: none;">No ongoing activities</p>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Upcoming Activities Chart -->
+    <div class="col-12 col-md-4 mb-3 mb-md-0">
+      <div class="card shadow-sm">
+        <div class="card-header text-white fw-bold bg-success text-center">Upcoming Activities</div>
+        <div class="card-body" style="height: 200px;">
+          <canvas id="upcomingActivitiesChart" class="activity-chart"></canvas>
+          <p id="noDataUpcoming" class="text-center text-muted" style="display: none;">No upcoming activities</p>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Activities to be Graded Chart -->
+    <div class="col-12 col-md-4">
+      <div class="card shadow-sm">
+        <div class="card-header text-white fw-bold bg-success text-center">Activities to be Graded</div>
+        <div class="card-body" style="height: 200px;">
+          <canvas id="activitiesToBeGradedChart" class="activity-chart"></canvas>
+          <p id="noDataGradingNeeded" class="text-center text-muted" style="display: none;">No activities to be graded</p>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  
+ 
+        <!-- Teacher's section -->
+  {% if is_teacher %}
+  <div class="d-flex justify-content-center mb-4">
+    {% if subject.is_coil  %}
+      <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#inviteCollaboratorModal">
+        <i class="fas fa-user-plus"></i> Invite Collaborator
+      </button>
+   
+    <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#inviteStudentModal">
+      <i class="fas fa-user-graduate"></i> Invite Student
+    </button>
+    {% endif %}
+  </div>
+
+  {% now 'Y-m-d' as today_date %}
+    {% if selected_semester.start_date|date:'Y-m-d' <= today_date and selected_semester.end_date|date:'Y-m-d' >= today_date %}
+      <!-- Floating Action Button - Modern Minimalist Style -->
+      <button class="btn btn-primary btn-lg rounded-circle shadow position-fixed fab-button"
+              style="bottom: 90px; right: 24px; width: 56px; height: 56px; z-index: 1000;"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#quickActionsOffcanvas"
+              aria-controls="quickActionsOffcanvas"
+              title="Quick Actions">
+        <i class="fas fa-plus"></i>
+      </button>
+
+      <!-- Offcanvas Menu - Modern Bootstrap 5 Style -->
+      <div class="offcanvas offcanvas-end" id="quickActionsOffcanvas" tabindex="-1" aria-labelledby="quickActionsOffcanvasLabel">
+        <div class="offcanvas-header d-flex justify-content-between align-items-center">
+          <h5 class="offcanvas-title" id="quickActionsOffcanvasLabel">
+            <i class="fas fa-bolt me-2 text-primary"></i>Quick Actions
+          </h5>
+          <button type="button" class="btn btn-danger offcanvas-close-btn" data-bs-dismiss="offcanvas" aria-label="Close" onclick="bootstrap.Offcanvas.getInstance(document.getElementById('quickActionsOffcanvas')).hide()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="offcanvas-body">
+          <div class="d-grid gap-2">
+            <a class="btn btn-outline-primary d-flex align-items-center"
+               data-bs-toggle="modal"
+               data-bs-target="#addActivityLessonModalStandard"
+               data-bs-dismiss="offcanvas">
+              <i class="fas fa-plus me-3"></i>
+              <span>Add Assessment or Lesson</span>
+            </a>
+
+            <a href="{% url 'material-list' subject.id %}"
+               class="btn btn-outline-info d-flex align-items-center">
+              <i class="fas fa-book me-3"></i>
+              <span>Material List</span>
+            </a>
+
+            <a href="{% url 'subject-assessment-list' subject.id %}"
+               class="btn btn-outline-success d-flex align-items-center">
+              <i class="fas fa-tasks me-3"></i>
+              <span>Activity List</span>
+            </a>
+
+            <a href="{% url 'subjectStudentList' subject.id %}?semester={{ selected_semester_id }}"
+               class="btn btn-outline-warning d-flex align-items-center">
+              <i class="fas fa-users me-3"></i>
+              <span>View Student Attendance</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+ 
+  <div class="row">
+    <div class="col-12 col-md-8 mb-3 mb-md-0">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success d-flex justify-content-between align-items-center">
+          <span class="text-white fw-bold">Lessons &nbsp;<sup>(Organized by Week)</sup></span>
+                      <!-- Month Selector Dropdown -->
+          <div class="dropdown">
+            <button class="btn btn-light dropdown-toggle" type="button" id="monthSelector"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+              Select Month
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="monthSelector" id="monthDropdown">
+          <!-- Dynamic month options will be inserted here -->
+            </ul>
+          </div>
+        </div>
+        <!-- Bootstrap 5 Accordion -->
+        <div class="accordion" id="lessonAccordion">
+          <div id="lesson-list">
+          <!-- Dynamic lesson content will be inserted here -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card shadow-sm" style="height: 100%;">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <span class="fw-bold">
+            <i class="fas fa-users me-2"></i>
+            {% if is_teacher %}Students{% else %}Classmates{% endif %}
+          </span>
+          <span class="badge bg-light text-success">{{ students|length }}</span>
+        </div>
+        <div class="card-body p-0" style="overflow-y: auto; max-height: 400px;">
+          <div class="list-group list-group-flush">
+            {% for student in students %}
+              <div class="list-group-item d-flex align-items-center py-3 px-3 border-bottom">
+                <div class="me-3">
+                  {% if student.profile_picture %}
+                    <a href="{% url 'account_profile_view' student.id %}"><img src="{{ student.profile_picture.url }}" alt="{{ student.get_full_name }}" class="rounded-circle" width="45" height="45" style="object-fit: cover;"></a>
+                  {% else %}
+                    <a href="{% url 'account_profile_view' student.id %}">
+                      <img id="zoomableImage" class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-dark" style="width: 45px; height: 45px;"
+                      src="{% if student.profile.student_photo %}
+                        {{ student.profile.student_photo.url }}
+                      {% else %}
+                        {% static 'assets/img/profile_default.png' %}
+                      {% endif %}"
+                      alt="Profile Picture" />
+                    </a>
+                  {% endif %}
+                </div>
+                <div class="flex-grow-1">
+                  <div class="fw-semibold">{{ student.last_name }}, {{ student.first_name }}</div>
+                  <small class="text-muted d-block">
+                    <i class="fas fa-envelope me-1"></i>{{ student.email }}
+                  </small>
+                </div>
+                {% if is_teacher %}
+                <a href="{% url 'teacher_administrative_drop' subject.id student.id %}"
+                  class="ms-2 drop-student-confirm"
+                  data-student-name="{{ student.get_full_name|escapejs }}"
+                  title="Drop Student">
+                  <i class="fa fa-ban text-warning"></i>
+                </a>
+                {% endif %}
+              </div>
+            {% empty %}
+              <div class="text-center py-5">
+                <i class="fas fa-users fa-3x mb-3"></i>
+                <p>No {% if is_teacher %}students{% else %}classmates{% endif %} found</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- Bootstrap Modal for Adding Activity or Lesson -->
+  <div class="modal fade" id="addActivityLessonModalStandard" tabindex="-1" aria-labelledby="addActivityLessonModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addActivityLessonModalLabel">Add an Activity or Lesson</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="container">
+            <div class="row g-3">
+
+                        <!-- Assignment -->
+              <div class="col-md-4">
+                <button class="btn btn-outline-primary w-100 py-3 d-flex flex-column align-items-center"
+                        onclick="selectActivityTypeAndRedirect('Assignment', {{ subject.id }}, {{ assignment_activity_type_id|default:'null' }}, false)">
+                  <i class="fas fa-check-square fa-2x mb-2"></i> Assignment
+                </button>
+              </div>
+                        <!-- Attendance -->
+              <div class="col-md-4">
+                <a href="{% url 'record-attendance' subject.id %}" class="btn btn-outline-success w-100 py-3 d-flex flex-column align-items-center">
+                  <i class="fas fa-user-check fa-2x mb-2"></i> Attendance
+                </a>
+              </div>
+                        <!-- Participation -->
+              <div class="col-md-4">
+                <button class="btn btn-outline-danger w-100 py-3 d-flex flex-column align-items-center"
+                        onclick="selectActivityTypeAndRedirect('Participation', {{ subject.id }}, {{ participation_activity_type_id|default:'null' }})">
+                  <i class="fas fa-users fa-2x mb-2"></i> Major Assessment
+                </button>
+              </div>
+                        <!-- Lesson -->
+              <div class="col-md-4">
+                <a href="{% url 'create-material' subject.id %}" class="btn btn-outline-warning w-100 py-3 d-flex flex-column align-items-center">
+                  <i class="fas fa-book fa-2x mb-2"></i> Material
+                </a>
+              </div>
+                        <!-- Video Conference -->
+              <div class="col-md-4">
+                <button class="btn btn-outline-primary w-100 py-3 d-flex flex-column align-items-center"
+                        data-bs-toggle="modal" data-bs-target="#teamsSignInModal">
+                  <i class="fas fa-video fa-2x mb-2"></i> Video Conference
+                </button>
+              </div>
+
+                       <!-- Zoom Conference -->
+              <div class="col-md-4">
+                <button class="btn btn-outline-primary w-100 py-3 d-flex flex-column align-items-center"
+                        data-bs-toggle="modal" data-bs-target="#zoomSignInModal">
+                  <i class="fas fa-video fa-2x mb-2"></i>  Zoom
+                </button>
+              </div>
+
+                          <!-- Google Meet Conference -->
+              <div class="col-md-4">
+                <button class="btn btn-outline-primary w-100 py-3 d-flex flex-column align-items-center"
+                        data-bs-toggle="modal" data-bs-target="#googleMeetSignInModal">
+                  <i class="fas fa-video fa-2x mb-2"></i> Google Meet
+                </button>
+              </div>
+                        <!-- Quiz -->
+              <div class="col-md-4">
+                <button class="btn btn-outline-danger w-100 py-3 d-flex flex-column align-items-center"
+                        onclick="selectActivityTypeAndRedirect('Quiz', {{ subject.id }}, {{ quiz_activity_type_id|default:'null' }})">
+                  <i class="fas fa-question-circle fa-2x mb-2"></i> Quiz
+                </button>
+              </div>
+                        <!-- Exam -->
+              <div class="col-md-4">
+                <button class="btn btn-outline-info w-100 py-3 d-flex flex-column align-items-center"
+                        onclick="selectActivityTypeAndRedirect('Exam', {{ subject.id }}, {{ exam_activity_type_id|default:'null' }})">
+                  <i class="fas fa-file-alt fa-2x mb-2"></i> Exam
+                </button>
+              </div>
+                        <!-- Special Activity -->
+              <div class="col-md-4">
+                <button class="btn btn-outline-secondary w-100 py-3 d-flex flex-column align-items-center"
+                        onclick="selectActivityTypeAndRedirect('Special', {{ subject.id }}, {{ special_activity_type_id|default:'null' }})">
+                  <i class="fas fa-star fa-2x mb-2"></i> Special Activity
+                </button>
+              </div>
+                        <!-- URL -->
+              <div class="col-md-4">
+                <a href="{% url 'create-material-url' subject.id %}" class="btn btn-outline-warning w-100 py-3 d-flex flex-column align-items-center">
+                  <i class="fas fa-book fa-2x mb-2"></i> URL
+                </a>
+
+              </div>
+                        <!-- Embed Code -->
+              <div class="col-md-4">
+                <a href="{% url 'create-material-embed' subject.id %}" class="btn btn-outline-warning w-100 py-3 d-flex flex-column align-items-center">
+                  <i class="fas fa-book fa-2x mb-2"></i> Embed Code
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>  </div>
+ 
+  <!-- Custom Modal for Adding Participation -->
+  <div id="participationModal" class="custom-modal">
+    <div class="custom-modal-header d-flex justify-content-between">
+      <h5>Select Major Assessment Details</h5>
+      <button class="close-btn" id="closeParticipationModalBtn"></button>
+    </div>
+    <div class="custom-modal-body" id="participationModalBody"></div>
+  </div>
+  <div id="participationModalBackdrop" class="custom-modal-backdrop"></div>
+ 
+  <!-- Custom Modal for Adding Module -->
+  <div id="moduleModal" class="custom-modal">
+    <div class="custom-modal-header d-flex justify-content-between">
+      <h5 class="text-dark">Add Material</h5>
+ 
+      <button class="close-btn" id="closeModuleModalBtn"></button>
+    </div>
+    <div class="custom-modal-body" id="moduleModalBody"></div>
+  </div>
+  <div id="moduleModalBackdrop" class="custom-modal-backdrop"></div>
+ 
+  <!-- Copy Lessons Modal -->
+  <div id="copyLessonModal" class="custom-modal">
+    <div class="custom-modal-header d-flex justify-content-between">
+      <h5 class="text-dark">Copy Lessons</h5>
+      <button class="close-btn" id="closeCopyLessonModalBtn"></button>
+    </div>
+    <div class="custom-modal-body" id="copyLessonModalBody"></div>
+  </div>
+  <div id="copyLessonModalBackdrop" class="custom-modal-backdrop"></div>
+ 
+  <!-- Old Copy Activities modal removed - now using dedicated import pages -->
+ 
+  <!-- Modal for Microsoft Teams Sign-in -->
+  <div class="modal" id="teamsSignInModal" tabindex="-1" role="dialog" aria-labelledby="teamsSignInModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content card-style-modal">
+        <div class="modal-header">
+          <h5 class="modal-title" id="teamsSignInModalLabel">Sign in to Microsoft Teams</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>To start your Microsoft Teams meeting, sign in using your school account.</p>
+          <a href="https://teams.microsoft.com" target="_blank" class="btn btn-primary">Sign in to Microsoft Teams</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+   <!-- Modal for Zoom Sign-in -->
+  <div class="modal" id="zoomSignInModal" tabindex="-1" role="dialog" aria-labelledby="zoomSignInModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content card-style-modal">
+        <div class="modal-header">
+          <h5 class="modal-title" id="zoomSignInModalLabel">Sign in to Zoom</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>To start your Zoom meeting, sign in using your school or Zoom account.</p>
+          <a href="https://zoom.us/signin" target="_blank" class="btn btn-primary">Sign in to Zoom</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Google Meet Sign-in -->
+  <div class="modal" id="googleMeetSignInModal" tabindex="-1" role="dialog" aria-labelledby="googleMeetSignInModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content card-style-modal">
+        <div class="modal-header">
+          <h5 class="modal-title" id="googleMeetSignInModalLabel">Sign in to Google Meet</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>To start your Google Meet session, sign in using your Google account.</p>
+          <a href="https://meet.google.com" target="_blank" class="btn btn-primary">Sign in to Google Meet</a>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- Attendance Modal -->
+  <div id="attendanceModal" class="custom-modal">
+    <div class="custom-modal-header d-flex justify-content-between">
+      <h5 class="text-dark">Record Attendance</h5>
+      <button class="close-btn" id="closeAttendanceModalBtn"></button>
+    </div>
+    <div class="custom-modal-body" id="attendanceModalBody"></div>
+  </div>
+  <div id="attendanceModalBackdrop" class="custom-modal-backdrop"></div>
+ 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Invite Collaborator Modal -->
+  <div class="modal fade" id="inviteCollaboratorModal" tabindex="-1" aria-labelledby="inviteCollaboratorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form method="POST" action="{% url 'send_collaboration_invite' subject.id %}">
+        {% csrf_token %}
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="inviteCollaboratorModalLabel"><i class="fas fa-user-plus me-2"></i>Invite a Collaborator</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Enter the email address of the teacher you want to invite to collaborate on this subject.</p>
+            <input type="email" name="email" class="form-control" placeholder="teacher@example.com" required>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success">Send Invite</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Invite Student -->
+  <div class="modal fade" id="inviteStudentModal" tabindex="-1" aria-labelledby="inviteStudentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form method="POST" action="{% url 'send_student_invite' subject.id %}">
+        {% csrf_token %}
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title" id="inviteStudentModalLabel">Invite Student to Subject</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="studentEmail" class="form-label">Student Email</label>
+              <input type="email" name="email" class="form-control" id="studentEmail" placeholder="student@example.com" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success">Send Invite</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Delete</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete this lesson? This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'course/view_subject_dashboard.js' %}"></script>
+ 
+  <script>
+    const createPieChart = (chartId, labels, data, links, noDataId) => {
+      const ctx = document.getElementById(chartId).getContext('2d');
+ 
+      // Define Soft Pastel Colors
+      const pastelColors = [
+        "#FFB3BA", // Soft Red
+        "#FFDFBA", // Soft Orange
+        "#FFFFBA", // Soft Yellow
+        "#BAFFC9", // Soft Green
+        "#BAE1FF", // Soft Blue
+        "#E6C9F9", // Soft Purple
+        "#FFC6FF", // Soft Pink
+        "#D4A5A5", // Muted Peach
+        "#B5EAD7", // Pastel Teal
+        "#C7CEEA"  // Light Lavender
+      ];
+ 
+      if (data.length > 0) {
+        const chart = new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: labels.map(label => label.length > 15 ? label.substring(0, 15) + '...' : label), // Truncate long labels
+            datasets: [{
+              data: data,
+              backgroundColor: pastelColors.slice(0, data.length), // Apply pastel colors
+              borderColor: "rgba(255,255,255,0.8)", // White border for clarity
+              borderWidth: 2
+            }],
+          },
+          options: {
+            onClick: (event, array) => {
+              if (array.length) {
+                const index = array[0].index;
+                window.location.href = links[index];
+              }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'left',
+                align: 'start',
+                labels: {
+                  usePointStyle: true,
+                  padding: 15,
+                  font: {
+                    size: 12,
+                    family: "Arial, sans-serif",
+                    weight: "bold",
+                    color: "#444" // Darker text for better contrast
+                  }
+                },
+                // Make legend labels clickable for all three charts
+                onClick: function(e, legendItem, legend) {
+                  if ([
+                    'ongoingActivitiesChart',
+                    'upcomingActivitiesChart',
+                    'activitiesToBeGradedChart'
+                  ].includes(chartId)) {
+                    const index = legendItem.index;
+                    if (links[index]) {
+                      window.location.href = links[index];
+                    }
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(tooltipItem) {
+                    return `${tooltipItem.label}: ${tooltipItem.raw}`;
+                  }
+                }
+              }
+            },
+            layout: {
+              padding: { left: 10, right: labels.length > 5 ? 0 : 80 }
+            }
+          }
+        });
+
+        // Add mouse pointer to legend labels for all main pie charts
+        if ([
+          'ongoingActivitiesChart',
+          'upcomingActivitiesChart',
+          'activitiesToBeGradedChart'
+        ].includes(chartId)) {
+          const canvas = ctx.canvas;
+          canvas.addEventListener('mousemove', function(evt) {
+            const legend = chart.legend;
+            let cursorSet = false;
+            if (legend && legend.legendItems) {
+              // Chart.js does not expose legend label hitboxes, so we approximate
+              const fontSize = legend.options.labels.font.size || 12;
+              const itemHeight = fontSize + 10;
+              const legendTop = legend.top;
+              const legendLeft = legend.left;
+              const legendWidth = legend.width;
+              const y = evt.offsetY;
+              const x = evt.offsetX;
+              legend.legendItems.forEach((legendItem, i) => {
+                const yStart = legendTop + i * itemHeight;
+                const yEnd = yStart + itemHeight;
+                if (
+                  x >= legendLeft &&
+                  x <= legendLeft + legendWidth &&
+                  y >= yStart &&
+                  y <= yEnd
+                ) {
+                  canvas.style.cursor = 'pointer';
+                  cursorSet = true;
+                }
+              });
+            }
+            if (!cursorSet) {
+              canvas.style.cursor = '';
+            }
+          });
+        }
+      } else {
+        document.getElementById(chartId).style.display = 'none';
+        document.getElementById(noDataId).style.display = 'block';
+      }
+    };
+ 
+ 
+    // Ongoing Activities
+    const ongoingActivitiesLabels = [{% for activity in ongoing_activities %}'{{ activity.activity_name }}',{% endfor %}];
+    const ongoingActivitiesData = [{% for activity in ongoing_activities %}1,{% endfor %}];
+    const ongoingActivitiesLinks = [{% for activity in ongoing_activities %}'{% url "assessment-details" activity.id %}?semester={{ selected_semester_id }}',{% endfor %}];
+    createPieChart('ongoingActivitiesChart', ongoingActivitiesLabels, ongoingActivitiesData, ongoingActivitiesLinks, 'noDataOngoing');
+ 
+    // Upcoming Activities
+    const upcomingActivitiesLabels = [{% for activity in upcoming_activities %}'{{ activity.activity_name }}',{% endfor %}];
+    const upcomingActivitiesData = [{% for activity in upcoming_activities %}1,{% endfor %}];
+    const upcomingActivitiesLinks = [{% for activity in upcoming_activities %}'#',{% endfor %}];
+    createPieChart('upcomingActivitiesChart', upcomingActivitiesLabels, upcomingActivitiesData, upcomingActivitiesLinks, 'noDataUpcoming');
+ 
+    // Activities to be Graded
+    const gradingNeededLabels = [{% for activity, count in activities_with_grading_needed %}'{{ activity.activity_name }}',{% endfor %}];
+    const gradingNeededData = [{% for activity, count in activities_with_grading_needed %}{{ count }},{% endfor %}];
+    const gradingNeededLinks = [{% for activity, count in activities_with_grading_needed %}'{% url "grade_essays" activity.id %}?semester={{ selected_semester_id }}',{% endfor %}];
+    createPieChart('activitiesToBeGradedChart', gradingNeededLabels, gradingNeededData, gradingNeededLinks, 'noDataGradingNeeded');
+ 
+ 
+  </script>
+ 
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    {% comment %}
+  Activity drag-and-drop ordering removed - order field no longer exists in Activity model
+  {% endcomment %}
+  </script>
+ 
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+ 
+      const isTeacher = {{ is_teacher|yesno:"true,false" }};
+ 
+      // Access the semester_months passed from the view directly
+      const semesterMonths = {{ semester_months|safe }};
+ 
+      const monthDropdown = document.getElementById("monthDropdown");
+      const monthSelectorButton = document.getElementById("monthSelector");
+ 
+      if (monthDropdown) {
+          // Create a dropdown option for each month in the semester
+        semesterMonths.forEach(month => {
+          const monthOption = document.createElement("a");
+          monthOption.classList.add("dropdown-item", "month-option");
+          monthOption.setAttribute("data-month", month);
+          monthOption.textContent = month;
+          monthDropdown.appendChild(monthOption);
+        });
+ 
+          // Set the current month as the default option
+        const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+        const currentMonthOption = document.querySelector(`.month-option[data-month="${currentMonth}"]`);
+ 
+        if (currentMonthOption) {
+          currentMonthOption.classList.add('active');
+          monthSelectorButton.textContent = `Select Month: ${currentMonth}`;
+          fetchScheduleData(currentMonth);  // Fetch data for the current month
+        }
+ 
+          // Event listener for month selection
+        document.querySelectorAll('.month-option').forEach(option => {
+          option.addEventListener('click', function () {
+            const selectedMonth = this.getAttribute('data-month');
+                  // Fetch data based on the selected month
+            monthSelectorButton.textContent = `Month: ${selectedMonth}`;
+            fetchScheduleData(selectedMonth);
+          });
+        });
+      }
+ 
+ 
+// Function to fetch schedule data based on selected month
+      function fetchScheduleData(selectedMonth) {
+        const subjectId = "{{ subject.id }}"; // Ensure this correctly renders an ID
+        const apiUrl = `/api/schedules/${subjectId}/?month=${selectedMonth}&t=${new Date().getTime()}`; // Cache busting
+        const lessonList = document.getElementById("lesson-list");
+ 
+        fetch(apiUrl)
+          .then(response => response.json())
+          .then(scheduleData => {
+ 
+            lessonList.innerHTML = ''; // Clear current lessons
+            if (!scheduleData.schedule_data || scheduleData.schedule_data.length === 0) {
+              lessonList.innerHTML = '<p class="text-center mt-3 text-muted">No schedule available for this subject in the selected month.</p>';
+              return;
+            }
+
+          // Render lessons organized by weeks
+            const filteredWeeks = scheduleData.schedule_data;
+
+            filteredWeeks.forEach((week, index) => {
+              if (!week.lessons || week.lessons.length === 0) {
+                return;
+              }
+              const weekId = `week${index + 1}Lessons`;
+
+              // Week Container
+              const weekItem = document.createElement("div");
+              weekItem.classList.add("accordion-item");
+
+              // Week Header
+              const weekHeader = document.createElement("h2");
+              weekHeader.classList.add("accordion-header");
+              weekHeader.id = `heading${index}`;
+
+              const weekButton = document.createElement("button");
+              weekButton.classList.add("accordion-button", "collapsed", "d-flex", "justify-content-between");
+              weekButton.setAttribute("type", "button");
+              weekButton.setAttribute("data-bs-toggle", "collapse");
+              weekButton.setAttribute("data-bs-target", `#${weekId}`);
+              weekButton.setAttribute("aria-expanded", "false");
+              weekButton.setAttribute("aria-controls", weekId);
+              
+              // Display schedule times if available
+              const scheduleTimesText = week.schedule_times && week.schedule_times.length > 0 
+                ? `<small class="text-muted ms-2">(${week.schedule_times.join(', ')})</small>` 
+                : '';
+              
+              weekButton.innerHTML = `
+                  <span><i class="fas fa-calendar-week text-primary me-2"></i> ${week.week} ${scheduleTimesText}</span>
+                  <span class="badge bg-primary">${week.lessons.length} Lesson${week.lessons.length > 1 ? 's' : ''}</span>
+              `;
+
+              // Week Content
+              const weekContent = document.createElement("div");
+              weekContent.id = weekId;
+              weekContent.classList.add("accordion-collapse", "collapse");
+              weekContent.setAttribute("aria-labelledby", `heading${index}`);
+              weekContent.setAttribute("data-bs-parent", "#lessonAccordion");
+
+              const weekBody = document.createElement("div");
+              weekBody.classList.add("accordion-body");
+ 
+              // Lessons List for this week
+              const lessonList = document.createElement("ul");
+              lessonList.classList.add("list-group", "mt-2");
+ 
+              week.lessons.forEach((lesson, lessonIndex) => {
+                const lessonId = `lesson${index + 1}_${lessonIndex + 1}`;
+ 
+                let iconClass = "far fa-file-alt text-secondary";
+                if (lesson.type) {
+                  switch (lesson.type.toLowerCase()) {
+                    case "pdf": iconClass = "far fa-file-pdf text-danger"; break;
+                    case "image": iconClass = "far fa-file-image text-success"; break;
+                    case "video": iconClass = "far fa-file-video text-primary"; break;
+                    case "word": iconClass = "far fa-file-word text-primary"; break;
+                    case "excel": iconClass = "far fa-file-excel text-success"; break;
+                    case "powerpoint": iconClass = "far fa-file-powerpoint text-warning"; break;
+                    case "zip": iconClass = "far fa-file-archive text-secondary"; break;
+                    case "text": iconClass = "far fa-file-alt text-dark"; break;
+                    case "youtube": iconClass = "fab fa-youtube text-danger"; break;
+                    case "vimeo": iconClass = "fab fa-vimeo text-primary"; break;
+                    case "sway": iconClass = "fas fa-cloud text-info"; break;
+                    case "embed": iconClass = "fas fa-code text-teal"; break;
+                    default: iconClass = "far fa-file text-secondary";
+                  }
+                }
+
+                const lessonItem = document.createElement("li");
+                lessonItem.classList.add("list-group-item");
+
+                const lessonHeader = document.createElement("button");
+                lessonHeader.classList.add("accordion-button", "collapsed", "d-flex", "justify-content-between");
+                lessonHeader.setAttribute("type", "button");
+                lessonHeader.setAttribute("data-bs-toggle", "collapse");
+                lessonHeader.setAttribute("data-bs-target", `#${lessonId}`);
+                lessonHeader.setAttribute("aria-expanded", "false");
+                lessonHeader.setAttribute("aria-controls", lessonId);
+                
+                const dateRange = `${lesson.start_date} to ${lesson.end_date}`;
+                lessonHeader.innerHTML = `
+                  <span><i class="${iconClass} me-2"></i> ${lesson.lesson} - </span>
+                  <small class="text-muted"> ${dateRange}</small>
+                `;
+
+                const lessonContent = document.createElement("div");
+                lessonContent.id = lessonId;
+                lessonContent.classList.add("accordion-collapse", "collapse");
+                lessonContent.setAttribute("aria-labelledby", lessonId);
+                lessonContent.setAttribute("data-bs-parent", `#${weekId}`);
+
+                const lessonBody = document.createElement("div");
+                lessonBody.classList.add("accordion-body");
+                lessonBody.innerHTML = `
+                  <p><strong>Description:</strong> ${lesson.description || "No description available"}</p>
+                  <p><strong>Date Range:</strong> ${lesson.start_date} to ${lesson.end_date}</p>
+                  {% now 'Y-m-d' as today_date %}
+                  {% if selected_semester.start_date|date:'Y-m-d' <= today_date and selected_semester.end_date|date:'Y-m-d' >= today_date %}
+                  <div class="d-flex flex-wrap gap-2">
+                    <a href="/view-module/${lesson.module_id}/" class="btn btn-primary btn-sm"><i class="fas fa-eye"></i> View</a>
+                    ${lesson.allow_download && lesson.file_url ? `
+                      <a href="${lesson.file_url}" download class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-download"></i> Download
+                      </a>` : ''}
+                    {% if is_teacher %}
+                    ${lesson.file_url ? `
+                      <a href="/update_material/${lesson.module_id}/" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Update</a>
+                    ` : lesson.embed ? `
+                      <a href="/update_material_embed/${lesson.module_id}/" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Update</a>
+                    ` : lesson.url ? `
+                      <a href="/update_material_url/${lesson.module_id}/" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Update</a>
+                    ` : ''}
+                    ${lesson.module_id ? `
+                      <button class="btn btn-danger btn-sm" onclick="confirmDelete(${lesson.module_id || 'null'})">
+                        <i class="fas fa-trash"></i> Delete
+                      </button>
+                    ` : ''}
+                    {% endif %}
+                  </div>
+                  {% endif %}
+                `;
+ 
+                if (lesson.activities && lesson.activities.length > 0) {
+                  let activityListHTML = `<p class="mb-2 mt-3"><strong>Activities:</strong></p><ul class="list-group mt-2">`;
+                  lesson.activities.forEach(activity => {
+                    let activityIcon = "fas fa-tasks text-secondary";
+                    switch (activity.activity_type.toLowerCase()) {
+                      case "assignment": activityIcon = "fas fa-file-alt text-primary"; break;
+                      case "attendance": activityIcon = "fas fa-user-check text-success"; break;
+                      case "participation": activityIcon = "fas fa-users text-danger"; break;
+                      case "lesson": activityIcon = "fas fa-book-open text-dark"; break;
+                      case "video conference": activityIcon = "fas fa-video text-info"; break;
+                      case "quiz": activityIcon = "fas fa-pencil-alt text-warning"; break;
+                      case "exam": activityIcon = "fas fa-file-signature text-purple"; break;
+                      case "special activity": activityIcon = "fas fa-star text-secondary"; break;
+                      case "url": activityIcon = "fas fa-link text-purple"; break;
+                    }
+                    activityListHTML += `
+                      <li class="list-group-item d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                          <i class="${activityIcon} text-primary me-3 fs-5"></i>
+                          <div>
+                            <a href="/activity_detail/${activity.activity_id}/" class="fw-bold text-decoration-none">
+                              ${activity.activity_name}
+                            </a>
+                            <small class="d-block text-muted">
+                              <i class="fas fa-tag me-1"></i> ${activity.activity_type}
+                              <i class="fas fa-clock ms-3 me-1"></i> ${activity.start_time || "TBD"} - ${activity.end_time || "TBD"}
+                            </small>
+                          </div>
+                        </div>
+                        <a href="/activity_detail/${activity.activity_id}/" class="btn btn-sm btn-outline-primary">
+                          <i class="fas fa-arrow-right"></i>
+                        </a>
+                      </li>
+                    `;
+                  });
+                  activityListHTML += `</ul>`;
+                  lessonBody.innerHTML += activityListHTML;
+                }
+
+                lessonContent.appendChild(lessonBody);
+                lessonItem.appendChild(lessonHeader);
+                lessonItem.appendChild(lessonContent);
+                lessonList.appendChild(lessonItem);
+ 
+              });
+ 
+              weekBody.appendChild(lessonList);
+              weekContent.appendChild(weekBody);
+              weekHeader.appendChild(weekButton);
+ 
+              // 🔹 Add Teacher Evaluations Below the Week
+              if (scheduleData.available_evaluations.length > 0) {
+                const evaluationContainer = document.createElement("div");
+                evaluationContainer.classList.add("list-group", "mt-3");
+ 
+                const evaluationHeader = document.createElement("li");
+                evaluationHeader.classList.add("list-group-item", "bg-secondary", "text-white", "font-weight-bold");
+                evaluationHeader.textContent = "Teacher Evaluations";
+                evaluationContainer.appendChild(evaluationHeader);
+ 
+                scheduleData.available_evaluations.forEach(evaluation => {
+                    const evaluationItem = document.createElement("li");
+                    evaluationItem.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center");
+ 
+                    evaluationItem.innerHTML = `
+                        <span>
+                            <i class="fas fa-user text-primary mr-2"></i> 
+                            ${evaluation.teacher} (Survey)
+                        </span>
+                        <a href="/submit_evaluation/${evaluation.evaluation_id}/" class="btn btn-primary btn-sm">Take Survey</a>
+                    `;
+                    evaluationContainer.appendChild(evaluationItem);
+                });
+ 
+                weekContent.appendChild(evaluationContainer);
+              }
+ 
+              weekItem.appendChild(weekHeader);
+              weekItem.appendChild(weekContent);
+              document.getElementById("lesson-list").appendChild(weekItem);
+            });
+          })
+          .catch(error => {
+            lessonList.innerHTML = '<p class="text-center mt-3 text-danger">Failed to load schedule data. Please try again.</p>';
+          });
+      }
+ 
+      function formatTime(timeRange) {
+        if (!timeRange) return "N/A";  // Handle missing time cases
+        const timeParts = timeRange.split(" to ");
+        return `${convertTo12Hour(timeParts[0])} to ${convertTo12Hour(timeParts[1])}`;
+      }
+ 
+      function convertTo12Hour(timeString) {
+        const [hours, minutes] = timeString.split(":");
+        let period = "AM";
+        let hour = parseInt(hours, 10);
+ 
+        if (hour >= 12) {
+          period = "PM";
+          if (hour > 12) hour -= 12;
+        }
+        return `${hour}:${minutes} ${period}`;
+      }
+    });
+  </script>
+
+     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="{% static 'js/classroom-mode.js' %}"></script>
+  <script src="{% static 'js/file-validation.js' %}"></script>
+  <script src="{% static 'js/modal.js' %}"></script>
+  <script src="{% static 'js/activate-classroom-mode.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'course/view_subject_dashboard.css' %}" />
+{% if is_teacher %}
+<div class="mt-3">
+    <a href="{% url 'at_risk_dashboard' subject.pk %}" class="btn btn-outline-danger btn-sm">
+        <i class="fas fa-exclamation-triangle"></i> At-risk Students
+    </a>
+</div>
+{% endif %}
+{% if is_student %}
+<div class="mt-3">
+    <a href="{% url 'side_activity_list' subject.pk %}" class="btn btn-outline-warning btn-sm">
+        <i class="fas fa-gamepad"></i> Play & Learn
+    </a>
+</div>
+{% endif %}
+{% if is_student or is_teacher %}
+{% include "rag_tutor/chat_widget.html" %}
+{% endif %}
+{% endblock %}

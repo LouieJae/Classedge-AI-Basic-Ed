@@ -1,0 +1,292 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gamification/teacher/student_detail.css' %}" />
+{% endblock %}
+{% block content %}
+<div class="sd-shell">
+
+  <a href="{% url 'subject_analytics_panel' subject.id %}" class="sd-back">
+    <i class="fas fa-arrow-left"></i> Back to class analytics
+  </a>
+
+  <div class="sd-hero">
+    <div class="sd-hero-identity">
+      <div class="sd-avatar" aria-hidden="true">
+        {{ student.get_full_name|default:student.username|slice:":1"|upper }}
+      </div>
+      <div class="sd-hero-text">
+        <div class="sd-eyebrow">Student profile</div>
+        <h1 class="sd-name">{{ student.get_full_name|default:student.username }}</h1>
+        <div class="sd-meta">
+          <span><i class="fas fa-book-open"></i> {{ subject.subject_code|default:"" }}{% if subject.subject_code %} · {% endif %}{{ subject.subject_name }}</span>
+          {% if semester %}<span><i class="fas fa-calendar"></i> {{ semester.semester_name }}</span>{% endif %}
+          {% if student.email %}<span><i class="fas fa-envelope"></i> {{ student.email }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="sd-hero-aside">
+      <span class="sd-risk-pill is-{{ risk_level }}">
+        <i class="fas fa-circle"></i> {{ risk_level|capfirst }} risk
+      </span>
+      <button type="button" class="cl-tour-replay" data-cl-tour="student-detail">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      <button type="button" class="sd-btn primary"
+              onclick="document.getElementById('recognize-modal-{{ student.pk }}').style.display='flex'"
+              data-student-id="{{ student.pk }}">
+        <i class="fas fa-medal"></i> Recognize
+      </button>
+    </div>
+  </div>
+
+  <div class="sd-tiles">
+    <div class="sd-tile">
+      <div class="sd-tile-icon t-score"><i class="fas fa-chart-line"></i></div>
+      <div class="sd-tile-body">
+        <div class="sd-tile-value">{{ avg_score }}%</div>
+        <div class="sd-tile-label">Average score</div>
+      </div>
+    </div>
+    <div class="sd-tile">
+      <div class="sd-tile-icon t-xp"><i class="fas fa-bolt"></i></div>
+      <div class="sd-tile-body">
+        <div class="sd-tile-value">{{ total_xp }}</div>
+        <div class="sd-tile-label">Total XP</div>
+      </div>
+    </div>
+    <div class="sd-tile">
+      <div class="sd-tile-icon t-streak"><i class="fas fa-fire"></i></div>
+      <div class="sd-tile-body">
+        <div class="sd-tile-value">{% if login_streak %}{{ login_streak }}{% else %}—{% endif %}</div>
+        <div class="sd-tile-label">Login streak</div>
+      </div>
+    </div>
+    <div class="sd-tile is-risk-{{ risk_level }}">
+      <div class="sd-tile-icon t-risk"><i class="fas fa-triangle-exclamation"></i></div>
+      <div class="sd-tile-body">
+        <div class="sd-tile-value">{{ risk_level|capfirst }}</div>
+        <div class="sd-tile-label">Risk level</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sd-grid">
+
+    <div class="sd-main">
+
+      <section class="sd-card">
+        <header class="sd-card-head">
+          <h3 class="sd-card-title">Activity score history</h3>
+          {% if activity_history %}<span class="sd-card-sub">{{ activity_history|length }} item{{ activity_history|length|pluralize }}</span>{% endif %}
+        </header>
+        {% if activity_history %}
+          <div class="sd-table-wrap">
+            <table class="sd-table">
+              <thead>
+                <tr>
+                  <th>Assessment</th>
+                  <th>Type</th>
+                  <th class="num">Score</th>
+                  <th class="num">%</th>
+                  <th>Submitted</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in activity_history %}
+                <tr>
+                  <td class="sd-strong">{{ a.name }}</td>
+                  <td class="sd-dim">{{ a.type }}</td>
+                  <td class="num">{% if a.score is not None %}{{ a.score|floatformat:0 }}<span class="sd-dim"> / {{ a.max_score }}</span>{% else %}<span class="sd-dim">—</span>{% endif %}</td>
+                  <td class="num">
+                    {% if a.pct is not None %}
+                      <span class="sd-pct {% if a.pct >= 75 %}is-good{% elif a.pct >= 50 %}is-warn{% else %}is-bad{% endif %}">{{ a.pct }}%</span>
+                    {% else %}<span class="sd-dim">—</span>{% endif %}
+                  </td>
+                  <td class="sd-dim">{% if a.submitted %}{{ a.submitted|date:"M j, Y" }}{% else %}—{% endif %}</td>
+                  <td>
+                    {% if a.status == "graded" %}
+                      {% if a.on_time is None %}<span class="sd-chip">Graded</span>
+                      {% elif a.on_time %}<span class="sd-chip is-good">On time</span>
+                      {% else %}<span class="sd-chip is-warn">Late</span>{% endif %}
+                    {% else %}<span class="sd-chip is-pending">Pending</span>{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="sd-empty">
+            <div class="sd-empty-icon"><i class="fas fa-clipboard-list"></i></div>
+            <div>No graded activities yet for this student.</div>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="sd-card">
+        <header class="sd-card-head">
+          <h3 class="sd-card-title">Module progress</h3>
+          {% if module_progress %}<span class="sd-card-sub">{{ module_progress|length }} module{{ module_progress|length|pluralize }}</span>{% endif %}
+        </header>
+        {% if module_progress %}
+          <ul class="sd-module-list">
+            {% for mp in module_progress %}
+            <li class="sd-module-row">
+              <div class="sd-module-name" title="{{ mp.module.file_name }}">{{ mp.module.file_name }}</div>
+              <div class="sd-progress">
+                <div class="sd-progress-bar {% if mp.status == 'completed' %}is-good{% elif mp.status == 'in_progress' %}is-warn{% else %}is-idle{% endif %}"
+                     style="width:{{ mp.progress|floatformat:0 }}%;"></div>
+              </div>
+              <div class="sd-module-pct">{{ mp.progress|floatformat:0 }}%</div>
+              <span class="sd-chip {% if mp.status == 'completed' %}is-good{% elif mp.status == 'in_progress' %}is-warn{% else %}is-pending{% endif %}">
+                {% if mp.status == 'completed' %}Completed{% elif mp.status == 'in_progress' %}In progress{% else %}Not started{% endif %}
+              </span>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="sd-empty">
+            <div class="sd-empty-icon"><i class="fas fa-folder-open"></i></div>
+            <div>No modules published for this subject.</div>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="sd-card">
+        <header class="sd-card-head">
+          <h3 class="sd-card-title">Recognition history</h3>
+          {% if recognitions %}<span class="sd-card-sub">{{ recognitions|length }} recognition{{ recognitions|length|pluralize }}</span>{% endif %}
+        </header>
+        {% if recognitions %}
+          <ul class="sd-rec-list">
+            {% for rec in recognitions %}
+            <li class="sd-rec-item">
+              <div class="sd-rec-icon"><i class="fas fa-medal"></i></div>
+              <div class="sd-rec-body">
+                <div class="sd-rec-msg">{{ rec.message }}</div>
+                <div class="sd-rec-meta">
+                  <span class="sd-chip is-good"><i class="fas fa-bolt"></i> +{{ rec.xp_awarded }} XP</span>
+                  <span class="sd-dim">{{ rec.created_at|date:"M j, Y · g:i A" }}</span>
+                </div>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="sd-empty">
+            <div class="sd-empty-icon"><i class="fas fa-medal"></i></div>
+            <div>No recognitions sent yet. Use <strong>Recognize</strong> to award XP and leave a note.</div>
+          </div>
+        {% endif %}
+      </section>
+
+    </div><!-- /.sd-main -->
+
+    <aside class="sd-side">
+
+      <section class="sd-card">
+        <header class="sd-card-head">
+          <h3 class="sd-card-title">Risk breakdown</h3>
+        </header>
+        {% with rb=risk_breakdown %}
+        <ul class="sd-metric-list">
+          <li class="sd-metric">
+            <div class="sd-metric-head">
+              <span class="sd-metric-label">Grade score</span>
+              <span class="sd-metric-val">{{ rb.grade_score|floatformat:0 }}</span>
+            </div>
+            <div class="sd-progress">
+              <div class="sd-progress-bar {% if rb.grade_score >= 65 %}is-good{% elif rb.grade_score >= 40 %}is-warn{% else %}is-bad{% endif %}"
+                   style="width:{{ rb.grade_score }}%;"></div>
+            </div>
+            <div class="sd-metric-help">Average scores across activities</div>
+          </li>
+          <li class="sd-metric">
+            <div class="sd-metric-head">
+              <span class="sd-metric-label">Completion</span>
+              <span class="sd-metric-val">{{ rb.completion_score|floatformat:0 }}</span>
+            </div>
+            <div class="sd-progress">
+              <div class="sd-progress-bar {% if rb.completion_score >= 65 %}is-good{% elif rb.completion_score >= 40 %}is-warn{% else %}is-bad{% endif %}"
+                   style="width:{{ rb.completion_score }}%;"></div>
+            </div>
+            <div class="sd-metric-help">Activities submitted vs. assigned</div>
+          </li>
+          <li class="sd-metric">
+            <div class="sd-metric-head">
+              <span class="sd-metric-label">Attendance</span>
+              <span class="sd-metric-val">{{ rb.attendance_score|floatformat:0 }}</span>
+            </div>
+            <div class="sd-progress">
+              <div class="sd-progress-bar {% if rb.attendance_score >= 65 %}is-good{% elif rb.attendance_score >= 40 %}is-warn{% else %}is-bad{% endif %}"
+                   style="width:{{ rb.attendance_score }}%;"></div>
+            </div>
+            <div class="sd-metric-help">Attendance records this term</div>
+          </li>
+        </ul>
+        {% endwith %}
+      </section>
+
+      <section class="sd-card">
+        <header class="sd-card-head">
+          <h3 class="sd-card-title">XP &amp; streaks</h3>
+        </header>
+        <div class="sd-stat-grid">
+          <div class="sd-stat">
+            <div class="sd-stat-val">{{ xp_stats.total_xp }}</div>
+            <div class="sd-stat-label">Total XP</div>
+          </div>
+          <div class="sd-stat">
+            <div class="sd-stat-val">Lv {{ xp_stats.current_level }}</div>
+            <div class="sd-stat-label">Level</div>
+          </div>
+          <div class="sd-stat">
+            <div class="sd-stat-val">{% if xp_stats.login_streak %}{{ xp_stats.login_streak }}{% else %}—{% endif %}</div>
+            <div class="sd-stat-label">Login streak</div>
+          </div>
+          <div class="sd-stat">
+            <div class="sd-stat-val">{{ xp_stats.submission_streak }}</div>
+            <div class="sd-stat-label">Submission streak</div>
+          </div>
+          <div class="sd-stat">
+            <div class="sd-stat-val">{{ xp_stats.accuracy_streak }}</div>
+            <div class="sd-stat-label">Accuracy streak</div>
+          </div>
+          <div class="sd-stat">
+            <div class="sd-stat-val">{% if xp_stats.last_active %}{{ xp_stats.last_active|date:"M j" }}{% else %}—{% endif %}</div>
+            <div class="sd-stat-label">Last active</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sd-card">
+        <header class="sd-card-head">
+          <h3 class="sd-card-title">Badges earned</h3>
+          {% if badges %}<span class="sd-card-sub">{{ badges|length }}</span>{% endif %}
+        </header>
+        {% if badges %}
+          <div class="sd-badge-grid">
+            {% for sb in badges %}
+            <div class="sd-badge" title="{{ sb.badge.name }} · {{ sb.badge.tier|capfirst }}">
+              <div class="sd-badge-icon">{{ sb.badge.icon|default:"🏅" }}</div>
+              <div class="sd-badge-name">{{ sb.badge.name|truncatechars:18 }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="sd-empty sd-empty-sm">
+            <div class="sd-empty-icon"><i class="fas fa-award"></i></div>
+            <div>No badges yet.</div>
+          </div>
+        {% endif %}
+      </section>
+
+    </aside>
+
+  </div><!-- /.sd-grid -->
+</div><!-- /.sd-shell -->
+
+<script src="{% static 'js/tours/cl-tour-student-detail.js' %}" defer></script>
+{% endblock %}

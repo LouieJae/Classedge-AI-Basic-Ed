@@ -1,0 +1,8 @@
+{
+    "title": "Django LTI Tool",
+    "description": "A Django-based LTI 1.3 tool",
+    "target_link_uri": "http://localhost:8000/lti/launch/",
+    "oidc_initiation_url": "http://localhost:8000/lti/auth/",
+    "public_jwk_url": "http://localhost:8000/lti/.well-known/jwks.json",
+    "scopes": ["https://purl.imsglobal.org/spec/lti-ags/scope/lineitem"]
+}

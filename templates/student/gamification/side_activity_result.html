@@ -1,0 +1,37 @@
+{% extends "student_base.html" %}
+
+{% block title %}Result — {{ activity.title }}{% endblock %}
+
+{% block content %}
+<div style="max-width:480px;margin:3rem auto;text-align:center;padding:0 1rem;">
+  <div class="sa-result-score">
+    <div style="font-size:4rem;margin-bottom:1rem;line-height:1;">
+      {% if score_pct >= 80 %}&#x1F389;{% elif score_pct >= 50 %}&#x1F44D;{% else %}&#x1F4AA;{% endif %}
+    </div>
+    <h1 style="margin:0 0 .5rem;">{{ score_pct }}%</h1>
+  </div>
+  <p style="color:var(--muted);margin-bottom:1.5rem;">
+    {% if score_pct >= 80 %}Excellent work!{% elif score_pct >= 50 %}Nice job!{% else %}Keep practicing!{% endif %}
+  </p>
+
+  {% if first_completion and xp_awarded %}
+  <div class="card sa-xp-earned" style="display:inline-block;padding:.75rem 1.5rem;margin-bottom:1.5rem;">
+    <span class="quest-xp" style="font-size:1.1rem;">+{{ xp_awarded }} XP earned!</span>
+  </div>
+  {% endif %}
+
+  <div class="sa-result-actions" style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+    <a href="{% url 'side_activity_play' activity.pk %}" class="btn btn-primary">Play Again</a>
+    <a href="{% url 'side_activity_list' activity.subject_id %}" class="btn" style="border:1px solid var(--border);color:var(--text);">More Activities</a>
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <button type="button" class="cl-tour-replay" data-cl-tour="side-activity-result">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+</div>
+
+{% load static %}
+<script src="{% static 'js/tours/cl-tour-side-activity-result.js' %}" defer></script>
+{% endblock %}

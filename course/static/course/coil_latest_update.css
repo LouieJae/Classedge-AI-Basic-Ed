@@ -1,0 +1,53 @@
+    body {
+      background-color: #FFFFFF;
+    }
+
+    .container {
+      max-width: 100%;
+      padding: 0 15px;
+    }
+
+    .card {
+      border: none;
+      border-radius: 8px;
+    }
+
+    .log-icon {
+      font-size: 48px;
+      color: #007bff;
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    .log-content p {
+      font-size: 15px;
+      color: #333;
+    }
+
+    .log-content .badge {
+      font-size: 13px;
+      padding: 0.4em 0.7em;
+    }
+
+    .card:hover {
+      background-color: #f8f9fa;
+      transition: background-color 0.3s ease;
+    }
+
+    /* Add responsiveness for small devices */
+    @media (max-width: 768px) {
+      .card-body {
+        flex-direction: column; /* Stack icon and content vertically on small screens */
+      }
+
+      .log-icon {
+        font-size: 36px;
+      }
+
+      .log-content .badge {
+        font-size: 12px;
+        margin-top: 5px;
+      }
+    }
+  

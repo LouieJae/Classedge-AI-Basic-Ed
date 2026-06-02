@@ -1,0 +1,403 @@
+{% include "includes/_modal_theme.html" %}
+{% comment %}
+[Classedge LMS] Shared theme styles for any list/index page that uses
+the cream/forest UI. Covers:
+  - .cl-page page wrapper
+  - .cl-breadcrumb
+  - .cl-header (page title card)
+  - .cl-btn / .cl-btn-primary / .cl-btn-gold
+  - .cl-toolbar (search + filter strip)
+  - .cl-search input
+  - .cl-perpage select
+  - .cl-name-cell / .cl-avatar / .cl-row-meta
+  - .cl-action-btn (kebab) + dropdown overrides
+  - .cl-table-wrapper loading spinner
+{% endcomment %}
+<style>
+  .cl-page { font-family: var(--body); color: var(--ink); animation: clFadeUp 0.5s ease both; }
+
+  .cl-page .breadcrumb {
+    background: transparent; padding: 0; margin-bottom: 12px;
+    font-size: 12.5px; color: var(--ink-dim);
+  }
+  .cl-page .breadcrumb a { color: var(--ink-dim); text-decoration: none; }
+  .cl-page .breadcrumb a:hover { color: var(--ink); }
+  .cl-page .breadcrumb .active { color: var(--ink); font-weight: 600; }
+
+  /* Match the canonical .topbar / .page-title pattern from base_operation.html */
+  .cl-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+    margin-bottom: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    animation: clHeaderFade 0.6s ease;
+  }
+  @keyframes clHeaderFade { from { opacity: 0; transform: translateY(-6px);} to { opacity: 1; transform: translateY(0);} }
+  .cl-header > div:first-child { flex: 1; min-width: 240px; }
+  .cl-header h2 {
+    font-family: var(--display);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1.15;
+    margin: 0 0 6px;
+  }
+  .cl-header h2 em { color: var(--brand-primary, #b7925a); font-style: italic; font-weight: 500; }
+  .cl-header h2 i { display: none; } /* canonical topbar has no leading icon */
+  .cl-header p {
+    margin: 0;
+    color: var(--ink-dim);
+    font-size: 14px;
+    font-family: var(--body);
+    font-weight: 400;
+  }
+  /* legacy eyebrow — hidden so old markup doesn't render extra chrome */
+  .cl-header .cl-eyebrow { display: none; }
+
+  .cl-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cl-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    font-family: var(--body); font-size: 13px; font-weight: 600;
+    border: 1px solid var(--border-strong);
+    background: var(--paper); color: var(--ink);
+    transition: all 0.18s ease;
+    cursor: pointer; text-decoration: none;
+  }
+  .cl-btn:hover { background: var(--cream-2); color: var(--ink); border-color: var(--brand-primary, #b7925a); }
+  .cl-btn-primary { background: var(--brand-primary); color: var(--cream); border-color: var(--brand-primary); }
+  /* Hover darkens the brand color via color-mix so the press feedback
+     follows the tenant's hue instead of always landing on system gold.
+     The current design's forest→gold hover lives on .cl-btn-gold below
+     if a page still wants that explicit two-tone treatment. */
+  .cl-btn-primary:hover {
+    background: color-mix(in srgb, var(--brand-primary), black 12%);
+    color: var(--cream);
+    border-color: color-mix(in srgb, var(--brand-primary), black 12%);
+  }
+  .cl-btn-gold {
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a); border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent);
+  }
+  .cl-btn-gold:hover { background: var(--brand-primary, #b7925a); color: var(--cream); border-color: var(--brand-primary, #b7925a); }
+
+  /* Standalone back button — drop-in replacement for plain `<a>Back</a>` text
+     links across the operational area. Slides on hover so the user feels the
+     direction. Use as: <a class="cl-back-btn"><i class="fas fa-arrow-left"></i> Back …</a>. */
+  .cl-back-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink); font-size: 13px; font-weight: 600;
+    text-decoration: none; margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+    transition: all 0.18s ease;
+  }
+  .cl-back-btn:hover {
+    background: var(--cream-2); color: var(--ink);
+    border-color: var(--brand-primary, #b7925a); text-decoration: none;
+    transform: translateX(-2px);
+  }
+  .cl-back-btn i { font-size: 11px; transition: transform 0.18s ease; }
+  .cl-back-btn:hover i { transform: translateX(-2px); }
+
+  .cl-toolbar {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 14px; align-items: center; justify-content: space-between;
+  }
+  .cl-search { flex: 1; max-width: 420px; position: relative; }
+  .cl-search input {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-family: var(--body); font-size: 13.5px;
+    color: var(--ink);
+    transition: all 0.18s ease;
+  }
+  .cl-search input:focus {
+    outline: none; border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .cl-search > i {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-muted); font-size: 13px;
+  }
+  .cl-search-clear {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: transparent; border: 0; color: var(--ink-muted);
+    cursor: pointer; padding: 4px 8px;
+  }
+  .cl-search-clear:hover { color: var(--ink); }
+  .cl-filter-group { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cl-filter-group label { margin: 0; font-size: 12.5px; color: var(--ink-dim); }
+
+  /* Operations-themed <select> — keeps the native dropdown behavior so
+     clicking options works. We only restyle the closed pill (border, padding,
+     font, hover/focus). Letting the OS render the arrow + open state means
+     no event-handling weirdness from appearance:none + custom chevron. */
+  .cl-page select,
+  .cl-filter-group select,
+  .cl-perpage select {
+    border: 1px solid var(--border-strong);
+    background: var(--paper);
+    border-radius: var(--radius-sm);
+    padding: 7px 12px;
+    font-size: 13px;
+    font-family: var(--body);
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+  }
+  .cl-page select:hover,
+  .cl-filter-group select:hover,
+  .cl-perpage select:hover { border-color: var(--brand-primary, #b7925a); }
+  .cl-page select:focus,
+  .cl-filter-group select:focus,
+  .cl-perpage select:focus {
+    outline: none;
+    border-color: var(--brand-primary, #b7925a);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+
+  .cl-perpage { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-dim); font-weight: 600; }
+  .cl-perpage span:first-child,
+  .cl-perpage span:last-child { color: var(--ink-dim); }
+
+  .cl-name-cell { display: flex; align-items: center; gap: 12px; }
+  .cl-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--brand-primary, #b7925a); color: var(--cream);
+    font-family: var(--display); font-weight: 600; font-size: 15px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .cl-name-stack { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .cl-name-desc { color: var(--ink-dim); font-size: 11.5px; line-height: 1.4; }
+  .cl-emoji-avatar {
+    background: var(--cream-2, #f4ede2) !important;
+    color: var(--ink) !important;
+    font-size: 20px !important;
+    border: 1px solid var(--border);
+  }
+  .cl-photo-avatar {
+    background: transparent !important;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    padding: 0;
+  }
+  .cl-photo-avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    display: block;
+  }
+  .cl-name { font-weight: 600; color: var(--ink); }
+  .cl-row-meta { color: var(--ink-dim); font-size: 12.5px; }
+  .cl-pill {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 100px;
+    background: var(--cream-2, #f4ede2);
+    border: 1px solid var(--border);
+    color: var(--ink); font-size: 11.5px; font-weight: 600;
+  }
+  .cl-pill.muted { color: var(--ink-muted); background: var(--paper); }
+
+  .cl-action-btn {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--ink-dim);
+    display: inline-grid; place-items: center;
+    transition: all 0.15s ease;
+  }
+  .cl-action-btn:hover { background: var(--cream-2); color: var(--ink); border-color: var(--brand-primary, #b7925a); }
+  /* Suppress Bootstrap's auto-injected caret on .dropdown-toggle so we show ellipsis only */
+  .cl-action-btn.dropdown-toggle::after,
+  .cl-action-btn.dropdown-toggle::before { display: none !important; content: none !important; }
+  .cl-page .dropdown-menu {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-hover);
+    padding: 6px;
+  }
+  .cl-page .dropdown-item {
+    border-radius: 6px; font-size: 13px;
+    padding: 8px 12px; color: var(--ink);
+  }
+  .cl-page .dropdown-item:hover { background: var(--cream-2); color: var(--ink); }
+  .cl-page .dropdown-item.text-danger:hover { background: rgba(220, 53, 69, 0.08); color: #b02a37; }
+
+  .cl-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .cl-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 22px;
+    background: var(--cream-2, #f4ede2);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--display);
+    font-weight: 600; color: var(--ink);
+    font-size: 15px;
+  }
+  .cl-badge {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--ink-dim);
+    font-family: var(--body);
+    font-size: 11px; font-weight: 600;
+    padding: 4px 12px;
+    letter-spacing: 0.04em;
+  }
+  .cl-card-body { padding: 0; }
+  .cl-table { width: 100%; border-collapse: collapse; font-family: var(--body); }
+  .cl-table thead th {
+    background: var(--paper);
+    color: var(--ink-dim);
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    text-align: left;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cl-table tbody td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px; color: var(--ink); vertical-align: middle;
+  }
+  .cl-table tbody tr { transition: background 0.15s ease; }
+  .cl-table tbody tr:hover { background: var(--cream); }
+  .cl-table tbody tr:last-child td { border-bottom: none; }
+  .cl-status {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 100px;
+    font-size: 11.5px; font-weight: 600;
+    border: 1px solid transparent;
+    letter-spacing: 0.02em;
+  }
+  .cl-status-success { background: var(--brand-primary-soft); color: var(--ink); border-color: var(--brand-primary-soft); }
+  .cl-status-warning { background: var(--gold-bg, rgba(183,146,90,0.12)); color: var(--brand-primary, #b7925a); border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent); }
+  .cl-status-danger  { background: rgba(192,57,43,0.08); color: #b02a37; border-color: rgba(192,57,43,0.2); }
+  .cl-status-info    { background: rgba(45,90,71,0.08); color: var(--ink); border-color: rgba(45,90,71,0.2); }
+  .cl-status-muted   { background: var(--cream-2, #f4ede2); color: var(--ink-muted); border-color: var(--border); }
+
+  .cl-progress {
+    position: relative;
+    height: 22px;
+    background: var(--cream-2, #f4ede2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+    min-width: 140px;
+  }
+  .cl-progress-bar {
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, var(--ink), var(--brand-primary, #b7925a));
+    transition: width 0.3s ease;
+    border-radius: 100px;
+  }
+  .cl-progress-label {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 700;
+    color: var(--ink);
+    /* Theme-aware halo: dark text on light theme gets a paper halo, light text
+       on dark theme gets a dark halo. The halo always contrasts the text, so the
+       label stays readable over BOTH the gold/forest bar fill AND the cream-2
+       empty track regardless of fill percentage or theme. */
+    text-shadow:
+      -1px 0 var(--paper),
+      1px 0 var(--paper),
+      0 -1px var(--paper),
+      0 1px var(--paper),
+      0 0 6px var(--paper);
+    letter-spacing: 0.01em;
+  }
+
+  .cl-empty { text-align: center; padding: 56px 20px; color: var(--ink-dim); }
+  .cl-empty i { font-size: 36px; color: var(--ink-muted); display: block; margin-bottom: 10px; }
+  .cl-empty h6 { font-family: var(--display); color: var(--ink); margin: 0 0 4px; font-size: 18px; }
+
+  .cl-table-wrapper { position: relative; transition: opacity 0.15s ease; }
+  .cl-table-wrapper.cl-loading { opacity: 0.55; pointer-events: none; }
+  .cl-table-wrapper.cl-loading::after {
+    content: "";
+    position: absolute; top: 14px; right: 14px;
+    width: 18px; height: 18px;
+    border: 2px solid var(--brand-primary, #b7925a);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: clSpin 0.7s linear infinite;
+  }
+  @keyframes clSpin { to { transform: rotate(360deg); } }
+  @keyframes clFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* ── Shared responsive cascade for every page that uses this theme.
+     Putting these here means student/teacher login reports, course list,
+     enrollment list, etc. all get the same mobile treatment without each
+     template having to redeclare. */
+  /* `.table-responsive` is a Bootstrap class that's not loaded here.
+     Define it so wide tables can pan horizontally on phones. */
+  .cl-page .cl-card .table-responsive {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cl-page .cl-table th,
+  .cl-page .cl-table td { white-space: nowrap; }
+
+  @media (max-width: 900px) {
+    .cl-page .cl-header h2 { font-size: 24px; }
+    .cl-page .cl-table thead th,
+    .cl-page .cl-table tbody td { padding: 10px 12px; }
+  }
+
+  @media (max-width: 720px) {
+    .cl-page .cl-header { gap: 12px; }
+    .cl-page .cl-header h2 { font-size: 22px; }
+    .cl-page .cl-header p { font-size: 13px; }
+    /* Right-side action chips drop below the title on phones. */
+    .cl-page .cl-actions { width: 100%; }
+    .cl-page .cl-actions .cl-status { font-size: 12px !important; padding: 6px 12px !important; }
+    /* Toolbar stacks: search full-width, filter group on its own row. */
+    .cl-page .cl-toolbar { flex-direction: column; align-items: stretch; }
+    .cl-page .cl-toolbar .cl-search { max-width: none; width: 100%; }
+    .cl-page .cl-toolbar .cl-filter-group { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+    .cl-page .cl-card-header { padding: 12px 16px; flex-wrap: wrap; gap: 6px; font-size: 14px; }
+    .cl-page .cl-table thead th,
+    .cl-page .cl-table tbody td { padding: 10px 12px; font-size: 12.5px; }
+    .cl-page .cl-avatar { width: 28px; height: 28px; font-size: 11px; }
+  }
+
+  @media (max-width: 480px) {
+    .cl-page .cl-header h2 { font-size: 20px; }
+    .cl-page .cl-toolbar .cl-filter-group { flex-direction: column; align-items: stretch; gap: 8px; }
+    .cl-page .cl-perpage { justify-content: flex-start; }
+    .cl-page .cl-table thead th,
+    .cl-page .cl-table tbody td { padding: 9px 10px; font-size: 12px; }
+    .cl-page .cl-name-cell { gap: 8px; }
+    .cl-page .cl-status { font-size: 10.5px; padding: 2px 7px; }
+  }
+</style>

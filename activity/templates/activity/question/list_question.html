@@ -1,0 +1,323 @@
+{% extends is_student_role|yesno:"student_base.html,base_operation.html" %}
+{% load static %}
+
+{% block title %}
+  {{ activity.activity_name }} — Questions
+{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'activity/question/list_question.css' %}" />
+
+<div class="ql-shell">
+  <div class="ql-header">
+    <div>
+      {% if not is_student_role and activity.subject %}
+        <a class="ql-back" href="{% url 'assessment-details' activity.local_id %}">
+          <i class="fas fa-arrow-left"></i> Back to assessment details
+        </a>
+      {% endif %}
+      <h1 class="ql-title">{{ activity.activity_name }}</h1>
+      <div class="ql-sub">
+        {% if activity.subject %}{{ activity.subject.subject_name }} &middot; {% endif %}
+        {{ questions.count }} question{{ questions.count|pluralize }}
+        {% if activity.activity_type %} &middot; {{ activity.activity_type.name }}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="ql-summary">
+    <div class="ql-summary-item">
+      <span class="ql-summary-label">Max Score</span>
+      <span class="ql-summary-value">{{ activity.max_score }}</span>
+    </div>
+    <div class="ql-summary-item">
+      <span class="ql-summary-label">Questions</span>
+      <span class="ql-summary-value">{{ questions.count }}</span>
+    </div>
+    {% if activity.term %}
+      <div class="ql-summary-item">
+        <span class="ql-summary-label">Term</span>
+        <span class="ql-summary-value">{{ activity.term.term_name }}</span>
+      </div>
+    {% endif %}
+    {% if activity.end_time %}
+      <div class="ql-summary-item">
+        <span class="ql-summary-label">Due</span>
+        <span class="ql-summary-value">{{ activity.end_time|date:"M j, Y" }}</span>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if has_submissions and not is_student_role %}
+    <div class="alert alert-warning" style="margin: 12px 0; padding: 12px 16px; border-radius: 8px; background: rgba(241, 196, 15, 0.12); border: 1px solid rgba(241, 196, 15, 0.4); color: #b07d00;">
+      <i class="fas fa-lock" aria-hidden="true"></i>
+      Editing is locked because at least one student has already submitted an attempt. Modifying questions or scoring after submissions would invalidate existing grades.
+    </div>
+  {% endif %}
+
+  {% if is_direct_score %}
+    
+    <div class="ds-shell">
+      <div class="ds-head">
+        <div class="ds-head-title">
+          <i class="fas fa-clipboard-check"></i>
+          {% if is_student_role %}Your Score{% else %}Direct Scores{% endif %}
+        </div>
+        <div class="ds-head-meta">
+          <i class="fas fa-star" style="font-size:10px;"></i>
+          Max Score: <strong>{{ activity.max_score|default:"—" }}</strong>
+          {% if not is_student_role %}
+            &middot; {{ direct_score_rows|length }} student{{ direct_score_rows|length|pluralize }}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="ds-grid">
+        {% for row in direct_score_rows %}
+          <div class="ds-card">
+            <div class="ds-card-top">
+              <div class="ds-avatar">{{ row.student.first_name|slice:":1"|upper|default:"?" }}{{ row.student.last_name|slice:":1"|upper }}</div>
+              <div style="flex:1;min-width:0;">
+                <div class="ds-name">{{ row.student.first_name }} {{ row.student.last_name }}</div>
+                {% if not is_student_role %}
+                  <div class="ds-email">{{ row.student.email|default:'' }}</div>
+                {% endif %}
+              </div>
+              <div class="ds-score-row">
+                <span class="ds-score-val">{{ row.score|default_if_none:"—" }}</span>
+                {% if row.max_score %}<span class="ds-score-max">/ {{ row.max_score }}</span>{% endif %}
+              </div>
+            </div>
+
+            <div class="ds-meta-row">
+              <span>
+                <i class="fas fa-calendar"></i>
+                {% if row.submission_date %}{{ row.submission_date|date:"M d, Y h:i A" }}{% else %}Not submitted{% endif %}
+              </span>
+              {% if row.is_submitted %}
+                <span class="ds-badge submitted"><i class="fas fa-check-circle"></i> Submitted</span>
+              {% else %}
+                <span class="ds-badge pending"><i class="fas fa-hourglass-half"></i> Pending</span>
+              {% endif %}
+            </div>
+
+            {% if not is_student_role and row.feedback %}
+              <div class="ds-feedback"><span class="label">Feedback:</span>{{ row.feedback }}</div>
+            {% endif %}
+          </div>
+        {% empty %}
+          <div class="ds-empty">
+            <i class="fas fa-users"></i>
+            No students enrolled.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% elif questions %}
+    <div class="ql-pager">
+      <div class="ql-pager-pos">
+        Question <strong id="qlPos">1</strong> of {{ questions.count }}
+      </div>
+      <div class="ql-progress-wrap">
+        <div class="ql-progress-bar"><div class="ql-progress-fill" id="qlProgress"></div></div>
+      </div>
+    </div>
+
+    <div class="ql-dots" id="qlDots">
+      {% for question in questions %}
+        <button type="button" class="ql-dot{% if forloop.first %} is-active{% endif %}" data-idx="{{ forloop.counter0 }}">{{ forloop.counter }}</button>
+      {% endfor %}
+    </div>
+
+    <div class="ql-list" id="qlList">
+      {% for question in questions %}
+        {% with qtype=question.quiz_type.name|default:"" %}
+          <div class="ql-card{% if forloop.first %} is-active{% endif %}" data-idx="{{ forloop.counter0 }}">
+            <div class="ql-card-num">{{ forloop.counter }}</div>
+
+            <div class="ql-card-body">
+              <div class="ql-meta-row">
+                {% if qtype == 'Multiple Choice' %}
+                  <span class="ql-tag mc"><i class="fas fa-list-ul"></i> Multiple Choice</span>
+                {% elif qtype == 'Essay' %}
+                  <span class="ql-tag essay"><i class="fas fa-pen-fancy"></i> Essay</span>
+                {% elif qtype == 'True/False' %}
+                  <span class="ql-tag tf"><i class="fas fa-balance-scale"></i> True / False</span>
+                {% elif qtype == 'Fill in the Blank' %}
+                  <span class="ql-tag fill"><i class="fas fa-keyboard"></i> Fill in the Blank</span>
+                {% elif qtype == 'Matching Type' %}
+                  <span class="ql-tag match"><i class="fas fa-link"></i> Matching Type</span>
+                {% elif qtype == 'Calculated Numeric' %}
+                  <span class="ql-tag calc"><i class="fas fa-square-root-variable"></i> Calculated Numeric</span>
+                {% elif qtype %}
+                  <span class="ql-tag">{{ qtype }}</span>
+                {% else %}
+                  <span class="ql-tag">Question</span>
+                {% endif %}
+                <span class="ql-score-pill"><i class="fas fa-star"></i> {{ question.score|default:"—" }} pts</span>
+              </div>
+
+              <div class="ql-question-text">
+                {% if qtype == 'Calculated Numeric' %}
+                  <span class="mathjax-preview">\( {{ question.question_text|safe }} \)</span>
+                {% else %}
+                  {{ question.question_text }}
+                {% endif %}
+              </div>
+
+              {% if qtype == 'Multiple Choice' and question.choices.all %}
+                {% with correct=question.resolved_correct_choice %}
+                <ul class="ql-choices">
+                  {% for c in question.choices.all %}
+                    <li class="ql-choice {% if correct and c.id == correct.id %}correct{% endif %}">
+                      <span class="ql-choice-letter">{{ forloop.counter|stringformat:"d" }}</span>
+                      {% if c.choice_image %}
+                        <img src="{{ c.choice_image.url }}" alt="Choice {{ forloop.counter }}" style="max-height: 48px; border-radius: 4px;">
+                      {% endif %}
+                      {% if c.choice_text %}<span>{{ c.choice_text }}</span>{% elif c.choice_image %}<span style="color:var(--ql-ink-muted);">(image)</span>{% endif %}
+                      {% if correct and c.id == correct.id %}
+                        <i class="fas fa-check ql-correct-mark"></i>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+                {% endwith %}
+              {% elif qtype == 'Essay' or qtype == 'Document' %}
+                <div class="ql-answer no-answer">
+                  <i class="fas fa-info-circle"></i>
+                  <div><span class="label">Open-ended:</span> manually graded by the teacher.</div>
+                </div>
+              {% elif qtype == 'Calculated Numeric' %}
+                <div class="ql-answer">
+                  <i class="fas fa-check-circle"></i>
+                  <div><span class="label">Answer:</span> \( {{ question.correct_answer|safe }} \)</div>
+                </div>
+              {% else %}
+                <div class="ql-answer">
+                  <i class="fas fa-check-circle"></i>
+                  <div><span class="label">Answer:</span> {{ question.correct_answer|default:"—" }}</div>
+                </div>
+              {% endif %}
+            </div>
+
+            {% if not is_student_role and not has_submissions %}
+              <div class="ql-actions">
+                <button type="button" class="ql-actions-btn" aria-label="Question actions" aria-haspopup="menu">
+                  <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+                <div class="ql-actions-menu" role="menu">
+                  <a href="{% url 'edit-assessment-question' activity.id question.id %}" role="menuitem">
+                    <i class="fas fa-pen"></i> Edit
+                  </a>
+                  <button type="button" class="danger" data-question-id="{{ question.id }}" data-activity-id="{{ activity.id }}">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+
+    <div class="ql-nav">
+      <button type="button" class="ql-nav-btn" id="qlPrev" disabled>
+        <i class="fas fa-arrow-left"></i> Previous
+      </button>
+      <span class="ql-nav-spacer"></span>
+      <button type="button" class="ql-nav-btn ql-nav-btn--primary" id="qlNext">
+        Next <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  {% else %}
+    <div class="ql-empty">
+      <i class="fas fa-question-circle"></i>
+      <div class="ql-empty-title">No questions yet</div>
+      <div class="ql-empty-sub">
+        {% if is_student_role %}
+          Your teacher hasn't added questions for this assessment yet. Check back soon.
+        {% else %}
+          Add your first question to this assessment to get started.
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script src="{% static 'activity/question/list_question.js' %}"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<script>
+  (function () {
+    // Action menu open/close — teleported to <body> to escape parent overflow.
+    if (window.clBindMenuTeleport) {
+      window.clBindMenuTeleport({
+        wrapSelector: '.ql-actions',
+        btnSelector: '.ql-actions-btn',
+        menuSelector: '.ql-actions-menu'
+      });
+    }
+
+    // ── One-question-at-a-time pager ──
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.ql-card'));
+    var dots  = Array.prototype.slice.call(document.querySelectorAll('#qlDots .ql-dot'));
+    var posEl = document.getElementById('qlPos');
+    var fill  = document.getElementById('qlProgress');
+    var prev  = document.getElementById('qlPrev');
+    var next  = document.getElementById('qlNext');
+    var current = 0;
+
+    function show(idx) {
+      if (!cards.length) return;
+      if (idx < 0) idx = 0;
+      if (idx >= cards.length) idx = cards.length - 1;
+      current = idx;
+      cards.forEach(function (c, i) { c.classList.toggle('is-active', i === idx); });
+      dots.forEach(function (d, i) { d.classList.toggle('is-active', i === idx); });
+      if (posEl) posEl.textContent = idx + 1;
+      if (fill)  fill.style.width = (((idx + 1) / cards.length) * 100) + '%';
+      if (prev)  prev.disabled = idx === 0;
+      if (next)  next.disabled = idx === cards.length - 1;
+      if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+        MathJax.typesetPromise([cards[idx]]).catch(function () {});
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    if (prev) prev.addEventListener('click', function () { show(current - 1); });
+    if (next) next.addEventListener('click', function () { show(current + 1); });
+    dots.forEach(function (d, i) { d.addEventListener('click', function () { show(i); }); });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+      if (e.key === 'ArrowRight') { show(current + 1); }
+      else if (e.key === 'ArrowLeft') { show(current - 1); }
+    });
+
+    // Initialize state.
+    if (cards.length) show(0);
+
+    // Delete question (uses clToast for feedback)
+    document.querySelectorAll('.ql-actions-menu .danger').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var aid = btn.getAttribute('data-activity-id');
+        var qid = btn.getAttribute('data-question-id');
+        if (!confirm("Delete this question? This can't be undone.")) return;
+        fetch('/delete_assessment_question/' + aid + '/' + qid + '/', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        }).then(function (r) {
+          if (r.ok) {
+            if (window.clToast) clToast('Question removed.', 'success', 1500);
+            setTimeout(function () { window.location.reload(); }, 600);
+          } else {
+            if (window.clToast) clToast('Could not delete the question.', 'error');
+          }
+        }).catch(function () {
+          if (window.clToast) clToast('Network error while deleting.', 'error');
+        });
+      });
+    });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,612 @@
+  .vsp-page {
+    /* Cohesive-brand doctrine: all "accent" tokens (icons, pills, success
+       surfaces) point at --brand-primary so tenant brand injection
+       (SCHOOL_BRAND_COLOR / dev ?brand=#hex) tracks through. Categorical
+       tokens (--vsp-warn = at-risk amber, --vsp-coral = error) stay locked
+       so urgency meaning can't be repainted by the tenant picker. */
+    --vsp-surface:        var(--paper, #ffffff);
+    --vsp-surface-2:      var(--cream-2, #f3ede2);
+    --vsp-text:           var(--ink, #2d3142);
+    --vsp-text-dim:       var(--ink-dim, #6c7080);
+    --vsp-text-muted:     var(--ink-muted, #a0a4b8);
+    --vsp-border:         var(--border, rgba(45, 49, 66, 0.08));
+    --vsp-border-strong:  var(--border-strong, rgba(45, 49, 66, 0.14));
+
+    --vsp-primary:        var(--brand-primary, #1b4332);
+    --vsp-success:        var(--brand-primary, #1b4332);
+    --vsp-success-strong: var(--brand-primary, #2d5a47);
+    --vsp-success-deep:   var(--brand-primary, #1b4332);
+    --vsp-success-soft:   var(--brand-primary-soft, rgba(27, 67, 50, 0.10));
+    --vsp-warn:           var(--semantic-warning, #c47a00);
+    --vsp-warn-deep:      var(--semantic-warning, #c47a00);
+    --vsp-warn-soft:      color-mix(in srgb, var(--semantic-warning, #c47a00) 12%, transparent);
+    --vsp-coral:          var(--rose, #c08479);
+    --vsp-coral-soft:     var(--rose-soft, rgba(192, 132, 121, 0.18));
+
+    --vsp-radius:    var(--radius, 16px);
+    --vsp-radius-sm: var(--radius-sm, 10px);
+
+    color: var(--vsp-text);
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    animation: vspFadeUp 0.4s ease both;
+  }
+  @keyframes vspFadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Reusable icon doctrine ─────────────────────
+     Every decorative <i> inside .vsp-page defaults to --brand-primary
+     via the --vsp-success-deep alias, so the entire page repaints
+     when the tenant brand color changes — no per-element overrides
+     needed. Categorical / contrast exceptions are listed below; any
+     new icon added to the template inherits this default for free. */
+  .vsp-page i { color: var(--vsp-success-deep); }
+  /* Categorical: amber for warn (at-risk), rose for error/none, white
+     on solid brand-fill buttons. These stay LOCKED — the tenant
+     color picker can't repaint them, by design. */
+  .vsp-page .vsp-stat.warn .vsp-stat-label i,
+  .vsp-page .vsp-progress-row.idle .vsp-progress-pill i,
+  .vsp-page .vsp-progress-row.idle .vsp-progress-time i { color: var(--vsp-warn-deep); }
+  .vsp-page .vsp-stat.coral .vsp-stat-label i,
+  .vsp-page .vsp-error i { color: var(--vsp-coral); }
+  .vsp-page .vsp-link-cta i,
+  .vsp-page .vsp-progress-pill i { color: #fff; }
+
+  /* ── Header ─────────────────────────────────── */
+  /* Canonical page-header wrapper. Title + subtitle use the global
+     .page-title / .page-sub classes from base_operation.html, so the
+     <em> accent automatically tracks --brand-primary and dark-mode
+     ink follows the master tokens. */
+  .vsp-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+    margin-bottom: 22px;
+  }
+  .vsp-header > div:first-child { flex: 1; min-width: 240px; }
+
+  .vsp-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    border: 1px solid var(--vsp-border-strong);
+    border-radius: var(--vsp-radius-sm);
+    background: var(--vsp-surface);
+    color: var(--vsp-text);
+    font-size: 13px; font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+    transition: all .18s ease;
+    flex-shrink: 0;
+    margin-bottom: 16px;
+  }
+  .vsp-back:hover {
+    background: var(--vsp-surface-2);
+    border-color: var(--vsp-success);
+    color: var(--vsp-success-deep);
+    transform: translateX(-2px);
+    text-decoration: none;
+  }
+  .vsp-back i { font-size: 11px; transition: transform .18s ease; }
+  .vsp-back:hover i { transform: translateX(-2px); }
+
+  /* ── Overview chips ─────────────────────────── */
+  .vsp-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .vsp-stat {
+    background: var(--vsp-surface);
+    border: 1px solid var(--vsp-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  .vsp-stat-label {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--vsp-text-muted);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .vsp-stat-label i { font-size: 12px; }
+  .vsp-stat.warn  .vsp-stat-label i { color: var(--vsp-warn-deep); }
+  .vsp-stat.coral .vsp-stat-label i { color: var(--vsp-coral); }
+  .vsp-stat-value {
+    font-size: 24px; font-weight: 700;
+    color: var(--vsp-text); line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .vsp-stat-sub {
+    margin-top: 4px;
+    font-size: 12px; color: var(--vsp-text-dim);
+  }
+
+  /* ── Layout ─────────────────────────────────── */
+  .vsp-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 1024px) { .vsp-grid { grid-template-columns: 1fr; } }
+
+  .vsp-card {
+    background: var(--vsp-surface);
+    border: 1px solid var(--vsp-border);
+    border-radius: var(--vsp-radius);
+    padding: 22px 24px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 12px 32px -16px rgba(15,23,42,0.10);
+  }
+
+  /* ── Lesson meta ────────────────────────────── */
+  .vsp-meta-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 16px;
+  }
+  .vsp-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    border-radius: 100px;
+    background: var(--vsp-surface-2);
+    border: 1px solid var(--vsp-border);
+    color: var(--vsp-text-dim);
+    font-size: 12px; font-weight: 500;
+  }
+  .vsp-pill i { font-size: 11px; }
+  .vsp-description {
+    color: var(--vsp-text);
+    font-size: 14px; line-height: 1.6;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    background: var(--vsp-surface-2);
+    border-radius: var(--vsp-radius-sm);
+    border: 1px solid var(--vsp-border);
+  }
+
+  /* ── Media shell ────────────────────────────── */
+  /* Wrapper groups the toolbar header with the media frame as one unit. */
+  .vsp-media-wrap {
+    border: 1px solid var(--vsp-border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--vsp-surface-2);
+  }
+  .vsp-media-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--vsp-surface);
+    border-bottom: 1px solid var(--vsp-border);
+    font-size: 12px;
+    color: var(--vsp-text-dim);
+  }
+  .vsp-media-toolbar-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-weight: 600;
+    color: var(--vsp-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+  }
+  .vsp-media-toolbar-label i { font-size: 12px; }
+  .vsp-media-shell {
+    position: relative;
+    padding: 6px;
+    overflow: hidden;
+  }
+  .vsp-media-shell iframe,
+  .vsp-media-shell img,
+  .vsp-media-shell video {
+    width: 100%;
+    border-radius: 10px;
+    display: block;
+  }
+  .vsp-media-shell iframe { height: 580px; border: 0; background: #1a1a1a; }
+
+  /* ── Skeleton loader (PDF / Office / Video) ───────
+     Sits on top of the iframe / video and fades out
+     when the embed fires `load` (or after a hard
+     timeout). Keeps the page from looking frozen
+     while slow embeds (PPT via OneDrive, large PDFs,
+     YouTube) negotiate their first paint. */
+  .vsp-skeleton {
+    position: absolute;
+    inset: 6px;
+    border-radius: 10px;
+    background: var(--vsp-surface, #fff);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 22px 24px;
+    overflow: hidden;
+    z-index: 2;
+    transition: opacity 360ms ease;
+    pointer-events: auto;
+  }
+  .vsp-media-shell.is-loaded .vsp-skeleton {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .vsp-skeleton-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--vsp-border, rgba(0,0,0,0.08));
+    margin-bottom: 4px;
+  }
+  .vsp-skeleton-toolbar .vsp-skeleton-chip {
+    width: 80px;
+    height: 14px;
+    border-radius: 999px;
+  }
+  .vsp-skeleton-toolbar .vsp-skeleton-chip.sm { width: 38px; }
+
+  .vsp-skeleton-line,
+  .vsp-skeleton-chip,
+  .vsp-skeleton-block {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--vsp-text-dim, #6c7080) 8%, transparent) 25%,
+      color-mix(in srgb, var(--vsp-text-dim, #6c7080) 18%, transparent) 50%,
+      color-mix(in srgb, var(--vsp-text-dim, #6c7080) 8%, transparent) 75%
+    );
+    background-size: 200% 100%;
+    animation: vspShimmer 1.4s ease-in-out infinite;
+    border-radius: 6px;
+  }
+  .vsp-skeleton-line { height: 10px; }
+  .vsp-skeleton-line.thick { height: 18px; border-radius: 8px; }
+  .vsp-skeleton-line.w95 { width: 95%; }
+  .vsp-skeleton-line.w90 { width: 90%; }
+  .vsp-skeleton-line.w80 { width: 80%; }
+  .vsp-skeleton-line.w70 { width: 70%; }
+  .vsp-skeleton-line.w60 { width: 60%; }
+  .vsp-skeleton-line.w50 { width: 50%; }
+  .vsp-skeleton-line.w40 { width: 40%; }
+  .vsp-skeleton-line.w30 { width: 30%; }
+
+  .vsp-skeleton-block {
+    height: 90px;
+    border-radius: 10px;
+    margin: 4px 0;
+  }
+
+  .vsp-skeleton-status {
+    margin-top: auto;
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--vsp-text-dim, #6c7080);
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--brand-primary, #b7925a) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 18%, transparent);
+  }
+  .vsp-skeleton-spinner {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--brand-primary, #b7925a) 22%, transparent);
+    border-top-color: var(--brand-primary, #b7925a);
+    animation: vspSpin 0.85s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes vspShimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+  }
+  @keyframes vspSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Video flavor — dark frame with a pulsing play badge */
+  .vsp-skeleton--video {
+    background: #14171f;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .vsp-skeleton--video .vsp-skeleton-toolbar,
+  .vsp-skeleton--video .vsp-skeleton-line,
+  .vsp-skeleton--video .vsp-skeleton-block { display: none; }
+  .vsp-skeleton-play {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.16);
+    display: grid;
+    place-items: center;
+    color: rgba(255,255,255,0.7);
+    font-size: 22px;
+    animation: vspPulse 1.8s ease-in-out infinite;
+  }
+  .vsp-skeleton-play i { margin-left: 4px; }
+  .vsp-skeleton--video .vsp-skeleton-status {
+    margin-top: 16px;
+    color: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.14);
+  }
+  .vsp-skeleton--video .vsp-skeleton-spinner {
+    border-color: rgba(255,255,255,0.18);
+    border-top-color: rgba(255,255,255,0.7);
+  }
+  @keyframes vspPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.08); opacity: 0.7; }
+  }
+
+  /* Slow-load nudge: after ~6s, swap copy to set expectations */
+  .vsp-media-shell.is-slow .vsp-skeleton-status .vsp-skeleton-msg-fast { display: none; }
+  .vsp-skeleton-msg-slow { display: none; }
+  .vsp-media-shell.is-slow .vsp-skeleton-msg-slow { display: inline; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vsp-skeleton-line,
+    .vsp-skeleton-chip,
+    .vsp-skeleton-block,
+    .vsp-skeleton-play,
+    .vsp-skeleton-spinner { animation: none; }
+  }
+  #pdf-file:fullscreen,
+  #pdf-file:-webkit-full-screen {
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #0a0f1f;
+  }
+  /* Fullscreen button now lives in the toolbar, not over the iframe —
+     prevents the floating chip from covering the PDF viewer's own
+     toolbar at the top of the embed. */
+  .vsp-fullscreen-btn {
+    background: var(--vsp-surface-2);
+    color: var(--vsp-text);
+    border: 1px solid var(--vsp-border-strong);
+    border-radius: var(--vsp-radius-sm);
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+    display: inline-flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .vsp-fullscreen-btn > i { transition: color .15s ease; }
+  .vsp-fullscreen-btn:hover {
+    background: var(--vsp-primary);
+    color: #fff;
+    border-color: var(--vsp-primary);
+    transform: translateY(-1px);
+  }
+  .vsp-fullscreen-btn:hover > i { color: #fff; }
+
+  .vsp-link-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 20px;
+    background: var(--vsp-success);
+    color: #fff;
+    border-radius: var(--vsp-radius-sm);
+    font-size: 13.5px; font-weight: 600;
+    text-decoration: none;
+    transition: all .15s ease;
+  }
+  .vsp-link-cta:hover { background: var(--vsp-success-strong); transform: translateY(-1px); }
+
+  .vsp-error {
+    padding: 14px 18px;
+    border-radius: var(--vsp-radius-sm);
+    background: var(--vsp-coral-soft);
+    border: 1px solid rgba(192,57,43,0.25);
+    color: var(--vsp-coral);
+    font-size: 13px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  /* ── Side panel ─────────────────────────────── */
+  .vsp-side-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .vsp-side-title {
+    font-size: 17px; font-weight: 700;
+    color: var(--vsp-text);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .vsp-side-sub {
+    font-size: 12px;
+    color: var(--vsp-text-dim);
+    margin-top: 2px;
+  }
+
+  .vsp-search {
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .vsp-search input {
+    width: 100%;
+    padding: 9px 12px 9px 34px;
+    background: var(--vsp-surface);
+    border: 1px solid var(--vsp-border-strong);
+    border-radius: var(--vsp-radius-sm);
+    color: var(--vsp-text);
+    font: inherit;
+    font-size: 13px;
+    transition: all .15s ease;
+  }
+  .vsp-search input:focus {
+    outline: none;
+    border-color: var(--vsp-success);
+    box-shadow: 0 0 0 3px var(--vsp-success-soft);
+  }
+  .vsp-search i {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    font-size: 12.5px;
+  }
+
+  .vsp-progress-list {
+    max-height: 540px;
+    overflow-y: auto;
+    margin: 0 -6px;
+    padding: 0 6px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--vsp-border-strong) transparent;
+  }
+  .vsp-progress-list::-webkit-scrollbar { width: 6px; }
+  .vsp-progress-list::-webkit-scrollbar-thumb { background: var(--vsp-border-strong); border-radius: 4px; }
+
+  .vsp-progress-row {
+    background: var(--vsp-surface);
+    border: 1px solid var(--vsp-border);
+    border-left: 3px solid var(--vsp-success-strong);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .vsp-progress-row:hover { transform: translateY(-1px); box-shadow: 0 4px 14px -8px rgba(15,23,42,0.18); }
+  .vsp-progress-row.complete { border-left-color: var(--vsp-success); background: var(--vsp-success-soft); }
+  .vsp-progress-row.idle { border-left-color: var(--vsp-warn); }
+  .vsp-progress-row.none { border-left-color: var(--vsp-coral); }
+
+  .vsp-progress-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 10px; margin-bottom: 8px;
+  }
+  .vsp-progress-id {
+    display: flex; align-items: center; gap: 10px;
+    min-width: 0;
+  }
+  .vsp-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--vsp-success-soft);
+    color: var(--vsp-success-deep);
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .vsp-progress-name {
+    font-weight: 600; color: var(--vsp-text);
+    font-size: 13.5px; line-height: 1.25;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .vsp-progress-time {
+    color: var(--vsp-text-muted);
+    font-size: 11.5px; margin-top: 2px;
+  }
+  .vsp-progress-pill {
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: var(--vsp-success);
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .vsp-progress-row.idle .vsp-progress-pill { background: var(--vsp-warn); color: #1a1a1a; }
+  .vsp-progress-row.none .vsp-progress-pill { background: var(--vsp-coral); }
+
+  .vsp-progress-track {
+    height: 6px;
+    background: var(--vsp-surface-2);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .vsp-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--vsp-success) 70%, white) 0%, var(--vsp-success) 100%);
+    border-radius: 100px;
+    transition: width 0.4s ease;
+  }
+  .vsp-progress-row.idle .vsp-progress-fill {
+    background: linear-gradient(90deg, var(--vsp-warn) 0%, color-mix(in srgb, var(--vsp-warn) 70%, white) 100%);
+  }
+  .vsp-progress-row.none .vsp-progress-fill { background: var(--vsp-coral); }
+
+  .vsp-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--vsp-text-dim);
+    background: var(--vsp-surface-2);
+    border: 1px dashed var(--vsp-border-strong);
+    border-radius: 14px;
+  }
+  .vsp-empty i { font-size: 22px; display: block; margin-bottom: 8px; }
+  .vsp-no-match {
+    padding: 24px 12px; text-align: center;
+    color: var(--vsp-text-dim); font-size: 13px;
+  }
+
+  /* Dark mode follows base_operation tokens — no overrides needed here. */
+
+  /* ── Responsive ────────────────────────────────────────── */
+  /* Tablet — shorter media frame, snug card padding. */
+  @media (max-width: 1024px) {
+    .vsp-media-shell iframe { height: 520px; }
+    .vsp-card { padding: 20px 20px; }
+    .vsp-overview { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  }
+
+  /* Large phone */
+  @media (max-width: 720px) {
+    .vsp-title { font-size: 22px; }
+    .vsp-title-icon { width: 34px; height: 34px; font-size: 14px; }
+    .vsp-sub { font-size: 13px; }
+    .vsp-card { padding: 16px 16px; border-radius: 14px; }
+    .vsp-media-shell iframe { height: 440px; }
+    .vsp-media-toolbar { padding: 7px 10px; }
+    .vsp-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+    .vsp-stat { padding: 12px 14px; border-radius: 12px; }
+    .vsp-stat-value { font-size: 20px; }
+    .vsp-stat-label { font-size: 10.5px; }
+    .vsp-stat-sub { font-size: 11px; }
+    .vsp-meta-row { gap: 6px; margin-bottom: 12px; }
+    .vsp-pill { font-size: 11.5px; padding: 4px 10px; }
+    .vsp-description { font-size: 13px; padding: 10px 12px; }
+    .vsp-progress-list { max-height: 420px; }
+    .vsp-progress-row { padding: 10px 12px; }
+    .vsp-progress-name { font-size: 13px; }
+    .vsp-progress-time { font-size: 11px; }
+    .vsp-side-title { font-size: 16px; }
+    .vsp-back { padding: 8px 14px; font-size: 12.5px; margin-bottom: 12px; }
+  }
+
+  /* Phone */
+  @media (max-width: 480px) {
+    .vsp-topbar { margin-bottom: 16px; }
+    .vsp-title { font-size: 20px; gap: 8px; }
+    .vsp-title-icon { width: 30px; height: 30px; font-size: 13px; border-radius: 8px; }
+    .vsp-card { padding: 14px 14px; }
+    .vsp-media-shell iframe { height: 380px; }
+    /* Toolbar shrinks; the "Fullscreen" word becomes just the icon to
+       keep the row from wrapping on narrow viewports. */
+    .vsp-fs-label { display: none; }
+    .vsp-fullscreen-btn { padding: 6px 10px; }
+    .vsp-media-toolbar-label { font-size: 10.5px; }
+    .vsp-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .vsp-stat { padding: 10px 12px; }
+    .vsp-stat-value { font-size: 18px; }
+    .vsp-pill { font-size: 11px; padding: 3px 9px; }
+    .vsp-link-cta { padding: 10px 16px; font-size: 13px; }
+  }
+
+  /* Tiny phone */
+  @media (max-width: 360px) {
+    .vsp-title { font-size: 18px; }
+    .vsp-media-shell iframe { height: 340px; }
+    .vsp-overview { grid-template-columns: 1fr 1fr; }
+    .vsp-progress-pill { font-size: 11px; padding: 3px 8px; }
+    .vsp-avatar { width: 28px; height: 28px; font-size: 11px; }
+  }

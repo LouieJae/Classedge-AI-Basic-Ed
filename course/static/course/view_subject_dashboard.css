@@ -1,0 +1,44 @@
+    .empty-state-img {
+      max-height: 250px;
+      width: auto;
+    }
+    .classroom-timer {
+      min-width: 120px;
+      height: 36px;
+    }
+    /* Ensure close button is fully clickable */
+    .offcanvas-close-btn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1060;
+      margin-left: 1rem;
+      overflow: hidden;
+      border-radius: 50%;
+      pointer-events: auto;
+      clip-path: circle(50%);
+    }
+    .offcanvas-close-btn::before,
+    .offcanvas-close-btn::after {
+      display: none;
+    }
+    .offcanvas-close-btn i {
+      font-size: 14px;
+    }
+    .offcanvas-header {
+      padding: 1rem 2rem 1rem 1.5rem;
+      position: relative;
+      cursor: default;
+    }
+    .offcanvas-close-btn {
+      cursor: pointer;
+    }
+    .offcanvas-body {
+      cursor: default;
+    }
+  

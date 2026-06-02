@@ -1,0 +1,35 @@
+{% extends "central_content/base.html" %}
+{% block title %}Subjects{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-semibold">Subjects</h1>
+    <a href="/subjects/new" class="bg-blue-600 text-white px-4 py-2 rounded">New subject</a>
+</div>
+<form method="get" class="mb-4 flex gap-2">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search name..." class="border rounded p-2 flex-1">
+    <select name="state" class="border rounded p-2">
+        <option value="">All states</option>
+        <option value="draft" {% if current_state == "draft" %}selected{% endif %}>Draft</option>
+        <option value="in_review" {% if current_state == "in_review" %}selected{% endif %}>In Review</option>
+        <option value="approved" {% if current_state == "approved" %}selected{% endif %}>Approved</option>
+    </select>
+    <button type="submit" class="border rounded px-4">Filter</button>
+</form>
+<table class="w-full bg-white rounded shadow">
+    <thead class="text-left bg-gray-100">
+        <tr><th class="p-3">Name</th><th>Grade</th><th>State</th><th>Updated</th></tr>
+    </thead>
+    <tbody>
+        {% for s in subjects %}
+        <tr class="border-t">
+            <td class="p-3"><a href="/subjects/{{ s.id }}/" class="text-blue-700">{{ s.subject_name }}</a></td>
+            <td>{{ s.target_grade_level }}</td>
+            <td><span class="px-2 py-1 rounded bg-gray-200 text-xs">{{ s.state }}</span></td>
+            <td>{{ s.updated_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="p-6 text-center text-gray-500">No subjects yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

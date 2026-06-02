@@ -1,0 +1,55 @@
+/* [Classedge LMS] Global inline form validation styles
+ * ----------------------------------------------------------------------
+ * Paired with /static/js/cl-form-validation.js. The JS auto-injects a
+ * `<div class="cl-field-feedback">` after the input's wrapper and writes
+ * the label-prefixed error message into it. These rules surface the slot
+ * and tint the input/Select2 chip red while .is-invalid is present.
+ */
+
+.cl-field-feedback,
+.invalid-feedback {
+  display: none;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rose-deep, #b3261e);
+  line-height: 1.4;
+}
+.is-invalid ~ .cl-field-feedback,
+.is-invalid ~ .invalid-feedback,
+.custom-file:has(> .is-invalid) ~ .cl-field-feedback,
+.custom-file:has(> .is-invalid) ~ .invalid-feedback {
+  display: block;
+}
+
+/* Inputs / selects / textareas — red border + soft red ring */
+input.is-invalid,
+select.is-invalid,
+textarea.is-invalid,
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: var(--rose-deep, #b3261e) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rose-deep, #b3261e) 18%, transparent) !important;
+}
+input.is-invalid:focus,
+select.is-invalid:focus,
+textarea.is-invalid:focus,
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+  outline: none;
+  border-color: var(--rose-deep, #b3261e) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--rose-deep, #b3261e) 22%, transparent) !important;
+}
+
+/* Select2 hides the original <select> and renders a chip as a following
+   sibling. Mirror the invalid state onto the visible chip. */
+select.is-invalid + .select2-container .select2-selection {
+  border-color: var(--rose-deep, #b3261e) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rose-deep, #b3261e) 18%, transparent) !important;
+}
+
+/* Bootstrap-select wraps the original <select>. Tint the visible button. */
+.bootstrap-select:has(> select.is-invalid) > .dropdown-toggle {
+  border-color: var(--rose-deep, #b3261e) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rose-deep, #b3261e) 18%, transparent) !important;
+}

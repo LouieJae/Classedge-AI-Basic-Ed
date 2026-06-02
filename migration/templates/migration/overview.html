@@ -1,0 +1,68 @@
+{% extends "migration/base.html" %}
+
+{% block migration_content %}
+
+<div class="mig-header-actions">
+  <form method="post" action="{% url 'migration:action-start' %}" class="action-form">{% csrf_token %}
+    <button class="cl-btn cl-btn-primary" type="submit"><i class="fas fa-play"></i> Start pipeline</button>
+  </form>
+  <form method="post" action="{% url 'migration:action-pause-all' %}" class="action-form">{% csrf_token %}
+    <button class="cl-btn" type="submit"><i class="fas fa-pause"></i> Pause all</button>
+  </form>
+  <form method="post" action="{% url 'migration:action-resume-all' %}" class="action-form">{% csrf_token %}
+    <button class="cl-btn" type="submit"><i class="fas fa-forward"></i> Resume all</button>
+  </form>
+  <form method="post" action="{% url 'migration:action-toggle-dry-run' %}" class="action-form">{% csrf_token %}
+    <button class="cl-btn {% if dry_run %}cl-btn-gold{% endif %}" type="submit">
+      <i class="fas fa-flask"></i> Dry-run: {{ dry_run|yesno:"ON,off" }}
+    </button>
+  </form>
+</div>
+
+<div class="mig-kpis">
+  <div class="mig-kpi">
+    <span class="mig-kpi-label"><i class="fas fa-layer-group"></i> Total jobs</span>
+    <span class="mig-kpi-value">{{ totals.jobs }}</span>
+  </div>
+  <div class="mig-kpi is-running">
+    <span class="mig-kpi-label"><i class="fas fa-circle-play"></i> Running</span>
+    <span class="mig-kpi-value">{{ totals.running }}</span>
+  </div>
+  <div class="mig-kpi is-completed">
+    <span class="mig-kpi-label"><i class="fas fa-circle-check"></i> Completed</span>
+    <span class="mig-kpi-value">{{ totals.completed }}</span>
+  </div>
+  <div class="mig-kpi is-failed">
+    <span class="mig-kpi-label"><i class="fas fa-circle-xmark"></i> Failed</span>
+    <span class="mig-kpi-value">{{ totals.failed }}</span>
+  </div>
+  <div class="mig-kpi is-errors">
+    <span class="mig-kpi-label"><i class="fas fa-triangle-exclamation"></i> Open errors</span>
+    <span class="mig-kpi-value">{{ totals.errors }}</span>
+  </div>
+</div>
+
+<section class="cl-card mig-card">
+  <div class="cl-card-header">
+    <span><i class="fas fa-table-list me-2"></i>Migration <em>jobs</em></span>
+    <span class="cl-badge">Live · refreshes every {{ poll_seconds|default:3 }}s</span>
+  </div>
+  <div class="cl-card-body">
+    <table class="cl-table mig-table">
+      <thead>
+        <tr>
+          <th>App.Model</th>
+          <th>Status</th>
+          <th>Progress</th>
+          <th class="mig-numeric">Rows</th>
+          <th class="mig-numeric">Rate /min</th>
+          <th class="mig-numeric">ETA</th>
+          <th>Errors</th>
+          <th class="mig-actions-cell">Actions</th>
+        </tr>
+      </thead>
+      {% include "migration/_job_row.html" %}
+    </table>
+  </div>
+</section>
+{% endblock %}

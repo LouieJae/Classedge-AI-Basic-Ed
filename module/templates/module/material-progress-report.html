@@ -1,0 +1,209 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}{{ module }} · Material progress{% endblock %}
+
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'module/material-progress-report.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="vsp-page">
+
+  <a href="{% url 'material-list' subject.id %}" class="vsp-back">
+    <i class="fas fa-arrow-left"></i> Back to my materials
+  </a>
+
+  <div class="vsp-header">
+    <div>
+      {% include "includes/_page_header.html" with title=module accent="progress" sub="Material content with per-student reading progress." %}
+    </div>
+  </div>
+
+  {% if all_progress %}
+    {# Compute summary buckets in template #}
+    {% with total=all_progress|length %}
+      <div class="vsp-overview" id="vspOverview"
+           data-total="{{ total }}">
+        <div class="vsp-stat">
+          <div class="vsp-stat-label"><i class="fas fa-users"></i> Tracked</div>
+          <div class="vsp-stat-value" id="vspStatTotal">{{ total }}</div>
+          <div class="vsp-stat-sub">student{{ total|pluralize }} with progress</div>
+        </div>
+        <div class="vsp-stat">
+          <div class="vsp-stat-label"><i class="fas fa-circle-check"></i> Completed</div>
+          <div class="vsp-stat-value" id="vspStatComplete">—</div>
+          <div class="vsp-stat-sub">finished the material</div>
+        </div>
+        <div class="vsp-stat warn">
+          <div class="vsp-stat-label"><i class="fas fa-spinner"></i> In progress</div>
+          <div class="vsp-stat-value" id="vspStatInProgress">—</div>
+          <div class="vsp-stat-sub">currently reading</div>
+        </div>
+        <div class="vsp-stat">
+          <div class="vsp-stat-label"><i class="fas fa-percent"></i> Average</div>
+          <div class="vsp-stat-value" id="vspStatAvg">—</div>
+          <div class="vsp-stat-sub">across the class</div>
+        </div>
+      </div>
+    {% endwith %}
+  {% endif %}
+
+  <div class="vsp-grid">
+
+    <!-- Lesson content -->
+    <section class="vsp-card">
+      <div class="vsp-meta-row">
+        {% if module.start_date %}<span class="vsp-pill"><i class="far fa-calendar"></i> Published {{ module.start_date|date:"M d, Y" }}</span>{% endif %}
+        {% if subject %}<span class="vsp-pill"><i class="fas fa-book"></i> {{ subject }}</span>{% endif %}
+        {% if module.term %}<span class="vsp-pill"><i class="fas fa-folder"></i> {{ module.term.term_name }}</span>{% endif %}
+        {% if module.end_date %}<span class="vsp-pill"><i class="far fa-clock"></i> Ends {{ module.end_date|date:"M d, Y" }}</span>{% endif %}
+      </div>
+
+      {% if module.description %}
+        <div class="vsp-description">{{ module.description }}</div>
+      {% endif %}
+
+      {% if module.iframe_code %}
+        <div class="vsp-media-shell" data-skeleton="doc">
+          {% include "module/_partials/_skeleton_doc.html" %}
+          {{ module.iframe_code|safe }}
+        </div>
+      {% endif %}
+
+      {% if is_pdf and module.file %}
+        <div class="vsp-media-wrap">
+          <div class="vsp-media-toolbar">
+            <span class="vsp-media-toolbar-label"><i class="fas fa-file-pdf"></i> PDF preview</span>
+            <button id="pdf-fullscreen-btn" class="vsp-fullscreen-btn" type="button">
+              <i class="fas fa-expand"></i> <span class="vsp-fs-label">Fullscreen</span>
+            </button>
+          </div>
+          <div id="pdf-container" class="vsp-media-shell" data-skeleton="doc">
+            {% include "module/_partials/_skeleton_doc.html" %}
+            <iframe id="pdf-file"
+                    src="{% url 'student-pdf-viewer' %}?file={{ module.file.url }}&module={{ module.id }}"
+                    data-base-src="{% url 'student-pdf-viewer' %}?file={{ module.file.url }}&module={{ module.id }}"
+                    title="PDF preview"></iframe>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if is_image and module.file %}
+        <div class="vsp-media-wrap">
+          <div class="vsp-media-toolbar">
+            <span class="vsp-media-toolbar-label"><i class="fas fa-image"></i> Image preview</span>
+            <button id="image-fullscreen-btn" class="vsp-fullscreen-btn" type="button">
+              <i class="fas fa-expand"></i> <span class="vsp-fs-label">Fullscreen</span>
+            </button>
+          </div>
+          <div id="image-container" class="vsp-media-shell">
+            <img id="image-file" src="{{ module.file.url }}" alt="Material image" />
+          </div>
+        </div>
+      {% endif %}
+
+      {% if is_video and module.file %}
+        <div class="vsp-media-shell" data-skeleton="video">
+          {% include "module/_partials/_skeleton_video.html" %}
+          <video controls preload="metadata">
+            <source src="{{ module.file.url }}" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      {% endif %}
+
+      {% if is_youtube or is_vimeo %}
+        <div class="vsp-media-shell" data-skeleton="video">
+          {% include "module/_partials/_skeleton_video.html" %}
+          <iframe src="{{ embed_url }}" allowfullscreen title="External video"></iframe>
+        </div>
+      {% endif %}
+
+      {% if is_url %}
+        <div style="margin-top: 12px;">
+          <a href="{{ module.url }}" target="_blank" rel="noopener" class="vsp-link-cta">
+            <i class="fas fa-up-right-from-square"></i> Open {{ module.file_name|default:"resource" }}
+          </a>
+        </div>
+      {% endif %}
+
+      {% if is_office_embed %}
+        <div class="vsp-media-wrap">
+          <div class="vsp-media-toolbar">
+            <span class="vsp-media-toolbar-label"><i class="fas fa-file-powerpoint"></i> Office preview</span>
+          </div>
+          <div class="vsp-media-shell" data-skeleton="doc">
+            {% include "module/_partials/_skeleton_doc.html" %}
+            <iframe src="{{ office_embed_url }}"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen"
+                    style="width:100%; height:700px; border:0;"></iframe>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if is_unknown %}
+        <div class="vsp-error">
+          <i class="fas fa-circle-exclamation"></i>
+          Unsupported file format. Unable to display the content.
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- Progress side panel -->
+    <aside class="vsp-card">
+      <div class="vsp-side-head">
+        <div>
+          <h2 class="vsp-side-title">Student progress</h2>
+          <div class="vsp-side-sub">{{ all_progress|length }} learner{{ all_progress|length|pluralize }} tracked</div>
+        </div>
+      </div>
+
+      {% if all_progress %}
+        <div class="vsp-search">
+          <i class="fas fa-magnifying-glass"></i>
+          <input id="vspSearch" type="text" placeholder="Search student name…" autocomplete="off" />
+        </div>
+
+        <div class="vsp-progress-list" id="vspProgressList">
+          {% for p in all_progress %}
+            {% with prog=p.progress|default:0 %}
+              <div class="vsp-progress-row {% if prog >= 100 %}complete{% elif prog == 0 %}none{% elif prog < 25 %}idle{% endif %}"
+                   data-name="{{ p.student.get_full_name|default:p.student.username|lower }}"
+                   data-progress="{{ prog }}">
+                <div class="vsp-progress-head">
+                  <div class="vsp-progress-id">
+                    <div class="vsp-avatar">
+                      {{ p.student.first_name|slice:":1"|upper }}{{ p.student.last_name|slice:":1"|upper }}
+                    </div>
+                    <div style="min-width: 0;">
+                      <div class="vsp-progress-name">{{ p.student.get_full_name|default:p.student.username }}</div>
+                      <div class="vsp-progress-time">
+                        {% if p.last_accessed %}<i class="far fa-clock"></i> {{ p.last_accessed|date:"M d, Y · H:i" }}{% else %}—{% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  <span class="vsp-progress-pill">{{ prog }}%</span>
+                </div>
+                <div class="vsp-progress-track">
+                  <div class="vsp-progress-fill" style="width: {{ prog }}%;"></div>
+                </div>
+              </div>
+            {% endwith %}
+          {% endfor %}
+          <div class="vsp-no-match" id="vspNoMatch" style="display: none;">No students match your search.</div>
+        </div>
+      {% else %}
+        <div class="vsp-empty">
+          <i class="fas fa-circle-info"></i>
+          No student progress data yet. Once students open this material, their reading progress appears here.
+        </div>
+      {% endif %}
+    </aside>
+
+  </div>
+</div>
+
+<script src="{% static 'module/material-progress-report.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "central_content/base.html" %}
+{% block title %}{% if module %}Edit{% else %}New{% endif %} module{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">
+    {% if module %}Edit module{% else %}New module{% endif %} — {{ subject.subject_name }}
+</h1>
+<form method="post" enctype="multipart/form-data" class="bg-white p-6 rounded shadow max-w-2xl space-y-4">
+    {% csrf_token %}
+    {% for field in form %}
+    <label class="block">
+        <span class="block text-sm font-medium">{{ field.label }}</span>
+        {{ field }}
+        {% if field.errors %}<p class="text-red-600 text-sm">{{ field.errors.0 }}</p>{% endif %}
+    </label>
+    {% endfor %}
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+    <a href="/subjects/{{ subject.id }}/" class="px-4 py-2">Cancel</a>
+</form>
+{% endblock %}

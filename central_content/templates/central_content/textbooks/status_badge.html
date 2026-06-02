@@ -1,0 +1,14 @@
+{% if textbook.status == "uploading" or textbook.status == "parsing_toc" %}
+<span class="px-2 py-1 rounded bg-amber-100 text-amber-800 text-xs"
+      hx-get="/subjects/{{ textbook.central_subject_id }}/textbooks/{{ textbook.id }}/status"
+      hx-trigger="every 3s"
+      hx-swap="outerHTML">
+    Processing...
+</span>
+{% elif textbook.status == "toc_ready" %}
+<span class="px-2 py-1 rounded bg-green-100 text-green-800 text-xs">Ready</span>
+{% elif textbook.status == "failed" %}
+<span class="px-2 py-1 rounded bg-red-100 text-red-800 text-xs" title="{{ textbook.error_message }}">Failed</span>
+{% else %}
+<span class="px-2 py-1 rounded bg-gray-100 text-gray-600 text-xs">{{ textbook.status }}</span>
+{% endif %}

@@ -1,0 +1,68 @@
+{% load static %}
+{% comment %}Timed MCQ speed round — JS-driven, included by side_activity_play.html{% endcomment %}
+
+<div id="speed-round-container">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <span style="font-size:.9rem;color:var(--muted);" id="sr-progress">Question 1 / ?</span>
+    <span id="sr-timer" style="font-size:1.25rem;font-weight:700;color:var(--primary);font-variant-numeric:tabular-nums;">--:--</span>
+  </div>
+
+  <div id="sr-question" style="font-size:1.15rem;color:var(--text);line-height:1.6;margin-bottom:1.25rem;"></div>
+
+  <div id="sr-choices" style="display:flex;flex-direction:column;gap:.75rem;"></div>
+</div>
+
+<script src="{% static 'js/side_activities/timer.js' %}"></script>
+<script src="{% static 'js/side_activities/submit.js' %}"></script>
+<script>
+(function() {
+  var sa = window.SIDE_ACTIVITY;
+  var content = sa.content;
+  var questions = content.questions || [];
+  var timeLimit = content.time_limit || 60;
+  var currentIdx = 0;
+  var correct = 0;
+  var startTime = Date.now();
+
+  var progressEl = document.getElementById('sr-progress');
+  var questionEl = document.getElementById('sr-question');
+  var choicesEl = document.getElementById('sr-choices');
+  var timerEl = document.getElementById('sr-timer');
+
+  function showQuestion(idx) {
+    if (idx >= questions.length) {
+      finish();
+      return;
+    }
+    var q = questions[idx];
+    progressEl.textContent = 'Question ' + (idx + 1) + ' / ' + questions.length;
+    questionEl.textContent = q.question;
+    choicesEl.innerHTML = '';
+    q.choices.forEach(function(choice, ci) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = choice;
+      btn.style.cssText = 'padding:.85rem 1rem;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--surface-2);color:var(--text);font-size:1rem;text-align:left;transition:border-color .15s;';
+      btn.addEventListener('click', function() {
+        if (ci === q.answer) correct++;
+        currentIdx++;
+        showQuestion(currentIdx);
+      });
+      choicesEl.appendChild(btn);
+    });
+  }
+
+  function finish() {
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+    if (clock) clock.stop();
+    var score = questions.length > 0 ? correct / questions.length : 0;
+    submitAttempt(sa.id, score, elapsed, {correct: correct, total: questions.length});
+  }
+
+  var clock = startTimer(timeLimit, timerEl, function() {
+    finish();
+  });
+
+  showQuestion(0);
+})();
+</script>

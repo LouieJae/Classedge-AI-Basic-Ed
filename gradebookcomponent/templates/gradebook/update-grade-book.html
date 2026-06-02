@@ -1,0 +1,256 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Update Gradebook{% endblock %}
+
+{% block content %}
+{% include "includes/_list_page_theme.html" %}
+{% include "termbook/_form_styles.html" %}
+<link rel="stylesheet" href="{% static 'gradebookcomponent/update-grade-book.css' %}" />
+
+<div class="gbf-page">
+
+  <a href="{% url 'grade-book' %}" class="cl-back-btn">
+    <i class="fas fa-arrow-left"></i> Back to gradebook
+  </a>
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Update <em>GradeBook</em></h1>
+      <p class="page-sub">Adjust this gradebook component's category, weight, and sub-activities.</p>
+    </div>
+  </div>
+
+  <div class="cgb-grid">
+    <div class="gbf-card" style="max-width: none;">
+      <form method="post" class="gbf-form" novalidate data-cl-loading data-cl-loading-label="Updating…">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="cgb-error" style="margin-bottom: 12px;">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+          <div class="form-group">
+            <label for="{{ form.subject.id_for_label }}">Subject</label>
+            {{ form.subject }}
+            {% if form.subject.errors %}<div class="cgb-error">{{ form.subject.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label for="{{ form.term.id_for_label }}">Term</label>
+            {{ form.term }}
+            {% if form.term.errors %}<div class="cgb-error">{{ form.term.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label for="{{ form.gradebook_category.id_for_label }}">Category</label>
+            {{ form.gradebook_category }}
+            <datalist id="category-suggestions">
+              {% for name in category_suggestions %}<option value="{{ name }}">{% endfor %}
+            </datalist>
+            <div style="font-size: 11.5px; color: var(--ink-muted); margin-top: 4px; font-style: italic;">Free-text — name it whatever fits (e.g. Quizzes, Performance Tasks, Reports).</div>
+            {% if form.gradebook_category.errors %}<div class="cgb-error">{{ form.gradebook_category.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label for="{{ form.percentage.id_for_label }}">
+              Main Percentage
+              <i class="fas fa-percent" style="color: var(--brand-primary, #1b4332);"></i>
+            </label>
+            {{ form.percentage }}
+            {% if form.percentage.errors %}<div class="cgb-error">{{ form.percentage.errors|join:", " }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div id="activitySection">
+          <h2 class="cgb-section-title">
+            <i class="fas fa-tasks" style="color: var(--brand-primary, #1b4332);"></i>
+            Sub-activities
+            <span class="hint">Pick the activity types that count toward this category &mdash; weights must sum to 100%.</span>
+          </h2>
+
+          {{ formset.management_form }}
+          {% if formset.non_form_errors %}
+            <div class="cgb-error">{{ formset.non_form_errors|join:", " }}</div>
+          {% endif %}
+
+          <div id="activities">
+            {% for subform in formset %}
+              <div class="activity-row" data-form-row>
+                {% for hidden in subform.hidden_fields %}{{ hidden }}{% endfor %}
+                <div style="display:grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 12px; align-items: end;">
+                  <div class="form-group" style="margin: 0;">
+                    <label>Activity type</label>
+                    {{ subform.activity_type }}
+                    {% if subform.activity_type.errors %}<div class="cgb-error">{{ subform.activity_type.errors|join:", " }}</div>{% endif %}
+                  </div>
+                  <div class="form-group" style="margin: 0;">
+                    <label>Percentage</label>
+                    {{ subform.percentage }}
+                    {% if subform.percentage.errors %}<div class="cgb-error">{{ subform.percentage.errors|join:", " }}</div>{% endif %}
+                  </div>
+                  <button type="button" class="gbf-btn gbf-btn--danger" title="Remove activity" style="height: 42px;" data-remove-row>
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <span style="display:none;">{{ subform.DELETE }}</span>
+              </div>
+            {% endfor %}
+          </div>
+
+          <template id="empty-form-template">
+            <div class="activity-row" data-form-row>
+              <div style="display:grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 12px; align-items: end;">
+                <div class="form-group" style="margin: 0;">
+                  <label>Activity type</label>
+                  {{ formset.empty_form.activity_type }}
+                </div>
+                <div class="form-group" style="margin: 0;">
+                  <label>Percentage</label>
+                  {{ formset.empty_form.percentage }}
+                </div>
+                <button type="button" class="gbf-btn gbf-btn--danger" title="Remove activity" style="height: 42px;" data-remove-row>
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <button type="button" class="cgb-add-btn" id="add-activity-btn">
+            <i class="fas fa-plus"></i> Add sub-activity
+          </button>
+        </div>
+
+        <div class="gbf-actions">
+          <button type="submit" class="gbf-btn gbf-btn--primary">
+            <i class="fas fa-check"></i> Save changes
+          </button>
+          <a href="{% url 'grade-book' %}" class="gbf-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <div>
+      <div class="cgb-tips-card">
+        <div class="cgb-tips-head"><i class="fas fa-info-circle"></i> Update tips</div>
+        <div class="cgb-tips-body">
+          <ul>
+            <li><i class="fas fa-check-circle"></i> Adjust the percentage carefully — the running total must stay ≤ 100%.</li>
+            <li><i class="fas fa-check-circle"></i> Sub-activities only apply to <strong>Participation/Attendance</strong>.</li>
+            <li class="warn"><i class="fas fa-exclamation-triangle"></i> Sub-activity totals must equal 100%.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    if (window.$ && $.fn.selectpicker) {
+      $('.selectpicker').selectpicker();
+    }
+
+    const addBtn = document.getElementById('add-activity-btn');
+    const activitiesContainer = document.getElementById('activities');
+    const totalForms = document.getElementById('id_subactivities-TOTAL_FORMS');
+    const emptyTpl = document.getElementById('empty-form-template');
+    const subjectSelect = document.getElementById('id_subject');
+    const termSelect = document.getElementById('id_term');
+    const usedTypesUrl = "{% url 'get_used_activity_types' %}";
+    const excludeGradebookId = "{{ gradebook.pk|default:'' }}";
+    let usedActivityTypeIds = new Set();
+
+    function visibleRowSelects() {
+      return Array.from(activitiesContainer.querySelectorAll('[data-form-row]'))
+        .filter(row => row.style.display !== 'none')
+        .map(row => row.querySelector('select.activity_type_select'))
+        .filter(Boolean);
+    }
+
+    function refreshActivityTypeOptions() {
+      const selects = visibleRowSelects();
+      const taken = new Set(selects.map(sel => sel.value).filter(v => v !== ''));
+      selects.forEach(sel => {
+        const own = sel.value;
+        Array.from(sel.options).forEach(opt => {
+          if (!opt.value) return;
+          const isTakenElsewhere = (opt.value !== own && taken.has(opt.value));
+          const isUsedInOtherGradebook = (opt.value !== own && usedActivityTypeIds.has(opt.value));
+          const hide = isTakenElsewhere || isUsedInOtherGradebook;
+          opt.disabled = hide;
+          opt.hidden = hide;
+        });
+        if (window.$ && $.fn.selectpicker && sel.classList.contains('selectpicker')) {
+          $(sel).selectpicker('refresh');
+        }
+      });
+    }
+
+    function fetchUsedActivityTypes() {
+      const subjectId = subjectSelect && subjectSelect.value;
+      const termId = termSelect && termSelect.value;
+      if (!subjectId || !termId) {
+        usedActivityTypeIds = new Set();
+        refreshActivityTypeOptions();
+        return;
+      }
+      const params = new URLSearchParams({ subject_id: subjectId, term_id: termId });
+      if (excludeGradebookId) params.set('exclude_gradebook', excludeGradebookId);
+      fetch(usedTypesUrl + '?' + params.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.ok ? r.json() : { used_ids: [] })
+        .then(data => {
+          usedActivityTypeIds = new Set((data.used_ids || []).map(String));
+          refreshActivityTypeOptions();
+        })
+        .catch(() => {});
+    }
+
+    if (subjectSelect) {
+      subjectSelect.addEventListener('change', fetchUsedActivityTypes);
+      if (window.$ && $.fn.selectpicker) $(subjectSelect).on('changed.bs.select', fetchUsedActivityTypes);
+    }
+    if (termSelect) {
+      termSelect.addEventListener('change', fetchUsedActivityTypes);
+      if (window.$ && $.fn.selectpicker) $(termSelect).on('changed.bs.select', fetchUsedActivityTypes);
+    }
+
+    addBtn?.addEventListener('click', function () {
+      const idx = parseInt(totalForms.value, 10);
+      const html = emptyTpl.innerHTML.replace(/__prefix__/g, idx);
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = html.trim();
+      const node = wrapper.firstElementChild;
+      activitiesContainer.appendChild(node);
+      totalForms.value = idx + 1;
+      if (window.$ && $.fn.selectpicker) {
+        $(node).find('.selectpicker').selectpicker();
+      }
+      refreshActivityTypeOptions();
+    });
+
+    activitiesContainer?.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-remove-row]');
+      if (!btn) return;
+      const row = btn.closest('[data-form-row]');
+      const deleteInput = row.querySelector('input[name$="-DELETE"]');
+      if (deleteInput) {
+        deleteInput.checked = true;
+        row.style.display = 'none';
+      } else {
+        row.remove();
+        totalForms.value = Math.max(0, parseInt(totalForms.value, 10) - 1);
+      }
+      refreshActivityTypeOptions();
+    });
+
+    activitiesContainer?.addEventListener('change', function (e) {
+      if (e.target.matches('select.activity_type_select')) {
+        refreshActivityTypeOptions();
+      }
+    });
+
+    refreshActivityTypeOptions();
+    fetchUsedActivityTypes();
+  })();
+</script>
+{% endblock %}

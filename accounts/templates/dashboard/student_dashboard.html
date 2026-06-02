@@ -1,0 +1,468 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% block title %}
+  Dashboard
+{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'accounts/student_dashboard.css' %}" />
+<div class="row mb-2 align-items-center d-flex justify-content-between">
+  <!-- Left Section: Greeting -->
+  <div class="col-sm-6">
+    <h1>{{ greeting }} {{ user_name }}!</h1>
+    <p>Welcome to the {{ SCHOOL_SHORT_NAME }} Learning Management System</p>
+  </div>
+
+  <!-- Right Section: Semester -->
+    <div class="col-sm-6 text-end">
+      <h3 class="mb-0">
+        {% if current_semester %}
+          {% if current_semester.semester_name == "First Semester" %}
+            1st Sem -
+          {% elif current_semester.semester_name == "Second Semester" %}
+            2nd Sem -
+          {% elif current_semester.semester_name == "Third Semester" %}
+            3rd Sem -
+          {% elif current_semester.semester_name == "Fourth Semester" %}
+            4th Sem -
+          {% else %}
+            {{ current_semester.semester_name }}
+          {% endif %}
+          SY. {{ current_semester.get_academic_year }}
+        {% else %}
+          No Active Semester
+        {% endif %}
+      </h3>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+
+<!-- Subjects For This Semester -->
+  <div class="col-xxl-3 col-md-6">
+      <div class="card position-relative border shadow-lg" style="background-color: #FFECB3; border-radius: 12px; border-color: #D6D6D6;">
+          <div class="bg-holder d-none d-lg-block bg-card" 
+              style="background-image: url('{% static 'assets/img/icons/spot-illustrations/corner-2.png' %}'); opacity: 0.7;">
+          </div>
+          <div class="card-body text-center">
+              <div class="icon-circle" style="border: 2px solid #F9A825;">
+                  <span class="fs-5 fas fa-chalkboard-teacher" style="color: #F9A825;"></span>
+              </div>
+              <h4 class="mt-2 mb-0 font-sans-serif fw-semi-bold text-700">
+                <span style="font-size: medium;">
+                        Enrolled Subject
+                </span>
+                <span class="mx-2" data-countup='{"endValue": "{{ subject_count }}"}'>{{ subject_count }}</span>
+              </h4>      
+          </div>
+      </div>
+  </div>
+
+  <!-- Students Enrolled Per Course -->
+  <div class="col-xxl-3 col-md-6">
+      <div class="card position-relative border shadow-lg" style="background-color: #D6E9F8; border-radius: 12px; border-color: #D6D6D6;">
+          <div class="bg-holder d-none d-lg-block bg-card" 
+              style="background-image: url('{% static 'assets/img/icons/spot-illustrations/corner-1.png' %}'); opacity: 0.7;">
+          </div>
+          <div class="card-body text-center">
+              <div class="icon-circle" style="border: 2px solid #1976D2;">
+                    <span class="fs-5 fas fa-chart-pie" style="color: #1976D2;"></span>
+              </div>
+              <h4 class="mt-2 mb-0 font-sans-serif fw-semi-bold text-700">
+                  <span style="font-size: medium;">
+                        Upcoming Deadline
+                  </span>
+            <span class="mx-2" data-countup='{"endValue": "{{ pending_activity }}"}'>{{ pending_activity }}</span>
+              </h4>
+          </div>
+      </div>
+  </div>
+
+
+  <!-- Announcements -->
+  <div class="col-xxl-3 col-md-6">
+      <div class="card position-relative border shadow-lg" style="background-color: #C8E6C9; border-radius: 12px; border-color: #D6D6D6;">
+          <div class="bg-holder d-none d-lg-block bg-card" 
+              style="background-image: url('{% static 'assets/img/icons/spot-illustrations/corner-3.png' %}'); opacity: 0.7;">
+          </div>
+          <div class="card-body text-center">
+              <div class="icon-circle" style="border: 2px solid #2E7D32;">
+                  <span class="fs-5 fas fa-bullhorn" style="color: #2E7D32;"></span>
+              </div>
+                <h4 class="mt-2 mb-0 font-sans-serif fw-semi-bold text-700">
+                  <span style="font-size: medium;">Important Announcement</span>
+                <span class="mx-2">0</span>
+              </h4>
+          </div>
+      </div>
+  </div>
+
+
+  <!-- Financials -->
+  <div class="col-xxl-3 col-md-6">
+  <a style="text-decoration: none;" href="{% url 'student_soa' %}">
+    <div class="card position-relative border shadow-lg" style="background-color: #F8BBD0; border-radius: 12px; border-color: #D6D6D6;">
+        <div class="bg-holder d-none d-lg-block bg-card" 
+            style="background-image: url('{% static 'assets/img/icons/spot-illustrations/corner-4.png' %}'); opacity: 0.7;">
+        </div>
+        <div class="card-body text-center">
+            <div class="icon-circle" style="border: 2px solid #C2185B;">
+                <span class="fs-5 fas fa-money-check" style="color: #C2185B;"></span>
+            </div>
+            <h4 class="mt-2 mb-0 font-sans-serif fw-semi-bold text-700">
+                <span style="font-size: medium;">Current Balance</span>
+                <span class="mx-2">₱{{ total_payment|floatformat:2|default:"0.00" }}</span>
+            </h4>
+        </div>
+    </div>
+  </a>
+</div>
+</div>
+  <div class="row g-3 mb-3">
+
+    <div class="col-lg-4 col-xxl-4">
+      <div class="card" id="StudentPopulationChart">
+        <div class="card-header d-flex flex-between-center bg-body-tertiary py-2">
+          <h6 class="mb-0">Top 10 Performing Students (Recent Activity)</h6>
+          <div class="dropdown font-sans-serif btn-reveal-trigger">
+             <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal" type="button" id="student-population" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+            </button>
+          </div>
+        </div>
+        <div class="card-body py-3 position-relative">
+          <div class="ranking-scroll">
+            <div class="rounded-4 p-2 mb-2 text-white" style="background: linear-gradient(120deg, #f6d365 0%, #fda085 100%);">
+              <div class="d-flex align-items-center justify-content-between">
+                <div>
+                  <span class="badge bg-dark text-uppercase mb-1">Top 1</span>
+                  <h6 class="mb-0 fw-bold">Ava Santiago</h6>
+                </div>
+                <div class="text-end">
+                  <span class="fs-2 text-warning"><i class="fas fa-crown"></i></span>
+                  <div class="text-nowrap" style="color: #ffe066; font-size: 0.85rem; line-height: 1;">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="border rounded-4 p-2 mb-2 bg-body-tertiary">
+              <div class="d-flex align-items-center justify-content-between">
+                <div>
+                  <span class="badge bg-secondary text-uppercase mb-1">Top 2</span>
+                  <h6 class="mb-1">Liam Fernandez</h6>
+                </div>
+                <div class="text-end" style="color: #9e9e9e; font-size: 0.9rem; line-height: 1;">
+                  <i class="fas fa-star"></i>
+                  <i class="fas fa-star"></i>
+                  <i class="fas fa-star"></i>
+                  <i class="far fa-star"></i>
+                  <i class="far fa-star"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="border rounded-4 p-2 mb-2" style="background-color: #f1f8e9;">
+              <div class="d-flex align-items-center justify-content-between">
+                <div>
+                  <span class="badge bg-success text-uppercase mb-1">Top 3</span>
+                  <h6 class="mb-1">Maya Tolentino</h6>
+                </div>
+                <div class="text-end" style="color: #66bb6a; font-size: 0.9rem; line-height: 1;">
+                  <i class="fas fa-star"></i>
+                  <i class="fas fa-star"></i>
+                  <i class="fas fa-star"></i>
+                  <i class="fas fa-star"></i>
+                  <i class="far fa-star"></i>
+                </div>
+              </div>
+            </div>
+
+            <ul class="list-group list-group-flush small">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>#4</strong> Ethan Cruz
+              </div>
+              <span class="badge bg-light text-dark">Consistent</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>#5</strong> Isla Mercado
+              </div>
+              <span class="badge bg-light text-dark">Very Good</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>#6</strong> Noah Villanueva
+              </div>
+              <span class="badge bg-light text-dark">Very Good</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>#7</strong> Noah Villanueva
+              </div>
+              <span class="badge bg-light text-dark">Very Good</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>#8</strong> Noah Villanueva
+              </div>
+              <span class="badge bg-light text-dark">Very Good</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>#9</strong> Noah Villanueva
+              </div>
+              <span class="badge bg-light text-dark">Very Good</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>#10</strong> Noah Villanueva
+              </div>
+              <span class="badge bg-light text-dark">Very Good</span>
+            </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>    
+
+          <!-- Campus News Carousel -->
+    <div class="col-xxl-8">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary d-flex flex-between-center py-2">
+          <h6 class="mb-0">Campus News</h6>
+          <div class="dropdown font-sans-serif btn-reveal-trigger">
+            <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal" type="button" id="dropdown-trending-keywords" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+              {% comment %} <span class="fas fa-ellipsis-h fs-11"></span> {% endcomment %}
+            </button>
+          </div>
+        </div>
+        <div class="card-body pb-0">
+          <div id="newsCarousel" class="carousel slide mb-3" data-bs-ride="carousel" data-bs-interval="5000">
+            <div class="carousel-indicators">
+              {% for article in articles %}
+                <button type="button" data-bs-target="#newsCarousel" data-bs-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}" aria-label="Slide {{ forloop.counter }}"></button>
+              {% endfor %}
+            </div>
+            <div class="carousel-inner carousel-fade">
+              {% for article in articles %}
+              <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                <a href="{{ article.permalink_url }}" target="_blank" style="text-decoration: none; color: inherit;">
+                  <div class="row no-gutters">
+                    <div class="col-md-12 position-relative">
+                      {% if article.image_url %}
+                      <img src="{{ article.image_url }}" class="d-block w-100" alt="Post Image"
+                        style="width: 100%; height: 450px; object-fit: cover; object-position: center; opacity: 0.9; border-radius: 10px;" />
+                      {% else %}
+                      <img src="{% static 'images/SNCFI-logo.png' %}" class="d-block w-100" alt="Default Image"
+                        style="width: 100%; height: 450px; object-fit: cover; object-position: center; opacity: 0.9; border-radius: 5px;" />
+                      {% endif %}
+                      <div class="carousel-caption d-block text-white p-3" style="text-shadow: 2px 2px 4px #000; 
+                        background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0.3) 100%); 
+                        bottom: 0; 
+                        left: 50%; 
+                        right: auto; 
+                        transform: translateX(-50%); 
+                        width: 90%; 
+                        border-radius: 10px 10px 0 0;">
+                        <div class="d-flex align-items-center mb-2">
+                          {% if article.profile_picture_url %}
+                          <img src="{{ article.profile_picture_url }}" alt="Profile Picture" class="img-fluid"
+                            style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;" />
+                          {% endif %}
+                          <div>
+                            <small class="font-weight-bold">{{ article.posted_by }}</small>
+                            <small class="d-none d-sm-inline" style="color: #ddd;">&bull; {{ article.created_time }}</small>
+                          </div>
+                        </div>
+                        <h4 class="font-weight-bold text-light" style="text-shadow: 2px 2px 4px #000; 
+                          display: -webkit-box; 
+                          -webkit-line-clamp: 2; 
+                          -webkit-box-orient: vertical; 
+                          overflow: hidden; 
+                          text-overflow: ellipsis; 
+                          line-height: 1.5;">{{ article.message }}</h4>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </div>
+              {% endfor %}
+            </div>            
+            <button class="carousel-control-prev" type="button" data-bs-target="#newsCarousel" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#newsCarousel" data-bs-slide="next">
+              <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Next</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+
+  <div class="row g-3 mb-3">
+   
+       <!-- Upcoming School Events -->
+    <div class="col-xxl-7">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary d-flex flex-between-center py-2">
+          <h6 class="mb-0">Upcoming School Event and Announcement</h6>
+          <div class="dropdown font-sans-serif btn-reveal-trigger">
+            <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal" type="button" id="dropdown-school-events" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+              {% comment %} <span class="fas fa-ellipsis-h fs-11"></span> {% endcomment %}
+            </button>
+          </div>
+        </div> 
+        <div class="card-body p-2">
+          <ul class="list-group">
+              {% if combined_list %}
+                  {% for item in combined_list %}
+                      <li class="list-group-item d-flex justify-content-between align-items-center" 
+                          style="border-left: 5px solid {% if item.type == 'event' %} #6BAED6 {% else %} #EAC54F {% endif %}; 
+                                 background-color: {% if item.type == 'event' %} #D9EAF7 {% else %} #FEF3C7 {% endif %};
+                                 padding: 12px; border-radius: 8px; margin-bottom: 6px;">
+      
+                          <div>
+                              <strong>
+                                  {% if item.type == "announcement" %}
+                                      <a href="{% url 'announcement_details' item.id %}" class="text-reset text-decoration-none" style="color: #6B4226;">
+                                          <i class="fas fa-bullhorn" style="color: #D4A017;"></i> {{ item.title }}
+                                      </a>
+                                  {% else %}
+                                      <i class="fas fa-calendar-alt" style="color: #3182BD;"></i> {{ item.title }}
+                                  {% endif %}
+                              </strong>
+                              <br>
+      
+                              {% if item.location %}
+                                  <small style="color: #5E5E5E;">
+                                      <i class="fas fa-map-marker-alt" style="color: #B56576;"></i> {{ item.location }}
+                                  </small><br>
+                              {% endif %}
+      
+                              <small style="font-weight: bold; color: {% if item.type == 'event' %} #3182BD {% else %} #B56576 {% endif %};">
+                                  {% if item.type == "event" %}
+                                      📅 Event
+                                  {% else %}
+                                      📰 Announcement
+                                  {% endif %}
+                              </small>
+                          </div>
+      
+                          <span style="background-color: #333; color: white; padding: 6px 12px; border-radius: 12px; font-size: 0.85rem;">
+                              {{ item.date|date:"M d, Y" }}
+                              {% if item.type == "event" and item.time %}
+                                  <br><small style="color: #EAEAEA;">{{ item.time|time:"g:i A" }}</small>
+                              {% endif %}
+                          </span>
+                      </li>
+                  {% endfor %}
+              {% else %}
+                  <li class="list-group-item text-center" style="color: #888; padding: 12px;">
+                      <i class="fas fa-exclamation-circle" style="color: #D95F5F;"></i> No upcoming events or announcements.
+                  </li>
+              {% endif %}
+          </ul>
+      </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-6 col-xxl-5">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary d-flex flex-between-center py-2">
+          <h6 class="mb-0">To Do List</h6>
+          <div class="dropdown font-sans-serif btn-reveal-trigger">
+            <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal" type="button" id="student-population" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+            </button>
+          </div>
+        </div>
+        <div class="card-body py-2 position-relative">
+          <div class="ranking-scroll todo-panel" style="max-height: 350px;">
+            <div class="todo-section">
+              <div class="todo-section-header">
+                <h6 class="todo-section-title">
+                  <span class="text-danger"><i class="fas fa-clock"></i></span>
+                  Due Soon
+                </h6>
+                <span class="badge bg-danger-subtle text-danger">{{ todo_items|length }}</span>
+              </div>
+
+              {% if todo_items %}
+                {% for item in todo_items %}
+                  <a href="{{ item.url }}" class="todo-item">
+                    <div>
+                      <div class="todo-item-title">{{ item.title }}</div>
+                      <span class="todo-item-subtitle">{{ item.subtitle }}</span>
+                    </div>
+                    <div class="text-muted" style="padding-top: 2px;"><i class="fas fa-chevron-right"></i></div>
+                  </a>
+                {% endfor %}
+              {% else %}
+                <div class="todo-empty">No due soon activities.</div>
+              {% endif %}
+            </div>
+
+            <div class="todo-section">
+              <div class="todo-section-header">
+                <h6 class="todo-section-title">
+                  <span class="text-success"><i class="fas fa-broadcast-tower"></i></span>
+                  Ongoing Activities
+                </h6>
+                <span class="badge bg-success-subtle text-success">{{ ongoing_activities_list|length }}</span>
+              </div>
+
+              {% if ongoing_activities_list %}
+                {% for act in ongoing_activities_list %}
+                  <a href="/activity_detail/{{ act.id }}" class="todo-item">
+                    <div>
+                      <div class="todo-item-title">{{ act.activity_name }}</div>
+                      <span class="todo-item-subtitle">Ends: {{ act.end_time|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <span class="badge bg-success">Live</span>
+                  </a>
+                {% endfor %}
+              {% else %}
+                <div class="todo-empty">No ongoing activities.</div>
+              {% endif %}
+            </div>
+
+            <div class="todo-section">
+              <div class="todo-section-header">
+                <h6 class="todo-section-title">
+                  <span class="text-info"><i class="fas fa-calendar-alt"></i></span>
+                  Upcoming Activities
+                </h6>
+                <span class="badge bg-info-subtle text-info">{{ upcoming_activities_list|length }}</span>
+              </div>
+
+              {% if upcoming_activities_list %}
+                {% for act in upcoming_activities_list %}
+                  <a href="/activity_detail/{{ act.id }}" class="todo-item">
+                    <div>
+                      <div class="todo-item-title">{{ act.activity_name }}</div>
+                      <span class="todo-item-subtitle">Starts: {{ act.start_time|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <span class="badge bg-info">Soon</span>
+                  </a>
+                {% endfor %}
+              {% else %}
+                <div class="todo-empty">No upcoming activities.</div>
+              {% endif %}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}

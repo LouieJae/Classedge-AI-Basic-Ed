@@ -1,0 +1,458 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Student Attendance" %}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    /* Attendance accents */
+    :root { --att-present: #16a085; --att-absent: #c0392b; --att-late: #e0a93f; --att-excused: #5b6ee1; --att-other: #6c7080; }
+
+    /* Stat strip */
+    .cm-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 22px; }
+    .cm-stat { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
+    .cm-stat .icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+    .cm-stat .label { font-size: 11px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .cm-stat .value { font-size: 22px; font-weight: 700; color: var(--ink); line-height: 1.1; }
+    .cm-stat.present .icon { background: rgba(22, 160, 133, 0.14); color: var(--att-present); }
+    .cm-stat.absent .icon { background: rgba(192, 57, 43, 0.14); color: var(--att-absent); }
+    .cm-stat.late .icon { background: rgba(224, 169, 63, 0.14); color: var(--att-late); }
+    .cm-stat.points .icon { background: var(--gold-bg); color: var(--gold); }
+
+    /* Toolbar */
+    .cm-toolbar { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 14px 18px; margin-bottom: 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
+    .cm-toolbar .form-control,
+    .cm-toolbar input[type="month"] { background: var(--cream); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--ink); padding: 8px 12px; font-size: 13.5px; }
+    .cm-toolbar .form-control:focus, .cm-toolbar input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-bg); }
+
+    /* Calendar */
+    .cm-calendar { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .cm-calendar th { padding: 12px; text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); }
+    .cm-calendar td { vertical-align: top; height: 92px; padding: 8px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); width: calc(100% / 7); }
+    .cm-calendar td:last-child { border-right: none; }
+    .cm-calendar td.out-month { background: var(--cream-2); opacity: 0.5; }
+    .cm-day-num { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .cm-att-badge { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; font-size: 12px; box-shadow: 0 4px 10px -4px rgba(0,0,0,0.18); }
+    .cm-att-badge.present { background: var(--att-present); }
+    .cm-att-badge.absent { background: var(--att-absent); }
+    .cm-att-badge.late { background: var(--att-late); color: #2d3142; }
+    .cm-att-badge.excused { background: var(--att-excused); }
+    .cm-att-badge.other { background: var(--att-other); }
+
+    /* Legend */
+    .cm-legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 14px 22px; background: var(--cream-2); border-top: 1px solid var(--border); font-size: 13px; }
+    .cm-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+    /* Pill colour variants */
+    .cm-pill.present { background: rgba(22, 160, 133, 0.14); color: var(--att-present); }
+    .cm-pill.absent { background: rgba(192, 57, 43, 0.14); color: var(--att-absent); }
+    .cm-pill.late { background: rgba(224, 169, 63, 0.14); color: var(--att-late); }
+    .cm-pill.excused { background: rgba(91, 110, 225, 0.14); color: var(--att-excused); }
+    .cm-pill.other, .cm-pill.muted { background: var(--cream-2); color: var(--ink-muted); }
+    .cm-pill.yes { background: rgba(22, 160, 133, 0.14); color: var(--att-present); }
+    .cm-pill.no { background: var(--cream-2); color: var(--ink-muted); }
+
+    /* Modals — restyle Bootstrap defaults */
+    .modal-content { border-radius: var(--radius); border: 1px solid var(--border-strong); }
+    .modal-header { background: linear-gradient(135deg, var(--cream-2), var(--cream)); border-bottom: 1px solid var(--border); }
+    .modal-title { color: var(--forest); font-weight: 700; }
+    .modal-body label { font-size: 11.5px; font-weight: 700; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .modal-body .form-control, .modal-body select { background: var(--cream); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); }
+    .modal-body .form-control:focus, .modal-body select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-bg); }
+    .modal-footer { background: var(--cream-2); border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <div class="cm-shell wide">
+
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">{{ student.profile.last_name }}, <em>{{ student.profile.first_name }}</em></h1>
+          <div class="cm-subtitle">
+            {{ subject.subject_name }}
+            {% if selected_semester %}
+              · {{ selected_semester.semester_name }} ({{ selected_semester.start_date|date:"M j, Y" }} – {{ selected_semester.end_date|date:"M j, Y" }})
+            {% endif %}
+          </div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'subjectStudentListCM' subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to roster</a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <div class="cm-stats">
+      <div class="cm-stat present">
+        <span class="icon"><i class="fas fa-check-circle"></i></span>
+        <div><div class="label">Present</div><div class="value" id="presentStat">0</div></div>
+      </div>
+      <div class="cm-stat absent">
+        <span class="icon"><i class="fas fa-times-circle"></i></span>
+        <div><div class="label">Absent</div><div class="value" id="absentStat">0</div></div>
+      </div>
+      <div class="cm-stat late">
+        <span class="icon"><i class="fas fa-clock"></i></span>
+        <div><div class="label">Late</div><div class="value" id="lateStat">0</div></div>
+      </div>
+      <div class="cm-stat points">
+        <span class="icon"><i class="fas fa-star"></i></span>
+        <div><div class="label">Total points</div><div class="value">{{ total_points|default:"0.00"|floatformat:2 }}</div></div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="cm-toolbar">
+      <form method="get" class="d-flex align-items-center gap-2 mb-0" style="flex: 0 0 auto;">
+        {% if selected_semester %}<input type="hidden" name="semester" value="{{ selected_semester.id }}">{% endif %}
+        <input type="month" class="form-control" name="month" value="{{ year }}-{{ month|stringformat:'02d' }}">
+        <input type="hidden" name="view" value="calendar">
+        <button type="submit" class="cm-btn primary cm-btn-sm">Go</button>
+      </form>
+      <div style="flex: 1;"></div>
+      {% if view_mode == 'calendar' %}
+        <a href="?{% if selected_semester %}semester={{selected_semester.id}}&{% endif %}view=table" class="cm-btn ghost cm-btn-sm"><i class="fas fa-table"></i> Table view</a>
+      {% else %}
+        <a href="?{% if selected_semester %}semester={{selected_semester.id}}&{% endif %}view=calendar&month={{ year }}-{{ month|stringformat:'02d' }}" class="cm-btn ghost cm-btn-sm"><i class="fas fa-calendar"></i> Calendar view</a>
+      {% endif %}
+      <button type="button" class="cm-btn gold cm-btn-sm" data-bs-toggle="modal" data-bs-target="#exportModal"><i class="fas fa-file-export"></i> Export</button>
+    </div>
+
+    {% if view_mode == 'calendar' %}
+      <div class="cm-card" style="margin-bottom: 18px;">
+        <div class="cm-card-head">
+          <h2 class="cm-card-title"><span class="icon"><i class="fas fa-calendar-week"></i></span> {{ month_name }} {{ year }}</h2>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="cm-calendar">
+            <thead>
+              <tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
+            </thead>
+            <tbody>
+              {% for week in weeks %}
+                <tr>
+                  {% for cell in week %}
+                    <td class="{% if not cell.in_month %}out-month{% endif %}">
+                      <div class="cm-day-num">{{ cell.date.day }}</div>
+                      {% if cell.rec %}
+                        <span class="cm-att-badge {{ cell.label|lower }}" data-bs-toggle="tooltip" title="{{ cell.label }}{% if cell.rec.remark %}: {{ cell.rec.remark }}{% endif %}">
+                          {% if cell.label == 'Present' %}<i class="fas fa-check"></i>
+                          {% elif cell.label == 'Absent' %}<i class="fas fa-times"></i>
+                          {% elif cell.label == 'Late' %}<i class="fas fa-clock"></i>
+                          {% elif cell.label == 'Excused' %}<i class="fas fa-file-alt"></i>
+                          {% else %}<i class="fas fa-minus"></i>{% endif %}
+                        </span>
+                      {% endif %}
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="cm-legend">
+          <div class="cm-legend-item"><span class="cm-att-badge present" style="width:22px;height:22px;font-size:10px;"><i class="fas fa-check"></i></span> Present</div>
+          <div class="cm-legend-item"><span class="cm-att-badge absent" style="width:22px;height:22px;font-size:10px;"><i class="fas fa-times"></i></span> Absent</div>
+          <div class="cm-legend-item"><span class="cm-att-badge late" style="width:22px;height:22px;font-size:10px;"><i class="fas fa-clock"></i></span> Late</div>
+          <div class="cm-legend-item"><span class="cm-att-badge excused" style="width:22px;height:22px;font-size:10px;"><i class="fas fa-file-alt"></i></span> Excused</div>
+          <div class="cm-legend-item"><span class="cm-att-badge other" style="width:22px;height:22px;font-size:10px;"><i class="fas fa-minus"></i></span> Other</div>
+        </div>
+      </div>
+    {% else %}
+      <div class="cm-card">
+        <div class="cm-card-head">
+          <h2 class="cm-card-title"><span class="icon"><i class="fas fa-list"></i></span> Attendance log</h2>
+          <span class="text-muted" style="font-size: 12px; color: var(--ink-dim);">{{ attendance_rows|length }} record{{ attendance_rows|length|pluralize }}</span>
+        </div>
+        <div class="cm-table-wrap">
+          <table class="cm-table student-attendance-cm-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Remark</th>
+                <th>Graded</th>
+                <th>Points</th>
+                <th>Marked by</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if attendance_rows %}
+                {% for rec, pts in attendance_rows %}
+                  <tr>
+                    <td>{{ rec.date|date:"M j, Y" }}</td>
+                    <td>
+                      {% if rec.status %}
+                        <span class="cm-pill {{ rec.status.status|lower }}">{{ rec.status.status }}</span>
+                      {% else %}<span class="cm-pill muted">—</span>{% endif %}
+                    </td>
+                    <td>{{ rec.remark|default:"—" }}</td>
+                    <td>
+                      {% if rec.graded %}<span class="cm-pill yes">Yes</span>{% else %}<span class="cm-pill no">No</span>{% endif %}
+                    </td>
+                    <td><strong>{{ pts }}</strong></td>
+                    <td>{% if rec.teacher %}{{ rec.teacher.last_name }}, {{ rec.teacher.first_name }}{% else %}—{% endif %}</td>
+                    <td>
+                      <button class="cm-row-icon-btn edit edit-attendance-btn"
+                              data-attendance-id="{{ rec.id }}"
+                              data-status="{{ rec.status.status|default:'' }}"
+                              data-remark="{{ rec.remark|default:'' }}"
+                              title="Edit">
+                        <i class="fas fa-pen"></i>
+                      </button>
+                      <button class="cm-row-icon-btn delete delete-attendance-btn" data-attendance-id="{{ rec.id }}" title="Delete">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr><td colspan="7"><div class="cm-empty"><i class="fas fa-clipboard-list"></i><div class="lead">No attendance records</div><div>This student has no attendance records yet.</div></div></td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Export modal -->
+  <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exportModalLabel">Export attendance</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="exportAttendanceForm" method="GET" action="{% url 'export_student_attendance' subject.id student.id %}">
+            {% if selected_semester %}<input type="hidden" name="semester" value="{{ selected_semester.id }}">{% endif %}
+            <div class="mb-3">
+              <label for="start_date" class="form-label">Start date</label>
+              <input type="date" class="form-control" id="start_date" name="start_date" required>
+            </div>
+            <div class="mb-3">
+              <label for="end_date" class="form-label">End date</label>
+              <input type="date" class="form-control" id="end_date" name="end_date" required>
+            </div>
+            <div class="text-muted small mb-3" style="color: var(--ink-muted) !important;">
+              <i class="fas fa-info-circle me-1"></i> Includes student name, subject, semester, and attendance records for the selected range.
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="cm-btn ghost" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="cm-btn primary"><i class="fas fa-download"></i> Export</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit attendance modal -->
+  <div class="modal fade" id="editAttendanceModal" tabindex="-1" aria-labelledby="editAttendanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editAttendanceModalLabel">Edit attendance</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editAttendanceForm">
+            <div class="mb-3">
+              <label for="editAttendanceStatus" class="form-label">Status</label>
+              <select class="form-control" id="editAttendanceStatus" required>
+                <option value="">— Select status —</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="editAttendanceRemark" class="form-label">Remark</label>
+              <textarea class="form-control" id="editAttendanceRemark" rows="3"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="cm-btn ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="cm-btn primary" id="saveAttendanceBtn"><i class="fas fa-save"></i> Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+
+  <script>
+    // Centralized exit confirmation for Classroom Mode.
+    (function () {
+      if (window.__cmExitPromptBound) return;
+      window.__cmExitPromptBound = true;
+
+      function isExitLink(el) {
+        if (!el || el.tagName !== 'A') return false;
+        if (el.hasAttribute('data-no-cm-exit-prompt')) return false;
+        if (el.hasAttribute('data-cm-exit')) return true;
+        var href = el.getAttribute('href') || '';
+        return href.indexOf('/course/list') !== -1;
+      }
+
+      document.addEventListener('click', function (e) {
+        var a = e.target && e.target.closest ? e.target.closest('a') : null;
+        if (!isExitLink(a)) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var href = a.getAttribute('href');
+        if (typeof Swal === 'undefined') { window.location.href = href; return; }
+        Swal.fire({
+          title: 'Exit Classroom Mode?',
+          text: 'You are about to leave Classroom Mode. Any unsaved changes will be lost.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Yes, exit',
+          cancelButtonText: 'Stay',
+          confirmButtonColor: '#c0392b',
+          cancelButtonColor: '#6b7280',
+          reverseButtons: true,
+          focusCancel: true,
+          allowOutsideClick: false
+        }).then(function (result) {
+          if (result.isConfirmed) window.location.href = href;
+        });
+      }, true);
+    })();
+  </script>
+
+  <script>
+    let currentEditingAttendanceId = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // Tooltips
+      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+
+      // Stat counts (table view) — count by data-pill
+      var present = 0, absent = 0, late = 0;
+      document.querySelectorAll('.cm-pill').forEach(function (el) {
+        if (el.classList.contains('present')) present++;
+        if (el.classList.contains('absent')) absent++;
+        if (el.classList.contains('late')) late++;
+      });
+      var ps = document.getElementById('presentStat'); if (ps) ps.textContent = present;
+      var as_ = document.getElementById('absentStat'); if (as_) as_.textContent = absent;
+      var ls = document.getElementById('lateStat'); if (ls) ls.textContent = late;
+
+      // Default export dates
+      {% if selected_semester %}
+        var semStart = new Date('{{ selected_semester.start_date|date:"Y-m-d" }}');
+        var semEnd = new Date('{{ selected_semester.end_date|date:"Y-m-d" }}');
+        var today = new Date();
+        var endDate = semEnd < today ? semEnd : today;
+        var sd = document.getElementById('start_date');
+        var ed = document.getElementById('end_date');
+        if (sd) sd.value = formatDate(semStart);
+        if (ed) ed.value = formatDate(endDate);
+      {% endif %}
+
+      var exportForm = document.getElementById('exportAttendanceForm');
+      if (exportForm) {
+        exportForm.addEventListener('submit', function (e) {
+          var s = new Date(document.getElementById('start_date').value);
+          var en = new Date(document.getElementById('end_date').value);
+          if (s > en) { e.preventDefault(); Swal.fire('Invalid range', 'Start date cannot be after end date.', 'warning'); }
+        });
+      }
+
+      loadAttendanceStatuses();
+      attachEditDeleteListeners();
+    });
+
+    function formatDate(date) {
+      return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+    }
+
+    function loadAttendanceStatuses() {
+      fetch('{% url "get_attendance_statuses" %}')
+        .then(r => r.json())
+        .then(data => {
+          var select = document.getElementById('editAttendanceStatus');
+          if (!select) return;
+          (data.statuses || []).forEach(s => {
+            var opt = document.createElement('option');
+            opt.value = s.id; opt.textContent = s.status;
+            select.appendChild(opt);
+          });
+        }).catch(() => {});
+    }
+
+    function attachEditDeleteListeners() {
+      document.querySelectorAll('.edit-attendance-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          var id = this.getAttribute('data-attendance-id');
+          var status = this.getAttribute('data-status');
+          var remark = this.getAttribute('data-remark');
+          currentEditingAttendanceId = id;
+          document.getElementById('editAttendanceRemark').value = remark || '';
+          var sel = document.getElementById('editAttendanceStatus');
+          for (var o of sel.options) { if (o.textContent === status) { sel.value = o.value; break; } }
+          new bootstrap.Modal(document.getElementById('editAttendanceModal')).show();
+        });
+      });
+
+      document.querySelectorAll('.delete-attendance-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          var id = this.getAttribute('data-attendance-id');
+          Swal.fire({
+            title: 'Delete attendance?',
+            text: "This action can't be undone.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#c08479',
+            cancelButtonColor: '#6c7080',
+            confirmButtonText: 'Delete', cancelButtonText: 'Cancel',
+            reverseButtons: true,
+          }).then(result => { if (result.isConfirmed) deleteAttendance(id); });
+        });
+      });
+
+      var saveBtn = document.getElementById('saveAttendanceBtn');
+      if (saveBtn) saveBtn.addEventListener('click', function () {
+        var statusId = document.getElementById('editAttendanceStatus').value;
+        var remark = document.getElementById('editAttendanceRemark').value;
+        if (!statusId) { Swal.fire('Pick a status', 'Please select an attendance status.', 'info'); return; }
+        updateAttendance(currentEditingAttendanceId, statusId, remark);
+      });
+    }
+
+    function getCsrfToken() {
+      var c = document.cookie.split('; ').find(r => r.startsWith('csrftoken='));
+      if (c) return c.split('=')[1];
+      var meta = document.querySelector('meta[name="csrf-token"]');
+      return meta ? meta.content : null;
+    }
+
+    function updateAttendance(id, statusId, remark) {
+      var token = getCsrfToken(); if (!token) return;
+      var fd = new FormData(); fd.append('status_id', statusId); fd.append('remark', remark);
+      fetch('/update_attendance_status/' + id + '/', { method: 'POST', headers: { 'X-CSRFToken': token }, body: fd })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) { bootstrap.Modal.getInstance(document.getElementById('editAttendanceModal')).hide(); Swal.fire('Saved', 'Attendance updated.', 'success').then(() => location.reload()); }
+          else { Swal.fire('Error', d.error || 'Failed to update.', 'error'); }
+        }).catch(() => Swal.fire('Error', 'Network error.', 'error'));
+    }
+
+    function deleteAttendance(id) {
+      var token = getCsrfToken(); if (!token) return;
+      fetch('/delete_attendance/' + id + '/', { method: 'POST', headers: { 'X-CSRFToken': token } })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) { Swal.fire('Deleted', 'Record removed.', 'success').then(() => location.reload()); }
+          else { Swal.fire('Error', d.error || 'Failed to delete.', 'error'); }
+        }).catch(() => Swal.fire('Error', 'Network error.', 'error'));
+    }
+  </script>
+</body>
+</html>

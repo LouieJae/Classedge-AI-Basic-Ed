@@ -1,0 +1,200 @@
+/* [Classedge LMS] Vendor brand-override layer
+ * ----------------------------------------------------------------------
+ * Third-party stylesheets (Bootstrap 5, Select2, SweetAlert2) ship their
+ * own "primary" color and don't read our CSS custom properties. This
+ * sheet re-skins ONLY those vendor surfaces that visually function as
+ * "primary action" — buttons, focus rings, highlighted/selected option
+ * states, and modal confirm buttons — so they consume var(--brand-primary)
+ * and var(--brand-primary-soft) like our native components do.
+ *
+ * Load order matters: include this file AFTER every vendor stylesheet
+ * (Bootstrap, Select2 + bootstrap-5 theme, SweetAlert2) so rules here
+ * win the cascade. In base_operation.html that means after the
+ * {% block extra_css %} hook, just before </head>.
+ *
+ * What's intentionally NOT in here:
+ *   - .text-primary / .bg-primary utility classes  (recolor everything)
+ *   - .btn-secondary / -success / -danger / -warning (semantic, locked)
+ *   - DataTables, FullCalendar, AdminLTE                (next pass)
+ *
+ * Browser support: relies on color-mix(in srgb, …) for hover/active
+ * shades. Every modern engine since 2023 supports it. Where it isn't
+ * supported, the resting state still tracks the brand via the prior
+ * --bs-btn-* declaration; only the hover/active darken falls back to
+ * the forest-derived default.
+ */
+
+
+/* ════════════════════════════════════════════════════════════════════
+ * Bootstrap 5 — .btn-primary (and its outline variant)
+ * ════════════════════════════════════════════════════════════════════
+ * Bootstrap 5.3 builds buttons from --bs-btn-* CSS custom properties
+ * declared on each `.btn-*` class. We override only those vars on the
+ * primary class so Bootstrap's own internal cascade (hover, active,
+ * disabled, focus) does the rest with brand-colored shades.
+ */
+.btn-primary {
+  --bs-btn-bg:                 var(--brand-primary);
+  --bs-btn-border-color:       var(--brand-primary);
+  --bs-btn-hover-bg:           color-mix(in srgb, var(--brand-primary), black 12%);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--brand-primary), black 12%);
+  --bs-btn-active-bg:          color-mix(in srgb, var(--brand-primary), black 18%);
+  --bs-btn-active-border-color:color-mix(in srgb, var(--brand-primary), black 18%);
+  --bs-btn-disabled-bg:        var(--brand-primary);
+  --bs-btn-disabled-border-color: var(--brand-primary);
+}
+/* Focus ring — Bootstrap's --bs-btn-focus-shadow-rgb needs a "R, G, B"
+ * triplet, which can't be derived from a hex CSS var. Cleaner: skip the
+ * triplet plumbing and set the shadow directly using our soft token. */
+.btn-primary:focus,
+.btn-primary:focus-visible,
+.btn-primary.focus {
+  box-shadow: 0 0 0 0.25rem var(--brand-primary-soft);
+}
+
+.btn-outline-primary {
+  --bs-btn-color:              var(--brand-primary);
+  --bs-btn-border-color:       var(--brand-primary);
+  --bs-btn-hover-bg:           var(--brand-primary);
+  --bs-btn-hover-border-color: var(--brand-primary);
+  --bs-btn-hover-color:        #fff;
+  --bs-btn-active-bg:          var(--brand-primary);
+  --bs-btn-active-border-color:var(--brand-primary);
+  --bs-btn-active-color:       #fff;
+  --bs-btn-disabled-color:     var(--brand-primary);
+  --bs-btn-disabled-border-color: var(--brand-primary);
+}
+.btn-outline-primary:focus,
+.btn-outline-primary:focus-visible {
+  box-shadow: 0 0 0 0.25rem var(--brand-primary-soft);
+}
+
+/* `.btn-check:focus + .btn-primary` is the radio/checkbox-as-button
+ * pattern Bootstrap uses for segmented controls. Same focus shadow. */
+.btn-check:focus + .btn-primary,
+.btn-check:focus + .btn-outline-primary {
+  box-shadow: 0 0 0 0.25rem var(--brand-primary-soft);
+}
+
+/* `.form-control:focus` etc. inherit from Bootstrap's
+ * --bs-primary / --bs-primary-rgb. We don't override the whole brand
+ * primary at root level on purpose — that would cascade everywhere
+ * including alerts, links, badges. Form-control focus is a small
+ * direct override instead. */
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 0.25rem var(--brand-primary-soft);
+}
+.form-check-input:checked {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+ * Select2 — focus border + highlighted/selected option states
+ * ════════════════════════════════════════════════════════════════════
+ * The codebase uses both the `--default` theme and `--bootstrap-5`
+ * theme depending on the page, so we target both. Multi-select pills
+ * also get the brand tint so a tenant's color reads consistently when
+ * users build chips of selected items.
+ */
+
+/* Selection control — focus state border + ring. */
+.select2-container--default.select2-container--focus .select2-selection,
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default .select2-selection--multiple:focus,
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5 .select2-selection:focus {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 0.2rem var(--brand-primary-soft) !important;
+  outline: 0 !important;
+}
+
+/* Dropdown options — currently highlighted (keyboard / hover). */
+.select2-container--default .select2-results__option--highlighted[aria-selected],
+.select2-container--default .select2-results__option--highlighted,
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__option--highlighted {
+  background-color: var(--brand-primary) !important;
+  color: #fff !important;
+}
+
+/* Dropdown options — selected (the one already chosen, marked but not
+ * keyboard-focused). Soft brand tint so it reads as "this is your pick"
+ * without competing with the highlighted-on-hover state above. */
+.select2-container--default .select2-results__option[aria-selected="true"],
+.select2-container--default .select2-results__option--selected,
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__option--selected,
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__option[aria-selected="true"] {
+  background-color: var(--brand-primary-soft) !important;
+  color: var(--brand-primary) !important;
+}
+
+/* If a selected option also gains highlight (mouse over the active
+ * choice), the highlight wins — full brand fill. */
+.select2-container--default .select2-results__option--highlighted[aria-selected="true"],
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selected {
+  background-color: var(--brand-primary) !important;
+  color: #fff !important;
+}
+
+/* Multi-select pills — the "chips" of chosen items inside the input. */
+.select2-container--default .select2-selection--multiple .select2-selection__choice,
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+  background-color: var(--brand-primary-soft) !important;
+  border-color: var(--brand-primary) !important;
+  color: var(--brand-primary) !important;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove,
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice__remove {
+  color: var(--brand-primary) !important;
+}
+
+/* Inline search field inside dropdown — focus border. */
+.select2-container--default .select2-search--dropdown .select2-search__field:focus,
+.select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field:focus {
+  border-color: var(--brand-primary) !important;
+  outline: 0 !important;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+ * SweetAlert2 — confirm button
+ * ════════════════════════════════════════════════════════════════════
+ * SweetAlert sets background-color via its stylesheet (not inline)
+ * UNLESS `confirmButtonColor` is passed in the Swal.fire() config. Pages
+ * that want a destructive red delete button (e.g. the rubric / cert /
+ * semester delete flows) already pass confirmButtonColor explicitly and
+ * will keep their own color — inline styles beat our `!important`
+ * class rule even with the bang. For every other Swal that omits the
+ * option, the confirm button now follows the tenant brand.
+ */
+.swal2-styled.swal2-confirm {
+  background-color: var(--brand-primary) !important;
+  border-color:     var(--brand-primary) !important;
+  color: #fff !important;
+}
+.swal2-styled.swal2-confirm:hover {
+  background-color: color-mix(in srgb, var(--brand-primary), black 12%) !important;
+  border-color:     color-mix(in srgb, var(--brand-primary), black 12%) !important;
+}
+.swal2-styled.swal2-confirm:focus,
+.swal2-styled.swal2-confirm:focus-visible {
+  box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+.swal2-styled.swal2-confirm:active {
+  background-color: color-mix(in srgb, var(--brand-primary), black 18%) !important;
+  border-color:     color-mix(in srgb, var(--brand-primary), black 18%) !important;
+}
+
+/* SweetAlert also paints a default focus shadow on the modal action
+ * row's loader/progress accent — keep it on-brand for consistency. */
+.swal2-loader {
+  border-color: var(--brand-primary) transparent var(--brand-primary) transparent !important;
+}
+.swal2-progress-steps .swal2-active-progress-step,
+.swal2-progress-steps .swal2-progress-step.swal2-active-progress-step {
+  background: var(--brand-primary) !important;
+}

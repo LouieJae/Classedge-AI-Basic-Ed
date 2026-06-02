@@ -1,0 +1,38 @@
+    body {
+      background-color: #FFFFFF;
+    }
+
+    .container {
+      max-width: 100%;
+      padding: 0 15px;
+    }
+
+    .card {
+      border: none;
+      border-radius: 8px;
+    }
+
+    .log-content p {
+      font-size: 15px;
+      color: #333;
+    }
+
+    .card-header button {
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .list-group-item {
+      border: none;
+      background-color: #f8f9fa;
+    }
+
+    .btn-link i {
+      transition: transform 0.2s ease;
+    }
+
+    .btn-link[aria-expanded='true'] i {
+      transform: rotate(180deg);
+    }
+  

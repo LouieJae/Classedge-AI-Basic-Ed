@@ -1,0 +1,49 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+
+{% block title %}
+  Subject Report
+{% endblock %}
+
+{% block content %}
+  <!-- Content Header -->
+  <div class="row mb-2">
+    <div class="col-sm-6">
+      <h3 class="m-0">Subject Report</h3>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card shadow mb-4">
+    <div class="card-header bg-success text-white">
+      <h5 class="mb-0">Subject Report</h5>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table mb-0 data-table fs-10 table-bordered subject-report-table">
+          <thead class="bg-primary">
+            <tr>
+              <th>#</th>
+              <th>Subject Name</th>
+              <th>Subject Short Name</th>
+              <th>Student Count</th>
+            </tr>
+          </thead>
+          <tbody>
+              {% for subject in subjects %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ subject.subject_name }}</td>
+                  <td>{{ subject.subject_short_name }}</td>
+                  <td>{{ subject.student_count }}</td>
+                </tr>
+              {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'accounts/reports/subject_report.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Evaluation Questions{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="cl-page">
+        <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-list-ul me-2"></i>Evaluation Question Bank</h2>
+        <p>Curate the questions students answer when evaluating their teachers. Inactive questions stay archived but no longer attach to new assignments.</p>
+      </div>
+      <div class="cl-actions">
+        <a href="{% url 'create_evaluation_question' %}" class="cl-btn cl-btn-primary">
+          <i class="fas fa-plus"></i> New Question
+        </a>
+      </div>
+    </div>
+
+    <div id="cl-eval-q-wrapper" class="cl-table-wrapper" data-cl-async-table data-base-url="{% url 'list_questions' %}">
+      {% include "includes/_list_table.html" %}
+    </div>
+  </div>
+</div>
+
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script src="{% static 'subject/list_of_evaluation_question.js' %}"></script>
+{% endblock %}

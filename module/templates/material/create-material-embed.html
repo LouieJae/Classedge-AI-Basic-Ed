@@ -1,0 +1,207 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Create Material (Embed) · {{ subject.subject_name }}{% endblock %}
+
+{% block extra_css %}
+{% include "teacher/_legacy_stack.html" %}
+{% include "material/_material-form-assets.html" %}
+{% include "includes/_stepper.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="lesson-shell">
+
+  <a href="{% url 'material-list' subject.id %}" class="lesson-back">
+    <i class="fas fa-arrow-left"></i> Back to {{ subject.subject_short_name|default:subject.subject_name }}
+  </a>
+
+  <div class="lesson-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      {% with sub_text=subject.subject_code|add:" · "|add:subject.subject_name %}
+        {% include "includes/_page_header.html" with title="Create a" accent="material" sub=sub_text %}
+      {% endwith %}
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour-family="create-material-embed">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <div class="lesson-type-tabs" role="tablist">
+    <a href="{% url 'create-material' subject.id %}" class="tab">
+      <i class="fas fa-file-arrow-up"></i> File upload
+    </a>
+    <a href="{% url 'create-material-url' subject.id %}" class="tab">
+      <i class="fas fa-link"></i> URL
+    </a>
+    <a href="{% url 'create-material-embed' subject.id %}" class="tab active">
+      <i class="fas fa-code"></i> Embed
+    </a>
+  </div>
+
+  <form method="post" action="{% url 'create-material-embed' subject.id %}" enctype="multipart/form-data"
+        class="form-panel"
+        data-cl-stepper
+        data-cl-loading data-cl-loading-label="Creating…"
+        style="background: transparent; border: none; box-shadow: none; padding: 0;">
+    {% csrf_token %}
+
+    <div class="cl-stepper-head" data-cl-stepper-nav>
+      <button type="button" class="cl-stepper-dot is-active" aria-label="Go to step 1">
+        <span class="cl-stepper-num">1</span>
+        <span class="cl-stepper-label">Basics</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 2">
+        <span class="cl-stepper-num">2</span>
+        <span class="cl-stepper-label">Embed</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 3">
+        <span class="cl-stepper-num">3</span>
+        <span class="cl-stepper-label">Schedule</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 4">
+        <span class="cl-stepper-num">4</span>
+        <span class="cl-stepper-label">Review</span>
+      </button>
+    </div>
+
+    <section class="cl-step is-active" data-step="basics">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 1</span> · Basics
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Material details</h3>
+        <div class="field-row">
+          <div class="field">
+            <label for="id_file_name">Material name</label>
+            {{ form.file_name }}
+          </div>
+          <div class="field">
+            <label for="id_term">Term</label>
+            {{ form.term }}
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="id_description">What is this material about?</label>
+          {{ form.description }}
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="embed">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 2</span> · Embed
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Embed / iframe code</h3>
+        <div class="field">
+          <label for="id_iframe_code">Embed / iframe code</label>
+          {{ form.iframe_code }}
+          <span class="field-help">Paste the full <code>&lt;iframe&gt;</code> code (e.g., from Microsoft Sway, YouTube, Genially).</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="schedule">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 3</span> · Schedule &amp; audience
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">When is it available?</h3>
+        <div class="field-row">
+          <div class="field">
+            <label for="id_start_date">Start date</label>
+            {{ form.start_date }}
+          </div>
+          <div class="field">
+            <label for="id_end_date">End date</label>
+            {{ form.end_date }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Who can see it?</h3>
+        <div class="field">
+          <label for="id_display_lesson_for_selected_users">Display this material for selected students</label>
+          <div class="audience-actions">
+            <button type="button" id="selectAllStudents" class="audience-btn">
+              <i class="fas fa-check-double"></i> Select all
+            </button>
+            <button type="button" id="clearAllStudents" class="audience-btn">
+              <i class="fas fa-xmark"></i> Clear all
+            </button>
+          </div>
+          {{ form.display_lesson_for_selected_users }}
+          <span class="field-help">Leave empty to display this material to every enrolled student.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="review" data-step-review>
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 4</span> · Review &amp; create
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Confirm your material</h3>
+        <p class="field-help" style="margin-bottom: 18px;">
+          Quick read-through. Use the dots above or the <strong>Back</strong> button to fix anything,
+          then click <strong>Create material</strong> below.
+        </p>
+
+        <dl class="cl-review-list">
+          <div class="cl-review-row full">
+            <dt>Material name</dt>
+            <dd data-cl-review-for="file_name">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Term</dt>
+            <dd data-cl-review-for="term">—</dd>
+          </div>
+          <div class="cl-review-row full">
+            <dt>Description</dt>
+            <dd data-cl-review-for="description">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Start date</dt>
+            <dd data-cl-review-for="start_date" data-cl-review-format="date">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>End date</dt>
+            <dd data-cl-review-for="end_date" data-cl-review-format="date">—</dd>
+          </div>
+          <div class="cl-review-row full">
+            <dt>Audience</dt>
+            <dd data-cl-review-for="display_lesson_for_selected_users">—</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <div class="cl-stepper-footer">
+      <button type="button" class="btn-pill" data-cl-stepper-prev>
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <span class="cl-stepper-counter" data-cl-stepper-counter>1 / 4</span>
+      <button type="button" class="btn-pill primary" data-cl-stepper-next>
+        Next <i class="fas fa-arrow-right"></i>
+      </button>
+      <button type="submit" class="btn-pill primary" data-cl-stepper-submit style="display:none;">
+        <i class="fas fa-circle-check"></i> Create material
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script src="{% static 'js/tours/cl-tour-create-material-embed.js' %}" defer></script>
+{% endblock %}

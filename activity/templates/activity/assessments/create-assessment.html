@@ -1,0 +1,413 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Create Activity · {{ subject.subject_name }}{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+  <link href="{% static 'vendors/choices/choices.min.css' %}" rel="stylesheet" />
+  <script src="{% static 'vendors/choices/choices.min.js' %}"></script>
+  {% include "activity/assessments/_assessment-form-assets.html" %}
+  {% include "includes/_stepper.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="activity-shell">
+
+  <a href="{% url 'material-list' subject.id %}?view=assessments" class="activity-back">
+    <i class="fas fa-arrow-left"></i> Back to my courses
+  </a>
+
+  <div class="activity-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      {% with sub_text=subject.subject_code|add:" · "|add:subject.subject_name %}
+        {% include "includes/_page_header.html" with title="Create an" accent="assessment" sub=sub_text %}
+      {% endwith %}
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour-family="create-assessment">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <form method="post" enctype="multipart/form-data"
+        class="form-panel needs-validation"
+        data-cl-stepper
+        data-cl-autosave="create-assessment"
+        data-cl-loading data-cl-loading-label="Creating…"
+        novalidate
+        style="background: transparent; border: none; box-shadow: none; padding: 0;">
+    {% csrf_token %}
+    <input type="hidden" name="activity_type_id" value="{{ request.GET.activity_type_id }}" />
+    <input type="hidden" id="module" name="module" value="" />
+
+    {# ── Step progress indicator ─────────────────────────────────── #}
+    <div class="cl-stepper-head" data-cl-stepper-nav>
+      <button type="button" class="cl-stepper-dot is-active" aria-label="Go to step 1">
+        <span class="cl-stepper-num">1</span>
+        <span class="cl-stepper-label">Basics</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 2">
+        <span class="cl-stepper-num">2</span>
+        <span class="cl-stepper-label">Schedule</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 3">
+        <span class="cl-stepper-num">3</span>
+        <span class="cl-stepper-label">Behavior</span>
+      </button>
+      <button type="button" class="cl-stepper-dot" aria-label="Go to step 4">
+        <span class="cl-stepper-num">4</span>
+        <span class="cl-stepper-label">Review</span>
+      </button>
+    </div>
+    <section class="cl-step is-active" data-step="basics" data-step-title="Basics">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 1</span> · Basics
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Assessment details</h3>
+        <div class="field-row">
+          <div class="field">
+            <label for="activity_name">
+              Assessment name
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="The name of the activity you are creating.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="text" id="activity_name" name="activity_name" class="form-control" placeholder="e.g., Quiz 1 — Variables &amp; Loops" required />
+            <div class="invalid-feedback">Please provide an assessment name.</div>
+          </div>
+          <div class="field">
+            <label for="term">
+              Term
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Select the term this activity belongs to.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <select id="term" name="term" class="form-control" required>
+              {% for term in terms %}
+                <option value="{{ term.id }}" {% if term.id == current_term.id %}selected{% endif %}>{{ term.term_name }}</option>
+              {% endfor %}
+            </select>
+            <div class="invalid-feedback">Please select a term.</div>
+          </div>
+        </div>
+
+        {% if not is_participation %}
+          <div class="field">
+            <label for="additional_modules">
+              Lessons
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Pick the lessons where this assessment should appear.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <select id="additional_modules" name="additional_modules" multiple class="js-choice">
+              {% for module in modules %}
+                <option value="{{ module.id }}">{{ module.file_name }}</option>
+              {% endfor %}
+            </select>
+            <span class="field-help">Optional — leave empty to create a standalone assessment.</span>
+          </div>
+        {% endif %}
+
+        <div class="field">
+          <label for="activity_instruction">
+            Instructions
+            <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Instructions students will read before starting.">
+              <i class="fas fa-circle-info"></i>
+            </span>
+          </label>
+          <textarea id="activity_instruction" name="activity_instruction" class="form-control" rows="4" placeholder="What should students know or do before they begin?">{{ activity.activity_instruction }}</textarea>
+        </div>
+
+        <div class="field">
+          <label for="activity_file_instruction">
+            Instruction file
+            <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Optional PDF or image (max 10MB) shown alongside the text instructions.">
+              <i class="fas fa-circle-info"></i>
+            </span>
+          </label>
+          <input type="file" id="activity_file_instruction" name="activity_file_instruction" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="schedule" data-step-title="Schedule">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 2</span> · Schedule &amp; scoring
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Attempts &amp; timing</h3>
+        <div class="field-row-3">
+          <div class="field">
+            <label for="max_retake">
+              Max attempts
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="How many times a student can attempt this assessment.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="number" id="max_retake" name="max_retake" class="form-control" value="2" min="1" required />
+            <div class="invalid-feedback">Please provide a valid number of attempts.</div>
+          </div>
+          <div class="field">
+            <label for="retake_method">
+              Retake method
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="How the final score is calculated when there are multiple attempts.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <select id="retake_method" name="retake_method" class="form-control" required>
+              <option value="highest">Highest score</option>
+              <option value="latest">Latest take</option>
+              <option value="average">Average</option>
+              <option value="first">First take</option>
+            </select>
+            <div class="invalid-feedback">Please select a retake method.</div>
+          </div>
+          <div class="field">
+            <label for="time_duration">
+              Time limit (min)
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Total minutes a student has to complete one attempt.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="number" id="time_duration" name="time_duration" class="form-control" value="60" min="1" required />
+          </div>
+        </div>
+
+        <div class="field-row-mixed">
+          <div class="field">
+            <label for="passing_score">
+              Passing
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Minimum score considered passing.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="number" id="passing_score" name="passing_score" class="form-control" value="50" min="0" required />
+            <div class="invalid-feedback">Please provide a valid number.</div>
+          </div>
+          <div class="field">
+            <label for="passing_score_type">
+              Type
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Treat the passing score as a percentage or an absolute number.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <select id="passing_score_type" name="passing_score_type" class="form-control" required>
+              <option value="percentage">Percentage</option>
+              <option value="number">Number</option>
+            </select>
+            <div class="invalid-feedback">Please select the score type.</div>
+          </div>
+          <div class="field">
+            <label for="start_time">
+              Opens at
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="When the assessment becomes available to students.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="datetime-local" id="start_time" name="start_time" class="form-control" required />
+            <div class="invalid-feedback">Please select a start time.</div>
+          </div>
+          <div class="field">
+            <label for="end_time">
+              Closes at
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="The deadline. Submissions stop here.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="datetime-local" id="end_time" name="end_time" class="form-control" required />
+            <div class="invalid-feedback">Please select an end time.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="behavior" data-step-title="Behavior">
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 3</span> · Behavior
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Settings</h3>
+        <div class="settings-grid">
+          <label class="setting-card" for="shuffle_questions">
+            <input type="checkbox" id="shuffle_questions" name="shuffle_questions" />
+            <div class="setting-text">
+              <span class="setting-name">Shuffle questions</span>
+              <span class="setting-desc">Each student sees questions in a different order.</span>
+            </div>
+          </label>
+          <label class="setting-card" for="is_graded">
+            <input type="checkbox" id="is_graded" name="is_graded" checked />
+            <div class="setting-text">
+              <span class="setting-name">Graded assessment</span>
+              <span class="setting-desc">Score counts toward the gradebook.</span>
+            </div>
+          </label>
+          <label class="setting-card" for="remedial">
+            <input type="checkbox" id="remedial" name="remedial" />
+            <div class="setting-text">
+              <span class="setting-name">Remedial</span>
+              <span class="setting-desc">Only assigned to specific students for re-attempt.</span>
+            </div>
+          </label>
+          <label class="setting-card" for="allow_late_submission">
+            <input type="checkbox" id="allow_late_submission" name="allow_late_submission" />
+            <div class="setting-text">
+              <span class="setting-name">Allow late submission</span>
+              <span class="setting-desc">Students can still submit after the deadline within the grace window below.</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {# Conditional: late submission window (toggled by .allow_late_submission checkbox in _assessment-form-assets.html script) #}
+      <div class="form-card form-section" id="late_submission_fields" style="display: none;">
+        <h3 class="form-section-title">Late submission window</h3>
+        <div class="field-row">
+          <div class="field">
+            <label for="late_submission_days">
+              Grace window (days)
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="How many days after the deadline late submissions are still accepted.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="number" id="late_submission_days" name="late_submission_days" class="form-control" value="0" min="0" />
+          </div>
+          <div class="field">
+            <label for="late_submission_penalty_percent">
+              Penalty (%)
+              <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Percentage deducted from the final score for late submissions. 0 = no penalty.">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <input type="number" id="late_submission_penalty_percent" name="late_submission_penalty_percent" class="form-control" value="0" min="0" max="100" />
+          </div>
+        </div>
+      </div>
+
+      {# Conditional: remedial students multi-select #}
+      <div class="form-card form-section" id="remedial_students_field" style="display: none;">
+        <h3 class="form-section-title">Remedial students</h3>
+        <div class="field">
+          <label for="remedial_students">
+            Select students
+            <span class="hint" data-bs-toggle="tooltip" data-bs-placement="right" title="Only these students will see this remedial assessment.">
+              <i class="fas fa-circle-info"></i>
+            </span>
+          </label>
+          <select id="remedial_students" name="remedial_students" multiple class="js-choice">
+            {% for student in students %}
+              <option value="{{ student.id }}">{{ student.get_full_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-step" data-step="review" data-step-title="Review" data-step-review>
+      <div class="cl-step-eyebrow">
+        <span class="cl-step-eyebrow-num">Step 4</span> · Review &amp; create
+        <span class="cl-step-eyebrow-divider"></span>
+      </div>
+
+      <div class="form-card form-section">
+        <h3 class="form-section-title">Confirm your assessment</h3>
+        <p class="field-help" style="margin-bottom: 18px;">
+          Quick read-through. Use the dots above or the <strong>Back</strong> button to fix anything,
+          then click <strong>Create assessment</strong> below.
+        </p>
+
+        <dl class="cl-review-list">
+          <div class="cl-review-row full">
+            <dt>Assessment name</dt>
+            <dd data-cl-review-for="activity_name">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Term</dt>
+            <dd data-cl-review-for="term">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Lessons</dt>
+            <dd data-cl-review-for="additional_modules">—</dd>
+          </div>
+          <div class="cl-review-row full">
+            <dt>Instructions</dt>
+            <dd data-cl-review-for="activity_instruction">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Instruction file</dt>
+            <dd data-cl-review-for="activity_file_instruction">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Max attempts</dt>
+            <dd data-cl-review-for="max_retake">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Retake method</dt>
+            <dd data-cl-review-for="retake_method">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Time limit (min)</dt>
+            <dd data-cl-review-for="time_duration">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Passing score</dt>
+            <dd data-cl-review-for="passing_score">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Score type</dt>
+            <dd data-cl-review-for="passing_score_type">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Opens at</dt>
+            <dd data-cl-review-for="start_time" data-cl-review-format="date">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Closes at</dt>
+            <dd data-cl-review-for="end_time" data-cl-review-format="date">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Shuffle questions</dt>
+            <dd data-cl-review-for="shuffle_questions">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Graded</dt>
+            <dd data-cl-review-for="is_graded">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Remedial</dt>
+            <dd data-cl-review-for="remedial">—</dd>
+          </div>
+          <div class="cl-review-row">
+            <dt>Allow late submission</dt>
+            <dd data-cl-review-for="allow_late_submission">—</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    {# ── Footer (sticky) — prev / counter / next / submit ───────── #}
+    <div class="cl-stepper-footer">
+      <button type="button" class="btn-pill" data-cl-stepper-prev>
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <span class="cl-stepper-counter" data-cl-stepper-counter>1 / 4</span>
+      <button type="button" class="btn-pill primary" data-cl-stepper-next>
+        Next <i class="fas fa-arrow-right"></i>
+      </button>
+      <button type="submit" class="btn-pill primary" data-cl-stepper-submit style="display:none;">
+        Create assessment <i class="fas fa-check"></i>
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script src="{% static 'js/tours/cl-tour-create-assessment.js' %}" defer></script>
+{% endblock %}

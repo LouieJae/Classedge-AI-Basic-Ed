@@ -1,0 +1,541 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+
+{% block title %}RMS Data Import{% endblock %}
+
+{% block content %}
+<style>
+  .rms-page {
+    --rms-radius: 14px;
+    --rms-bg: var(--paper, #ffffff);
+    --rms-bg-alt: var(--cream-2, #f3ede2);
+    --rms-border: var(--border, rgba(45,49,66,0.08));
+    --rms-border-strong: var(--border-strong, rgba(45,49,66,0.14));
+    --rms-text: var(--ink, #2d3142);
+    --rms-muted: var(--ink-dim, #6c7080);
+    --rms-success: #10b981;
+    --rms-danger: #ef4444;
+    --rms-warning: #f59e0b;
+    --rms-info: #3b82f6;
+    --rms-running: #6366f1;
+    color: var(--rms-text);
+    padding: 0 4px;
+  }
+  body[data-theme="dark"] .rms-page {
+    --rms-success: #34d399;
+    --rms-danger: #f87171;
+    --rms-warning: #fbbf24;
+    --rms-info: #60a5fa;
+    --rms-running: #a5b4fc;
+  }
+
+  .rms-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .rms-header h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .rms-header p { margin: 4px 0 0; color: var(--rms-muted); font-size: 13px; }
+
+  .rms-actions { display: flex; gap: 8px; }
+
+  .rms-btn {
+    border: 1px solid var(--rms-border);
+    background: var(--rms-bg);
+    color: inherit;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: transform .08s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .rms-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-hover, 0 4px 12px rgba(0,0,0,.06)); }
+  body[data-theme="dark"] .rms-btn { color: var(--rms-text); }
+  .rms-btn-primary { background: var(--rms-info); color: #fff; border-color: transparent; }
+  .rms-btn-danger { background: var(--rms-danger); color: #fff; border-color: transparent; }
+  .rms-btn-ghost { background: transparent; }
+  .rms-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  .rms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .rms-card {
+    background: var(--rms-bg);
+    border: 1px solid var(--rms-border);
+    border-radius: var(--rms-radius);
+    padding: 18px;
+    display: flex; flex-direction: column; gap: 12px;
+    position: relative;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .rms-card:hover { border-color: var(--rms-border-strong); box-shadow: var(--shadow, 0 6px 16px rgba(0,0,0,.04)); }
+  .rms-card-head { display: flex; align-items: center; gap: 12px; }
+  .rms-card-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    background: rgba(99,102,241,.1); color: var(--rms-running);
+  }
+  .rms-card[data-color="emerald"] .rms-card-icon { background: rgba(16,185,129,.12); color: var(--rms-success); }
+  .rms-card[data-color="sky"]     .rms-card-icon { background: rgba(59,130,246,.12); color: var(--rms-info); }
+  .rms-card[data-color="amber"]   .rms-card-icon { background: rgba(245,158,11,.14); color: var(--rms-warning); }
+  .rms-card[data-color="slate"]   .rms-card-icon { background: rgba(100,116,139,.14); color: #64748b; }
+
+  .rms-card-title { font-weight: 700; font-size: 15px; }
+  .rms-card-desc { color: var(--rms-muted); font-size: 12.5px; line-height: 1.4; flex: 1; }
+
+  .rms-card-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .rms-status-pill {
+    font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px;
+    background: var(--rms-bg-alt); color: var(--rms-muted);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  body[data-theme="dark"] .rms-status-pill { background: rgba(255,255,255,.06); }
+  .rms-status-pill[data-state="running"] { background: rgba(99,102,241,.12); color: var(--rms-running); }
+  .rms-status-pill[data-state="success"] { background: rgba(16,185,129,.12); color: var(--rms-success); }
+  .rms-status-pill[data-state="error"]   { background: rgba(239,68,68,.12); color: var(--rms-danger); }
+  .rms-spinner {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid currentColor; border-right-color: transparent;
+    animation: rms-spin .7s linear infinite;
+  }
+  @keyframes rms-spin { to { transform: rotate(360deg); } }
+
+  .rms-log-panel {
+    background: var(--rms-bg);
+    border: 1px solid var(--rms-border);
+    border-radius: var(--rms-radius);
+    overflow: hidden;
+  }
+  .rms-log-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--rms-border);
+  }
+  .rms-log-head h4 { margin: 0; font-size: 14px; font-weight: 700; }
+  .rms-log-empty { padding: 32px; text-align: center; color: var(--rms-muted); font-size: 13px; }
+
+  .rms-log-list { list-style: none; padding: 0; margin: 0; max-height: 460px; overflow-y: auto; }
+  .rms-log-entry {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--rms-border);
+    display: grid; grid-template-columns: 14px 1fr auto; gap: 12px;
+    font-size: 13px;
+  }
+  .rms-log-entry:last-child { border-bottom: 0; }
+  .rms-log-dot {
+    width: 10px; height: 10px; border-radius: 50%; margin-top: 5px;
+    background: var(--rms-muted);
+  }
+  .rms-log-entry[data-result="success"] .rms-log-dot { background: var(--rms-success); }
+  .rms-log-entry[data-result="error"]   .rms-log-dot { background: var(--rms-danger); }
+  .rms-log-entry[data-result="running"] .rms-log-dot {
+    background: var(--rms-running); animation: rms-pulse 1s ease-in-out infinite;
+  }
+  @keyframes rms-pulse { 50% { opacity: .35; } }
+
+  .rms-log-title {
+    font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .rms-log-meta { color: var(--rms-muted); font-size: 12px; margin-top: 2px; }
+  .rms-log-error {
+    margin-top: 8px; padding: 10px 12px; border-radius: 8px;
+    background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2);
+    color: #b91c1c; font-size: 12.5px; line-height: 1.5;
+    word-break: break-word; white-space: pre-wrap;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  .rms-log-error summary { cursor: pointer; font-weight: 600; margin-bottom: 4px; }
+  .rms-log-counts { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; font-size: 12px; }
+  .rms-log-counts span { color: var(--rms-muted); }
+  .rms-log-counts b { color: var(--rms-text); }
+  .rms-log-time { color: var(--rms-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+
+  body[data-theme="dark"] .rms-log-error {
+    background: rgba(248,113,113,.12);
+    border-color: rgba(248,113,113,.3);
+    color: #fca5a5;
+  }
+  body[data-theme="dark"] .rms-card[data-color="emerald"] .rms-card-icon { background: rgba(52,211,153,.18); color: #34d399; }
+  body[data-theme="dark"] .rms-card[data-color="sky"]     .rms-card-icon { background: rgba(96,165,250,.18); color: #60a5fa; }
+  body[data-theme="dark"] .rms-card[data-color="amber"]   .rms-card-icon { background: rgba(251,191,36,.18); color: #fbbf24; }
+  body[data-theme="dark"] .rms-card[data-color="slate"]   .rms-card-icon { background: rgba(148,163,184,.18); color: #cbd5e1; }
+</style>
+
+<div class="rms-page">
+  <div class="rms-header">
+    <div>
+      <h2><i class="fas fa-cloud-download-alt me-2"></i>RMS Data Import</h2>
+      <p>Pull data from the Records Management System into ClassEdge. Each import runs in the background and reports its result here.</p>
+    </div>
+    <div class="rms-actions">
+      <button class="rms-btn rms-btn-ghost" id="rmsClearLog"><i class="fas fa-trash-can"></i> Clear log</button>
+      <button class="rms-btn rms-btn-danger" id="rmsImportAll"><i class="fas fa-bolt"></i> Run all sequentially</button>
+    </div>
+  </div>
+
+  <div class="rms-grid" id="rmsGrid">
+    <div class="rms-card" data-endpoint="courses" data-name="Departments & Programs" data-color="sky">
+      <div class="rms-card-head">
+        <div class="rms-card-icon"><i class="fas fa-building-columns"></i></div>
+        <div class="rms-card-title">Departments & Programs</div>
+      </div>
+      <div class="rms-card-desc">Import departments and their courses (programs) catalog.</div>
+      <div class="rms-card-foot">
+        <span class="rms-status-pill" data-state="idle">Idle</span>
+        <button class="rms-btn rms-btn-primary"><i class="fas fa-play"></i> Import</button>
+      </div>
+    </div>
+
+    <div class="rms-card" data-endpoint="academic_terms" data-name="Academic Terms" data-color="emerald">
+      <div class="rms-card-head">
+        <div class="rms-card-icon"><i class="fas fa-calendar-alt"></i></div>
+        <div class="rms-card-title">Academic Terms</div>
+      </div>
+      <div class="rms-card-desc">Import the active semester definitions from RMS.</div>
+      <div class="rms-card-foot">
+        <span class="rms-status-pill" data-state="idle">Idle</span>
+        <button class="rms-btn rms-btn-primary"><i class="fas fa-play"></i> Import</button>
+      </div>
+    </div>
+
+    <div class="rms-card" data-endpoint="term_data" data-name="Terms" data-color="sky">
+      <div class="rms-card-head">
+        <div class="rms-card-icon"><i class="fas fa-calendar-week"></i></div>
+        <div class="rms-card-title">Terms</div>
+      </div>
+      <div class="rms-card-desc">Import the term breakdown for the current semester.</div>
+      <div class="rms-card-foot">
+        <span class="rms-status-pill" data-state="idle">Idle</span>
+        <button class="rms-btn rms-btn-primary"><i class="fas fa-play"></i> Import</button>
+      </div>
+    </div>
+
+    <div class="rms-card" data-endpoint="class_schedule" data-name="Class Schedules" data-color="sky">
+      <div class="rms-card-head">
+        <div class="rms-card-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+        <div class="rms-card-title">Class Schedules</div>
+      </div>
+      <div class="rms-card-desc">Sync subjects and class schedules for the current semester.</div>
+      <div class="rms-card-foot">
+        <span class="rms-status-pill" data-state="idle">Idle</span>
+        <button class="rms-btn rms-btn-primary"><i class="fas fa-play"></i> Import</button>
+      </div>
+    </div>
+
+    <div class="rms-card" data-endpoint="student_enrollment" data-name="Student Enrollments" data-color="amber">
+      <div class="rms-card-head">
+        <div class="rms-card-icon"><i class="fas fa-user-graduate"></i></div>
+        <div class="rms-card-title">Student Enrollments</div>
+      </div>
+      <div class="rms-card-desc">Import student enrollment records per subject.</div>
+      <div class="rms-card-foot">
+        <span class="rms-status-pill" data-state="idle">Idle</span>
+        <button class="rms-btn rms-btn-primary"><i class="fas fa-play"></i> Import</button>
+      </div>
+    </div>
+
+    <div class="rms-card" data-endpoint="student_data" data-name="Student Data" data-color="slate">
+      <div class="rms-card-head">
+        <div class="rms-card-icon"><i class="fas fa-users"></i></div>
+        <div class="rms-card-title">Student Data</div>
+      </div>
+      <div class="rms-card-desc">Sync student profiles and accounts.</div>
+      <div class="rms-card-foot">
+        <span class="rms-status-pill" data-state="idle">Idle</span>
+        <button class="rms-btn rms-btn-primary"><i class="fas fa-play"></i> Import</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rms-log-panel">
+    <div class="rms-log-head">
+      <h4><i class="fas fa-list-check me-2"></i>Import history</h4>
+      <span class="rms-log-time" id="rmsLogCount">0 entries</span>
+    </div>
+    <div id="rmsLogEmpty" class="rms-log-empty">No imports yet. Run an import above and the result will appear here.</div>
+    <ul class="rms-log-list" id="rmsLogList"></ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = "rms_import_history_v1";
+  const MAX_ENTRIES = 50;
+  const POLL_INTERVAL_MS = 2000;
+  const POLL_TIMEOUT_MS = 5 * 60 * 1000;
+
+  const grid = document.getElementById("rmsGrid");
+  const logList = document.getElementById("rmsLogList");
+  const logEmpty = document.getElementById("rmsLogEmpty");
+  const logCount = document.getElementById("rmsLogCount");
+
+  /* ── history storage ─────────────────────────────── */
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+  function saveHistory(entries) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_ENTRIES))); }
+    catch { /* quota or disabled — ignore */ }
+  }
+  function addEntry(entry) {
+    const entries = loadHistory();
+    entries.unshift(entry);
+    saveHistory(entries);
+    renderHistory();
+    return entry;
+  }
+  function updateEntry(id, patch) {
+    const entries = loadHistory();
+    const idx = entries.findIndex(e => e.id === id);
+    if (idx === -1) return;
+    entries[idx] = { ...entries[idx], ...patch };
+    saveHistory(entries);
+    renderHistory();
+  }
+  function clearHistory() {
+    localStorage.removeItem(STORAGE_KEY);
+    renderHistory();
+  }
+
+  /* ── rendering ───────────────────────────────────── */
+  function fmtTime(ts) {
+    const d = new Date(ts);
+    return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" });
+  }
+  function fmtDuration(ms) {
+    if (ms == null) return "";
+    if (ms < 1000) return ms + " ms";
+    const s = (ms / 1000).toFixed(1);
+    return s + " s";
+  }
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function renderHistory() {
+    const entries = loadHistory();
+    logCount.textContent = entries.length + " " + (entries.length === 1 ? "entry" : "entries");
+    if (!entries.length) {
+      logList.innerHTML = "";
+      logEmpty.style.display = "";
+      return;
+    }
+    logEmpty.style.display = "none";
+    logList.innerHTML = entries.map(e => {
+      const result = e.result || "running";
+      const dur = e.finishedAt ? fmtDuration(e.finishedAt - e.startedAt) : "";
+      let body = "";
+      if (result === "success") {
+        const r = e.payload || {};
+        const counts = [];
+        if (r.total_fetched !== undefined) counts.push(`<span>Fetched: <b>${r.total_fetched}</b></span>`);
+        if (r.created  !== undefined)      counts.push(`<span>Created: <b>${r.created}</b></span>`);
+        if (r.updated  !== undefined)      counts.push(`<span>Updated: <b>${r.updated}</b></span>`);
+        if (r.failed   !== undefined)      counts.push(`<span>Failed: <b>${r.failed}</b></span>`);
+        if (Array.isArray(r) && counts.length === 0) counts.push(`<span>Records: <b>${r.length}</b></span>`);
+        if (counts.length) body += `<div class="rms-log-counts">${counts.join("")}</div>`;
+        if (r.failed_items && r.failed_items.length) {
+          body += `<details class="rms-log-error"><summary>${r.failed_items.length} failed item(s)</summary>${
+            r.failed_items.slice(0, 10).map(it => escapeHtml(it.error || JSON.stringify(it))).join("\n")
+          }</details>`;
+        }
+      } else if (result === "error") {
+        body += `<details class="rms-log-error" open><summary>Error details</summary>${escapeHtml(e.errorMessage || "Unknown error")}${
+          e.errorDetails ? "\n\n" + escapeHtml(e.errorDetails) : ""
+        }${
+          e.traceback ? "\n\n" + escapeHtml(e.traceback) : ""
+        }</details>`;
+      }
+      const stateLabel = result === "running" ? "Running…" : result === "success" ? "Success" : "Failed";
+      return `
+        <li class="rms-log-entry" data-result="${result}">
+          <span class="rms-log-dot"></span>
+          <div>
+            <div class="rms-log-title">${escapeHtml(e.name)} <span class="rms-status-pill" data-state="${result}">${stateLabel}</span></div>
+            <div class="rms-log-meta">${fmtTime(e.startedAt)}${e.taskId ? " · task " + escapeHtml(e.taskId.slice(0, 8)) : ""}${dur ? " · " + dur : ""}</div>
+            ${body}
+          </div>
+          <span class="rms-log-time">${e.finishedAt ? fmtTime(e.finishedAt) : ""}</span>
+        </li>`;
+    }).join("");
+  }
+
+  /* ── card status ─────────────────────────────────── */
+  function setCardState(card, state, label) {
+    const pill = card.querySelector(".rms-status-pill");
+    pill.dataset.state = state;
+    pill.innerHTML = (state === "running" ? '<span class="rms-spinner"></span>' : "") + (label || state[0].toUpperCase() + state.slice(1));
+    card.querySelector("button").disabled = state === "running";
+  }
+
+  /* ── network ─────────────────────────────────────── */
+  async function startImport(endpoint, displayName, card) {
+    setCardState(card, "running", "Queuing…");
+    const startedAt = Date.now();
+    const entry = addEntry({
+      id: crypto.randomUUID(),
+      name: displayName,
+      endpoint,
+      startedAt,
+      result: "running",
+    });
+
+    let queueResp;
+    try {
+      const r = await fetch(`/${endpoint}/`, {
+        method: "GET",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        credentials: "same-origin",
+      });
+      queueResp = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        throw Object.assign(new Error(queueResp.error || `HTTP ${r.status}`), { details: queueResp.details, status: r.status });
+      }
+    } catch (err) {
+      setCardState(card, "error", "Failed");
+      updateEntry(entry.id, {
+        result: "error",
+        finishedAt: Date.now(),
+        errorMessage: err.message || "Failed to queue import",
+        errorDetails: err.details || "",
+      });
+      toast("error", `${displayName} — queue failed`, err.message);
+      setTimeout(() => setCardState(card, "idle", "Idle"), 4000);
+      return;
+    }
+
+    const taskId = queueResp.task_id;
+    if (!taskId) {
+      // Endpoint responded synchronously with results (no celery).
+      setCardState(card, "success", "Done");
+      updateEntry(entry.id, { result: "success", finishedAt: Date.now(), payload: queueResp });
+      toast("success", `${displayName} imported`);
+      setTimeout(() => setCardState(card, "idle", "Idle"), 4000);
+      return;
+    }
+
+    updateEntry(entry.id, { taskId });
+    setCardState(card, "running", "Importing…");
+    await pollTask(entry.id, taskId, displayName, card);
+  }
+
+  async function pollTask(entryId, taskId, displayName, card) {
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+      let status;
+      try {
+        const r = await fetch(`/rms_data_import/task_status/${encodeURIComponent(taskId)}/`, {
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+          credentials: "same-origin",
+        });
+        status = await r.json();
+        if (!r.ok) throw new Error(status.error || `HTTP ${r.status}`);
+      } catch (err) {
+        // Network blip — keep polling unless we're past deadline.
+        continue;
+      }
+
+      if (!status.ready) continue;
+
+      if (status.successful) {
+        setCardState(card, "success", "Done");
+        updateEntry(entryId, { result: "success", finishedAt: Date.now(), payload: status.result });
+        toast("success", `${displayName} imported`);
+      } else {
+        setCardState(card, "error", "Failed");
+        updateEntry(entryId, {
+          result: "error",
+          finishedAt: Date.now(),
+          errorMessage: status.error || `Task ended in state ${status.state}`,
+          traceback: status.traceback || "",
+        });
+        toast("error", `${displayName} failed`, status.error);
+      }
+      setTimeout(() => setCardState(card, "idle", "Idle"), 5000);
+      return;
+    }
+
+    // Timed out
+    setCardState(card, "error", "Timed out");
+    updateEntry(entryId, {
+      result: "error",
+      finishedAt: Date.now(),
+      errorMessage: "Task did not complete within 5 minutes. It may still be running — check Celery logs.",
+    });
+    toast("error", `${displayName} timed out`);
+    setTimeout(() => setCardState(card, "idle", "Idle"), 6000);
+  }
+
+  function toast(icon, title, text) {
+    if (typeof Swal === "undefined") return;
+    Swal.fire({
+      icon, title, text: text || "",
+      toast: true, position: "top-end",
+      timer: icon === "error" ? 6000 : 3500,
+      timerProgressBar: true, showConfirmButton: false,
+    });
+  }
+
+  /* ── wiring ──────────────────────────────────────── */
+  grid.addEventListener("click", e => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    const card = btn.closest(".rms-card");
+    if (!card) return;
+    startImport(card.dataset.endpoint, card.dataset.name, card);
+  });
+
+  document.getElementById("rmsClearLog").addEventListener("click", async () => {
+    if (typeof Swal !== "undefined") {
+      const r = await Swal.fire({
+        title: "Clear import log?",
+        text: "This removes the local history. RMS data is not affected.",
+        icon: "warning", showCancelButton: true,
+        confirmButtonText: "Clear log", cancelButtonText: "Cancel",
+        confirmButtonColor: "#ef4444",
+      });
+      if (!r.isConfirmed) return;
+    }
+    clearHistory();
+  });
+
+  document.getElementById("rmsImportAll").addEventListener("click", async () => {
+    if (typeof Swal !== "undefined") {
+      const r = await Swal.fire({
+        title: "Run all imports?",
+        text: "Each import runs in the background and will be polled until done. This may take several minutes.",
+        icon: "question", showCancelButton: true,
+        confirmButtonText: "Run all", cancelButtonText: "Cancel",
+        confirmButtonColor: "#ef4444",
+      });
+      if (!r.isConfirmed) return;
+    }
+    const cards = Array.from(grid.querySelectorAll(".rms-card"));
+    for (const card of cards) {
+      await startImport(card.dataset.endpoint, card.dataset.name, card);
+    }
+  });
+
+  renderHistory();
+})();
+</script>
+{% endblock %}

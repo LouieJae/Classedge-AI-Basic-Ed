@@ -1,0 +1,63 @@
+﻿# --- Brainstorm companion (local-only) ---
+.superpowers/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.pyo
+*.pyd
+*.pot            
+*.mo
+
+# --- Environments ---
+.env
+*.env
+.venv
+venv/
+env/
+Environments/
+
+# --- Database ---
+*.sqlite3
+# Catch the SQLite db and all its sidecars/backups: -shm, -wal, .bak.*, etc.
+db.sqlite3*
+
+# --- Django ---
+/media/ 
+/staticfiles/
+# /static/
+*.swp
+*.swo
+local_settings.py
+
+# --- System & Git ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# --- Specific Settings ---
+# NOTE: lms/settings.py is tracked here — all secrets live in .env (see .env.example).
+# Keep it that way: never hardcode credentials in settings.py.
+
+# --- Optional: Safety Net ---
+# Ensures migrations are NEVER ignored, even if you accidentally add a rule later
+!*/migrations/*.py
+!*/migrations/__init__.py
+
+# --- Local git worktrees for parallel feature development ---
+.worktrees/
+
+# Celery beat scheduler runtime state
+celerybeat-schedule
+celerybeat-schedule.*
+
+# --- Basic-Ed clean-copy hardening (data/artifacts that must never be committed) ---
+*.dump
+neondb_backup.dump
+microsoft_oauth.log
+*.bak
+*.bak.*
+*.bak-*

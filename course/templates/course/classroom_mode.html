@@ -1,0 +1,367 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="{{ csrf_token }}" />
+  <meta name="cm-page" content="true" />
+  <title>Classroom Mode — {{ subject.subject_name }}</title>
+
+  <link rel="icon" type="image/png" href="{% static 'favicon.ico' %}" />
+
+  <!-- Google Fonts (matches operations palette) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Bootstrap 4 (matches the original JS data-toggle attributes the
+       child JS files rely on) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+  <!-- Existing app stylesheets the JS expects -->
+  <link rel="stylesheet" href="{% static 'css/adminlte.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/settings.css' %}" />
+  <link rel="stylesheet" href="{% static 'assets/css/custom_modal.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/subject_details.css' %}" />
+
+  <!-- SweetAlert2 + Bootstrap Select + FullCalendar -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css" />
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'vendors/select2-bootstrap-5-theme/select2-bootstrap-5-theme.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/cl-select2.css' %}" />
+  <link href="{% static 'vendors/choices/choices.min.css' %}" rel="stylesheet" />
+
+  <link rel="stylesheet" href="{% static 'css/classroom-mode-shell.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/cl-brand-utilities.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/cl-form-validation.css' %}" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" />
+  <link rel="stylesheet" href="{% static 'css/cl-tour.css' %}" />
+
+  {% comment %}
+    Tenant brand injection — feeds --brand-primary into the design
+    tokens declared in classroom_mode.css below. Every decorative
+    surface (eyebrow, lesson border, day-card "today" rail, action
+    tile glyphs) tracks this color so the page repaints with the
+    tenant brand.
+  {% endcomment %}
+  <style data-cl-brand-tenant>
+    :root,
+    body[data-theme="light"],
+    body[data-theme="dark"] {
+      --brand-primary: {{ SCHOOL_BRAND_COLOR|default:"#1b4332" }};
+      --brand-primary-soft: color-mix(in srgb, {{ SCHOOL_BRAND_COLOR|default:"#1b4332" }} 18%, transparent);
+    }
+  </style>
+
+  <link rel="stylesheet" href="{% static 'course/cm/classroom_mode.css' %}" />
+
+</head>
+<body>
+  <div class="cm-shell">
+
+    <!-- Hero — single dominant surface; subject + clock + one gold CTA -->
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div class="cm-hero-lead">
+          <div class="cm-rail">
+            <span class="cm-eyebrow"><span class="pulse"></span> Live</span>
+            <span class="cm-meta-dot">·</span>
+            <span class="cm-meta" id="cmClockDate">—</span>
+          </div>
+          <h1 class="cm-title">{{ subject.subject_name }}</h1>
+          <div class="cm-subtitle">
+            {% if subject.subject_code %}{{ subject.subject_code }}{% endif %}{% if subject.assign_teacher %} · {{ subject.assign_teacher.profile.first_name }} {{ subject.assign_teacher.profile.last_name }}{% endif %}{% if subject.room_number %} · Room {{ subject.room_number }}{% endif %}
+          </div>
+        </div>
+        <div class="cm-hero-meta">
+          <div class="cm-clock-flat">
+            <span id="cmClockTime">--:--</span><span class="ampm" id="cmClockAmpm">--</span>
+          </div>
+          <div class="cm-timer" id="classroomTimerDisplay"
+               data-subject-id="{{ subject.id }}"
+               role="timer" aria-live="off" aria-atomic="true"
+               title="Class session elapsed time">
+            <span class="cm-timer-dot" aria-hidden="true"></span>
+            <span class="cm-timer-label">Class</span>
+            <span class="cm-timer-value" id="classroomTimerText">00:00:00</span>
+          </div>
+          {% if is_teacher %}
+            <button type="button" class="cm-btn primary" id="classActionButton" data-subject-id="{{ subject.id }}" data-is-active="false">
+              <i class="fas fa-chalkboard-teacher"></i> Start Class
+            </button>
+          {% endif %}
+          <button type="button" class="cm-icon-btn" data-cl-tour="classroom-mode" title="Show me how" aria-label="Show me how">
+            <i class="fas fa-circle-question"></i>
+          </button>
+          <button type="button" class="cm-icon-btn" id="cmFullscreenBtn" title="Fullscreen (F)" aria-label="Fullscreen">
+            <i class="fas fa-expand" id="cmFullscreenIcon"></i>
+          </button>
+          <a href="{% url 'course-list' %}" class="cm-btn ghost" data-cm-exit="true" data-cm-no-spa="true" title="Exit Classroom Mode" aria-label="Exit Classroom Mode"><i class="fas fa-times"></i></a>
+        </div>
+      </div>
+
+      {% if is_teacher %}
+        {% now 'Y-m-d' as today_date %}
+        {% if selected_semester.start_date|date:'Y-m-d' <= today_date and selected_semester.end_date|date:'Y-m-d' >= today_date %}
+          <div class="cm-rail cm-quick-rail">
+            <button type="button" class="cm-quick-add"
+                    data-toggle="modal" data-target="#addActivityLessonModalCM"
+                    onclick="if(window.jQuery){jQuery('#addActivityLessonModalCM').modal('show');}">
+              <i class="fas fa-plus"></i> Add lesson or activity
+            </button>
+            <span class="cm-meta-dot">·</span>
+            <a class="cm-quick-link" href="{% url 'material-list-cm' subject.id %}">Materials</a>
+            <a class="cm-quick-link" href="{% url 'assessment-list-cm' subject.id %}">Assessments</a>
+            <a class="cm-quick-link" href="{% url 'subjectStudentListCM' subject.id %}?semester={{ selected_semester_id }}">Students</a>
+          </div>
+        {% endif %}
+      {% endif %}
+    </section>
+
+    <!-- Section header — single line, no kbd noise -->
+    <div class="cm-section-head">
+      <h2 class="cm-section-title">Week of <em id="cmWeekRange">—</em></h2>
+      <div class="cm-section-tools">
+        <span class="cm-summary"><strong id="cmStatTodayLessons">0</strong> today · <strong id="cmStatLessons">0</strong> this week</span>
+      </div>
+    </div>
+
+    <div class="cm-week-grid" id="cmWeekGrid">
+      {% for day_data in current_week_dates %}
+        <div class="cm-day" data-day="{{ day_data.day }}" data-date="{{ day_data.short_date }}">
+          <div class="cm-day-head">
+            <span class="cm-day-name">{{ day_data.day }}</span>
+            {% comment %}
+              <span class="cm-day-date">{{ day_data.short_date }}</span>
+            {% endcomment %}
+          </div>
+          <div class="cm-day-body">
+            {% if day_data.lessons %}
+              <span class="cm-day-count"><i class="fas fa-circle" style="font-size:6px;"></i> {{ day_data.lessons|length }} lesson{{ day_data.lessons|length|pluralize }}</span>
+              {% for lesson in day_data.lessons %}
+                <a class="cm-lesson" href="{% url 'view-module-cm' lesson.module_id %}" title="{{ lesson.lesson }}">
+                  <span class="icon">
+                    {% if lesson.type == "pdf" %}<i class="fas fa-file-pdf"></i>
+                    {% elif lesson.type == "image" %}<i class="fas fa-image"></i>
+                    {% elif lesson.type == "youtube" %}<i class="fab fa-youtube"></i>
+                    {% elif lesson.type == "url" %}<i class="fas fa-link"></i>
+                    {% elif lesson.type == "msteams" %}<i class="fab fa-microsoft"></i>
+                    {% elif lesson.type == "word" %}<i class="fas fa-file-word"></i>
+                    {% elif lesson.type == "excel" %}<i class="fas fa-file-excel"></i>
+                    {% elif lesson.type == "ppt" %}<i class="fas fa-file-powerpoint"></i>
+                    {% elif lesson.type == "video" %}<i class="fas fa-video"></i>
+                    {% elif lesson.type == "embed" %}<i class="fas fa-code"></i>
+                    {% else %}<i class="fas fa-file-alt"></i>{% endif %}
+                  </span>
+                  <span class="body">
+                    <span class="title">{{ lesson.lesson }}</span>
+                    <span class="meta">
+                      <i class="far fa-clock"></i>
+                      <span>{{ day_data.time|default:"No time" }}</span>
+                      <span class="dot"></span>
+                      <span>{{ lesson.activity_count }} activit{{ lesson.activity_count|pluralize:"y,ies" }}</span>
+                    </span>
+                  </span>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="cm-day-empty">
+                <i class="far fa-moon"></i>
+                No lessons
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Add Activity / Lesson modal -->
+  <div class="modal fade" id="addActivityLessonModalCM" tabindex="-1" role="dialog" aria-labelledby="addActivityLessonModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addActivityLessonModalLabel">Add an Activity or Lesson</h5>
+          <button type="button" id="closeAddActivityLessonModalCMBtn" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="cm-add-grid">
+            <a href="{% if assignment_activity_type_id %}{% url 'add-assessment-cm' subject.id %}?activity_type_id={{ assignment_activity_type_id }}{% else %}#{% endif %}" class="cm-add-tile assignment">
+              <span class="glyph"><i class="fas fa-check-square"></i></span>
+              <span class="label">Assignment</span>
+            </a>
+            <a href="{% url 'record_attendanceCM' subject.id %}" class="cm-add-tile attendance">
+              <span class="glyph"><i class="fas fa-user-check"></i></span>
+              <span class="label">Attendance</span>
+            </a>
+            <a href="{% if participation_activity_type_id %}{% url 'add-assessment-cm' subject.id %}?activity_type_id={{ participation_activity_type_id }}{% else %}#{% endif %}" class="cm-add-tile major">
+              <span class="glyph"><i class="fas fa-users"></i></span>
+              <span class="label">Major Assessment</span>
+            </a>
+            <a href="{% url 'create-material-cm' subject.id %}" class="cm-add-tile lesson">
+              <span class="glyph"><i class="fas fa-book"></i></span>
+              <span class="label">Material</span>
+            </a>
+            <a href="#" class="cm-add-tile video" data-dismiss="modal" data-toggle="modal" data-target="#teamsSignInModal">
+              <span class="glyph"><i class="fas fa-video"></i></span>
+              <span class="label">Video Conference</span>
+            </a>
+            <a href="{% if quiz_activity_type_id %}{% url 'add-assessment-cm' subject.id %}?activity_type_id={{ quiz_activity_type_id }}{% else %}#{% endif %}" class="cm-add-tile quiz">
+              <span class="glyph"><i class="fas fa-question-circle"></i></span>
+              <span class="label">Quiz</span>
+            </a>
+            <a href="{% if exam_activity_type_id %}{% url 'add-assessment-cm' subject.id %}?activity_type_id={{ exam_activity_type_id }}{% else %}#{% endif %}" class="cm-add-tile exam">
+              <span class="glyph"><i class="fas fa-file-alt"></i></span>
+              <span class="label">Exam</span>
+            </a>
+            <a href="{% if special_activity_type_id %}{% url 'add-assessment-cm' subject.id %}?activity_type_id={{ special_activity_type_id }}{% else %}#{% endif %}" class="cm-add-tile special">
+              <span class="glyph"><i class="fas fa-star"></i></span>
+              <span class="label">Special</span>
+            </a>
+            <a href="{% url 'create-material-url-cm' subject.id %}" class="cm-add-tile url">
+              <span class="glyph"><i class="fas fa-link"></i></span>
+              <span class="label">URL</span>
+            </a>
+            <a href="{% url 'create-material-embed-cm' subject.id %}" class="cm-add-tile embed">
+              <span class="glyph"><i class="fas fa-code"></i></span>
+              <span class="label">Embed</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auxiliary modals (preserved verbatim from the original) -->
+  <div id="participationModal" class="custom-modal">
+    <div class="custom-modal-header d-flex justify-content-between">
+      <h5>Select Major Assessment Details</h5>
+      <button class="close-btn" id="closeParticipationModalBtn"></button>
+    </div>
+    <div class="custom-modal-body" id="participationModalBody"></div>
+  </div>
+  <div id="participationModalBackdrop" class="custom-modal-backdrop"></div>
+
+  <div id="moduleModal" class="custom-modal">
+    <div class="custom-modal-header d-flex justify-content-between">
+      <h5 class="text-dark">Add Material</h5>
+      <button class="close-btn" id="closeModuleModalBtn"></button>
+    </div>
+    <div class="custom-modal-body" id="moduleModalBody"></div>
+  </div>
+  <div id="moduleModalBackdrop" class="custom-modal-backdrop"></div>
+
+  <div id="copyLessonModal" class="custom-modal">
+    <div class="custom-modal-header d-flex justify-content-between">
+      <h5 class="text-dark">Copy Lessons</h5>
+      <button class="close-btn" id="closeCopyLessonModalBtn"></button>
+    </div>
+    <div class="custom-modal-body" id="copyLessonModalBody"></div>
+  </div>
+  <div id="copyLessonModalBackdrop" class="custom-modal-backdrop"></div>
+
+  <div id="copyActivityModal" class="custom-modal">
+    <div class="custom-modal-header d-flex justify-content-between">
+      <h5 class="text-dark">Copy Activities</h5>
+      <button class="close-btn" id="closeCopyActivityModalBtn"></button>
+    </div>
+    <div class="custom-modal-body" id="copyActivityModalBody"></div>
+  </div>
+  <div id="copyActivityModalBackdrop" class="custom-modal-backdrop"></div>
+
+  <div class="modal" id="teamsSignInModal" tabindex="-1" role="dialog" aria-labelledby="teamsSignInModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="teamsSignInModalLabel">Sign in to Microsoft Teams</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>To start your Microsoft Teams meeting, sign in using your school account.</p>
+          <a href="https://teams.microsoft.com" target="_blank" class="cm-btn primary">Sign in to Microsoft Teams</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="attendanceModal" class="custom-modal">
+    <div class="custom-modal-header d-flex justify-content-between">
+      <h5 class="text-dark">Record Attendance</h5>
+      <button class="close-btn" id="closeAttendanceModalBtn"></button>
+    </div>
+    <div class="custom-modal-body" id="attendanceModalBody"></div>
+  </div>
+  <div id="attendanceModalBackdrop" class="custom-modal-backdrop"></div>
+
+  <!-- Scripts (Bootstrap 4 + dependencies the existing JS expects) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script src="{% static 'vendors/choices/choices.min.js' %}"></script>
+
+  <script src="{% static 'js/classroom-mode.js' %}"></script>
+  <script src="{% static 'js/classroom-mode-full-screen.js' %}"></script>
+  <script src="{% static 'js/deactivate-classroom-mode.js' %}"></script>
+  <script src="{% static 'js/file-validation.js' %}"></script>
+  <script src="{% static 'js/modal.js' %}"></script>
+  <script src="{% static 'js/classroom-mode-spa.js' %}"></script>
+
+  <script src="{% static 'js/cl-form-loading.js' %}" defer></script>
+  <script src="{% static 'js/cl-form-validation.js' %}" defer></script>
+  <script src="{% static 'js/cl-form-autosave.js' %}" defer></script>
+  <script src="{% static 'js/cl-select2.js' %}" defer></script>
+  <script src="{% static 'js/cl-stepper.js' %}" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js" defer></script>
+  <script src="{% static 'js/cl-tour.js' %}" defer></script>
+  <script src="{% static 'js/tours/cl-tour-classroom-mode.js' %}" defer></script>
+
+  {% comment %}
+    Page logic extracted to /static — handles exit-prompt, clock, day
+    grid stats, fullscreen toggle, keyboard shortcuts, timer hydration.
+  {% endcomment %}
+  <script src="{% static 'course/cm/classroom_mode.js' %}"></script>
+
+  {% comment %}
+    Tiny Django-templated bridge: forward server-rendered messages /
+    form errors into the toast helper exposed by classroom_mode.js.
+    Kept inline because Django's messages-framework loop can't live in
+    a static file.
+  {% endcomment %}
+  <script>
+    {% if form.errors %}
+      {% for field in form %}
+        {% for error in field.errors %}
+          if (window.displayToast) window.displayToast("{{ error }}", 'error');
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+    {% if messages %}
+      {% for message in messages %}
+        {% if message.tags == 'error' %}
+          if (window.displayToast) window.displayToast("{{ message }}", 'error');
+        {% else %}
+          if (window.displayToast) window.displayToast("{{ message }}", 'success');
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+{% extends is_student_role|yesno:'student_base.html,base_operation.html' %}
+{% load static %}
+{% load level_tier %}
+
+{% block title %}{{ profile.first_name }} {{ profile.last_name }}{% endblock %}
+
+{% block extra_css %}
+{% if not is_student_role %}{% include "teacher/_legacy_stack.html" %}{% endif %}
+<link rel="stylesheet" href="{% static 'accounts/user_level/view_student_profile.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="vsp-shell">
+  <!-- ── Hero ────────────────────────────────────────────── -->
+  <div class="vsp-hero">
+    <div class="vsp-hero-row">
+      {% with tier=target_gamification.current_level|level_tier %}
+      <div class="vsp-photo-wrap">
+        <div class="vsp-photo tier-{{ tier|default:'none' }}" id="profilePhotoTrigger">
+          {% if profile.student_photo %}
+            <img src="{{ profile.student_photo.url }}" alt="">
+          {% else %}
+            {{ profile.first_name|slice:":1"|upper }}{{ profile.last_name|slice:":1"|upper }}
+          {% endif %}
+        </div>
+        {% if target_gamification %}
+          <span class="vsp-level-pill tier-{{ tier|default:'none' }}">LV {{ target_gamification.current_level }}</span>
+        {% endif %}
+      </div>
+      {% endwith %}
+      <div class="vsp-info">
+        {% if profile.role %}<span class="vsp-role-pill">{{ profile.role.name }}</span>{% endif %}
+        <h1 class="vsp-name">{{ profile.first_name }} {{ profile.last_name }}</h1>
+        <div class="vsp-school">
+          {% if profile.course %}<span><i class="fas fa-graduation-cap"></i> {{ profile.course }}</span>{% endif %}
+          {% if profile.department_fields %}<span><i class="fas fa-building"></i> {{ profile.department_fields }}</span>{% endif %}
+          {% if is_admin_view and profile.id_number %}<span><i class="far fa-id-card"></i> {{ profile.id_number }}</span>{% endif %}
+        </div>
+
+        {% if can_add_friend %}
+        <div class="vsp-actions">
+          {% if friend_status == 'none' %}
+            <button type="button" class="vsp-btn primary" onclick="sendFriendRequest({{ target_user.id }})">
+              <i class="fas fa-user-plus"></i> Add Friend
+            </button>
+          {% elif friend_status == 'pending' %}
+            {% if is_request_sender %}
+              <span class="vsp-btn muted"><i class="fas fa-clock"></i> Request Sent</span>
+            {% else %}
+              <button type="button" class="vsp-btn success" onclick="acceptFriendRequest({{ friend_request_id }})">
+                <i class="fas fa-check"></i> Accept
+              </button>
+              <button type="button" class="vsp-btn danger" onclick="rejectFriendRequest({{ friend_request_id }})">
+                <i class="fas fa-times"></i> Reject
+              </button>
+            {% endif %}
+          {% elif friend_status == 'accepted' %}
+            <a href="{% url 'social_media_inbox' %}?chat_with={{ target_user.id }}&chat_name={{ profile.first_name }}+{{ profile.last_name }}{% if profile.student_photo %}&chat_photo={{ profile.student_photo.url|urlencode }}{% endif %}" class="vsp-btn primary"><i class="fas fa-comment"></i> Message</a>
+            <span class="vsp-btn muted"><i class="fas fa-user-check"></i> Friends</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Stats (admin-only) ──────────────────────────────── -->
+  {% if is_admin_view %}
+  <div class="vsp-stats">
+    <div class="vsp-stat gold">
+      <div class="vsp-stat-label">Badges Earned</div>
+      <div class="vsp-stat-value">{{ earned_badges|length }}</div>
+    </div>
+    {% if profile.date_of_birth %}
+    <div class="vsp-stat">
+      <div class="vsp-stat-label">Date of Birth</div>
+      <div class="vsp-stat-value" style="font-size:14px;">{{ profile.date_of_birth|date:"M d, Y" }}</div>
+    </div>
+    {% endif %}
+    <div class="vsp-stat mint">
+      <div class="vsp-stat-label">Certificates</div>
+      <div class="vsp-stat-value">{{ certificates|length }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Two-column body ─────────────────────────────────── -->
+  <div class="vsp-grid">
+    <!-- Left column -->
+    <div>
+      {% if is_admin_view %}
+      <div class="vsp-card">
+        <div class="vsp-card-head">
+          <h2 class="vsp-card-title"><i class="fas fa-id-card"></i> Basic Information</h2>
+        </div>
+        <div class="vsp-info-row">
+          <div class="vsp-info-icon"><i class="fas fa-fingerprint"></i></div>
+          <div class="vsp-info-meta">
+            <div class="vsp-info-label">Student ID</div>
+            <div class="vsp-info-value">{{ profile.id_number|default:"Not provided" }}</div>
+          </div>
+        </div>
+        <div class="vsp-info-row">
+          <div class="vsp-info-icon"><i class="fas fa-envelope"></i></div>
+          <div class="vsp-info-meta">
+            <div class="vsp-info-label">Email Address</div>
+            <div class="vsp-info-value">{{ profile.user.email }}</div>
+          </div>
+        </div>
+        <div class="vsp-info-row">
+          <div class="vsp-info-icon"><i class="fas fa-venus-mars"></i></div>
+          <div class="vsp-info-meta">
+            <div class="vsp-info-label">Gender</div>
+            <div class="vsp-info-value">{{ profile.gender|default:"Not specified" }}</div>
+          </div>
+        </div>
+        <div class="vsp-info-row">
+          <div class="vsp-info-icon"><i class="fas fa-birthday-cake"></i></div>
+          <div class="vsp-info-meta">
+            <div class="vsp-info-label">Birthday</div>
+            <div class="vsp-info-value">{{ profile.date_of_birth|date:"F d, Y"|default:"Not provided" }}</div>
+          </div>
+        </div>
+        <div class="vsp-info-row">
+          <div class="vsp-info-icon"><i class="fas fa-phone"></i></div>
+          <div class="vsp-info-meta">
+            <div class="vsp-info-label">Contact Number</div>
+            <div class="vsp-info-value">{{ profile.phone_number|default:"Not provided" }}</div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="vsp-card" style="{% if is_admin_view %}margin-top:16px;{% endif %}">
+        <div class="vsp-card-head">
+          <h2 class="vsp-card-title"><i class="fas fa-medal"></i> Featured Badges</h2>
+          {% if earned_badges %}<span class="vsp-card-count">{{ earned_badges|length }} featured</span>{% endif %}
+        </div>
+        {% if earned_badges %}
+          <div class="vsp-badges">
+            {% for sb in earned_badges %}
+            <div class="vsp-badge-tile" title="{{ sb.badge.description }}">
+              <div class="vsp-badge-icon">{{ sb.badge.icon }}</div>
+              <div class="vsp-badge-name">{{ sb.badge.name }}</div>
+              <div class="vsp-badge-date">{{ sb.earned_at|date:"M d, Y" }}</div>
+              <span class="vsp-badge-tier">{{ sb.badge.tier }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="vsp-empty"><i class="fas fa-medal"></i> No featured badges yet</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div>
+      <div class="vsp-card">
+        <div class="vsp-card-head">
+          <h2 class="vsp-card-title"><i class="fas fa-globe"></i> SDG Badges</h2>
+        </div>
+        {% if sdg %}
+          <div class="vsp-sdg-grid">
+            {% for sdg_item in sdg %}
+              <a href="{% url 'sdg' sdg_item.id %}" class="vsp-sdg-tile" title="{{ sdg_item.name }}">
+                <img src="{{ sdg_item.photo.url }}" alt="{{ sdg_item.name }}">
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="vsp-empty"><i class="fas fa-globe"></i> No SDG badges yet</div>
+        {% endif %}
+      </div>
+
+      <div class="vsp-card" style="margin-top:16px;">
+        <div class="vsp-card-head">
+          <h2 class="vsp-card-title"><i class="fas fa-award"></i> Accolades & Certificates</h2>
+          {% if certificates %}<span class="vsp-card-count">{{ certificates|length }}</span>{% endif %}
+        </div>
+        {% if certificates %}
+          <div class="vsp-cert-list">
+            {% for cert in certificates %}
+              <div class="vsp-cert-row" onclick="vspPreview('{{ cert.file.url }}', '{{ cert.name|escapejs }}')">
+                {% if cert.file %}<img class="vsp-cert-thumb" src="{{ cert.file.url }}" alt="">{% endif %}
+                <div style="flex:1;min-width:0;">
+                  <div class="vsp-cert-name">{{ cert.name }}</div>
+                  {% if cert.date_received %}<div class="vsp-cert-date">{{ cert.date_received|date:"M d, Y" }}</div>{% endif %}
+                </div>
+                <i class="fas fa-chevron-right" style="color:var(--vsp-text-muted);"></i>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="vsp-empty"><i class="fas fa-award"></i> No certificates yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Image preview overlay -->
+<div class="vsp-preview" id="vspPreviewOverlay">
+  <button type="button" class="vsp-preview-close" onclick="vspClosePreview()"><i class="fas fa-times"></i></button>
+  <img id="vspPreviewImg" src="" alt="">
+</div>
+
+<script src="{% static 'accounts/user_level/view_student_profile.js' %}"></script>
+{% endblock %}

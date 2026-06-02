@@ -1,0 +1,337 @@
+{% block content %}
+
+<style>
+  /* ==== Form fields (also used by update_role.html when fetched-in) ==== */
+  .rp-field { margin-bottom: 18px; }
+  .rp-field label {
+    display: block;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-dim);
+    margin-bottom: 7px;
+  }
+  .rp-field .form-control,
+  .rp-field input[type="text"],
+  .rp-field select {
+    width: 100%;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    font-size: 13.5px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .rp-field .form-control:focus,
+  .rp-field select:focus,
+  .rp-field input:focus {
+    outline: none;
+    border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .rp-helper { color: var(--ink-muted); font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  .rp-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 18px;
+  }
+  @media (max-width: 640px) { .rp-fields-grid { grid-template-columns: 1fr; } }
+  .rp-fields-grid .rp-field { margin-bottom: 0; }
+
+  /* ==== Permission picker ==== */
+  .rp-section-title {
+    font-family: var(--display);
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 22px 0 12px;
+    display: flex; align-items: center; gap: 10px;
+    letter-spacing: -0.005em;
+  }
+  .rp-section-title::before {
+    content: "";
+    width: 18px; height: 2px;
+    background: var(--brand-primary, #1b4332);
+    border-radius: 2px;
+  }
+  .check-all-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 16px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 14px;
+  }
+  .check-all-bar label {
+    margin: 0; cursor: pointer; font-weight: 600; color: var(--brand-primary, #1b4332);
+    display: inline-flex; align-items: center; gap: 8px; font-size: 13px;
+  }
+  .check-all-bar input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--brand-primary, #1b4332); }
+  .check-all-bar small { color: var(--ink-muted); font-size: 11.5px; }
+
+  .perm-category {
+    margin-bottom: 12px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .perm-category[open] {
+    border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04), 0 8px 24px -12px rgba(45,49,66,0.12);
+  }
+  .perm-category > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 13px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    user-select: none;
+    background: var(--cream-2, #f4ede2);
+  }
+  .perm-category > summary::-webkit-details-marker { display: none; }
+  .perm-category > summary::after {
+    content: "\f078";
+    font-family: "Font Awesome 5 Free"; font-weight: 900;
+    font-size: 11px; color: var(--ink-muted);
+    transition: transform 0.2s ease;
+  }
+  .perm-category[open] > summary::after { transform: rotate(180deg); }
+
+  .cat-select-label {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 14px; color: var(--brand-primary, #1b4332); font-family: var(--display); font-weight: 600;
+  }
+  .cat-select-label input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--brand-primary, #1b4332); }
+
+  .cat-count {
+    color: var(--ink-dim);
+    font-family: var(--body); font-weight: 500;
+    font-size: 11px;
+    background: var(--paper);
+    padding: 3px 9px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+  }
+
+  .module-list { padding: 8px 12px 12px; }
+  .perm-module {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .perm-module:last-child { margin-bottom: 0; }
+  .perm-module-header {
+    padding: 10px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--paper);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .model-select-label {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 13px; color: var(--ink); font-weight: 600;
+  }
+  .model-select-label input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--brand-primary, #1b4332); }
+  .model-meta { font-size: 11px; color: var(--ink-muted); font-weight: 400; letter-spacing: 0.04em; }
+
+  .perm-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 6px;
+    padding: 4px 14px 12px;
+  }
+  .perm-action-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    color: var(--ink);
+    cursor: pointer;
+    margin: 0;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .perm-action-pill:hover { border-color: var(--brand-primary, #1b4332); }
+  .perm-action-pill:has(input:checked) {
+    background: var(--brand-primary-soft);
+    border-color: var(--brand-primary, #1b4332);
+    color: var(--brand-primary, #1b4332);
+    font-weight: 600;
+  }
+  .perm-action-pill input[type="checkbox"] {
+    width: 14px; height: 14px; accent-color: var(--brand-primary, #1b4332); margin: 0;
+  }
+
+  /* Buttons (footer layout is handled by .rl-form-foot in role_list.html) */
+  .rp-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-family: var(--body); font-size: 13px; font-weight: 600;
+    border: 1px solid var(--border-strong);
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .rp-btn:hover { background: var(--cream-2); color: var(--brand-primary, #1b4332); border-color: var(--brand-primary, #1b4332); }
+  .rp-btn-primary { background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332); }
+  .rp-btn-primary:hover {
+    background: color-mix(in srgb, var(--brand-primary, #1b4332), black 12%);
+    border-color: color-mix(in srgb, var(--brand-primary, #1b4332), black 12%);
+    color: var(--cream);
+  }
+</style>
+
+<div id="customRoleModal" class="rl-modal" role="dialog" aria-labelledby="rlAddRoleTitle" aria-modal="true">
+  <div class="rl-modal-head">
+    <h5 id="rlAddRoleTitle"><i class="fas fa-plus-circle"></i> Add new <em>role</em></h5>
+    <button type="button" class="rl-modal-close" id="closeRoleModal" aria-label="Close">&times;</button>
+  </div>
+  <div class="rl-modal-content">
+    <form method="POST" action="{% url 'create_role' %}" id="addRoleForm" class="rl-form">
+      {% csrf_token %}
+
+      <div class="rl-form-body">
+        <div class="rp-fields-grid">
+          <div class="rp-field">
+            <label for="id_name">Role name</label>
+            {{ form.name }}
+          </div>
+
+          <div class="rp-field">
+            <label for="source_role_id">Copy permissions from <span class="rp-helper">(optional)</span></label>
+            <select name="source_role_id" id="source_role_id" class="form-control">
+              <option value="">— Start from scratch —</option>
+              {% for role in roles %}
+                <option value="{{ role.id }}">{{ role.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="rp-section-title">Permissions</div>
+        <div class="check-all-bar">
+          <label for="checkAll"><input type="checkbox" id="checkAll"> Select all permissions</label>
+          <small>Grouped by category, then by module</small>
+        </div>
+
+        {% for category, modules in categorized_permissions_grouped %}
+          <details class="perm-category" open>
+            <summary>
+              <label class="cat-select-label">
+                <input type="checkbox" class="select-all-category" data-cat-index="{{ forloop.counter }}">
+                {{ category }}
+              </label>
+              <span class="cat-count">{{ modules|length }} module{{ modules|length|pluralize }}</span>
+            </summary>
+            <div class="module-list">
+              {% for model_label, perms in modules %}
+                <div class="perm-module">
+                  <div class="perm-module-header">
+                    <label class="model-select-label">
+                      <input type="checkbox"
+                             class="select-all-model"
+                             data-model-key="m-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                             data-cat-index="{{ forloop.parentloop.counter }}">
+                      {{ model_label }}
+                    </label>
+                    <span class="model-meta">{{ perms|length }} action{{ perms|length|pluralize }}</span>
+                  </div>
+                  <div class="perm-actions">
+                    {% for action_label, perm in perms %}
+                      <label class="perm-action-pill" title="{{ perm.name }}">
+                        <input type="checkbox"
+                               name="permissions"
+                               class="permission-checkbox cat-{{ forloop.parentloop.parentloop.counter }}"
+                               data-model-key="m-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}"
+                               value="{{ perm.id }}">
+                        {{ action_label }}
+                      </label>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+
+      <div class="rl-form-foot">
+        <button type="button" class="rp-btn" id="cancelRoleModal">Cancel</button>
+        <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-save"></i> Save role</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="customRoleModalBackdrop" class="rl-modal-backdrop"></div>
+
+<script>
+  (function () {
+    const root = document.getElementById('customRoleModal');
+    const checkAll = root.querySelector('#checkAll');
+    if (checkAll) {
+      checkAll.addEventListener('change', function () {
+        root.querySelectorAll('.permission-checkbox').forEach(cb => cb.checked = this.checked);
+        root.querySelectorAll('.select-all-category, .select-all-model').forEach(cb => cb.checked = this.checked);
+      });
+    }
+    root.querySelectorAll('.select-all-category').forEach(master => {
+      master.addEventListener('change', function (ev) {
+        ev.stopPropagation();
+        const cat = this.dataset.catIndex;
+        root.querySelectorAll('.cat-' + cat).forEach(cb => cb.checked = this.checked);
+        root.querySelectorAll('.select-all-model[data-cat-index="' + cat + '"]').forEach(cb => cb.checked = this.checked);
+      });
+    });
+    root.querySelectorAll('.select-all-model').forEach(master => {
+      master.addEventListener('change', function (ev) {
+        ev.stopPropagation();
+        const key = this.dataset.modelKey;
+        root.querySelectorAll('[data-model-key="' + key + '"].permission-checkbox').forEach(cb => cb.checked = this.checked);
+      });
+    });
+    root.querySelectorAll('.cat-select-label, .model-select-label').forEach(label => {
+      label.addEventListener('click', ev => ev.stopPropagation());
+    });
+
+    const sourceSel = root.querySelector('#source_role_id');
+    if (sourceSel) {
+      sourceSel.addEventListener('change', function () {
+        const roleId = this.value;
+        if (!roleId) {
+          root.querySelectorAll('.permission-checkbox').forEach(cb => cb.checked = false);
+          return;
+        }
+        fetch(`/get_role_permissions/${roleId}/`)
+          .then(r => r.json())
+          .then(data => {
+            root.querySelectorAll('.permission-checkbox').forEach(cb => cb.checked = false);
+            data.permissions.forEach(p => {
+              const cb = root.querySelector(`input.permission-checkbox[value="${p.id}"]`);
+              if (cb) cb.checked = true;
+            });
+          })
+          .catch(() => {});
+      });
+    }
+
+    const cancelBtn = root.querySelector('#cancelRoleModal');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function () {
+        document.getElementById('customRoleModal').classList.remove('show');
+        document.getElementById('customRoleModalBackdrop').classList.remove('show');
+      });
+    }
+  })();
+</script>
+{% endblock %}

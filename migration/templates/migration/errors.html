@@ -1,0 +1,113 @@
+{% extends 'migration/base.html' %}
+{% load static %}
+
+{% block title %}Migration Errors{% endblock %}
+
+{% block migration_content %}
+  <p class="mig-page-sub">
+    Per-row failures captured during migration. Click any row to see the exact source line, payload, and traceback.
+  </p>
+
+  <form method="get" class="mig-filter cl-card" style="padding: 14px 18px; margin-bottom: 16px;">
+    <label>
+      Category
+      <select name="category">
+        <option value="">All</option>
+        <option value="transport_error" {% if request.GET.category == 'transport_error' %}selected{% endif %}>transport_error</option>
+        <option value="auth_error" {% if request.GET.category == 'auth_error' %}selected{% endif %}>auth_error</option>
+        <option value="throttled" {% if request.GET.category == 'throttled' %}selected{% endif %}>throttled</option>
+        <option value="mapper_error" {% if request.GET.category == 'mapper_error' %}selected{% endif %}>mapper_error</option>
+        <option value="missing_fk" {% if request.GET.category == 'missing_fk' %}selected{% endif %}>missing_fk</option>
+        <option value="validation" {% if request.GET.category == 'validation' %}selected{% endif %}>validation</option>
+        <option value="db_error" {% if request.GET.category == 'db_error' %}selected{% endif %}>db_error</option>
+        <option value="unknown" {% if request.GET.category == 'unknown' %}selected{% endif %}>unknown</option>
+      </select>
+    </label>
+    <label>
+      Old PK
+      <input type="text" name="old_pk" value="{{ request.GET.old_pk }}" placeholder="e.g. 42">
+    </label>
+    <label>
+      Resolved
+      <select name="resolved">
+        <option value="">All</option>
+        <option value="false" {% if request.GET.resolved == 'false' %}selected{% endif %}>Unresolved</option>
+        <option value="true" {% if request.GET.resolved == 'true' %}selected{% endif %}>Resolved</option>
+      </select>
+    </label>
+    {% if request.GET.job %}
+      <label>
+        Job
+        <input type="text" name="job" value="{{ request.GET.job }}" readonly>
+      </label>
+    {% endif %}
+    <button class="cl-btn cl-btn-primary" type="submit"><i class="fas fa-filter"></i> Filter</button>
+    {% if request.GET.category or request.GET.old_pk or request.GET.resolved or request.GET.job %}
+      <a class="cl-btn" href="{% url 'migration:errors' %}"><i class="fas fa-xmark"></i> Clear</a>
+    {% endif %}
+  </form>
+
+  <section class="cl-card mig-card">
+    <div class="cl-card-header">
+      <span><i class="fas fa-triangle-exclamation me-2"></i>Captured <em>errors</em></span>
+      {% if errors %}
+        <span class="cl-badge">{{ paginator.count|default:errors|length }} total</span>
+      {% endif %}
+    </div>
+    <div class="cl-card-body">
+      {% if errors %}
+      <table class="cl-table mig-table">
+        <thead>
+          <tr>
+            <th style="width: 140px">When</th>
+            <th style="width: 160px">Job</th>
+            <th style="width: 130px">Category</th>
+            <th style="width: 80px">Old PK</th>
+            <th>Message</th>
+            <th style="width: 280px">Source</th>
+            <th style="width: 80px"></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for e in errors %}
+          <tr>
+            <td><span class="mig-src">{{ e.occurred_at|date:"M d, H:i:s" }}</span></td>
+            <td>{{ e.job.app_label }}.{{ e.job.model_name }}</td>
+            <td><span class="mig-cat" data-cat="{{ e.category }}">{{ e.category }}</span></td>
+            <td><span class="mig-src">{{ e.old_pk|default:"—" }}</span></td>
+            <td class="mig-msg">{{ e.message|truncatechars:120 }}{% if e.resolved %}<span class="mig-resolved-tag">resolved</span>{% endif %}</td>
+            <td>
+              {% if e.source_file %}
+                <span class="mig-src">{{ e.source_file|cut:"/home/classify/Desktop/Projects/" }}:{{ e.source_line }}</span>
+              {% else %}
+                <span class="mig-src">—</span>
+              {% endif %}
+            </td>
+            <td><a class="cl-btn cl-btn-sm" href="{% url 'migration:error-detail' e.id %}">Open</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="mig-empty">
+        <i class="fas fa-check-circle"></i>
+        <div>No matching errors. The migration ran clean.</div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if is_paginated %}
+  <div class="mig-pagination">
+    <span>Page <b>{{ page_obj.number }}</b> of <b>{{ paginator.num_pages }}</b> · {{ paginator.count }} total errors</span>
+    <span style="display: flex; gap: 6px;">
+      {% if page_obj.has_previous %}
+        <a class="cl-btn" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}"><i class="fas fa-chevron-left"></i> Prev</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a class="cl-btn" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">Next <i class="fas fa-chevron-right"></i></a>
+      {% endif %}
+    </span>
+  </div>
+  {% endif %}
+{% endblock %}

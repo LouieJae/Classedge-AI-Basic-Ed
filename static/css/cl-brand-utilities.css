@@ -1,0 +1,1779 @@
+/* [Classedge LMS] Cross-theater brand utilities
+ * ─────────────────────────────────────────────────────────────────────
+ * Reusable classes for patterns that the codebase audit found duplicated
+ * across 3+ templates. Each utility consumes --brand-primary /
+ * --brand-primary-soft, so a tenant ?brand= override re-paints every
+ * surface using these classes uniformly across operations, login, and
+ * student theaters.
+ *
+ * Loaded by the three master layouts (base_operation.html,
+ * student_base.html, accounts/templates/accounts/interface/login.html).
+ *
+ * Design contract:
+ *   - These are UTILITIES, not components. They override one or two
+ *     properties. Apply them additively (e.g. `class="form-control cl-focus-ring"`).
+ *   - Page-specific design language stays in template-local <style>
+ *     blocks. This file is for genuine cross-page reuse only.
+ *   - Categorical / semantic colors (gold warnings, rose errors,
+ *     success greens, file-type icons, achievement tiers) live in their
+ *     own per-context files and never flow through these utilities.
+ * ─────────────────────────────────────────────────────────────────────
+ */
+
+
+/* ─── 1. Focus ring ────────────────────────────────────────────────────
+ * Form inputs, textareas, select elements, and any element that needs
+ * to signal "this is the keyboard-focused interactive element". The
+ * 0.08-alpha glow over a 1px brand border is the design-system spec
+ * that appeared in 8 form templates (assessment, quiz, material,
+ * import-form pages) with hardcoded forest rgba. Apply additively.
+ * Pages that need a different focus visual override this rule with
+ * higher specificity in their own <style> block.
+ */
+.cl-focus-ring:focus,
+.cl-focus-ring:focus-visible {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+
+
+/* ─── 2. Brand hover state ─────────────────────────────────────────────
+ * Buttons, links, cards, chips, and tabs that should signal "you are
+ * about to interact with a brand-driven control" on hover. Applied as
+ * an additive class so the base component's resting state (border,
+ * color, background) lives in its own definition; this class only
+ * speaks for the :hover transition. The 44-file recurrence makes this
+ * the most-repeated pattern in the audit.
+ */
+.cl-btn-brand-hover {
+  transition: color 0.15s ease, border-color 0.15s ease,
+              background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.cl-btn-brand-hover:hover,
+.cl-btn-brand-hover:focus-visible {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+/* Solid-fill variant for primary buttons that want hover→brand-filled
+   instead of brand-bordered. */
+.cl-btn-brand-hover--fill:hover,
+.cl-btn-brand-hover--fill:focus-visible {
+  background-color: var(--brand-primary);
+  color: #fff;
+  border-color: var(--brand-primary);
+}
+
+
+/* ─── 3. Soft badge ───────────────────────────────────────────────────
+ * Pill / chip that reads as "this item belongs to the brand-driven
+ * group" — used for filter chips, count badges, "is-active" markers
+ * in tabs, etc. Soft background + solid brand text. The 18-file
+ * recurrence was on count badges inside lessons/assignments/filters.
+ *
+ * Categorical badges (warning, danger, success, file-type) intentionally
+ * do NOT use this utility — they have their own per-context rules to
+ * preserve semantic color meaning across tenants.
+ */
+.cl-badge-soft {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  min-height: 18px;
+  border-radius: 999px;
+  background-color: var(--brand-primary-soft);
+  color: var(--brand-primary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+
+/* ─── 4. Status: success ──────────────────────────────────────────────
+ * Inline status pill for affirmative / completed / on-track states.
+ * The audit found this pattern (forest-tint background + forest text)
+ * in 75+ alert / status / banner sites. Centralizing it here means a
+ * tenant brand swap re-tints every "success-like" state in the app
+ * without touching the dedicated `.alert-danger` / `.alert-warning`
+ * rose / gold variants, which stay categorical by design.
+ *
+ * NB: Bootstrap's .alert-success has higher specificity in some
+ * contexts. To override Bootstrap, apply both classes
+ * (class="alert .alert-success cl-status-success") OR scope this with
+ * `:where()` if your selector budget is tight.
+ */
+.cl-status-success {
+  background-color: var(--brand-primary-soft);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary-soft);
+}
+.cl-status-success--dot::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+
+/* ─── 5. Hero backdrop ────────────────────────────────────────────────
+ * The two-layer radial gradient (gold top-right + forest bottom-left)
+ * appeared on classroom-mode-shell, classroom_mode.html, and the
+ * auth-shell as a subtle full-bleed page atmosphere. The forest layer
+ * tracks brand; the gold layer stays gold because it intentionally
+ * provides a contrasting warm note regardless of tenant color.
+ *
+ * Apply on a `::before` or `::after` of a `.cl-hero-backdrop` host
+ * element (we use ::before so it sits behind content without needing
+ * z-index gymnastics). Host element must be `position: relative` or
+ * higher; pseudo gets fixed positioning so it covers the viewport.
+ */
+.cl-hero-backdrop {
+  position: relative;
+}
+.cl-hero-backdrop::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at top right,
+      color-mix(in srgb, var(--brand-secondary, #b7925a) 6%, transparent) 0%,
+      transparent 40%),
+    radial-gradient(ellipse at bottom left,
+      var(--brand-primary-soft) 0%,
+      transparent 45%);
+}
+/* Content layers above the backdrop. */
+.cl-hero-backdrop > * {
+  position: relative;
+  z-index: 1;
+}
+
+.cl-tabbar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .cl-tabbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: stretch;
+    height: 64px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    background: var(--paper, #ffffff);
+    border-top: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+    box-shadow: 0 -8px 24px -12px rgba(0, 0, 0, 0.12);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: var(--body, 'Inter', sans-serif);
+  }
+  .cl-tabbar.is-hidden {
+    transform: translateY(120%);
+  }
+
+  /* Hide the tab bar while the sidebar drawer is open. The sidebar's
+     z-index (50) is lower than the tab bar's (1000), so without this
+     rule the tab bar would overlay the bottom of the sidebar — the
+     user-profile/sign-out block at the foot of the rail got clipped
+     and tap targets in that area were intercepted by the tab bar.
+     Hiding it for the duration of the drawer also keeps a single
+     navigation surface visible at a time (cleanest mobile UX).
+     Two selectors:
+       • body.sidebar-open  — operations chrome (base_operation.html)
+       • body:has(.sidebar.open) — student chrome (student_base.html),
+         which toggles .open directly on the sidebar element instead
+         of mirroring the state at body. */
+  body.sidebar-open .cl-tabbar,
+  body:has(.sidebar.open) .cl-tabbar {
+    transform: translateY(120%);
+    pointer-events: none;
+  }
+
+  /* Pad the page so last-row content isn't covered. The +12px tail
+     gives breathing room above the bar. */
+  body.has-cl-tabbar { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px) !important; }
+  /* Also push the app shell content if it has its own bottom rule. */
+  body.has-cl-tabbar .app,
+  body.has-cl-tabbar .ll-shell,
+  body.has-cl-tabbar .student-shell,
+  body.has-cl-tabbar .cl-page {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px);
+  }
+
+  /* ── Individual tab button/link ────────────────────────────────── */
+  .cl-tab {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 6px 4px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    text-decoration: none;
+    color: var(--ink-muted, #94a3b8);
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cl-tab:active { transform: scale(0.96); }
+  .cl-tab-icon {
+    width: 32px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    position: relative;
+  }
+  .cl-tab-label {
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+
+  /* Active state — brand color icon + label, plus a 3px pill above */
+  .cl-tab.is-active {
+    color: var(--brand-primary, #b7925a);
+  }
+  .cl-tab.is-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 3px;
+    background: var(--brand-primary, #b7925a);
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* Unread badge on Messages */
+  .cl-tab-badge {
+    position: absolute;
+    top: -2px;
+    right: -6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    background: var(--danger, #c0392b);
+    color: #ffffff;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    border: 2px solid var(--paper, #ffffff);
+    box-sizing: content-box;
+  }
+
+  /* ── Center FAB ─────────────────────────────────────────────────── */
+  .cl-tab-fab {
+    position: relative;
+  }
+  .cl-tab-fab .cl-tab-fab-inner {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--brand-primary, #b7925a);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow:
+      0 8px 24px -6px var(--brand-primary-soft),
+      0 4px 8px -2px rgba(0, 0, 0, 0.12);
+    margin-top: -28px; /* lift above the bar's top edge */
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .cl-tab-fab:hover .cl-tab-fab-inner,
+  .cl-tab-fab:focus-visible .cl-tab-fab-inner {
+    transform: scale(1.04);
+  }
+  .cl-tab-fab:active .cl-tab-fab-inner { transform: scale(0.96); }
+  .cl-tab-fab .cl-tab-icon { display: none; }
+  .cl-tab-fab .cl-tab-label { display: none; }
+
+  /* ── Action-sheet backdrop ─────────────────────────────────────── */
+  .cl-tabbar-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 20, 0.45);
+    backdrop-filter: blur(2px);
+    z-index: 1100;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+  }
+  .cl-tabbar-sheet-backdrop.is-open { opacity: 1; }
+
+  /* ── Action sheet ──────────────────────────────────────────────── */
+  .cl-tabbar-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1101;
+    background: var(--paper, #ffffff);
+    border-radius: 24px 24px 0 0;
+    padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 -20px 48px -16px rgba(0, 0, 0, 0.18);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: var(--body, 'Inter', sans-serif);
+  }
+  .cl-tabbar-sheet.is-open { transform: translateY(0); }
+
+  .cl-tabbar-sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border-strong, rgba(0, 0, 0, 0.14));
+    border-radius: 4px;
+    margin: 6px auto 12px;
+    cursor: grab;
+    touch-action: none;
+  }
+  .cl-tabbar-sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 12px;
+    border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+    margin-bottom: 12px;
+  }
+  .cl-tabbar-sheet-head h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink, #1f2530);
+    letter-spacing: -0.01em;
+  }
+  .cl-tabbar-sheet-head h3 em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--brand-primary, #b7925a);
+  }
+  .cl-tabbar-sheet-close {
+    appearance: none;
+    background: var(--cream-2, #f3ede2);
+    border: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--ink-dim, #5e6473);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* ── Sheet body — vertical list of "primary action" items ────── */
+  .cl-sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 10px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--ink, #1f2530);
+    transition: background 0.15s ease;
+    background: transparent;
+    border: 0;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button.cl-sheet-item { font-size: inherit; }
+  .cl-sheet-hint {
+    margin: 4px 4px 12px;
+    padding: 8px 12px;
+    background: var(--cream-2, #f3ede2);
+    border-radius: 10px;
+    font-size: 12.5px;
+    color: var(--ink-dim, #6c7080);
+    line-height: 1.4;
+  }
+  .cl-sheet-empty {
+    text-align: center;
+    padding: 28px 16px;
+    color: var(--ink-dim, #6c7080);
+  }
+  .cl-sheet-empty i {
+    font-size: 28px;
+    color: var(--brand-primary, #b7925a);
+    margin-bottom: 10px;
+    display: block;
+  }
+  .cl-sheet-empty p { margin: 0; font-size: 13px; line-height: 1.5; }
+  .cl-sheet-item + .cl-sheet-item { margin-top: 2px; }
+  .cl-sheet-item:active { background: var(--cream-2, #f3ede2); }
+  .cl-sheet-item-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: var(--brand-primary-soft, rgba(183, 146, 90, 0.18));
+    color: var(--brand-primary, #b7925a);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .cl-sheet-item-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cl-sheet-item-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink, #1f2530);
+    line-height: 1.2;
+  }
+  .cl-sheet-item-sub {
+    font-size: 12.5px;
+    color: var(--ink-dim, #5e6473);
+    line-height: 1.3;
+  }
+  .cl-sheet-item-chev {
+    color: var(--ink-muted, #94a3b8);
+    font-size: 12px;
+  }
+
+  /* ── Sheet body — grid layout for the "More" overflow menu ───── */
+  .cl-tabbar-sheet-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .cl-sheet-grid-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 10px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--ink, #1f2530);
+    background: var(--cream-2, #f3ede2);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .cl-sheet-grid-item:active {
+    transform: scale(0.97);
+    background: var(--brand-primary-soft, rgba(183, 146, 90, 0.18));
+  }
+  .cl-sheet-grid-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: var(--paper, #ffffff);
+    color: var(--brand-primary, #b7925a);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+  }
+  .cl-sheet-grid-icon-danger { color: var(--danger, #c0392b); }
+  .cl-sheet-grid-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  /* Prevent the page underneath from scrolling while a sheet is open */
+  body.cl-tabbar-sheet-open { overflow: hidden; }
+}
+
+/* Dark theme — the bar surface inherits --paper / tokens, but the
+   shadow needs a darker variant for contrast. */
+@media (max-width: 768px) {
+  body[data-theme="dark"] .cl-tabbar {
+    box-shadow: 0 -10px 28px -10px rgba(0, 0, 0, 0.5);
+  }
+  body[data-theme="dark"] .cl-tabbar-sheet {
+    box-shadow: 0 -22px 56px -14px rgba(0, 0, 0, 0.6);
+  }
+}
+
+@media (max-width: 640px) {
+  .modal:not(.cl-no-sheet):not(.cl-cmdk):not(#mediaModal),
+  .modal:not(.cl-no-sheet).fade {
+    padding: 0 !important;
+  }
+  .modal:not(.cl-no-sheet) .modal-dialog,
+  .modal:not(.cl-no-sheet).modal-dialog-centered .modal-dialog {
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    pointer-events: none;
+  }
+  .modal:not(.cl-no-sheet) .modal-content {
+    pointer-events: auto;
+    width: 100%;
+    max-height: 88vh;
+    max-height: 88dvh;
+    border-radius: 20px 20px 0 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-bottom: 0 !important;
+    box-shadow: 0 -16px 48px -12px rgba(0, 0, 0, 0.35) !important;
+    position: relative;
+    top: 100vh;
+    transform: none !important;
+    transition: top 0.30s cubic-bezier(0.32, 0.72, 0, 1) !important;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal:not(.cl-no-sheet).show .modal-content { top: 0; }
+  .modal:not(.cl-no-sheet) .modal-dialog,
+  .modal:not(.cl-no-sheet).fade .modal-dialog,
+  .modal:not(.cl-no-sheet).show .modal-dialog {
+    transform: none !important;
+  }
+  .modal:not(.cl-no-sheet) .modal-content::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 44px; height: 4px;
+    border-radius: 100px;
+    background: var(--border-strong, rgba(0, 0, 0, 0.18));
+    z-index: 2;
+    pointer-events: none;
+  }
+  .modal:not(.cl-no-sheet) .modal-header {
+    padding-top: 24px !important;
+    border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+    flex-shrink: 0;
+  }
+  .modal:not(.cl-no-sheet) .modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+  }
+  .modal:not(.cl-no-sheet) .modal-footer {
+    flex-shrink: 0;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+  }
+
+  .modal-backdrop.show { opacity: 0.55; }
+
+  .rl-modal:not(.cl-no-sheet),
+  .rl-modal.rl-modal--compact:not(.cl-no-sheet),
+  .rl-modal.rl-modal--wide:not(.cl-no-sheet) {
+    left: 0 !important;
+    right: 0 !important;
+    top: 100% !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 88vh !important;
+    max-height: 88dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+    box-shadow: 0 -16px 48px -12px rgba(0, 0, 0, 0.35) !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: top 0.30s cubic-bezier(0.32, 0.72, 0, 1) !important;
+  }
+  .rl-modal.show:not(.cl-no-sheet) {
+    top: auto !important;
+    bottom: 0 !important;
+  }
+  .rl-modal:not(.cl-no-sheet)::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 44px; height: 4px;
+    border-radius: 100px;
+    background: var(--border-strong, rgba(0, 0, 0, 0.18));
+    z-index: 2;
+    pointer-events: none;
+  }
+  .rl-modal:not(.cl-no-sheet) .rl-modal-head,
+  .rl-modal:not(.cl-no-sheet) .rl-modal-header {
+    padding-top: 24px !important;
+    flex-shrink: 0;
+  }
+  .rl-modal:not(.cl-no-sheet) .rl-modal-content,
+  .rl-modal:not(.cl-no-sheet) .rl-modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .custom-modal:not(.cl-no-sheet) {
+    left: 0 !important;
+    right: 0 !important;
+    top: 100% !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 88vh !important;
+    max-height: 88dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+    box-shadow: 0 -16px 48px -12px rgba(0, 0, 0, 0.35) !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: top 0.30s cubic-bezier(0.32, 0.72, 0, 1) !important;
+  }
+  .custom-modal.show:not(.cl-no-sheet) {
+    top: auto !important;
+    bottom: 0 !important;
+  }
+  .custom-modal:not(.cl-no-sheet)::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 44px; height: 4px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.4);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .custom-modal:not(.cl-no-sheet) .custom-modal-header {
+    padding-top: 24px !important;
+    flex-shrink: 0;
+  }
+  .custom-modal:not(.cl-no-sheet) .custom-modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .custom-modal:not(.cl-no-sheet) .close-btn {
+    left: auto !important;
+    right: 16px !important;
+    top: 16px !important;
+  }
+
+  .modal:not(.cl-no-sheet) .btn-close,
+  .modal:not(.cl-no-sheet) .modal-header .btn-close,
+  .modal:not(.cl-no-sheet) [data-bs-dismiss="modal"].btn-close,
+  .rl-modal:not(.cl-no-sheet) .rl-modal-close,
+  .rl-modal:not(.cl-no-sheet) .modal-close,
+  .custom-modal:not(.cl-no-sheet) .close-btn,
+  .custom-modal:not(.cl-no-sheet) .custom-modal-close,
+  .cl-tabbar-sheet .cl-tabbar-sheet-close,
+  .cl-tabbar-sheet [data-cl-tabbar-sheet-close] {
+    display: none !important;
+  }
+
+  body > div:has(> iframe[src*="recaptcha/api2/bframe"]) {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+  iframe[src*="recaptcha/api2/bframe"] {
+    max-height: none !important;
+  }
+}
+
+.cl-inline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cl-inline-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: var(--cream-2, var(--paper, transparent));
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  color: var(--ink-dim, currentColor);
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cl-inline-action-btn > i {
+  font-size: 13px;
+  line-height: 1;
+  color: inherit;
+}
+.cl-inline-action-btn:hover,
+.cl-inline-action-btn:focus-visible {
+  background: var(--brand-primary-soft, var(--cream-2));
+  border-color: color-mix(in srgb, var(--brand-primary, #b7925a) 35%, var(--border));
+  color: var(--brand-primary, var(--ink));
+  transform: translateY(-1px);
+  outline: none;
+}
+.cl-inline-action-btn.delete-btn:hover,
+.cl-inline-action-btn.text-danger:hover {
+  background: color-mix(in srgb, var(--danger, #c0392b) 14%, transparent);
+  border-color: color-mix(in srgb, var(--danger, #c0392b) 40%, var(--border));
+  color: var(--danger, #c0392b);
+}
+
+/* ── Form submit loading state (cl-form-loading.js) ──────────────────
+   When a <form data-cl-loading> is submitted, its clicked submit
+   button gets `.is-loading` + an inline spinner replacing the icon.
+   Other submits in the same form get `disabled` but no spinner. */
+.cl-form-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: clFormSpin 0.75s linear infinite;
+  vertical-align: -2px;
+  margin-right: 8px;
+  opacity: 0.85;
+}
+.cl-form-spinner-label { font-weight: inherit; }
+
+button.is-loading,
+input[type="submit"].is-loading,
+button[aria-busy="true"],
+input[type="submit"][aria-busy="true"] {
+  cursor: progress !important;
+  pointer-events: none;
+  opacity: 0.92;
+}
+button.is-loading:hover,
+input[type="submit"].is-loading:hover {
+  transform: none !important;
+  filter: none !important;
+}
+
+@keyframes clFormSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-form-spinner { animation: none; }
+}
+
+.cl-autosave-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 18px 0;
+  padding: 14px 18px;
+  background: color-mix(in srgb, var(--brand-primary, #b7925a) 8%, var(--paper, #fff));
+  border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 28%, var(--border, rgba(0, 0, 0, 0.08)));
+  border-radius: 12px;
+  color: var(--ink, currentColor);
+  font-size: 14px;
+  line-height: 1.4;
+  animation: cl-autosave-slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cl-autosave-banner.is-dismissing {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.cl-autosave-banner-text {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.cl-autosave-banner-text > i {
+  color: var(--brand-primary, #b7925a);
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+.cl-autosave-banner-time {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--ink-dim, rgba(0, 0, 0, 0.5));
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.cl-autosave-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.cl-autosave-btn {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-family: inherit;
+  transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cl-autosave-btn-ghost {
+  background: transparent;
+  color: var(--ink-dim, currentColor);
+  border-color: color-mix(in srgb, var(--ink, #1f2024) 14%, transparent);
+}
+.cl-autosave-btn-ghost:hover,
+.cl-autosave-btn-ghost:focus-visible {
+  background: color-mix(in srgb, var(--ink, #1f2024) 6%, transparent);
+  color: var(--ink, currentColor);
+  outline: none;
+}
+.cl-autosave-btn-primary {
+  background: var(--brand-primary, #b7925a);
+  color: #fff;
+  border-color: var(--brand-primary, #b7925a);
+}
+.cl-autosave-btn-primary:hover,
+.cl-autosave-btn-primary:focus-visible {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--brand-primary, #b7925a) 88%, #000);
+  outline: none;
+}
+@keyframes cl-autosave-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 600px) {
+  .cl-autosave-banner {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+  .cl-autosave-banner-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cl-autosave-banner { animation: none; }
+  .cl-autosave-btn-primary:hover { transform: none; }
+}
+
+/* CM form-card mismatch: the banner inserts as first child of <form>
+   but the form's padding lives on its sibling .cm-form-body. Without
+   this rule the banner sits flush against the .cm-form-card's rounded
+   border with no horizontal breathing room. We inset it to match the
+   24px padding of cm-form-body, and add top margin to clear the
+   .cm-form-head divider. The closing 18px bottom margin from the
+   banner itself already gives gap to the form-body below. */
+.cm-form-card > form > .cl-autosave-banner {
+  margin: 16px 24px 18px 24px;
+}
+@media (max-width: 600px) {
+  .cm-form-card > form > .cl-autosave-banner {
+    margin: 12px 16px 14px 16px;
+  }
+}
+
+.cl-autosave-file-hint {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--brand-primary, #b7925a) 6%, var(--paper, #fff));
+  border: 1px dashed color-mix(in srgb, var(--brand-primary, #b7925a) 32%, var(--border, rgba(0, 0, 0, 0.08)));
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-dim, currentColor);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cl-autosave-file-hint > i {
+  color: var(--brand-primary, #b7925a);
+  flex: 0 0 auto;
+}
+.cl-autosave-file-hint strong {
+  color: var(--ink, currentColor);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * Global form theming — dark-mode friendly defaults for raw HTML
+ * inputs and Bootstrap's .form-control / .form-select.
+ *
+ * Design contract:
+ *   - Specificity is kept LOW (element selectors, plain class names).
+ *     Any page-specific selector — `.gbf-form .form-control`,
+ *     `.form-panel input`, etc. — continues to win.
+ *   - All colors are tokens (--paper / --ink / --ink-muted / --border)
+ *     which already invert between light + dark via body[data-theme].
+ *     So flipping the body theme repaints every form automatically.
+ *   - Native widget chrome (calendar picker, option lists, scrollbars)
+ *     is steered by `color-scheme`, which UAs honor per element.
+ * ════════════════════════════════════════════════════════════════════ */
+
+/* Tell the browser which surface palette to use for native widgets.
+   In dark mode this flips scrollbars, autofill backgrounds, date /
+   time pickers, dropdown option lists, and form validation popups
+   to their dark variants automatically. */
+:root, body[data-theme="light"] { color-scheme: light; }
+body[data-theme="dark"] { color-scheme: dark; }
+
+/* Raw HTML inputs — text color via token so a `<input>` with no
+   class still reads correctly on a dark canvas. Background is left
+   to user agents / page CSS since many components (inline edits,
+   search bars on tinted toolbars) rely on a transparent default. */
+input, select, textarea, button {
+  color: var(--ink, currentColor);
+}
+
+/* Universal placeholder — the single biggest dark-mode complaint.
+   Firefox defaults to opacity 0.54 so we set it explicitly. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-muted, #94a3b8);
+  opacity: 1;
+}
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+  color: var(--ink-muted, #94a3b8);
+  opacity: 1;
+}
+input::-moz-placeholder,
+textarea::-moz-placeholder {
+  color: var(--ink-muted, #94a3b8);
+  opacity: 1;
+}
+input:-ms-input-placeholder,
+textarea:-ms-input-placeholder {
+  color: var(--ink-muted, #94a3b8);
+  opacity: 1;
+}
+
+/* Bootstrap .form-control / .form-select — light mode looks identical
+   (--paper resolves to #fff), dark mode picks up the dark surface
+   token automatically. Border + text tracks the same tokens. */
+.form-control,
+.form-select {
+  background-color: var(--paper, #fff);
+  color: var(--ink, currentColor);
+  border-color: var(--border-strong, var(--border, rgba(0, 0, 0, 0.12)));
+}
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--paper, #fff);
+  color: var(--ink, currentColor);
+  border-color: var(--brand-primary, #b7925a);
+}
+.form-control::placeholder,
+.form-select::placeholder {
+  color: var(--ink-muted, #94a3b8);
+  opacity: 1;
+}
+.form-control:disabled,
+.form-control[readonly],
+.form-select:disabled {
+  background-color: var(--cream-2, #f3ede2);
+  color: var(--ink-dim, #6c7080);
+  cursor: not-allowed;
+}
+
+/* Native <option> rendering — Chrome / Firefox pull option-list
+   background from the parent select unless color-scheme is set on
+   the page. Belt-and-suspenders with explicit token here. */
+body[data-theme="dark"] select option,
+body[data-theme="dark"] .form-select option {
+  background-color: var(--paper, #1a2420);
+  color: var(--ink, #e8eaf0);
+}
+
+/* Date / time / month / week pickers — the dropdown arrow glyph
+   inside the input is rendered by the UA and uses a fixed light
+   color. Invert in dark mode so the icon is readable. */
+body[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+body[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator,
+body[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+body[data-theme="dark"] input[type="month"]::-webkit-calendar-picker-indicator,
+body[data-theme="dark"] input[type="week"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85) brightness(1.1);
+  cursor: pointer;
+}
+
+/* ── File inputs ─────────────────────────────────────────────────
+   Single global rule that paints the OS-native "Choose file" button
+   in our cream tokens, on every <input type="file"> in the app —
+   create pages, edit pages, Bootstrap .form-control or bare. The
+   negative margin makes the button sit flush against the parent's
+   left/top/bottom edge when the input is a bordered .form-control
+   (Bootstrap padding is 8px 12px); bare inputs ignore the negative
+   margin because they have no padding to absorb it into, and the
+   button still reads as a button. */
+.form-control[type="file"]::file-selector-button,
+input[type="file"]::file-selector-button {
+  background-color: var(--cream-2, #f3ede2);
+  color: var(--ink, currentColor);
+  border: 0;
+  padding: 8px 14px;
+  margin: -8px 12px -8px -12px;
+  border-radius: 8px 0 0 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 150ms ease, color 150ms ease;
+}
+.form-control[type="file"]::file-selector-button:hover,
+input[type="file"]::file-selector-button:hover {
+  background-color: var(--brand-primary-soft, color-mix(in srgb, var(--brand-primary, #b7925a) 18%, transparent));
+  color: var(--brand-primary, var(--ink));
+}
+
+/* Checkbox + radio — paper surface in light, cream-2 in dark so the
+   unchecked box still reads against a dark form card. */
+.form-check-input {
+  background-color: var(--paper, #fff);
+  border-color: var(--border-strong, var(--border, rgba(0, 0, 0, 0.16)));
+}
+body[data-theme="dark"] .form-check-input:not(:checked) {
+  background-color: var(--cream-2);
+}
+
+/* Autofill — Chromium paints a "remember me" yellow that fights both
+   light and dark palettes. Cap the inset shadow to our paper token
+   and force text to --ink. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--ink, currentColor);
+  -webkit-box-shadow: 0 0 0 1000px var(--paper, #fff) inset;
+  caret-color: var(--ink, currentColor);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Dark-mode contrast bump for fields our validation engine has flagged
+   as invalid. Gated on .is-invalid (added by cl-form-validation.js) so
+   empty required fields stay neutral on first paint — the red appears
+   only after the user blurs an empty field or trips the submit guard. */
+body[data-theme="dark"] input.is-invalid:not(:focus),
+body[data-theme="dark"] textarea.is-invalid:not(:focus),
+body[data-theme="dark"] select.is-invalid:not(:focus) {
+  border-color: color-mix(in srgb, var(--rose-deep, #b3261e) 60%, transparent);
+}
+
+@keyframes cl-skel-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.cl-skel {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ink, #1f2024) 6%, var(--paper, #fff)) 0%,
+    color-mix(in srgb, var(--ink, #1f2024) 14%, var(--paper, #fff)) 50%,
+    color-mix(in srgb, var(--ink, #1f2024) 6%, var(--paper, #fff)) 100%
+  );
+  background-size: 200% 100%;
+  animation: cl-skel-shimmer 1.4s linear infinite;
+  border-radius: 6px;
+  color: transparent;
+  user-select: none;
+}
+.cl-skel-line { height: 12px; width: 100%; }
+.cl-skel-line.lg { height: 16px; }
+.cl-skel-line.sm { height: 9px; }
+.cl-skel-circle { width: 36px; height: 36px; border-radius: 50%; flex: 0 0 auto; }
+.cl-skel-block { height: 120px; border-radius: 10px; }
+.cl-skel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cl-skel-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--paper, #fff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  border-radius: 12px;
+}
+.cl-skel-card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.cl-skel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.cl-skel-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--paper, #fff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  border-radius: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cl-skel { animation: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * Global label + helper-text theming — dark-mode friendly defaults
+ * for every "label-ish" surface across the app.
+ *
+ * Why this is needed:
+ *   - Bootstrap utility classes (`.text-muted`, `.form-label`,
+ *     `.form-text`) ship with hardcoded grays that only respond to
+ *     Bootstrap's own `data-bs-theme="dark"`. We theme via
+ *     `body[data-theme="dark"]`, so those classes never switch.
+ *   - Bare <label> tags without explicit color inherit from the
+ *     nearest colored ancestor — fragile across a 100-template
+ *     codebase. Pinning them to tokens guarantees readability.
+ *
+ * Specificity strategy: element-level + single-class selectors only.
+ * Page-specific overrides like `.ph-card-head h3` (0,2,0) continue
+ * to win.
+ * ════════════════════════════════════════════════════════════════════ */
+
+/* Raw label / legend / fieldset — primary text token */
+label,
+legend,
+fieldset > legend {
+  color: var(--ink, currentColor);
+}
+
+/* Bootstrap form labels and helper text */
+.form-label,
+.col-form-label,
+.form-check-label {
+  color: var(--ink, currentColor);
+}
+.form-text,
+.form-control-plaintext {
+  color: var(--ink-dim, currentColor);
+}
+
+/* Validation feedback — keep semantic color in both themes */
+.invalid-feedback {
+  color: var(--danger, #c0392b);
+}
+.valid-feedback {
+  color: var(--success, #1f8a4c);
+}
+
+/* Bootstrap text-utility classes — re-token them so they follow
+   body[data-theme] like everything else. We intentionally do NOT
+   touch `.text-primary`, `.text-success`, etc. since those carry
+   semantic meaning and should stay branded. */
+.text-muted,
+.text-secondary,
+.text-body-secondary {
+  color: var(--ink-dim, #6c7080) !important;
+}
+.text-body,
+.text-dark,
+.text-black {
+  color: var(--ink, currentColor) !important;
+}
+small,
+small.text-muted,
+.small {
+  color: inherit;
+}
+small.text-muted,
+.small.text-muted {
+  color: var(--ink-muted, #94a3b8) !important;
+}
+
+/* `<dt>` / `<dd>` pairs used in review steps + audit logs */
+dt { color: var(--ink-dim, currentColor); font-weight: 600; }
+dd { color: var(--ink, currentColor); }
+
+/* Field-help spans + hint labels (project conventions) */
+.field-help,
+.hint-text,
+.help-text,
+.text-hint {
+  color: var(--ink-dim, currentColor);
+}
+
+/* Bootstrap card-text / card-subtitle defaults are gray; theme them. */
+.card-text { color: var(--ink, currentColor); }
+.card-subtitle { color: var(--ink-dim, currentColor); }
+
+/* Bootstrap modal title — uses default heading color which may be
+   inherited. Pin it to --ink so modal headers are always readable. */
+.modal-title,
+.modal-header h1,
+.modal-header h2,
+.modal-header h3,
+.modal-header h4,
+.modal-header h5,
+.modal-header h6 {
+  color: var(--ink, currentColor);
+}
+
+/* Bootstrap close button (X) — its glyph is a black-tinted SVG mask.
+   In dark mode that vanishes; invert it. */
+body[data-theme="dark"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(2);
+}
+
+/* Bootstrap alert text — alerts are colored boxes with their own bg;
+   their text color needs to track the alert's color family, not --ink.
+   We don't touch them — the existing Bootstrap rules win. The only
+   exception is alerts with bare HTML where text uses inherited color: */
+.alert {
+  /* Force alert text to its semantic dark variant in light mode,
+     to its semantic light variant in dark mode. Bootstrap's own
+     .alert-* classes still win where defined. */
+  color: inherit;
+}
+
+/* SweetAlert2 titles / text — only relevant for the modal popups
+   used across the app. Their default text is a dark gray hex that
+   stays the same in both themes (fails in dark). Override here so
+   confirmation dialogs are readable. */
+body[data-theme="dark"] .swal2-popup {
+  background: var(--paper);
+  color: var(--ink);
+}
+body[data-theme="dark"] .swal2-title,
+body[data-theme="dark"] .swal2-html-container {
+  color: var(--ink);
+}
+body[data-theme="dark"] .swal2-input,
+body[data-theme="dark"] .swal2-textarea,
+body[data-theme="dark"] .swal2-select {
+  background: var(--cream-2);
+  color: var(--ink);
+  border-color: var(--border-strong);
+}
+
+/* Bootstrap dropdown menu — labels inside often use --bs-dropdown-link-color
+   which is a fixed light-mode value. Token it. */
+.dropdown-menu {
+  background: var(--paper, #fff);
+  border-color: var(--border, rgba(0, 0, 0, 0.1));
+  color: var(--ink, currentColor);
+  box-shadow: var(--shadow, 0 8px 24px -8px rgba(0, 0, 0, 0.18));
+}
+.dropdown-menu .dropdown-item {
+  color: var(--ink, currentColor);
+}
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus {
+  background: var(--brand-primary-soft, color-mix(in srgb, var(--brand-primary, #b7925a) 14%, transparent));
+  color: var(--ink, currentColor);
+}
+.dropdown-menu .dropdown-header {
+  color: var(--ink-muted, #94a3b8);
+}
+.dropdown-menu .dropdown-divider {
+  border-color: var(--border, rgba(0, 0, 0, 0.08));
+}
+
+/* Bootstrap badge — `.badge` defaults to white text on dark bg.
+   When used WITHOUT a color modifier (`.bg-primary`, etc.) the text
+   color stays white which fails on light surfaces. Leave colored
+   variants alone; only the unstyled badge gets tokenized. */
+.badge:not([class*="bg-"]):not([class*="text-bg-"]) {
+  color: var(--ink, currentColor);
+  background: var(--cream-2, #f3ede2);
+}
+
+/* Tooltip / popover — brand-token theming.
+   Bootstrap's defaults paint tooltips solid black with white text; that
+   reads as a foreign element on top of our paper-toned UI and looks
+   especially harsh in light mode. Repaint both the bubble and the
+   arrow with our token system so they match labels/cards. */
+.tooltip {
+  --bs-tooltip-bg: var(--ink, #2d3142);
+  --bs-tooltip-color: var(--paper, #ffffff);
+  --bs-tooltip-opacity: 1;
+  --bs-tooltip-border-radius: 8px;
+  --bs-tooltip-padding-x: 10px;
+  --bs-tooltip-padding-y: 6px;
+  --bs-tooltip-font-size: 12px;
+  font-family: 'Inter Tight', 'Inter', system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+}
+.tooltip-inner {
+  background-color: var(--ink, #2d3142);
+  color: var(--paper, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--ink, #2d3142) 88%, transparent);
+  box-shadow: 0 6px 18px -8px rgba(15, 23, 42, 0.28);
+  max-width: 280px;
+  line-height: 1.45;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+/* Arrow color follows the tooltip bg via the CSS var so all four sides work. */
+.tooltip .tooltip-arrow::before { border-top-color: var(--ink, #2d3142); }
+.bs-tooltip-bottom .tooltip-arrow::before,
+.tooltip.bs-tooltip-auto[data-popper-placement^="bottom"] .tooltip-arrow::before { border-bottom-color: var(--ink, #2d3142); }
+.bs-tooltip-start .tooltip-arrow::before,
+.tooltip.bs-tooltip-auto[data-popper-placement^="left"] .tooltip-arrow::before { border-left-color: var(--ink, #2d3142); }
+.bs-tooltip-end .tooltip-arrow::before,
+.tooltip.bs-tooltip-auto[data-popper-placement^="right"] .tooltip-arrow::before { border-right-color: var(--ink, #2d3142); }
+
+/* Popover (the bigger flyout panel, distinct from tooltip) */
+.popover-body { color: var(--ink, currentColor); background: var(--paper, #fff); }
+.popover-header {
+  background: var(--cream-2, #f3ede2);
+  color: var(--ink, currentColor);
+  border-bottom-color: var(--border, rgba(0,0,0,0.08));
+}
+
+/* Tables — Bootstrap's `.table` defaults to a black text color set on
+   the wrapper. In dark mode that fails. Re-token the base table; pages
+   that style their own tables (`.cl-table`, etc.) keep their look. */
+.table:not(.cl-table):not(.gbf-table) {
+  --bs-table-color: var(--ink);
+  --bs-table-bg: transparent;
+  --bs-table-border-color: var(--border);
+  --bs-table-striped-color: var(--ink);
+  --bs-table-striped-bg: color-mix(in srgb, var(--brand-primary, #b7925a) 4%, transparent);
+  --bs-table-hover-color: var(--ink);
+  --bs-table-hover-bg: color-mix(in srgb, var(--brand-primary, #b7925a) 8%, transparent);
+  color: var(--ink);
+}
+
+/* Pagination — `.page-link` defaults to a fixed blue. Theme it. */
+.pagination .page-link {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--border);
+}
+.pagination .page-link:hover {
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+.pagination .page-item.active .page-link {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #fff;
+}
+.pagination .page-item.disabled .page-link {
+  background: var(--paper);
+  color: var(--ink-muted);
+  border-color: var(--border);
+}
+
+/* Bootstrap close-on-light-bg modal X — additional dark-mode catch */
+body[data-theme="dark"] .modal-header .btn-close,
+body[data-theme="dark"] .offcanvas-header .btn-close {
+  filter: invert(1);
+}
+
+/* Bootstrap inline code / kbd / mark elements — high-readability tokens */
+code, kbd, samp {
+  color: var(--brand-primary, #b7925a);
+  background: var(--cream-2, #f3ede2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+mark {
+  background: var(--brand-primary-soft, rgba(183, 146, 90, 0.22));
+  color: var(--ink, inherit);
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * Django ClearableFileInput — redesigned as a card
+ *
+ * Django renders FileField/ImageField (when editing) as:
+ *   <p>Currently: <a>filename</a>
+ *      <input type="checkbox" name="X-clear">
+ *      <label>Clear</label>
+ *      <br>
+ *      Change: <input type="file" name="X"></p>
+ *
+ * None of those elements have classes, so we identify the wrapper via
+ * the unique `name="*-clear"` checkbox child using :has(). The bare
+ * text nodes ("Currently:", "Change:") get hidden via the font-size:0
+ * trick on the wrapper (children are restored explicitly).
+ *
+ * Result: a self-labeled card with the existing file as a chip + an
+ * external-link icon, a styled remove toggle, and the new-file input
+ * sitting in its own row below a dashed separator.
+ *
+ * Browser support: :has() (Chrome 105+, Firefox 121+, Safari 15.4+).
+ * Older browsers fall through to the simple-color fallback at the end.
+ * ════════════════════════════════════════════════════════════════════ */
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
+  border-radius: 12px;
+  background: var(--cream-2, #f3ede2);
+  font-size: 0;             /* Hides Django's bare "Currently:" / "Change:" text */
+  line-height: 1.4;
+  color: transparent;
+  position: relative;
+}
+
+/* "CURRENT FILE" eyebrow injected at the top of the card */
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"])::before {
+  content: 'Current file';
+  flex-basis: 100%;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim, #6c7080);
+  margin-bottom: -2px;
+}
+
+/* Restore real font-size on actual children */
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > * {
+  font-size: 13.5px;
+  color: var(--ink, currentColor);
+}
+
+/* The existing file as a chip with FontAwesome file icon + ext-link icon */
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 9px 12px;
+  background: var(--paper, #fff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
+  border-radius: 8px;
+  color: var(--ink, currentColor);
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > a::before {
+  content: '\f15b';                /* fa-file */
+  font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
+  font-weight: 900;
+  color: var(--brand-primary, #b7925a);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > a::after {
+  content: '\f08e';                /* fa-external-link */
+  font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
+  font-weight: 900;
+  color: var(--ink-muted, #94a3b8);
+  font-size: 11px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > a:hover {
+  border-color: var(--brand-primary, #b7925a);
+  background: var(--brand-primary-soft, color-mix(in srgb, var(--brand-primary, #b7925a) 12%, transparent));
+}
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > a:hover::after {
+  color: var(--brand-primary, #b7925a);
+}
+
+/* Hide Django's clear checkbox with the standard sr-only pattern so it
+   stays fully functional (label-for activation, form submission with
+   `<field>-clear=on`, accessibility). pointer-events:none would block
+   label-for activation in some browsers — clip/visibility-hidden is
+   the safer choice. */
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > input[type="checkbox"][name$="-clear"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Surface Django's <label>Clear</label> as a destructive Remove pill.
+   The original "Clear" text is hidden by font-size:0 on the label;
+   ::before/::after restore their own font-size so the icon + label
+   ("Remove" / "Marked for removal") are visible. */
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > input[name$="-clear"] + label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: color-mix(in srgb, var(--rose, #c08479) 14%, transparent);
+  color: var(--rose-deep, var(--rose, #c08479));
+  border: 1px solid color-mix(in srgb, var(--rose, #c08479) 35%, transparent);
+  border-radius: 100px;
+  font-size: 0;            /* hides Django's "Clear" text node */
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > input[name$="-clear"] + label::before {
+  content: '\f1f8';        /* fa-trash */
+  font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
+  font-weight: 900;
+  font-size: 11px;
+}
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > input[name$="-clear"] + label::after {
+  content: 'Remove';
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > input[name$="-clear"] + label:hover {
+  background: var(--rose, #c08479);
+  color: #fff;
+  border-color: var(--rose, #c08479);
+  transform: translateY(-1px);
+}
+/* "Will remove on save" visual — when the user has ticked Clear. */
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]:checked) > input[name$="-clear"] + label {
+  background: var(--rose, #c08479);
+  color: #fff;
+  border-color: var(--rose, #c08479);
+}
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]:checked) > input[name$="-clear"] + label::before {
+  content: '\f00c';        /* fa-check */
+}
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]:checked) > input[name$="-clear"] + label::after {
+  content: 'Marked for removal';
+}
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]:checked) > a {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+/* Django's <br> — hidden, flex-wrap handles the row break via flex-basis */
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > br {
+  display: none;
+}
+
+/* "OR UPLOAD A REPLACEMENT" eyebrow — separates the current-file row
+   from the new-file row. Pushed to the end of flex layout via order. */
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"])::after {
+  content: 'Or upload a replacement';
+  flex-basis: 100%;
+  order: 1;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim, #6c7080);
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-strong, var(--border, rgba(0, 0, 0, 0.14)));
+}
+
+/* New-file picker row — bare layout, the brand-pill picker button
+   (from the global file-input theming) carries all the visual weight. */
+:where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > input[type="file"] {
+  flex-basis: 100%;
+  width: 100%;
+  order: 2;
+  padding: 4px 0 2px;
+  background: transparent;
+  border: 0;
+}
+
+/* Dark-mode tonal tweak — the card uses --cream-2 which already
+   inverts via the token; this just brightens the inner file chip
+   border so it's not lost on a dark surface. */
+body[data-theme="dark"] :where(p, div, .field, .form-group, dd):has(> input[type="checkbox"][name$="-clear"]) > a {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--paper) 70%, var(--cream-2));
+}
+
+/* Fallback for browsers without :has() — at minimum, color the link
+   and the Clear label so the text is readable in dark mode. */
+input[type="checkbox"][name$="-clear"] + label {
+  color: var(--ink-dim, currentColor);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * Choices.js — design system + theme-aware X buttons
+ *
+ * Lifted from activity/assessments/_assessment-form-assets.html so the
+ * same look applies to every page that uses Choices.js, not just the
+ * assessment forms. The .choices__button X uses mask-image instead of
+ * background-image so its color tracks var(--ink) — readable in both
+ * light and dark themes.
+ *
+ * Per-page selectors with higher specificity (e.g. `.form-panel
+ * .choices__inner`) continue to win where they exist; this file
+ * provides the baseline.
+ * ════════════════════════════════════════════════════════════════════ */
+.choices {
+  margin: 0;
+  font-family: var(--body, 'Inter', sans-serif);
+  font-size: 14px;
+}
+.choices__inner {
+  background: var(--cream, var(--paper, #fff));
+  border: 1px solid var(--border-strong, var(--border, rgba(0, 0, 0, 0.14)));
+  border-radius: var(--radius-sm, 8px);
+  padding: 6px 10px;
+  min-height: 42px;
+  color: var(--ink, currentColor);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.choices.is-focused .choices__inner,
+.choices.is-open .choices__inner {
+  border-color: var(--brand-primary, #b7925a);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+.choices__placeholder,
+.choices__list--single .choices__placeholder,
+.choices__list--multiple .choices__placeholder,
+.choices__input::placeholder {
+  color: var(--ink-muted, #94a3b8);
+  opacity: 1;
+}
+.choices__input {
+  background: transparent;
+  color: var(--ink, currentColor);
+}
+.choices__list--multiple .choices__item {
+  background: var(--brand-primary-soft);
+  color: var(--ink);
+  border: none;
+  border-radius: 100px;
+  padding: 4px 12px 4px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  margin: 2px 4px 2px 0;
+}
+
+/* Theme-friendly X button — replace the default hard-coded dark SVG
+   with a CSS mask so the icon color comes from background-color
+   (which we point at var(--ink)). In dark mode --ink is light, in
+   light mode --ink is dark, so the X is always readable. */
+.choices__list--multiple .choices__item .choices__button {
+  border-left: 1px solid color-mix(in srgb, var(--ink, #000) 14%, transparent) !important;
+  margin-left: 8px !important;
+  width: 14px !important;
+  height: 14px !important;
+  padding: 0 !important;
+  background-image: none !important;
+  background-color: var(--ink, #1f2530) !important;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z' fill='black'/></svg>");
+          mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z' fill='black'/></svg>");
+  -webkit-mask-size: contain;
+          mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+          mask-position: center;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+}
+.choices__list--multiple .choices__item .choices__button:hover,
+.choices__list--multiple .choices__item .choices__button:focus {
+  opacity: 1;
+  background-color: var(--rose, #c08479) !important;
+  transform: scale(1.05);
+  outline: none;
+}
+
+.choices__list--dropdown,
+.choices__list[aria-expanded] {
+  border-color: var(--border-strong, var(--border)) !important;
+  border-radius: var(--radius-sm, 8px) !important;
+  box-shadow: var(--shadow, 0 8px 24px -8px rgba(0, 0, 0, 0.18));
+  background: var(--paper, #fff) !important;
+  color: var(--ink, currentColor) !important;
+}
+.choices__list--dropdown .choices__item,
+.choices__list[aria-expanded] .choices__item {
+  color: var(--ink, currentColor) !important;
+  background: transparent;
+}
+.choices__list--dropdown .choices__item--selectable.is-highlighted,
+.choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
+  background: var(--brand-primary-soft) !important;
+  color: var(--ink) !important;
+}
+.choices__list--dropdown .choices__input,
+.choices__list[aria-expanded] .choices__input {
+  background: var(--cream-2, var(--cream, var(--paper))) !important;
+  color: var(--ink, currentColor) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ── Classroom Mode pill badge ─────────────────────────────────────
+   Used on pages that extend base_operation.html (not the CM shell)
+   to signal "this is the CM variant of the form". Rendered via
+   templates/includes/_cm_mode_badge.html with variant="badge".
+   Keyframe name is cmBadgePulse (not cmPulse) so it can't collide
+   with the .cm-eyebrow pulse defined in classroom-mode-shell.css. */
+.cm-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 32%, transparent);
+}
+.cm-mode-badge .pulse {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  animation: cmBadgePulse 1.6s ease-in-out infinite;
+}
+@keyframes cmBadgePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(1.4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-mode-badge .pulse { animation: none; }
+}

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Attendance" %}
+  <style>
+    .cm-attendance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+    .cm-att-card { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 18px; text-align: center; transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s; }
+    .cm-att-card:hover { transform: translateY(-3px); border-color: var(--brand-primary, #1b4332); box-shadow: var(--shadow-hover); }
+    .cm-att-photo { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid var(--brand-primary-soft); margin: 0 auto 10px; display: block; }
+    .cm-att-name { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0 0 8px; line-height: 1.25; }
+    .cm-att-date { font-size: 11.5px; color: var(--ink-muted); margin: 4px 0 12px; }
+  </style>
+</head>
+<body>
+  <div class="cm-shell wide">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Attendance <em>list</em></h1>
+          <div class="cm-subtitle">{{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %}</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to classroom</a>
+          <a href="{% url 'material-list' subject.id %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-card">
+      <div class="cm-card-head">
+        <h2 class="cm-card-title"><span class="icon"><i class="fas fa-calendar-check"></i></span> Records</h2>
+        <form method="get" action="" style="display: inline-flex; align-items: center; gap: 10px; margin: 0;">
+          <label for="date" style="font-size: 11.5px; font-weight: 700; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; margin: 0;">Date</label>
+          <select name="date" id="date" class="cm-form-select" onchange="this.form.submit()"
+                  style="background: var(--cream); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--ink); padding: 8px 12px; font-size: 13px;">
+            {% for date in available_dates %}
+              <option value="{{ date|date:'Y-m-d' }}" {% if date == selected_date %}selected{% endif %}>{{ date|date:'M j, Y' }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+      <div class="cm-card-body">
+        <div class="cm-attendance-grid">
+          {% for record in attendance %}
+            <div class="cm-att-card">
+              {% if record.student.profile.student_photo %}
+                <img src="{{ record.student.profile.student_photo.url }}" alt="" class="cm-att-photo">
+              {% else %}
+                <img src="{% static 'assets/dist/images/def_user.jpg' %}" alt="" class="cm-att-photo">
+              {% endif %}
+              <h3 class="cm-att-name">{{ record.student.profile.last_name|default:record.student.last_name }}, {{ record.student.profile.first_name|default:record.student.first_name }}</h3>
+              <div>
+                {% if record.status.status == 'Present' %}
+                  <span class="cm-pill present"><i class="fas fa-check"></i> Present</span>
+                {% elif record.status.status == 'Present_Online' %}
+                  <span class="cm-pill present"><i class="fas fa-laptop"></i> Online</span>
+                {% elif record.status.status == 'Late' %}
+                  <span class="cm-pill late"><i class="fas fa-clock"></i> Late</span>
+                {% elif record.status.status == 'Absent' %}
+                  <span class="cm-pill absent"><i class="fas fa-times"></i> Absent</span>
+                {% elif record.status.status == 'Excused' %}
+                  <span class="cm-pill excused"><i class="fas fa-file-alt"></i> Excused</span>
+                {% else %}
+                  <span class="cm-pill muted">{{ record.status.status|default:"—" }}</span>
+                {% endif %}
+              </div>
+              <div class="cm-att-date">{{ record.date|date:"M j, Y" }}</div>
+              <button class="cm-btn primary cm-btn-sm" style="width: 100%; justify-content: center;" onclick="openEditModal({{ record.id }})">
+                <i class="fas fa-pen"></i> Update
+              </button>
+            </div>
+          {% empty %}
+            <div class="cm-empty" style="grid-column: 1 / -1;">
+              <i class="fas fa-clipboard-list"></i>
+              <div class="lead">No attendance for this date</div>
+              <div>Pick another date from the dropdown above.</div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit modal (custom — fetched partial) -->
+  <div id="editModal" class="custom-modal">
+    <div class="custom-modal-header d-flex justify-content-between">
+      <h5>Edit attendance</h5>
+      <button class="close-btn" id="closeEditModalBtn"></button>
+    </div>
+    <div class="custom-modal-body" id="editModalBody"></div>
+  </div>
+  <div id="editModalBackdrop" class="custom-modal-backdrop"></div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script>
+    function openEditModal(recordId) {
+      fetch('/update_attendance_CM/' + recordId + '/')
+        .then(r => r.text())
+        .then(html => {
+          document.getElementById('editModalBody').innerHTML = html;
+          document.getElementById('editModal').classList.add('show');
+          document.getElementById('editModalBackdrop').classList.add('show');
+          var closeBtn = document.getElementById('closeEditModalBtn');
+          if (closeBtn) closeBtn.addEventListener('click', function () {
+            document.getElementById('editModal').classList.remove('show');
+            document.getElementById('editModalBackdrop').classList.remove('show');
+          });
+        });
+    }
+
+    function displayToast(message, icon) {
+      Swal.fire({ toast: true, position: 'top-end', icon: icon, title: message, showConfirmButton: false, timer: 5000, timerProgressBar: true });
+    }
+    {% if messages %}
+      {% for message in messages %}
+        displayToast("{{ message|escapejs }}", "{% if message.tags == 'error' %}error{% else %}success{% endif %}");
+      {% endfor %}
+    {% endif %}
+  </script>
+  <script src="{% static 'js/classroom-mode.js' %}"></script>
+  <script src="{% static 'js/classroom-mode-full-screen.js' %}"></script>
+  <script src="{% static 'js/modal.js' %}"></script>
+</body>
+</html>

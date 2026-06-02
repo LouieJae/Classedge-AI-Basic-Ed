@@ -1,0 +1,31 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Program Report{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-graduation-cap me-2"></i>Students Per Program</h2>
+        <p>Enrollment headcount broken down by program and year level for the active semester.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="course-report">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+      </div>
+    </div>
+
+    <div id="cl-course-report-wrapper" class="cl-table-wrapper" data-cl-async-table data-base-url="{% url 'course-report' %}">
+      {% include "includes/_list_table.html" %}
+    </div>
+  </div>
+
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script src="{% static 'accounts/reports/course_report.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-course-report.js' %}" defer></script>
+{% endblock %}

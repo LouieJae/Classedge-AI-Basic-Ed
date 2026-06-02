@@ -1,0 +1,109 @@
+{% extends 'student_base.html' %}
+{% load static %}
+{% block title %}Quest Map — {{ subject.subject_name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'gamification/student/quest_map.css' %}" />
+
+<div class="qm-shell">
+  <div class="qm-head">
+    <div>
+      <h1 class="page-title">{{ subject.subject_name }}</h1>
+      <p class="page-sub">Your quest map · journey through the modules</p>
+    </div>
+    <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="cl-tour-replay" data-cl-tour="quest-map">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      <a href="{% url 'quest_map_picker' %}" class="qm-back"><i class="fas fa-arrow-left"></i> All Subjects</a>
+    </div>
+  </div>
+
+  {% if quest_level_pct is not None %}
+  <div class="qm-stat" style="margin-bottom:16px;">
+    <div class="qm-stat-icon total"><i class="fas fa-star"></i></div>
+    <div><div class="qm-stat-val">{{ quest_level_pct }}%</div><div class="qm-stat-lbl">Quest Level</div></div>
+  </div>
+  {% endif %}
+
+  {% if nodes %}
+  <div class="qm-stats">
+    <div class="qm-stat">
+      <div class="qm-stat-icon total"><i class="fas fa-map"></i></div>
+      <div><div class="qm-stat-val">{{ total_count }}</div><div class="qm-stat-lbl">Total Quests</div></div>
+    </div>
+    <div class="qm-stat">
+      <div class="qm-stat-icon done"><i class="fas fa-check-circle"></i></div>
+      <div><div class="qm-stat-val">{{ completed_count }}</div><div class="qm-stat-lbl">Completed</div></div>
+    </div>
+    <div class="qm-stat">
+      <div class="qm-stat-icon active"><i class="fas fa-flag-checkered"></i></div>
+      <div><div class="qm-stat-val">{{ active_count }}</div><div class="qm-stat-lbl">In Progress</div></div>
+    </div>
+    <div class="qm-stat">
+      <div class="qm-stat-icon locked"><i class="fas fa-lock"></i></div>
+      <div><div class="qm-stat-val">{{ locked_count }}</div><div class="qm-stat-lbl">Locked</div></div>
+    </div>
+  </div>
+
+  <div class="qm-progress-bar">
+    <div class="qm-progress-bar-head">
+      <div class="label">Subject Progress</div>
+      <div class="pct">{{ progress_pct }}%</div>
+    </div>
+    <div class="qm-progress-track">
+      <div class="qm-progress-fill" style="width:{{ progress_pct }}%;"></div>
+    </div>
+  </div>
+
+  <div class="qm-map-wrap">
+    <svg class="qm-svg" viewBox="0 0 {{ canvas_w }} {{ canvas_h }}" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="qm-path-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="var(--mint,#4ade80)" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="var(--gold,#f5c84c)" stop-opacity="0.4"/>
+        </linearGradient>
+      </defs>
+      <path d="M {% for node in nodes %}{{ node.x }},{{ node.y }}{% if not forloop.last %} L {% endif %}{% endfor %}"
+            fill="none" stroke="url(#qm-path-grad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="2,12" />
+
+      {% for node in nodes %}
+      <g class="qm-node {{ node.state }}" transform="translate({{ node.x }},{{ node.y }})">
+        <circle class="bg" r="28"/>
+        {% if node.state == 'done' %}
+          <text class="idx" y="2">&#10003;</text>
+        {% elif node.state == 'locked' %}
+          <text class="idx" y="2" style="font-size:14px;">&#128274;</text>
+        {% else %}
+          <text class="idx" y="2">{{ node.idx }}</text>
+        {% endif %}
+        <text class="lbl" y="56">{{ node.name|truncatechars:18 }}</text>
+      </g>
+      {% endfor %}
+    </svg>
+  </div>
+
+  <div class="qm-cta">
+    <div class="meta">
+      <div class="pin"><i class="fas fa-location-dot"></i></div>
+      <div class="info">
+        <div class="ttl">Next Quest</div>
+        <div class="val">{% if current_module %}{{ current_module.file_name }}{% else %}All quests complete &mdash; nice work!{% endif %}</div>
+      </div>
+    </div>
+    <div class="qm-cta-actions">
+      <a href="{% url 'side_activity_list' subject.pk %}" class="qm-btn secondary"><i class="fas fa-gamepad"></i> Play &amp; Learn</a>
+      {% if continue_url and current_module %}
+      <a href="{{ continue_url }}" class="qm-btn">Continue Learning <i class="fas fa-arrow-right"></i></a>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="qm-empty">
+    <i class="fas fa-puzzle-piece"></i>
+    <p>No modules found for this subject yet.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script src="{% static 'js/tours/cl-tour-quest-map.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Activities" %}
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css" />
+  <link rel="stylesheet" href="{% static 'activity/cm/assessment-list-cm.css' %}" />
+</head>
+<body>
+  <div class="cm-shell wide">
+
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Assessments <em>list</em></h1>
+          <div class="cm-subtitle">{{ subject.subject_name }}{% if subject.subject_code %} · {{ subject.subject_code }}{% endif %}</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'classroom_mode' subject.id %}" class="cm-btn ghost">
+            <i class="fas fa-arrow-left"></i> Back to Classroom
+          </a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger">
+            <i class="fas fa-sign-out-alt"></i> Exit Classroom Mode
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-toolbar">
+      <a href="{% url 'import-assessments-from-previous-semester-cm' subject_id=subject.id %}" class="cm-btn primary">
+        <i class="fas fa-clock-rotate-left"></i> Import from previous semester
+      </a>
+      <a href="{% url 'copy-assessments-from-subject-cm' target_subject_id=subject.id %}" class="cm-btn gold">
+        <i class="fas fa-copy"></i> Import from another subject
+      </a>
+    </div>
+
+    <div class="cm-card">
+      <div class="cm-card-head">
+        <h2 class="cm-card-title">
+          <span class="icon"><i class="fas fa-list-check"></i></span>
+          Assessments
+        </h2>
+        <span class="cm-card-meta">{{ activities|length }} total</span>
+      </div>
+
+      <div class="cm-table-wrap">
+        <table id="activitiesTable" class="cm-table cm-activity-table">
+          <thead>
+            <tr>
+              <th style="width:60px;">#</th>
+              <th>Assessment</th>
+              <th>Term</th>
+              <th>Start</th>
+              <th>End</th>
+              <th class="text-center">Show Score</th>
+              <th style="width:80px;" class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for activity in activities %}
+              <tr>
+                <td><span class="row-num">{{ forloop.counter }}</span></td>
+                <td class="activity-name">{{ activity.activity_name }}</td>
+                <td>{% if activity.term %}<span class="cm-pill">{{ activity.term.term_name }}</span>{% else %}—{% endif %}</td>
+                <td><span class="cm-time">{{ activity.start_time|date:"M d, Y · h:i A" }}</span></td>
+                <td><span class="cm-time">{{ activity.end_time|date:"M d, Y · h:i A" }}</span></td>
+                <td class="text-center">
+                  <label class="cm-switch">
+                    <input type="checkbox" data-activity-id="{{ activity.id }}" class="show-score-checkbox" {% if activity.show_score %}checked{% endif %}>
+                    <span class="slider"></span>
+                  </label>
+                </td>
+                <td class="text-center">
+                  <div class="cm-row-actions">
+                    <button type="button" class="trigger" onclick="cmToggleActions(this)">
+                      <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <div class="menu">
+                      <a href="{% url 'update-assessment-cm' activity.id %}"><i class="fas fa-pen"></i> Update</a>
+                      <form method="post" action="{% url 'delete-assessment' activity.id %}" class="delete-form">
+                        {% csrf_token %}
+                        <button type="button" class="delete-btn danger" data-id="{{ activity.id }}">
+                          <i class="fas fa-trash"></i> Delete
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7">
+                  <div class="cm-empty">
+                    <i class="fas fa-clipboard-list"></i>
+                    <div class="lead">No assessments yet</div>
+                    <div>Add assessments from Classroom Mode to see them here.</div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  {% include "includes/_cm_scripts.html" %}
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
+  <script src="{% static 'js/classroom-mode.js' %}"></script>
+  <script src="{% static 'js/classroom-mode-full-screen.js' %}"></script>
+  <script src="{% static 'js/file-validation.js' %}"></script>
+  <script src="{% static 'js/modal.js' %}"></script>
+
+  <script>
+    window.CM_TOGGLE_SHOW_SCORE_URL_TEMPLATE = "{% url 'toggleShowScore' 0 %}";
+    window.CM_CSRF_TOKEN = "{{ csrf_token }}";
+  </script>
+  <script src="{% static 'activity/cm/assessment-list-cm.js' %}"></script>
+</body>
+</html>

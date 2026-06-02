@@ -1,0 +1,402 @@
+{% extends is_student_role|yesno:"student_base.html,base.html" %}
+{% load static %}
+{% block title %}
+  Dashboard
+{% endblock %}
+{% block content %}
+<div class="row mb-2 align-items-center d-flex justify-content-between">
+  <!-- Left Section: Greeting -->
+  <div class="col-sm-6">
+    <h1>{{ greeting }} {{ user_name }}!</h1>
+    <p>Welcome to the {{ SCHOOL_SHORT_NAME }} Learning Management System</p>
+  </div>
+
+  <!-- Right Section: Semester -->
+    <div class="col-sm-6 text-end">
+      <h3 class="mb-0">
+        {% if current_semester %}
+          {% if current_semester.semester_name == "First Semester" %}
+            1st Sem -
+          {% elif current_semester.semester_name == "Second Semester" %}
+            2nd Sem -
+          {% elif current_semester.semester_name == "Third Semester" %}
+            3rd Sem -
+          {% elif current_semester.semester_name == "Fourth Semester" %}
+            4th Sem -
+          {% else %}
+            {{ current_semester.semester_name }}
+          {% endif %}
+          SY. {{ current_semester.get_academic_year }}
+        {% else %}
+          No Active Semester
+        {% endif %}
+      </h3>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <!-- Students Enrolled Per Course -->
+  <div class="col-xxl-3 col-md-6">
+      <div class="card position-relative border shadow-lg" style="background-color: #D6E9F8; border-radius: 12px; border-color: #D6D6D6;">
+          <div class="bg-holder d-none d-lg-block bg-card" 
+              style="background-image: url('{% static 'assets/img/icons/spot-illustrations/corner-1.png' %}'); opacity: 0.7;">
+          </div>
+          <div class="card-body text-center">
+              <div class="icon-circle" style="border: 2px solid #1976D2;">
+                  {% if user.profile.role.name == 'Student' %}
+                    <span class="fs-5 fas fa-chart-pie" style="color: #1976D2;"></span>
+                  {% else %}
+                    <span class="fs-5 fas fa-user-graduate" style="color: #1976D2;"></span>
+                  {% endif %}
+              </div>
+              <h4 class="mt-2 mb-0 font-sans-serif fw-semi-bold text-700">
+                  {% if user.profile.role.name == 'Student' %}
+                    <span class="mx-2" data-countup='{"endValue": "{{ pending_activity }}"}'>{{ pending_activity }}</span>
+                  {% else %}
+                    <span class="mx-2" data-countup='{"endValue": "{{ total_enrolled_students }}"}'>{{ total_enrolled_students }}</span>
+                  {% endif %}
+                  <span style="font-size: medium;">
+                    {% if user.profile.role.name == 'Student' %}
+                        Pending Activities
+                    {% else %}
+                        Total Enrolled Students
+                    {% endif %}
+                  </span>
+              </h4>
+          </div>
+      </div>
+  </div>
+
+
+  <!-- Announcements -->
+  <div class="col-xxl-3 col-md-6">
+      <div class="card position-relative border shadow-lg" style="background-color: #C8E6C9; border-radius: 12px; border-color: #D6D6D6;">
+          <div class="bg-holder d-none d-lg-block bg-card" 
+              style="background-image: url('{% static 'assets/img/icons/spot-illustrations/corner-3.png' %}'); opacity: 0.7;">
+          </div>
+          <div class="card-body text-center">
+              <div class="icon-circle" style="border: 2px solid #2E7D32;">
+                  <span class="fs-5 fas fa-bullhorn" style="color: #2E7D32;"></span>
+              </div>
+              <h4 class="mt-2 mb-0 font-sans-serif fw-semi-bold text-700">
+                  <span class="mx-2" data-countup='{"endValue":"{{ announcement_count }}"}'>{{ announcement_count }}</span>
+                  <span style="font-size: medium;">Important Announcements</span>
+              </h4>
+          </div>
+      </div>
+  </div>
+
+  <!-- Subjects For This Semester -->
+  <div class="col-xxl-3 col-md-6">
+      <div class="card position-relative border shadow-lg" style="background-color: #FFECB3; border-radius: 12px; border-color: #D6D6D6;">
+          <div class="bg-holder d-none d-lg-block bg-card" 
+              style="background-image: url('{% static 'assets/img/icons/spot-illustrations/corner-2.png' %}'); opacity: 0.7;">
+          </div>
+          <div class="card-body text-center">
+              <div class="icon-circle" style="border: 2px solid #F9A825;">
+                  <span class="fs-5 fas fa-chalkboard-teacher" style="color: #F9A825;"></span>
+              </div>
+              <h4 class="mt-2 mb-0 font-sans-serif fw-semi-bold text-700">
+                <span class="mx-2" data-countup='{"endValue": "{{ subject_count }}"}'>{{ subject_count }}</span>
+                <span style="font-size: medium;">
+                    {% if user.profile.role.name == 'Teacher' %}
+                        Your Subjects
+                    {% else %}
+                        Total Subjects
+                    {% endif %}
+                </span>
+              </h4>      
+          </div>
+      </div>
+  </div>
+
+  <!-- Financials -->
+  <div class="col-xxl-3 col-md-6">
+  <a style="text-decoration: none;" href="{% url 'student_soa' %}">
+    <div class="card position-relative border shadow-lg" style="background-color: #F8BBD0; border-radius: 12px; border-color: #D6D6D6;">
+        <div class="bg-holder d-none d-lg-block bg-card" 
+            style="background-image: url('{% static 'assets/img/icons/spot-illustrations/corner-4.png' %}'); opacity: 0.7;">
+        </div>
+        <div class="card-body text-center">
+            <div class="icon-circle" style="border: 2px solid #C2185B;">
+                <span class="fs-5 fas fa-money-check" style="color: #C2185B;"></span>
+            </div>
+            <h4 class="mt-2 mb-0 font-sans-serif fw-semi-bold text-700">
+                {% if is_student %}
+                <span class="mx-2">₱{{ total_payment|floatformat:2|default:"0.00" }}</span>
+                <span style="font-size: medium;">Outstanding Balance</span>
+                {% else %}
+                <span class="mx-2" data-countup='{"endValue":"5"}'>0</span>
+                <span style="font-size: medium;">Balance Due</span>
+                {% endif %}
+            </h4>
+        </div>
+    </div>
+  </a>
+</div>
+</div>
+
+  <div class="row g-3 mb-3">
+          <!-- Upcoming School Events -->
+    <div class="col-xxl-4">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary d-flex flex-between-center py-2">
+          <h6 class="mb-0">Upcoming School Event and Announcement</h6>
+          <div class="dropdown font-sans-serif btn-reveal-trigger">
+            <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal" type="button" id="dropdown-school-events" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+              {% comment %} <span class="fas fa-ellipsis-h fs-11"></span> {% endcomment %}
+            </button>
+            {% comment %} <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-school-events">
+              <a class="dropdown-item" href="#">View</a>
+              <a class="dropdown-item" href="#">Export</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item text-danger" href="#">Remove</a>
+            </div> {% endcomment %}
+          </div>
+        </div>
+        <div class="card-body p-2">
+          <ul class="list-group">
+              {% if combined_list %}
+                  {% for item in combined_list %}
+                      <li class="list-group-item d-flex justify-content-between align-items-center" 
+                          style="border-left: 5px solid {% if item.type == 'event' %} #6BAED6 {% else %} #EAC54F {% endif %}; 
+                                 background-color: {% if item.type == 'event' %} #D9EAF7 {% else %} #FEF3C7 {% endif %};
+                                 padding: 12px; border-radius: 8px; margin-bottom: 6px;">
+      
+                          <div>
+                              <strong>
+                                  {% if item.type == "announcement" %}
+                                      <a href="{% url 'announcement_details' item.id %}" class="text-reset text-decoration-none" style="color: #6B4226;">
+                                          <i class="fas fa-bullhorn" style="color: #D4A017;"></i> {{ item.title }}
+                                      </a>
+                                  {% else %}
+                                      <i class="fas fa-calendar-alt" style="color: #3182BD;"></i> {{ item.title }}
+                                  {% endif %}
+                              </strong>
+                              <br>
+      
+                              {% if item.location %}
+                                  <small style="color: #5E5E5E;">
+                                      <i class="fas fa-map-marker-alt" style="color: #B56576;"></i> {{ item.location }}
+                                  </small><br>
+                              {% endif %}
+      
+                              <small style="font-weight: bold; color: {% if item.type == 'event' %} #3182BD {% else %} #B56576 {% endif %};">
+                                  {% if item.type == "event" %}
+                                      📅 Event
+                                  {% else %}
+                                      📰 Announcement
+                                  {% endif %}
+                              </small>
+                          </div>
+      
+                          <span style="background-color: #333; color: white; padding: 6px 12px; border-radius: 12px; font-size: 0.85rem;">
+                              {{ item.date|date:"M d, Y" }}
+                              {% if item.type == "event" and item.time %}
+                                  <br><small style="color: #EAEAEA;">{{ item.time|time:"g:i A" }}</small>
+                              {% endif %}
+                          </span>
+                      </li>
+                  {% endfor %}
+              {% else %}
+                  <li class="list-group-item text-center" style="color: #888; padding: 12px;">
+                      <i class="fas fa-exclamation-circle" style="color: #D95F5F;"></i> No upcoming events or announcements.
+                  </li>
+              {% endif %}
+          </ul>
+      </div>
+      </div>
+    </div>
+
+          <!-- Campus News Carousel -->
+    <div class="col-xxl-8">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary d-flex flex-between-center py-2">
+          <h6 class="mb-0">Campus News</h6>
+          <div class="dropdown font-sans-serif btn-reveal-trigger">
+            <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal" type="button" id="dropdown-trending-keywords" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+              {% comment %} <span class="fas fa-ellipsis-h fs-11"></span> {% endcomment %}
+            </button>
+            {% comment %} <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-trending-keywords"><a class="dropdown-item" href="#!">View</a><a class="dropdown-item" href="#!">Export</a>
+              <div class="dropdown-divider"></div><a class="dropdown-item text-danger" href="#!">Remove</a>
+            </div> {% endcomment %}
+          </div>
+        </div>
+        <div class="card-body pb-0">
+          <div id="newsCarousel" class="carousel slide mb-3" data-bs-ride="carousel" data-bs-interval="5000">
+            <div class="carousel-indicators">
+              {% for article in articles %}
+                <button type="button" data-bs-target="#newsCarousel" data-bs-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}" aria-label="Slide {{ forloop.counter }}"></button>
+              {% endfor %}
+            </div>
+            <div class="carousel-inner carousel-fade">
+              {% for article in articles %}
+              <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                <a href="{{ article.permalink_url }}" target="_blank" style="text-decoration: none; color: inherit;">
+                  <div class="row no-gutters">
+                    <div class="col-md-12 position-relative">
+                      {% if article.image_url %}
+                      <img src="{{ article.image_url }}" class="d-block w-100" alt="Post Image"
+                        style="width: 100%; height: 450px; object-fit: cover; object-position: center; opacity: 0.9; border-radius: 10px;" />
+                      {% else %}
+                      <img src="{% static 'images/SNCFI-logo.png' %}" class="d-block w-100" alt="Default Image"
+                        style="width: 100%; height: 450px; object-fit: cover; object-position: center; opacity: 0.9; border-radius: 5px;" />
+                      {% endif %}
+                      <div class="carousel-caption d-block text-white p-3" style="text-shadow: 2px 2px 4px #000; 
+                        background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0.3) 100%); 
+                        bottom: 0; 
+                        left: 50%; 
+                        right: auto; 
+                        transform: translateX(-50%); 
+                        width: 90%; 
+                        border-radius: 10px 10px 0 0;">
+                        <div class="d-flex align-items-center mb-2">
+                          {% if article.profile_picture_url %}
+                          <img src="{{ article.profile_picture_url }}" alt="Profile Picture" class="img-fluid"
+                            style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;" />
+                          {% endif %}
+                          <div>
+                            <small class="font-weight-bold">{{ article.posted_by }}</small>
+                            <small class="d-none d-sm-inline" style="color: #ddd;">&bull; {{ article.created_time }}</small>
+                          </div>
+                        </div>
+                        <h4 class="font-weight-bold text-light" style="text-shadow: 2px 2px 4px #000; 
+                          display: -webkit-box; 
+                          -webkit-line-clamp: 2; 
+                          -webkit-box-orient: vertical; 
+                          overflow: hidden; 
+                          text-overflow: ellipsis; 
+                          line-height: 1.5;">{{ article.message }}</h4>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </div>
+              {% endfor %}
+            </div>            
+            <button class="carousel-control-prev" type="button" data-bs-target="#newsCarousel" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#newsCarousel" data-bs-slide="next">
+              <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Next</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-lg-6 col-xxl-7">
+      <div class="card" id="StudentPopulationChart">
+        <div class="card-header d-flex flex-between-center bg-body-tertiary py-2">
+          <h6 class="mb-0">Student Population Per Year Level</h6>
+          <div class="dropdown font-sans-serif btn-reveal-trigger">
+            <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal" type="button" id="student-population" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+              {% comment %} <span class="fas fa-ellipsis-h fs-11"></span> {% endcomment %}
+            </button>
+            {% comment %} <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="student-population">
+              <a class="dropdown-item" href="#">View</a>
+              <a class="dropdown-item" href="#">Export</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item text-danger" href="#">Remove</a>
+            </div> {% endcomment %}
+          </div>
+        </div>
+        <div class="card-body pb-0 position-relative">
+          <div id="student-population-chart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>    
+
+    <script src="{% static 'accounts/interface/dashboard.js' %}"></script>
+
+    <div class="col-lg-6 col-xxl-5">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary d-flex flex-between-center py-2">
+          <h6 class="mb-0">Student Population Per Subject</h6>
+          <div class="dropdown font-sans-serif btn-reveal-trigger">
+            <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal" type="button" id="student-population" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+              {% comment %} <span class="fas fa-ellipsis-h fs-11"></span> {% endcomment %}
+            </button>
+            {% comment %} <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="student-population">
+              <a class="dropdown-item" href="#">View</a>
+              <a class="dropdown-item" href="#">Export</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item text-danger" href="#">Remove</a>
+            </div> {% endcomment %}
+          </div>
+        </div>
+        <div class="card-body pb-0 position-relative">
+          <div id="student-population-subject-chart" style="height: 350px;" <div class="echart-bar-timeline-chart-example"></div>
+        </div>
+      </div>
+
+          </div>
+  </div>
+  <div class="row g-3">
+    <div class="col-lg-6 col-xxl-6">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary d-flex flex-between-center py-2">
+          <h6 class="mb-0">
+            {% if not is_student %} Feedback Score Per Subject {% endif %}
+            {% if is_student %} Your Activities Per Subject {% endif %}
+        </h6>
+          <div class="dropdown font-sans-serif btn-reveal-trigger">
+            <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal" type="button" id="feedback-score" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+              {% comment %} <span class="fas fa-ellipsis-h fs-11"></span> {% endcomment %}
+            </button>
+            <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="feedback-score">
+              {% comment %} <a class="dropdown-item" href="#">View</a>
+              <a class="dropdown-item" href="#">Export</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item text-danger" href="#">Remove</a> {% endcomment %}
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- ✅ Title for the Activities Chart -->
+          {% if is_student %}
+          <div id="activity-chart" style="height: 400px;"></div>
+          {% endif %}
+          
+          <!-- ✅ Title for the Teacher Feedback Chart -->
+          {% if not is_student %}
+          <div id="feedback-score-chart" style="height: 400px;"></div>
+          {% endif %}
+      </div>
+      </div>
+    </div>    
+
+    
+        
+    
+
+    <div class="col-lg-6 col-xxl-6">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary d-flex flex-between-center py-2">
+          <h6 class="mb-0">Active Students (Last 7 Days)</h6>
+          <div class="dropdown font-sans-serif btn-reveal-trigger">
+            <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal" type="button" id="active-students" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+              {% comment %} <span class="fas fa-ellipsis-h fs-11"></span> {% endcomment %}
+            </button>
+            <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="active-students">
+              {% comment %} <a class="dropdown-item" href="#">View</a>
+              <a class="dropdown-item" href="#">Export</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item text-danger" href="#">Remove</a> {% endcomment %}
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="active-students-chart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+
+{% endblock %}

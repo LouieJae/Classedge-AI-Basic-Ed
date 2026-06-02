@@ -1,0 +1,59 @@
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}{{ activity.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gamification/student/side_activity.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="sa-play-shell">
+
+  <section class="sa-play-head">
+    <div class="sa-play-head-main">
+      <h1>{{ activity.title }}</h1>
+      <div class="sa-chips">
+        <span class="sa-chip"><i class="fas fa-shapes"></i> {{ activity.get_sub_type_display }}</span>
+        <span class="quest-xp">{{ activity.xp_reward }} XP</span>
+        <span class="sa-chip time"><i class="far fa-clock"></i> ~{{ activity.estimated_minutes }} min</span>
+      </div>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="side-activity-play">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </section>
+
+  <div class="sa-stage">
+    <div id="saPlayBody">
+      {% if is_js_type %}
+        <script>
+          window.SIDE_ACTIVITY = {
+            id: {{ activity.pk }},
+            subType: "{{ activity.sub_type }}",
+            content: {{ content_js|safe }},
+            submitUrl: "{% url 'side_activity_submit' activity.pk %}",
+            csrfToken: "{{ csrf_token }}"
+          };
+        </script>
+        {% include type_template %}
+      {% else %}
+        <form method="post" action="">
+          {% csrf_token %}
+          {% include type_template %}
+          <div style="margin-top:1.5rem;text-align:center;">
+            <button type="submit" class="sa-submit">Submit</button>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <a href="{% url 'side_activity_list' activity.subject_id %}" class="sa-back">
+    <i class="fas fa-arrow-left"></i> More Activities
+  </a>
+
+</div>
+
+<script src="{% static 'js/tours/cl-tour-side-activity-play.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,230 @@
+{% extends 'migration/base.html' %}
+{% load static %}
+
+{% block title %}Data Migration · Sequence{% endblock %}
+
+{% block migration_content %}
+  <p class="mig-page-sub">
+    Pull data from the old LMS into Classedge-AI. Each model imports in the background and reports its progress here.
+  </p>
+
+  <div class="mig-header-actions">
+    <a class="cl-btn" href="{% url 'migration:errors' %}">
+      <i class="fas fa-triangle-exclamation"></i> View errors
+    </a>
+    <a class="cl-btn" href="{% url 'migration:overview' %}">
+      <i class="fas fa-table"></i> Classic view
+    </a>
+    <button class="cl-btn" id="migClearLog" type="button">
+      <i class="fas fa-trash-can"></i> Clear log
+    </button>
+    <button class="cl-btn cl-btn-primary" id="migImportAll" type="button">
+      <i class="fas fa-bolt"></i> Run all sequentially
+    </button>
+  </div>
+
+  <div class="mig-grid" id="migGrid">
+    {% for card in cards %}
+    <div class="mig-card mig-seq-card" data-color="{{ card.color }}" data-app="{{ card.app }}" data-model="{{ card.model }}" data-key="{{ card.key }}" data-state="idle">
+      <div class="mig-seq-card-head">
+        <div class="mig-card-icon"><i class="fas {{ card.icon }}"></i></div>
+        <div class="mig-card-title">{{ card.label }}</div>
+      </div>
+      <div class="mig-card-desc">{{ card.description }}</div>
+      <div class="mig-card-meta">
+        <span><b class="mig-rows">0</b> / <span class="mig-total">0</span></span>
+        <a class="mig-errors-link" style="display:none" href="#" data-errors-base="{% url 'migration:errors' %}?job=">0 errors</a>
+      </div>
+      <div class="mig-progress"><div></div></div>
+      <div class="mig-card-foot">
+        <span class="mig-status-pill" data-state="idle">Idle</span>
+        <button class="cl-btn cl-btn-primary cl-btn-sm mig-import-btn" type="button"><i class="fas fa-play"></i> Import</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <section class="cl-card mig-log-panel">
+    <div class="cl-card-header">
+      <span><i class="fas fa-list-timeline me-2"></i>Recent <em>activity</em></span>
+      <span class="cl-badge" id="mig-log-count">0 events</span>
+    </div>
+    <div class="cl-card-body" style="padding: 0;">
+      <ul class="mig-log-list" id="migLogList"></ul>
+      <div class="mig-log-empty" id="migLogEmpty">No imports run yet — click <b>Import</b> on a card to begin.</div>
+    </div>
+  </section>
+
+<script>
+(function() {
+  const csrf = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+  const cards = Array.from(document.querySelectorAll('.mig-card'));
+  const logList = document.getElementById('migLogList');
+  const logEmpty = document.getElementById('migLogEmpty');
+  const logCount = document.getElementById('mig-log-count');
+  const STORAGE_KEY = 'mig-log-entries';
+  let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+  function csrfHeader() { return { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' }; }
+  function fmtTime(ms) {
+    const d = new Date(ms);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  function fmtDuration(ms) {
+    if (ms < 1000) return ms + 'ms';
+    if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
+    const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000);
+    return `${m}m ${s}s`;
+  }
+
+  function renderLog() {
+    logList.innerHTML = '';
+    if (entries.length === 0) { logEmpty.style.display = 'block'; logCount.textContent = '0 events'; return; }
+    logEmpty.style.display = 'none';
+    logCount.textContent = `${entries.length} event${entries.length === 1 ? '' : 's'}`;
+    for (const e of entries.slice().reverse()) {
+      const li = document.createElement('li');
+      li.className = 'mig-log-entry';
+      li.dataset.result = e.result || 'running';
+      const duration = e.finishedAt ? fmtDuration(e.finishedAt - e.startedAt) : 'running…';
+      li.innerHTML = `
+        <span class="mig-log-dot"></span>
+        <div>
+          <div class="mig-log-title">${e.name}
+            <span class="mig-status-pill" data-state="${e.result || 'running'}">${e.result || 'running'}</span>
+          </div>
+          <div class="mig-log-meta">${e.app}.${e.model}</div>
+          <div class="mig-log-counts">
+            <span>written <b>${e.written ?? 0}</b></span>
+            <span>errored <b>${e.errored ?? 0}</b></span>
+            <span>total <b>${e.total ?? 0}</b></span>
+            <span>duration <b>${duration}</b></span>
+          </div>
+        </div>
+        <div class="mig-log-time">${fmtTime(e.startedAt)}</div>
+      `;
+      logList.appendChild(li);
+    }
+  }
+
+  function saveLog() { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(-50))); }
+
+  function addEntry(card, name) {
+    const id = crypto.randomUUID();
+    entries.push({
+      id, name, app: card.dataset.app, model: card.dataset.model,
+      startedAt: Date.now(), result: 'running',
+    });
+    saveLog(); renderLog();
+    return id;
+  }
+
+  function updateEntry(id, patch) {
+    const idx = entries.findIndex(e => e.id === id);
+    if (idx >= 0) { entries[idx] = { ...entries[idx], ...patch }; saveLog(); renderLog(); }
+  }
+
+  function setCardState(card, status, percent, written, total, errorCount, jobId) {
+    card.dataset.state = status;
+    const pill = card.querySelector('.mig-status-pill');
+    pill.dataset.state = status;
+    pill.textContent = status === 'running' ? 'Running' : status.charAt(0).toUpperCase() + status.slice(1);
+    card.querySelector('.mig-progress > div').style.width = (percent || 0) + '%';
+    card.querySelector('.mig-rows').textContent = written ?? 0;
+    card.querySelector('.mig-total').textContent = total ?? 0;
+    const link = card.querySelector('.mig-errors-link');
+    if (errorCount && errorCount > 0 && jobId) {
+      link.style.display = 'inline';
+      link.textContent = `${errorCount} error${errorCount === 1 ? '' : 's'}`;
+      link.href = link.dataset.errorsBase + jobId;
+    } else {
+      link.style.display = 'none';
+    }
+    const btn = card.querySelector('.mig-import-btn');
+    if (status === 'running') {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="mig-spinner"></span> Running…';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-play"></i> Import';
+    }
+  }
+
+  async function startImport(card) {
+    const app = card.dataset.app, model = card.dataset.model;
+    const name = card.querySelector('.mig-card-title').textContent.trim();
+    const entryId = addEntry(card, name);
+    setCardState(card, 'running', 0, 0, 0, 0, null);
+
+    let queue;
+    try {
+      const r = await fetch(`/operations/migration/actions/run-job/${app}/${model}/`, {
+        method: 'POST', headers: csrfHeader(), credentials: 'same-origin',
+      });
+      queue = await r.json();
+      if (!r.ok || !queue.ok) throw new Error('Failed to queue');
+    } catch (err) {
+      setCardState(card, 'failed', 0, 0, 0, 0, null);
+      updateEntry(entryId, { result: 'failed', finishedAt: Date.now() });
+      return { ok: false };
+    }
+
+    while (true) {
+      await new Promise(r => setTimeout(r, 1200));
+      let s;
+      try {
+        const r = await fetch(`/operations/migration/status/${app}/${model}/?task_id=${queue.task_id}`, { credentials: 'same-origin' });
+        s = await r.json();
+      } catch (e) { continue; }
+
+      setCardState(card, s.status, s.percent, s.written, s.total_estimated, s.error_count, s.job_id);
+      updateEntry(entryId, {
+        written: s.written, errored: s.errored, total: s.total_estimated,
+      });
+
+      if (['completed', 'paused', 'failed'].includes(s.status)) {
+        updateEntry(entryId, { result: s.status, finishedAt: Date.now() });
+        return { ok: s.status === 'completed' };
+      }
+    }
+  }
+
+  cards.forEach(card => {
+    card.querySelector('.mig-import-btn').addEventListener('click', () => startImport(card));
+  });
+
+  document.getElementById('migImportAll').addEventListener('click', async () => {
+    const btn = document.getElementById('migImportAll');
+    btn.disabled = true;
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<span class="mig-spinner"></span> Running sequence…';
+    for (const card of cards) {
+      const r = await startImport(card);
+      if (!r.ok) {
+        btn.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Stopped';
+        btn.disabled = false;
+        return;
+      }
+    }
+    btn.innerHTML = '<i class="fas fa-check"></i> Sequence complete';
+    setTimeout(() => { btn.innerHTML = originalHTML; btn.disabled = false; }, 3000);
+  });
+
+  document.getElementById('migClearLog').addEventListener('click', () => {
+    if (!confirm('Clear local activity log? (Does not affect the database.)')) return;
+    entries = []; saveLog(); renderLog();
+  });
+
+  cards.forEach(async card => {
+    const app = card.dataset.app, model = card.dataset.model;
+    try {
+      const r = await fetch(`/operations/migration/status/${app}/${model}/`, { credentials: 'same-origin' });
+      const s = await r.json();
+      setCardState(card, s.status, s.percent, s.written, s.total_estimated, s.error_count, s.job_id);
+    } catch (e) {}
+  });
+
+  renderLog();
+})();
+</script>
+{% endblock %}

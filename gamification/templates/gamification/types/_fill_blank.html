@@ -1,0 +1,18 @@
+{% comment %}Fill-in-the-blank — included inside <form> by side_activity_play.html{% endcomment %}
+
+<div style="margin-bottom:1.5rem;">
+  <p style="font-size:1.15rem;color:var(--text);line-height:1.8;">{{ content.text }}</p>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:1rem;">
+  {% for blank in content.blanks %}
+  <div style="display:flex;align-items:center;gap:.75rem;">
+    <span style="color:var(--muted);font-weight:600;min-width:2.5rem;">{{ forloop.counter }}.</span>
+    <input type="text" name="answer_{{ forloop.counter0 }}"
+           placeholder="Your answer"
+           autocomplete="off"
+           required
+           style="flex:1;padding:.7rem 1rem;font-size:1rem;color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;outline:none;transition:border-color .15s;">
+  </div>
+  {% endfor %}
+</div>

@@ -1,0 +1,8 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% block title %}Update program head{% endblock %}
+{% block content %}
+  {% url 'program-head-list' as back_url %}
+  {% include "accounts/admin_update/_profile_page.html" with page_title="Update program <em>head</em>" page_sub="Edit program-head profile, contact, and department." back_url=back_url back_label="Back to program heads" %}
+{% endblock %}

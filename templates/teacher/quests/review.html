@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" style="max-width:960px;padding:24px;">
+  <h2>Review quests — {{ module.file_name }}</h2>
+  {% if drafts %}
+    <h3>Drafts ({{ drafts.count }})</h3>
+    <form method="post" action="{% url 'quest_publish_all' module.id %}">{% csrf_token %}
+      <button type="submit" class="btn btn-success">Publish all drafts</button>
+    </form>
+    <ul>{% for q in drafts %}<li>
+      <strong>{{ q.order }}. [{{ q.kind }}] {{ q.title }}</strong> — {{ q.body|truncatechars:100 }}
+      <form style="display:inline" method="post" action="{% url 'quest_toggle_grade' q.id %}">{% csrf_token %}
+        <button type="submit">{{ q.counts_toward_grade|yesno:"Graded ✓,Practice only" }}</button>
+      </form>
+      <form style="display:inline" method="post" action="{% url 'quest_delete' q.id %}">{% csrf_token %}
+        <button type="submit" onclick="return confirm('Delete?')">Delete</button>
+      </form>
+    </li>{% endfor %}</ul>
+  {% endif %}
+  {% if published %}
+    <h3>Published ({{ published.count }})</h3>
+    <ul>{% for q in published %}<li>{{ q.order }}. [{{ q.kind }}] {{ q.title }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if not drafts and not published %}<p>No quests yet. <a href="{% url 'quest_mode_select' module.id %}">Add some →</a></p>{% endif %}
+</div>
+{% endblock %}

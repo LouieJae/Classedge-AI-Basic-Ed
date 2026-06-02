@@ -1,0 +1,47 @@
+{% extends "central_content/base.html" %}
+{% block title %}Push history{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Push history</h1>
+<form method="get" class="flex gap-2 mb-4">
+  <select name="school">
+    <option value="">All schools</option>
+    {% for s in schools %}
+      <option value="{{ s.pk }}" {% if filter_school == s.pk|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="status">
+    <option value="">Any status</option>
+    <option value="success" {% if filter_status == "success" %}selected{% endif %}>Success</option>
+    <option value="failed" {% if filter_status == "failed" %}selected{% endif %}>Failed</option>
+  </select>
+  <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Filter</button>
+</form>
+<table class="min-w-full bg-white shadow text-sm">
+  <thead><tr class="text-left border-b">
+    <th class="p-2">When</th>
+    <th class="p-2">Kind</th>
+    <th class="p-2">Status</th>
+    <th class="p-2">Subject</th>
+    <th class="p-2">School</th>
+    <th class="p-2">HTTP</th>
+    <th class="p-2">Detail</th>
+  </tr></thead>
+  <tbody>
+  {% for j in jobs %}
+    <tr class="border-b">
+      <td class="p-2">{{ j.started_at|date:"Y-m-d H:i" }}</td>
+      <td class="p-2">{{ j.kind }}</td>
+      <td class="p-2 {% if j.status == 'failed' %}text-red-600{% else %}text-green-600{% endif %}">{{ j.status }}</td>
+      <td class="p-2">{{ j.central_subject.subject_name }} (v{{ j.subject_version }})</td>
+      <td class="p-2">{{ j.target_school.name }}</td>
+      <td class="p-2">{{ j.http_status|default_if_none:"-" }}</td>
+      <td class="p-2">
+        {% if j.error_message %}{{ j.error_message|truncatechars:120 }}{% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7" class="p-4 text-gray-400">No push jobs yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

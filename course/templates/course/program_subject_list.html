@@ -1,0 +1,486 @@
+{% extends parent_template %}
+{% load static humanize %}
+
+{% block title %}{{ program_meta.label }} Subjects{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Program subject list — dynamic-brand design.
+     Mirrors templates/teacher/course-list.html and templates/student/course-list.html
+     so COIL/HALI/CTE feel native in both bases. Every decorative atmosphere
+     (page-title em, eyebrow icon, search focus, primary button, card hover,
+     progress gradient, pager active) tracks --brand-primary so the page
+     repaints when the tenant brand color changes. Locked neutrals stay
+     --ink / --paper / --border per the cohesive-brand doctrine. */
+
+  .program-page { padding: 8px 0 32px; min-width: 0; }
+  .program-page, .program-page * { box-sizing: border-box; }
+
+  /* Page header — matches the canonical .topbar / .page-title / .page-sub
+     idiom from base_operation.html so COIL/HALI/CTE align with every
+     other operation page (e.g. enroll-student, certificate). */
+  .program-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 32px;
+    animation: programFadeDown 0.6s ease;
+  }
+  @keyframes programFadeDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .program-title-block { min-width: 0; }
+  .program-title-block .program-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-dim, var(--text-dim, #6b7280));
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .program-title-block .program-eyebrow i { color: var(--brand-primary, #1b4332); }
+  /* Page title follows the canonical pattern from base_operation.html:
+     body color is locked ink, <em> accent tracks --brand-primary so a
+     tenant brand change repaints the title accent automatically. */
+  .program-title {
+    font-family: var(--display, inherit);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink, var(--text, #2d3142));
+    line-height: 1.15;
+    margin: 0 0 6px 0;
+  }
+  .program-title em {
+    font-style: italic;
+    color: var(--brand-primary, #1b4332);
+    font-weight: 500;
+  }
+  .program-sub {
+    color: var(--ink-dim, var(--text-dim, #6b7280));
+    font-size: 14px;
+    font-family: var(--body, inherit);
+    font-weight: 400;
+  }
+  .program-sub em {
+    font-style: italic;
+    color: var(--brand-primary, #1b4332);
+    font-weight: 500;
+  }
+
+  .program-search {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .program-search input[type="text"],
+  .program-search select {
+    padding: 10px 14px;
+    border-radius: var(--radius-sm, 8px);
+    border: 1px solid var(--border, #e5e7eb);
+    background: var(--paper, var(--surface, #fff));
+    color: var(--ink, var(--text, #1f2937));
+    font-family: var(--body, inherit);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .program-search input[type="text"] { flex: 1 1 280px; }
+  .program-search select { flex: 0 1 200px; }
+  .program-search input[type="text"]:focus,
+  .program-search select:focus {
+    border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .program-search button,
+  .program-search a.clear-btn {
+    padding: 10px 18px;
+    border-radius: var(--radius-sm, 8px);
+    border: 1px solid var(--brand-primary, #1b4332);
+    background: var(--brand-primary, #1b4332);
+    color: var(--cream, #faf7f2);
+    font-family: var(--body, inherit);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+  }
+  .program-search button:hover {
+    background: color-mix(in srgb, var(--brand-primary, #1b4332), black 12%);
+    border-color: color-mix(in srgb, var(--brand-primary, #1b4332), black 12%);
+    transform: translateY(-1px);
+  }
+  .program-search a.clear-btn {
+    background: transparent;
+    color: var(--ink-dim, var(--text-dim, #6b7280));
+    border-color: var(--border-strong, #d1d5db);
+  }
+
+  .program-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  /* Below this width auto-fill drops to a single overly wide column that
+     looks awkward — force a 2-up grid so phones in landscape and small
+     tablets still get a card pair side by side. */
+  @media (max-width: 560px) {
+    .program-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  }
+  @media (max-width: 380px) {
+    .program-grid { grid-template-columns: 1fr; gap: 12px; }
+  }
+  .program-card {
+    background: var(--paper, var(--surface, #fff));
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: var(--radius-sm, 10px);
+    box-shadow: var(--shadow, 0 1px 2px rgba(0,0,0,0.04));
+    transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+  }
+  .program-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--brand-primary, #1b4332) 30%, transparent);
+  }
+  .program-card-image {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--surface-2, #f3f4f6);
+    overflow: hidden;
+  }
+  .program-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+  }
+  .program-card:hover .program-card-image img { transform: scale(1.04); }
+  .program-card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-dim, var(--text-dim, #9ca3af));
+    font-size: 36px;
+  }
+  .program-card-pill {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 4px 10px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    backdrop-filter: blur(4px);
+  }
+  .program-card-pill.online { background: rgba(46,160,67,0.85); }
+
+  .program-card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .program-card-name {
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.3;
+    color: var(--ink, var(--text, #1f2937));
+  }
+  .program-card-code {
+    font-size: 12px;
+    color: var(--ink-dim, var(--text-dim, #6b7280));
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .program-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--ink-dim, var(--text-dim, #6b7280));
+  }
+  .program-card-meta-item { display: inline-flex; align-items: center; gap: 4px; }
+  .program-card-meta-item i { font-size: 11px; }
+
+  .program-progress {
+    margin-top: 6px;
+    height: 6px;
+    background: var(--surface-2, #f3f4f6);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  /* Progress gradient is a soft→full brand fade — the soft mix on
+     the left, full brand on the right. Repaints with the tenant
+     brand color automatically. */
+  .program-progress > span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--brand-primary, #1b4332) 70%, white),
+      var(--brand-primary, #1b4332)
+    );
+    transition: width 0.4s;
+  }
+  .program-progress-label {
+    font-size: 11px;
+    color: var(--ink-dim, var(--text-dim, #6b7280));
+    margin-top: 4px;
+  }
+
+  .program-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px 16px;
+    border: 1px dashed var(--border, #e5e7eb);
+    border-radius: var(--radius-sm, 10px);
+    color: var(--ink-dim, var(--text-dim, #6b7280));
+  }
+  .program-empty i { font-size: 32px; margin-bottom: 10px; opacity: 0.6; display: block; }
+  .program-empty .lead { font-size: 16px; font-weight: 600; color: var(--ink, var(--text, #1f2937)); margin-bottom: 4px; }
+
+  .program-pager {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .program-pager a,
+  .program-pager span {
+    padding: 8px 12px;
+    border-radius: var(--radius-sm, 8px);
+    border: 1px solid var(--border, #e5e7eb);
+    color: var(--ink, var(--text, #1f2937));
+    text-decoration: none;
+    font-size: 13px;
+    background: var(--paper, var(--surface, #fff));
+  }
+  .program-pager a:hover {
+    border-color: var(--brand-primary, #1b4332);
+    color: var(--brand-primary, #1b4332);
+    background: var(--brand-primary-soft);
+  }
+  .program-pager .active,
+  .program-pager .active:hover {
+    background: var(--brand-primary, #1b4332);
+    color: #fff;
+    border-color: var(--brand-primary, #1b4332);
+  }
+  .program-pager .disabled { opacity: 0.4; pointer-events: none; }
+
+  /* Tablet */
+  @media (max-width: 900px) {
+    .program-title { font-size: 28px; }
+  }
+
+  /* Small tablet / large phone */
+  @media (max-width: 640px) {
+    .program-page { padding: 4px 0 24px; }
+    .program-header { align-items: flex-start; margin-bottom: 22px; gap: 10px; }
+    .program-title { font-size: 24px; }
+    .program-sub { font-size: 13px; }
+    .program-eyebrow { font-size: 10.5px; letter-spacing: 0.14em; }
+    .program-search { gap: 8px; margin-bottom: 16px; }
+    .program-search input[type="text"] { flex: 1 1 100%; width: 100%; }
+    .program-search select { flex: 1 1 100%; }
+    /* Keep the buttons side-by-side on phones, not stacked vertically —
+       splitting them across two lines wastes vertical space. */
+    .program-search button { flex: 1 1 0; }
+    .program-search a.clear-btn { flex: 1 1 0; }
+    .program-card-body { padding: 12px 14px 14px; gap: 6px; }
+    .program-card-name { font-size: 14px; }
+    .program-card-meta { gap: 4px 10px; font-size: 11.5px; }
+    .program-card-pill { font-size: 10px; padding: 3px 8px; letter-spacing: 0.06em; }
+    .program-empty { padding: 36px 14px; }
+    .program-pager a, .program-pager span { padding: 7px 10px; font-size: 12.5px; }
+  }
+
+  /* Phone */
+  @media (max-width: 460px) {
+    .program-title { font-size: 22px; }
+    .program-card-body { padding: 10px 12px 12px; }
+    .program-card-name { font-size: 13.5px; line-height: 1.25; }
+    .program-card-code { font-size: 11px; }
+    .program-card-meta-item { font-size: 11px; }
+  }
+
+  /* Tiny phone */
+  @media (max-width: 360px) {
+    .program-title { font-size: 20px; }
+    .program-eyebrow { margin-bottom: 2px; }
+    .program-card-meta { flex-direction: column; gap: 4px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="program-page">
+  <div class="program-header">
+    <div class="program-title-block">
+      <div class="program-eyebrow">
+        <i class="fas {{ program_meta.icon }}"></i>
+        <span>{{ program_meta.name }}</span>
+      </div>
+      <h1 class="program-title">{{ program_meta.label }} <em>Subjects</em></h1>
+      <div class="program-sub">
+        {% if selected_semester %}
+          {{ selected_semester.semester_name }} &middot; {{ selected_semester.get_academic_year }}
+        {% else %}
+          {% now 'Y' as current_year %}
+          {{ current_year }}&ndash;{{ current_year|add:'1' }} academic year
+        {% endif %}
+        {% if college_name and college_name != "My Subjects" %}
+          &middot; {{ college_name }}
+        {% endif %}
+      </div>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="program-subject-list">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <form method="get" class="program-search">
+    <input type="text" name="search" placeholder="Search by subject name, code, or teacher..." value="{{ search_query }}" />
+    {% if semesters %}
+      <select name="semester" onchange="this.form.submit()">
+        <option value="">— Semester —</option>
+        {% for sem in semesters %}
+          <option value="{{ sem.id }}"{% if selected_semester and sem.id == selected_semester.id %} selected{% endif %}>
+            {{ sem.semester_name }} ({{ sem.get_academic_year }})
+          </option>
+        {% endfor %}
+      </select>
+    {% endif %}
+    <button type="submit"><i class="fas fa-search"></i> Search</button>
+    {% if search_query %}
+      <a class="clear-btn" href="{% url program_meta.list_url_name %}{% if selected_semester %}?semester={{ selected_semester.id }}{% endif %}">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if messages %}
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+      {% for message in messages %}
+        <div style="padding:10px 14px;border-radius:8px;font-size:13px;
+                    background: {% if 'success' in message.tags %}rgba(46,160,67,0.12){% elif 'error' in message.tags %}rgba(239,68,68,0.12){% else %}var(--surface-2, #f3f4f6){% endif %};
+                    color: {% if 'success' in message.tags %}#2ea043{% elif 'error' in message.tags %}#ef4444{% else %}var(--ink-dim, var(--text-dim, #6b7280)){% endif %};">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="program-grid">
+    {% for subject in page_obj %}
+      <a class="program-card" href="{% url 'material-list' subject.id %}">
+        <div class="program-card-image">
+          {% if subject.subject_photo and subject.subject_photo.url %}
+            <img src="{{ subject.subject_photo.url }}" alt="{{ subject.subject_name }}" />
+          {% else %}
+            <div class="program-card-placeholder"><i class="fas {{ program_meta.icon }}"></i></div>
+          {% endif %}
+          {% if subject.is_online %}
+            <span class="program-card-pill online">Live</span>
+          {% else %}
+            <span class="program-card-pill">{{ program_meta.label }}</span>
+          {% endif %}
+        </div>
+        <div class="program-card-body">
+          <div class="program-card-name">{{ subject.subject_name }}</div>
+          {% if subject.subject_code %}
+            <div class="program-card-code">{{ subject.subject_code }}</div>
+          {% endif %}
+          <div class="program-card-meta">
+            {% if subject.assign_teacher %}
+              <div class="program-card-meta-item">
+                <i class="fas fa-chalkboard-teacher"></i>
+                <span>{{ subject.assign_teacher.first_name }} {{ subject.assign_teacher.last_name }}</span>
+              </div>
+            {% endif %}
+            {% if not is_student_view %}
+              <div class="program-card-meta-item">
+                <i class="fas fa-users"></i>
+                <span>{{ subject.student_count|default:0 }} enrolled</span>
+              </div>
+            {% endif %}
+            {% if subject.room_number %}
+              <div class="program-card-meta-item">
+                <i class="fas fa-door-open"></i>
+                <span>Room {{ subject.room_number }}</span>
+              </div>
+            {% endif %}
+          </div>
+
+          {% if is_student_view and subject.overall_avg_progress %}
+            <div class="program-progress" aria-label="Course progress">
+              <span style="width: {{ subject.overall_avg_progress|floatformat:0 }}%"></span>
+            </div>
+            <div class="program-progress-label">{{ subject.overall_avg_progress|floatformat:0 }}% complete</div>
+          {% endif %}
+        </div>
+      </a>
+    {% empty %}
+      <div class="program-empty">
+        <i class="fas {{ program_meta.icon }}"></i>
+        <div class="lead">No {{ program_meta.label }} subjects yet</div>
+        <div style="font-size: 13px;">
+          {% if is_student_view %}
+            You're not enrolled in any {{ program_meta.label }} subjects this semester.
+          {% else %}
+            No {{ program_meta.label }} subjects match your filters for this semester.
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="program-pager" aria-label="Pagination">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_semester %}&semester={{ selected_semester.id }}{% endif %}"><i class="fas fa-chevron-left"></i></a>
+      {% else %}
+        <span class="disabled"><i class="fas fa-chevron-left"></i></span>
+      {% endif %}
+      {% for page_num in page_obj.paginator.page_range %}
+        {% if page_num == page_obj.number %}
+          <span class="active">{{ page_num }}</span>
+        {% else %}
+          <a href="?page={{ page_num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_semester %}&semester={{ selected_semester.id }}{% endif %}">{{ page_num }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_semester %}&semester={{ selected_semester.id }}{% endif %}"><i class="fas fa-chevron-right"></i></a>
+      {% else %}
+        <span class="disabled"><i class="fas fa-chevron-right"></i></span>
+      {% endif %}
+    </nav>
+  {% endif %}
+</div>
+
+<script src="{% static 'js/tours/cl-tour-program-subject-list.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Grading Queue{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gradebookcomponent/grading_queue.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="gq-shell">
+
+  <!-- Header -->
+  <div class="gq-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div class="gq-header-left">
+      <a class="gq-back" href="{% url 'gradebook_home' %}">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to gradebook
+      </a>
+      <h1 class="gq-title">Grading <em>Queue</em></h1>
+      <div class="gq-sub">
+        {% if rows %}
+          {{ rows|length }} submission{{ rows|length|pluralize }} awaiting your attention
+        {% else %}
+          You're all caught up
+        {% endif %}
+      </div>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="grading-queue">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <!-- Active filter context -->
+  {% if filter_activity %}
+    <div class="gq-filter-ctx">
+      <i class="fas fa-filter" aria-hidden="true"></i>
+      <span>Filtered to <strong>{{ filter_activity.activity_name }}</strong></span>
+      <a href="{% url 'gradebook_queue' %}" class="gq-filter-clear">
+        <i class="fas fa-times" aria-hidden="true"></i> Clear filter
+      </a>
+    </div>
+  {% endif %}
+
+  {% if rows %}
+    <!-- Stats strip -->
+    <section class="gq-stats">
+      <div class="gq-stat gq-stat--forest">
+        <div class="gq-stat-icon"><i class="fas fa-inbox" aria-hidden="true"></i></div>
+        <div class="gq-stat-body">
+          <div class="gq-stat-label">Total Pending</div>
+          <div class="gq-stat-value" id="gqStatTotal">{{ rows|length }}</div>
+        </div>
+      </div>
+      <div class="gq-stat gq-stat--gold">
+        <div class="gq-stat-icon"><i class="fas fa-pen-nib" aria-hidden="true"></i></div>
+        <div class="gq-stat-body">
+          <div class="gq-stat-label">Needs Grading</div>
+          <div class="gq-stat-value" id="gqStatNeeds">0</div>
+        </div>
+      </div>
+      <div class="gq-stat gq-stat--rose">
+        <div class="gq-stat-icon"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></div>
+        <div class="gq-stat-body">
+          <div class="gq-stat-label">Review Auto-grade</div>
+          <div class="gq-stat-value" id="gqStatReview">0</div>
+        </div>
+      </div>
+      <div class="gq-stat">
+        <div class="gq-stat-icon"><i class="fas fa-book" aria-hidden="true"></i></div>
+        <div class="gq-stat-body">
+          <div class="gq-stat-label">Subjects</div>
+          <div class="gq-stat-value" id="gqStatSubjects">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Toolbar -->
+    <div class="gq-toolbar">
+      <div class="gq-search">
+        <i class="fas fa-search" aria-hidden="true"></i>
+        <input id="gqSearch" type="text" placeholder="Search student, subject, or assessment" autocomplete="off" />
+      </div>
+      <div class="gq-chips" role="group" aria-label="Filter by type">
+        <button type="button" class="gq-chip is-active" data-filter="all">
+          All <span class="gq-chip-count" id="gqCountAll">{{ rows|length }}</span>
+        </button>
+        <button type="button" class="gq-chip" data-filter="Needs grading">
+          Needs grading <span class="gq-chip-count" id="gqCountNeeds">0</span>
+        </button>
+        <button type="button" class="gq-chip" data-filter="Review auto-grade">
+          Review <span class="gq-chip-count" id="gqCountReview">0</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="t-table-wrap">
+      <table class="gq-table" id="gqTable">
+        <thead>
+          <tr>
+            <th class="gq-th-num">#</th>
+            <th>Student</th>
+            <th>Assessment</th>
+            <th>Type</th>
+            <th class="gq-th-status">Status</th>
+            <th class="gq-th-act"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr class="gq-row"
+                data-name="{{ row.sa.student.first_name }} {{ row.sa.student.last_name }}"
+                data-subject="{{ row.sa.activity.subject.subject_name }}"
+                data-activity="{{ row.sa.activity.activity_name }}"
+                data-badge="{{ row.badge }}">
+              <td class="gq-td-num">{{ forloop.counter }}</td>
+              <td>
+                <div class="gq-student-cell">
+                  <div class="gq-avatar">
+                    <span>{{ row.sa.student.first_name|slice:':1'|upper }}{{ row.sa.student.last_name|slice:':1'|upper }}</span>
+                  </div>
+                  <div class="gq-student-text">
+                    <div class="gq-student-name">{{ row.sa.student.last_name }}, {{ row.sa.student.first_name }}</div>
+                    {% if row.sa.student.email %}
+                      <div class="gq-student-meta">{{ row.sa.student.email }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="gq-assessment">
+                  <div class="gq-assessment-name">{{ row.sa.activity.activity_name }}</div>
+                  <div class="gq-assessment-subject">
+                    <i class="fas fa-book" aria-hidden="true"></i>
+                    {{ row.sa.activity.subject.subject_name }}
+                  </div>
+                </div>
+              </td>
+              <td><span class="gq-type">{{ row.quiz_type_name }}</span></td>
+              <td>
+                {% if row.badge == 'Needs grading' %}
+                  <span class="t-badge t-badge--gold"><i class="fas fa-pen-nib"></i> {{ row.badge }}</span>
+                {% else %}
+                  <span class="t-badge t-badge--rose"><i class="fas fa-magnifying-glass"></i> {{ row.badge }}</span>
+                {% endif %}
+              </td>
+              <td class="gq-action-cell">
+                <a class="gq-grade-btn" href="{% url 'gradebook_grade' row.sa.id %}">
+                  Grade <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="gq-empty-filter" id="gqEmptyFilter" hidden>
+        <i class="fas fa-filter" aria-hidden="true"></i>
+        <p>No submissions match the current filter.</p>
+      </div>
+    </div>
+  {% else %}
+    <!-- Empty state -->
+    <div class="t-empty">
+      <span class="ico"><i class="fas fa-check-circle" aria-hidden="true"></i></span>
+      <div class="lead">{% if filter_activity %}Nothing to grade for this assessment{% else %}No submissions awaiting your attention{% endif %}</div>
+      <div class="sub">
+        {% if filter_activity %}
+          Every submission for <em>{{ filter_activity.activity_name }}</em> has been graded.
+        {% else %}
+          You're caught up. New submissions will appear here as students submit them.
+        {% endif %}
+      </div>
+      {% if filter_activity %}
+        <a href="{% url 'gradebook_queue' %}" class="gq-back-empty">
+          <i class="fas fa-list" aria-hidden="true"></i> See full queue
+        </a>
+      {% else %}
+        <a href="{% url 'gradebook_home' %}" class="gq-back-empty">
+          <i class="fas fa-table" aria-hidden="true"></i> Open gradebook
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+<script src="{% static 'gradebookcomponent/grading_queue.js' %}"></script>
+<script src="{% static 'js/tours/cl-tour-grading-queue.js' %}" defer></script>
+{% endblock %}

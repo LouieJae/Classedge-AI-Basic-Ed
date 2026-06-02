@@ -1,0 +1,104 @@
+{% comment %}
+[Classedge LMS] Reusable click-to-edit inline-input styles + script.
+Include once inside {% block extra_css %} on any page that uses the
+`.cl-edit` markup. Paired with /static/js/cl-edit-inline.js which
+auto-binds every `.cl-edit` element it finds (and watches the DOM for
+late-arriving ones via MutationObserver).
+
+Usage:
+
+  {% include "includes/_edit-inline.html" %}
+
+  <span class="cl-edit"
+        data-endpoint="/assessment/rename/{{ activity.local_id }}/"
+        data-field="activity_name"
+        data-label="Activity name"
+        data-min="2"
+        data-max="120">
+    {{ activity.activity_name }}
+  </span>
+{% endcomment %}
+
+{% load static %}
+<style>
+  /* Resting state — looks like normal text until hovered. The dashed
+     underline + brand color on hover signals "this is editable" without
+     adding chrome that would clutter dense list rows. */
+  .cl-edit {
+    display: inline-block;
+    cursor: text;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    transition: background-color 120ms ease, box-shadow 120ms ease;
+    position: relative;
+  }
+  .cl-edit:hover {
+    background: var(--brand-primary-soft);
+    box-shadow: inset 0 -1px 0 var(--brand-primary, #1b4332);
+  }
+  .cl-edit:focus-visible {
+    outline: none;
+    background: var(--brand-primary-soft);
+    box-shadow: 0 0 0 2px var(--brand-primary, #1b4332);
+  }
+
+  /* Editing state — the parent .cl-edit acts as a container; the
+     <input> fills it. Visible focus ring uses brand color. */
+  .cl-edit.is-editing {
+    background: var(--paper, #fff);
+    box-shadow: 0 0 0 2px var(--brand-primary, #1b4332);
+    padding: 0;
+    margin: 0;
+    cursor: text;
+  }
+  .cl-edit .cl-edit-input {
+    width: 100%;
+    min-width: 80px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    padding: 2px 4px;
+    margin: 0;
+    border-radius: 4px;
+    font-family: var(--body, system-ui);
+  }
+  .cl-edit .cl-edit-input::selection {
+    background: var(--brand-primary-soft);
+  }
+  .cl-edit .cl-edit-input:disabled {
+    color: var(--ink-dim, #6c7080);
+    cursor: progress;
+  }
+
+  /* Saving state — subtle pulsing dot to the right of the input so
+     the user sees the save is in flight. */
+  .cl-edit.is-saving::after {
+    content: '';
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--brand-primary, #1b4332);
+    animation: clEditPulse 0.9s ease-in-out infinite;
+  }
+  @keyframes clEditPulse {
+    0%, 100% { opacity: 0.4; transform: translateY(-50%) scale(0.9); }
+    50%      { opacity: 1;   transform: translateY(-50%) scale(1.15); }
+  }
+
+  /* Honor reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    .cl-edit { transition: none; }
+    .cl-edit.is-saving::after { animation: none; opacity: 0.7; }
+  }
+</style>
+
+<script src="{% static 'js/cl-edit-inline.js' %}" defer></script>

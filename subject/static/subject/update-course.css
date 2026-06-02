@@ -1,0 +1,179 @@
+  /* ── Subject form — landscape layout & polished program-flags ─────────── */
+  .subj-form-page { animation: subjFormFade 0.5s ease both; }
+  @keyframes subjFormFade { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+
+  .gbf-card.subj-card-full { max-width: none; width: 100%; padding: 28px 32px; }
+
+  .subj-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .subj-grid--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 980px) { .subj-grid, .subj-grid--three { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px) { .subj-grid, .subj-grid--three { grid-template-columns: 1fr; } }
+
+  .subj-section-title {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--display);
+    font-size: 17px; font-weight: 500; color: var(--ink);
+    letter-spacing: -0.01em;
+    margin: 26px 0 14px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .subj-section-title:first-of-type { padding-top: 0; border-top: none; margin-top: 0; }
+  .subj-section-title i { color: var(--brand-primary, #b7925a); }
+  .subj-section-title em { color: var(--brand-primary, #b7925a); font-style: italic; font-weight: 400; }
+
+  .gbf-form input[type="checkbox"] {
+    width: auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 1px solid var(--border-strong) !important;
+    margin-right: 8px;
+    accent-color: var(--ink);
+    box-shadow: none !important;
+  }
+  .gbf-form .form-group:has(> input[type="checkbox"]):not(.flag-card) {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    margin-bottom: 12px;
+  }
+  .gbf-form .form-group:has(> input[type="checkbox"]):not(.flag-card) label {
+    margin: 0; text-transform: none; letter-spacing: 0;
+    font-size: 13.5px; color: var(--ink); font-weight: 500;
+  }
+
+  /* ── Program flags — checkbox cards ───────────────────────────────────── */
+  .flag-card {
+    position: relative;
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 18px !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: 12px !important;
+    background: var(--paper) !important;
+    cursor: pointer;
+    transition: all .18s ease;
+    overflow: hidden;
+    margin-bottom: 0 !important;
+  }
+  .flag-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--brand-primary, #b7925a);
+    opacity: 0.35;
+    transition: opacity .18s ease;
+  }
+  .flag-card:hover {
+    border-color: var(--brand-primary, #b7925a) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -10px rgba(45,49,66,0.18);
+  }
+  .flag-card:hover::before { opacity: 1; }
+  .flag-card .flag-icon {
+    flex-shrink: 0;
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: grid; place-items: center;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    font-size: 16px;
+    transition: all .18s ease;
+  }
+  .flag-card .flag-body { flex: 1; min-width: 0; }
+  .flag-card label {
+    margin: 0 !important;
+    font-family: var(--display);
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: var(--ink) !important;
+    text-transform: none !important;
+    letter-spacing: -0.005em !important;
+    cursor: pointer;
+    display: block;
+  }
+  .flag-card .flag-desc {
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+  /* Reserve room on the right so the absolute-positioned checkbox doesn't
+     collide with the title/description text. */
+  .flag-card { padding-right: 48px !important; }
+  .flag-card .flag-body { padding-right: 4px; }
+
+  /* Custom checkbox — pinned to the top-right corner of the card so its
+     placement is consistent regardless of title/description length. */
+  .flag-card input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--paper);
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    margin: 0 !important;
+    width: 20px !important;
+    height: 20px !important;
+    border: 2px solid var(--border-strong) !important;
+    border-radius: 6px !important;
+    cursor: pointer;
+    display: inline-block;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  }
+  .flag-card input[type="checkbox"]:hover {
+    border-color: var(--brand-primary, #1b4332) !important;
+  }
+  .flag-card input[type="checkbox"]:checked {
+    background-color: var(--brand-primary, #1b4332) !important;
+    border-color: var(--brand-primary, #1b4332) !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M13 4.5 L6.5 11.5 L3 8' fill='none' stroke='%23faf7f2' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-size: 14px 14px;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .flag-card input[type="checkbox"]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .subj-section-title .subj-section-hint {
+    margin-left: 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--ink-dim);
+    text-transform: none;
+    letter-spacing: 0;
+    font-style: italic;
+  }
+  .flag-card:has(input[type="checkbox"]:checked) {
+    border-color: var(--brand-primary, #1b4332) !important;
+    background: var(--brand-primary-soft) !important;
+  }
+  .flag-card:has(input[type="checkbox"]:checked)::before { background: var(--brand-primary, #1b4332); opacity: 1; }
+  .flag-card:has(input[type="checkbox"]:checked) .flag-icon {
+    background: var(--brand-primary, #1b4332);
+    color: var(--cream);
+  }
+
+  .flag-card.coil-input::before { background: var(--brand-primary, #b7925a); }
+  .flag-card.coil-input .flag-icon { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); }
+  .flag-card.hali-input::before { background: var(--rose); }
+  .flag-card.hali-input .flag-icon { background: var(--rose-soft); color: var(--rose-deep); }
+  .flag-card.cte-input::before  { background: var(--brand-primary, #1b4332); }
+  .flag-card.cte-input .flag-icon { background: var(--brand-primary-soft); color: var(--ink); }
+  .flag-card.sub-input::before  { background: var(--brand-primary, #1b4332); }
+  .flag-card.sub-input .flag-icon { background: var(--brand-primary-soft); color: var(--ink); }
+
+  .coil-hali-fields {
+    margin-top: 18px;
+    padding: 22px;
+    background: linear-gradient(135deg, var(--brand-primary-soft), transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 24%, transparent);
+    border-radius: 12px;
+    animation: detailsExpand 0.3s ease both;
+  }
+  @keyframes detailsExpand { from { opacity: 0; transform: translateY(-8px);} to { opacity: 1; transform: translateY(0);} }
+  .coil-hali-fields .subj-section-title { margin-top: 0; padding-top: 0; border-top: none; font-size: 15px; }

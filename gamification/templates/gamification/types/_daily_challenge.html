@@ -1,0 +1,15 @@
+{% comment %}Single MCQ — included inside <form> by side_activity_play.html{% endcomment %}
+
+<div style="margin-bottom:1.5rem;">
+  <p style="font-size:1.15rem;color:var(--text);line-height:1.6;">{{ content.question }}</p>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:.75rem;">
+  {% for choice in content.choices %}
+  <label style="display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--surface-2);transition:border-color .15s;">
+    <input type="radio" name="answer" value="{{ forloop.counter0 }}"
+           style="accent-color:var(--primary);width:18px;height:18px;flex-shrink:0;" required>
+    <span style="color:var(--text);font-size:1rem;">{{ choice }}</span>
+  </label>
+  {% endfor %}
+</div>

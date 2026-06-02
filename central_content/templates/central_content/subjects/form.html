@@ -1,0 +1,21 @@
+{% extends "central_content/base.html" %}
+{% block title %}{% if subject %}Edit{% else %}New{% endif %} Subject{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">
+    {% if subject %}Edit subject{% else %}New subject{% endif %}
+</h1>
+<form method="post" class="bg-white p-6 rounded shadow space-y-4 max-w-2xl">
+    {% csrf_token %}
+    {% for field in form %}
+    <label class="block">
+        <span class="block text-sm font-medium">{{ field.label }}</span>
+        {{ field }}
+        {% if field.errors %}<p class="text-red-600 text-sm">{{ field.errors.0 }}</p>{% endif %}
+    </label>
+    {% endfor %}
+    <div class="flex gap-2">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+        <a href="{% if subject %}/subjects/{{ subject.id }}/{% else %}/subjects/{% endif %}" class="px-4 py-2">Cancel</a>
+    </div>
+</form>
+{% endblock %}

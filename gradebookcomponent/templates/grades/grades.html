@@ -1,0 +1,214 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Student Grades{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gradebookcomponent/grades.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="tsg-shell">
+  <div class="tsg-header">
+    <h1 class="page-title">Student <em>Grades</em></h1>
+    <div class="page-sub">Per-student term grades and final grade for the selected course &middot; passing grade {{ passing_grade|floatformat:0 }}</div>
+  </div>
+
+  <form method="get" class="tsg-filter-card" id="tsg-filter-form">
+    <div class="tsg-filter-head"><i class="fas fa-filter"></i> Filter Grades</div>
+    <div class="tsg-filter-grid">
+      <div class="form-group">
+        <label for="semester"><i class="fas fa-calendar-alt"></i> Semester</label>
+        <select id="semester" name="semester" onchange="document.getElementById('tsg-filter-form').submit();">
+          {% for s in semesters %}
+            <option value="{{ s.id }}" {% if selected_semester and selected_semester.id == s.id %}selected{% endif %}>
+              {{ s.semester_name }} &middot; SY. {{ s.get_academic_year }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="subject"><i class="fas fa-book"></i> Course</label>
+        <select id="subject" name="subject" onchange="document.getElementById('tsg-filter-form').submit();">
+          <option value="" {% if not selected_subject %}selected{% endif %} disabled>Select a course</option>
+          {% for subj in subjects %}
+            <option value="{{ subj.id }}" {% if selected_subject and selected_subject.id == subj.id %}selected{% endif %}>
+              {{ subj.subject_name }}{% if subj.subject_type %} &middot; {{ subj.subject_type }}{% endif %}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </form>
+
+  <div class="tsg-table-card">
+    <div class="tsg-table-head">
+      <h2 class="tsg-table-title">
+        {% if selected_subject %}{{ selected_subject.subject_name }}{% else %}Grades{% endif %}
+      </h2>
+      <div class="tsg-table-actions">
+        <div class="tsg-table-meta">
+          {% if selected_subject %}
+            {{ rows|length }} student{{ rows|length|pluralize }} enrolled
+          {% else %}
+            Pick a subject to view student grades
+          {% endif %}
+        </div>
+        {% if selected_subject %}
+          <a href="{% url 'gradebook_subject_xlsx' selected_subject.id %}"
+             class="tsg-export-btn"
+             title="Download class record (Excel): students × activities × subtotals × final grade">
+            <i class="fas fa-file-excel"></i> Export class record
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if selected_subject and rows %}
+      <div class="tsg-table-wrap">
+        <table class="tsg-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              {% for t in term_meta %}
+                <th class="col-num">
+                  <div class="tsg-term-head">
+                    <span>{{ t.name }}<span class="tsg-sub">term grade</span></span>
+                    <button type="button"
+                            class="tsg-vis-toggle"
+                            data-term-id="{{ t.id }}"
+                            data-subject-id="{{ selected_subject.id }}"
+                            data-visible="{{ t.is_visible|yesno:'true,false' }}"
+                            title="{% if t.is_visible %}Visible to students &mdash; click to hide{% else %}Hidden from students &mdash; click to show{% endif %}">
+                      <i class="fas {% if t.is_visible %}fa-eye{% else %}fa-eye-slash{% endif %}" aria-hidden="true"></i>
+                      <span class="tsg-vis-label">{% if t.is_visible %}Visible{% else %}Hidden{% endif %}</span>
+                    </button>
+                  </div>
+                </th>
+              {% endfor %}
+              <th class="col-num col-final">Final Grade</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td>
+                  <div class="tsg-student-cell">
+                    <div class="tsg-avatar">
+                      {% if row.profile.profile_image %}
+                        <img src="{{ row.profile.profile_image.url }}" alt="{{ row.profile.first_name }}">
+                      {% else %}
+                        {{ row.profile.first_name|slice:":1"|upper }}{{ row.profile.last_name|slice:":1"|upper }}
+                      {% endif %}
+                    </div>
+                    <div>
+                      <div class="tsg-student-name">{{ row.profile.last_name }}, {{ row.profile.first_name }}</div>
+                      {% if row.student.email %}<div class="tsg-student-meta">{{ row.student.email }}</div>{% endif %}
+                    </div>
+                  </div>
+                </td>
+                {% for t in row.terms %}
+                  <td class="col-num">
+                    {% if t.total is not None %}
+                      <span class="tsg-term-grade">{{ t.total|floatformat:1 }}</span>
+                    {% else %}
+                      <span class="tsg-term-grade empty">&mdash;</span>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+                <td class="col-num col-final">
+                  {% if row.final_grade is not None %}
+                    <span class="tsg-final {% if row.is_passing %}pass{% else %}fail{% endif %}">{{ row.final_grade|floatformat:1 }}</span>
+                  {% else %}
+                    <span class="tsg-final empty">&mdash;</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="tsg-empty">
+        <div class="ico"><i class="fas fa-user-graduate"></i></div>
+        <div class="lead">
+          {% if not selected_subject %}Select a course above{% else %}No students enrolled{% endif %}
+        </div>
+        <div>
+          {% if not selected_subject %}
+            Choose a semester and course to load the gradebook.
+          {% else %}
+            No active enrollments were found for this course in the selected semester.
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  (function () {
+    function getCookie(name) {
+      const m = document.cookie.match('(^|;)\\s*' + name + '=([^;]+)');
+      return m ? decodeURIComponent(m[2]) : '';
+    }
+    const csrfToken = getCookie('csrftoken');
+    const toggleUrl = "{% url 'toggle_grade_visibility' %}";
+
+    document.querySelectorAll('.tsg-vis-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const subjectId = btn.dataset.subjectId;
+        const termId = btn.dataset.termId;
+        const wasVisible = btn.dataset.visible === 'true';
+        const nextVisible = !wasVisible;
+
+        btn.disabled = true;
+        fetch(toggleUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            subject_id: parseInt(subjectId, 10),
+            term_id: parseInt(termId, 10),
+            is_visible: nextVisible,
+          }),
+        })
+          .then(function (r) { return r.json().catch(function () { return {}; }); })
+          .then(function (data) {
+            if (data && data.status === 'success') {
+              btn.dataset.visible = nextVisible ? 'true' : 'false';
+              const icon = btn.querySelector('i');
+              if (icon) {
+                icon.classList.toggle('fa-eye', nextVisible);
+                icon.classList.toggle('fa-eye-slash', !nextVisible);
+              }
+              const label = btn.querySelector('.tsg-vis-label');
+              if (label) label.textContent = nextVisible ? 'Visible' : 'Hidden';
+              btn.title = nextVisible
+                ? 'Visible to students — click to hide'
+                : 'Hidden from students — click to show';
+              if (window.Swal) {
+                Swal.fire({
+                  toast: true, position: 'top-end',
+                  icon: 'success',
+                  title: nextVisible ? 'Term grade is now visible to students' : 'Term grade is now hidden from students',
+                  showConfirmButton: false, timer: 2200, timerProgressBar: true,
+                });
+              }
+            } else if (window.Swal) {
+              Swal.fire({ icon: 'error', title: 'Could not update visibility', text: (data && data.message) || 'Please try again.' });
+            }
+          })
+          .catch(function () {
+            if (window.Swal) Swal.fire({ icon: 'error', title: 'Network error', text: 'Could not reach the server.' });
+          })
+          .finally(function () { btn.disabled = false; });
+      });
+    });
+  })();
+</script>
+{% endblock %}

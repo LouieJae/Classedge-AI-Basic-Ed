@@ -1,0 +1,891 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% comment %}[Classedge LMS] Coil Admin dashboard — operations design system.{% endcomment %}
+
+{% block title %}Coil dashboard{% endblock %}
+
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <style>
+    /* Spacing scale — same rhythm as the academic / super-admin / program-head pages. */
+    .cl-page {
+      --gap-row: 20px;
+      --gap-tile: 14px;
+      --pad-card: 22px 24px;
+    }
+    .cl-page .cl-card { margin-bottom: var(--gap-row); }
+    .cl-page .cl-card .cl-card-body { padding: var(--pad-card); }
+    .cl-page .cl-card .cl-card-body.flush { padding: 0; }
+    .cl-page .cl-header { margin-bottom: 24px; }
+
+    /* Role chip + live indicator */
+    .ca-role-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+    .ca-role-tag i { color: var(--brand-primary, #b7925a); font-size: 11px; }
+    .ca-asof {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-dim);
+      letter-spacing: 0.02em;
+    }
+    .ca-asof::before {
+      content: "";
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--brand-primary, #1b4332);
+      box-shadow: 0 0 0 4px var(--brand-primary-soft);
+      animation: ca-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes ca-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+    /* ───────── KPI tiles ───────── */
+    .ca-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--gap-tile);
+      margin-bottom: var(--gap-row);
+    }
+    @media (max-width: 1100px) { .ca-kpis { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px)  { .ca-kpis { grid-template-columns: 1fr; } }
+
+    /* ───── "Needs your attention" highlight ───── */
+    .ca-attn {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--brand-primary, #1b4332);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: var(--gap-row);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .ca-attn.is-warn { border-top-color: var(--rose, #c08479); }
+    .ca-attn::before {
+      content: "";
+      position: absolute; top: -140px; right: -120px;
+      width: 360px; height: 360px;
+      background: radial-gradient(circle, var(--brand-primary-soft), transparent 65%);
+      pointer-events: none;
+    }
+    .ca-attn.is-warn::before {
+      background: radial-gradient(circle, rgba(192, 132, 121, 0.16), transparent 65%);
+    }
+    .ca-attn-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      margin-bottom: 14px; position: relative;
+    }
+    .ca-attn-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink);
+    }
+    .ca-attn.is-warn .ca-attn-eyebrow { color: var(--rose-deep, #b0413e); }
+    .ca-attn-eyebrow i { font-size: 11px; }
+    .ca-attn-title {
+      font-family: var(--display);
+      font-size: 22px; font-weight: 600;
+      color: var(--ink);
+      margin: 6px 0 0;
+      letter-spacing: -0.015em;
+    }
+    .ca-attn-title em { font-style: italic; color: var(--brand-primary, #b7925a); font-weight: 500; }
+    .ca-attn.is-warn .ca-attn-title em { color: var(--rose-deep, #b0413e); }
+    .ca-attn-summary {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 8px 14px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12.5px; color: var(--ink-dim);
+      font-family: var(--display);
+    }
+    .ca-attn-summary strong { color: var(--ink); font-weight: 600; font-style: normal; }
+    .ca-attn-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      position: relative;
+    }
+    .ca-attn-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--rose, #c08479);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+    }
+    .ca-attn-ico {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: rgba(192, 132, 121, 0.14);
+      color: var(--rose-deep, #b0413e);
+      display: grid; place-items: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .ca-attn-body { min-width: 0; flex: 1; line-height: 1.35; }
+    .ca-attn-label {
+      font-family: var(--display);
+      font-size: 14px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+      display: block;
+    }
+    .ca-attn-detail { font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; }
+    .ca-attn-clear {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 20px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--brand-primary, #1b4332);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      font-family: var(--display);
+      font-size: 14.5px;
+    }
+    .ca-attn-clear i {
+      width: 36px; height: 36px;
+      border-radius: 11px;
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      display: grid; place-items: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .ca-attn-clear strong { font-weight: 600; color: var(--ink); }
+    .ca-attn-clear .sub { display: block; font-size: 12px; color: var(--ink-dim); margin-top: 2px; font-style: italic; }
+    @media (max-width: 720px) {
+      .ca-attn { padding: 20px; }
+      .ca-attn-title { font-size: 18px; }
+    }
+
+    /* ───── Follow-ups list (stale pending) ───── */
+    .ca-followup { display: flex; flex-direction: column; gap: 10px; }
+    .ca-followup-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--rose, #c08479);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .ca-followup-row:hover { transform: translateX(2px); box-shadow: var(--shadow-hover); color: var(--ink); }
+    .ca-followup-mark {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ink), var(--brand-primary, #b7925a));
+      color: var(--cream);
+      display: grid; place-items: center;
+      font-family: var(--display); font-size: 13px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .ca-followup-body { flex: 1; min-width: 0; line-height: 1.3; }
+    .ca-followup-name {
+      font-family: var(--display);
+      font-size: 13.5px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+    }
+    .ca-followup-meta {
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      margin-top: 2px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .ca-followup-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-muted); }
+    .ca-followup-age {
+      font-family: var(--display);
+      font-size: 11px; font-weight: 700;
+      color: var(--rose-deep, #b0413e);
+      background: rgba(192, 132, 121, 0.14);
+      padding: 4px 10px;
+      border-radius: 100px;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    /* ───── Geographic spread ───── */
+    .ca-geo {
+      display: flex; flex-direction: column;
+      gap: 8px;
+    }
+    .ca-geo-row {
+      display: grid;
+      grid-template-columns: 14px 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .ca-geo-row .swatch {
+      width: 12px; height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .ca-geo-row:nth-child(1) .swatch { background: var(--brand-primary, #1b4332); }
+    .ca-geo-row:nth-child(2) .swatch { background: var(--brand-primary, #b7925a); }
+    .ca-geo-row:nth-child(3) .swatch { background: #5d3a3a; }
+    .ca-geo-row:nth-child(4) .swatch { background: var(--rose, #c08479); }
+    .ca-geo-row:nth-child(5) .swatch { background: var(--ink-dim); }
+    .ca-geo-row:nth-child(n+6) .swatch { background: var(--ink-muted); }
+    .ca-geo-row .name {
+      letter-spacing: 0.01em;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .ca-geo-row .num {
+      font-family: var(--display); font-weight: 700;
+      color: var(--ink); font-variant-numeric: tabular-nums;
+    }
+    .ca-geo-row .pct {
+      font-size: 11px; color: var(--ink-muted);
+      font-variant-numeric: tabular-nums;
+      min-width: 42px; text-align: right;
+    }
+    .ca-geobar {
+      display: flex; width: 100%;
+      height: 10px;
+      background: var(--cream-2);
+      border-radius: 100px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .ca-geobar > span { display: block; height: 100%; }
+    .ca-geobar > span:nth-child(1) { background: var(--brand-primary, #1b4332); }
+    .ca-geobar > span:nth-child(2) { background: var(--brand-primary, #b7925a); }
+    .ca-geobar > span:nth-child(3) { background: #5d3a3a; }
+    .ca-geobar > span:nth-child(4) { background: var(--rose, #c08479); }
+    .ca-geobar > span:nth-child(5) { background: var(--ink-dim); }
+    .ca-geobar > span:nth-child(n+6) { background: var(--ink-muted); }
+
+    /* ───── COIL subjects ledger ───── */
+    .ca-subj-list { display: flex; flex-direction: column; gap: 8px; }
+    .ca-subj-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      text-decoration: none;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .ca-subj-row:hover { border-color: var(--brand-primary, #b7925a); transform: translateX(2px); color: var(--ink); }
+    .ca-subj-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: rgba(244, 183, 64, 0.18);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .ca-subj-body { flex: 1; min-width: 0; line-height: 1.3; }
+    .ca-subj-name {
+      font-family: var(--display);
+      font-size: 13.5px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+      display: block;
+    }
+    .ca-subj-meta {
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      margin-top: 2px;
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    }
+    .ca-subj-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-muted); }
+    .ca-subj-tail {
+      font-family: var(--display);
+      font-size: 13px; font-weight: 700;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+    .ca-subj-tail small { display: block; font-size: 10px; color: var(--ink-muted); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+
+    .ca-kpi {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 22px 20px;
+      box-shadow: var(--shadow);
+      display: flex; flex-direction: column;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+    .ca-kpi:hover {
+      border-color: var(--border-strong);
+      box-shadow: 0 8px 24px -16px rgba(45,49,66,0.18);
+    }
+    .ca-kpi-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .ca-kpi-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      line-height: 1.2;
+    }
+    .ca-kpi-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--cream-2);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .ca-kpi.warn   .ca-kpi-icon { background: color-mix(in srgb, var(--brand-primary, #b7925a) 18%, transparent); color: #8a6a3a; }
+    .ca-kpi.ok     .ca-kpi-icon { background: var(--brand-primary-soft); color: var(--ink); }
+    .ca-kpi.danger .ca-kpi-icon { background: var(--rose-soft, rgba(196,80,90,0.14)); color: var(--rose-deep, #8a3741); }
+
+    .ca-kpi-value {
+      font-family: var(--display);
+      font-size: 32px; font-weight: 600;
+      color: var(--ink);
+      line-height: 1;
+      letter-spacing: -0.025em;
+    }
+    .ca-kpi.danger .ca-kpi-value { color: var(--rose-deep, #8a3741); }
+    .ca-kpi-foot {
+      margin-top: 12px;
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    /* ───────── Two-col grid ───────── */
+    .ca-grid {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 20px;
+      margin-bottom: var(--gap-row);
+    }
+    @media (max-width: 1100px) { .ca-grid { grid-template-columns: 1fr; } }
+    .ca-grid .cl-card { margin-bottom: 0; }
+
+    /* ───────── Card meta link / pill ───────── */
+    .ca-meta-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-dim);
+      text-decoration: none;
+      transition: color .15s ease;
+    }
+    .ca-meta-link:hover { color: var(--ink); }
+    .ca-meta-link i { font-size: 9px; }
+    .ca-meta-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ───────── Partner schools ledger ───────── */
+    .ca-ledger { width: 100%; border-collapse: collapse; }
+    .ca-ledger thead th {
+      text-align: left;
+      padding: 0 12px 14px;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border-bottom: 1px solid var(--border);
+    }
+    .ca-ledger thead th.right { text-align: right; }
+    .ca-ledger tbody td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--ink);
+      vertical-align: middle;
+    }
+    .ca-ledger tbody tr:last-child td { border-bottom: none; }
+    .ca-ledger tbody tr:hover td { background: var(--cream); }
+
+    .ca-school-name { color: var(--ink); font-weight: 600; font-size: 13.5px; }
+    .ca-school-domain {
+      display: block;
+      margin-top: 3px;
+      font-family: 'SFMono-Regular', monospace;
+      font-size: 11.5px;
+      color: var(--ink-muted);
+    }
+    .ca-school-loc {
+      font-size: 12px;
+      color: var(--ink-dim);
+    }
+
+    /* Status pill */
+    .ca-status {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .ca-status::before {
+      content: "";
+      width: 6px; height: 6px;
+      border-radius: 50%;
+    }
+    .ca-status.partner            { background: var(--brand-primary-soft); color: var(--ink); }
+    .ca-status.partner::before    { background: var(--brand-primary, #1b4332); }
+    .ca-status.pending-acceptance { background: color-mix(in srgb, var(--status-pending, #b7925a) 16%, transparent); color: #8a6a3a; }
+    .ca-status.pending-acceptance::before { background: var(--status-pending, var(--brand-primary, #b7925a)); }
+    .ca-status.send-invite        { background: var(--cream-2); color: var(--ink-dim); border: 1px solid var(--border); }
+    .ca-status.send-invite::before{ background: var(--ink-muted); }
+    .ca-status.rejected           { background: var(--rose-soft, rgba(196,80,90,0.14)); color: var(--rose-deep, #8a3741); }
+    .ca-status.rejected::before   { background: var(--rose-deep, #8a3741); }
+
+    .ca-num {
+      font-family: 'SFMono-Regular', monospace;
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+    .ca-num small { color: var(--ink-muted); font-weight: 400; margin-left: 2px; }
+
+    /* ───────── Pipeline funnel ───────── */
+    .ca-funnel { display: flex; flex-direction: column; }
+    .ca-funnel-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .ca-funnel-row:first-child { padding-top: 2px; }
+    .ca-funnel-row:last-child { padding-bottom: 2px; border-bottom: none; }
+    .ca-funnel-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 7px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ca-funnel-name .swatch {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .ca-funnel-name .swatch.send-invite        { background: var(--ink-muted); }
+    .ca-funnel-name .swatch.pending-acceptance { background: var(--brand-primary, #b7925a); }
+    .ca-funnel-name .swatch.partner            { background: var(--brand-primary, #1b4332); }
+    .ca-funnel-name .swatch.rejected           { background: var(--rose, #c08479); }
+    .ca-funnel-bar {
+      height: 5px;
+      background: var(--cream-2);
+      border-radius: 100px;
+      overflow: hidden;
+      max-width: 320px;
+      position: relative;
+    }
+    .ca-funnel-bar > span {
+      position: absolute; inset: 0;
+      width: 0;
+      border-radius: 100px;
+      transition: width .4s ease;
+    }
+    .ca-funnel-bar > span.send-invite        { background: linear-gradient(90deg, var(--ink-muted), var(--ink-dim)); }
+    .ca-funnel-bar > span.pending-acceptance { background: linear-gradient(90deg, var(--brand-primary, #b7925a), #d4a973); }
+    .ca-funnel-bar > span.partner            { background: linear-gradient(90deg, var(--ink), #2d5a47); }
+    .ca-funnel-bar > span.rejected           { background: linear-gradient(90deg, var(--rose, #c08479), var(--rose-deep, #8a3741)); }
+    .ca-funnel-num {
+      font-family: 'SFMono-Regular', monospace;
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .ca-funnel-num small {
+      display: inline-block;
+      margin-left: 6px;
+      color: var(--ink-muted);
+      font-weight: 400;
+      font-size: 11px;
+    }
+
+    /* ───────── Recent partners feed ───────── */
+    .ca-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .ca-row:first-child { padding-top: 2px; }
+    .ca-row:last-child { padding-bottom: 2px; border-bottom: none; }
+    .ca-row-mark {
+      width: 36px; height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--ink), var(--brand-primary, #b7925a));
+      color: var(--cream);
+      display: grid; place-items: center;
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .ca-row-body { min-width: 0; }
+    .ca-row-name {
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 13px;
+    }
+    .ca-row-meta {
+      margin-top: 3px;
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .ca-row-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-muted); }
+
+    /* ───────── Quick jump ───────── */
+    .ca-jump {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 10px;
+    }
+    .ca-jump a {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all .15s ease;
+    }
+    .ca-jump a i {
+      width: 26px; height: 26px;
+      border-radius: 7px;
+      background: var(--cream-2);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 11px;
+      flex-shrink: 0;
+      transition: all .15s ease;
+    }
+    .ca-jump a:hover { border-color: var(--brand-primary, #1b4332); color: var(--ink); }
+    .ca-jump a:hover i { background: var(--brand-primary, #1b4332); color: var(--cream); }
+    .ca-jump a.primary {
+      background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332);
+    }
+    .ca-jump a.primary i { background: rgba(255,255,255,0.18); color: var(--cream); }
+    .ca-jump a.primary:hover { background: var(--brand-primary, #b7925a); border-color: var(--brand-primary, #b7925a); }
+
+    /* Empty state */
+    .ca-empty {
+      text-align: center;
+      padding: 28px 14px;
+      color: var(--ink-muted);
+      font-size: 13px;
+    }
+    .ca-empty i {
+      display: block;
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--ink-muted);
+      opacity: 0.6;
+    }
+  </style>
+
+  <div class="cl-page">
+
+    {# ───────── Header ───────── #}
+    <div class="cl-header">
+      <div>
+        <span class="ca-role-tag"><i class="fas fa-globe"></i> {{ role_tag }}</span>
+        <h2>Good {{ time_of_day }}, <em>{{ request.user.first_name|default:request.user.username }}</em></h2>
+        <p>What's stuck, who needs a nudge, and how the pipeline is moving.</p>
+      </div>
+      <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="cl-tour-replay" data-cl-tour="coil-admin">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <span class="ca-asof">{{ as_of }}</span>
+      </div>
+    </div>
+
+    {# ───────── HIGHLIGHT: Needs your attention ───────── #}
+    <section class="ca-attn is-{{ attention_status }}">
+      <div class="ca-attn-head">
+        <div>
+          <div class="ca-attn-eyebrow">
+            <i class="fas {% if attention_status == 'warn' %}fa-bell{% else %}fa-circle-check{% endif %}"></i>
+            Needs your attention
+          </div>
+          <h2 class="ca-attn-title">
+            {% if attention_items %}
+              {{ attention_items|length }} thing{{ attention_items|length|pluralize }} <em>to move forward</em>
+            {% else %}
+              Pipeline is <em>flowing</em>
+            {% endif %}
+          </h2>
+        </div>
+        <div class="ca-attn-summary">
+          <span>
+            <strong>{{ totals.invites }}</strong> to send ·
+            <strong>{{ totals.pending }}</strong> awaiting reply
+          </span>
+        </div>
+      </div>
+
+      {% if attention_items %}
+        <div class="ca-attn-grid">
+          {% for item in attention_items %}
+            <div class="ca-attn-item">
+              <span class="ca-attn-ico"><i class="fas {{ item.icon }}"></i></span>
+              <span class="ca-attn-body">
+                <span class="ca-attn-label">{{ item.label }}</span>
+                <span class="ca-attn-detail">{{ item.detail }}</span>
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="ca-attn-clear">
+          <i class="fas fa-circle-check"></i>
+          <div>
+            <strong>No drafts waiting, no stale acceptances.</strong>
+            <span class="sub">Last checked {{ as_of }}.</span>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    {# ───────── KPIs ───────── #}
+    <div class="ca-kpis">
+      {% for k in kpis %}
+        <div class="ca-kpi {{ k.tone }}">
+          <div class="ca-kpi-head">
+            <div class="ca-kpi-label">{{ k.label }}</div>
+            <div class="ca-kpi-icon"><i class="fas {{ k.icon }}"></i></div>
+          </div>
+          <div class="ca-kpi-value">{{ k.value }}</div>
+          {% if k.hint %}<div class="ca-kpi-foot">{{ k.hint }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    {# ───────── Partner schools + Pipeline funnel ───────── #}
+    <div class="ca-grid">
+
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-school me-2"></i> Partner <em>schools</em></span>
+          <a href="{% url 'coil_school_list' %}" class="ca-meta-link">All schools <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="cl-card-body">
+          {% if partner_rows %}
+            <table class="ca-ledger">
+              <thead>
+                <tr>
+                  <th style="width: 40%;">School</th>
+                  <th>Status</th>
+                  <th>Location</th>
+                  <th class="right">Students</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in partner_rows %}
+                  <tr>
+                    <td>
+                      <span class="ca-school-name">{{ s.name }}</span>
+                      <span class="ca-school-domain">{{ s.domain }}</span>
+                    </td>
+                    <td>
+                      <span class="ca-status {{ s.status|lower|cut:' '|slugify }}">{{ s.status }}</span>
+                    </td>
+                    <td>
+                      <span class="ca-school-loc">{{ s.location|default:"—" }}</span>
+                    </td>
+                    <td class="ca-num">
+                      {{ s.students_resolved }}{% if s.students_self_reported %}<small>/{{ s.students_self_reported }}</small>{% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div class="ca-empty">
+              <i class="fas fa-school"></i>No partner schools yet.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-filter me-2"></i> Partnership <em>pipeline</em></span>
+          <span class="ca-meta-pill">{{ totals.partners }} total</span>
+        </div>
+        <div class="cl-card-body">
+          {% if totals.partners %}
+            <div class="ca-funnel">
+              {% for f in funnel_rows %}
+                <div class="ca-funnel-row">
+                  <div>
+                    <div class="ca-funnel-name">
+                      <span class="swatch {{ f.label|lower|cut:' '|slugify }}"></span>
+                      {{ f.label }}
+                    </div>
+                    <div class="ca-funnel-bar"><span class="{{ f.label|lower|cut:' '|slugify }}" style="width: {{ f.pct }}%;"></span></div>
+                  </div>
+                  <div class="ca-funnel-num">{{ f.count }}<small>{{ f.pct }}%</small></div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="ca-empty">
+              <i class="fas fa-filter"></i>Pipeline is empty.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    {# ───────── Follow-ups + Geographic spread ───────── #}
+    <div class="ca-grid">
+
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-hourglass-half me-2"></i> Follow-up <em>queue</em></span>
+          <span class="ca-meta-pill">aged 30d+</span>
+        </div>
+        <div class="cl-card-body">
+          {% if stale_pending_rows %}
+            <div class="ca-followup">
+              {% for s in stale_pending_rows %}
+                <a class="ca-followup-row" href="{% url 'coil_school_list' %}">
+                  <span class="ca-followup-mark">{{ s.name|slice:":1"|upper }}</span>
+                  <div class="ca-followup-body">
+                    <div class="ca-followup-name">{{ s.name }}</div>
+                    <div class="ca-followup-meta">
+                      <span>{{ s.domain }}</span>
+                      {% if s.contact %}<span class="dot"></span><span>{{ s.contact }}</span>{% endif %}
+                      {% if s.location %}<span class="dot"></span><span>{{ s.location }}</span>{% endif %}
+                    </div>
+                  </div>
+                  <span class="ca-followup-age">{{ s.age_days }}d waiting</span>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="ca-empty">
+              <i class="fas fa-circle-check"></i>Nothing's gone stale. Pipeline is healthy.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-globe me-2"></i> Partners by <em>location</em></span>
+          <span class="ca-meta-pill">geographic spread</span>
+        </div>
+        <div class="cl-card-body">
+          {% if location_rows %}
+            <div class="ca-geobar" aria-hidden="true">
+              {% for r in location_rows %}<span style="width: {{ r.pct }}%;"></span>{% endfor %}
+            </div>
+            <div class="ca-geo">
+              {% for r in location_rows %}
+                <div class="ca-geo-row">
+                  <span class="swatch"></span>
+                  <span class="name">{{ r.label }}</span>
+                  <span class="num">{{ r.count }}</span>
+                  <span class="pct">{{ r.pct }}%</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="ca-empty">
+              <i class="fas fa-globe"></i>No active partners yet — map will populate as you confirm them.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    {# ───────── COIL-flagged subjects ───────── #}
+    <div class="cl-card">
+      <div class="cl-card-header">
+        <span><i class="fas fa-layer-group me-2"></i> COIL <em>subjects</em></span>
+        <span class="ca-meta-pill">{{ coil_subject_total }} flagged</span>
+      </div>
+      <div class="cl-card-body">
+        {% if coil_subject_rows %}
+          <div class="ca-subj-list">
+            {% for s in coil_subject_rows %}
+              <a class="ca-subj-row" href="{% url 'material-list' s.id %}">
+                <span class="ca-subj-icon"><i class="fas fa-globe"></i></span>
+                <div class="ca-subj-body">
+                  <span class="ca-subj-name">{{ s.name }}</span>
+                  <div class="ca-subj-meta">
+                    {% if s.code %}<span>{{ s.code }}</span><span class="dot"></span>{% endif %}
+                    <span>{{ s.teacher }}</span>
+                    <span class="dot"></span>
+                    <span>{{ s.status }}</span>
+                  </div>
+                </div>
+                <div class="ca-subj-tail">
+                  {{ s.enrollees }}
+                  <small>students</small>
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="ca-empty">
+            <i class="fas fa-layer-group"></i>No subjects flagged as COIL yet. Mark cross-border courses to surface them here.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <script src="{% static 'js/tours/cl-tour-coil-admin.js' %}" defer></script>
+{% endblock %}

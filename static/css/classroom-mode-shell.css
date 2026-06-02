@@ -1,0 +1,570 @@
+/* ═══════════════════════════════════════════════════════════
+   Classroom Mode shared shell.
+   Loaded by every standalone CM page. Inlines the operations
+   palette, hero/btn/card/form primitives, and Select2 theming.
+   ═══════════════════════════════════════════════════════════ */
+
+:root,
+body[data-theme="light"] {
+  /* Page canvas — brand-tinted near-white. Same 3% / 5% mix the
+     cohesive partial uses in the master theater so the cream feels
+     consistent across base_operation and CM pages. */
+  --cream:   color-mix(in srgb, var(--brand-primary, #1b4332) 3%, #ffffff);
+  --cream-2: color-mix(in srgb, var(--brand-primary, #1b4332) 5%, #f7f7f7);
+  --paper: #ffffff;
+  /* The whole --forest family is re-routed to the brand axis so every
+     surface that historically referenced --forest / --forest-2 /
+     --forest-light (sidebar hovers, "today" day card gradient, eyebrow
+     atmosphere, lesson border-left, etc.) tracks the tenant brand. */
+  --forest:        var(--brand-primary, #1b4332);
+  --forest-2:      color-mix(in srgb, var(--brand-primary, #1b4332), black 18%);
+  --forest-light:  var(--brand-primary-soft);
+  --gold: #b7925a;
+  --gold-bg: rgba(183, 146, 90, 0.08);
+  --rose: #c08479;
+  --rose-soft: #f4e0dc;
+  --ink: #2d3142;
+  --ink-dim: #6c7080;
+  --ink-muted: #a0a4b8;
+  --border: rgba(45, 49, 66, 0.08);
+  --border-strong: rgba(45, 49, 66, 0.14);
+  --shadow: 0 1px 2px rgba(45,49,66,0.03), 0 12px 32px -12px rgba(45,49,66,0.08);
+  --shadow-hover: 0 2px 4px rgba(45,49,66,0.04), 0 20px 48px -16px rgba(45,49,66,0.12);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --att-present: #16a085;
+  --att-absent: #c0392b;
+  --att-late: #e0a93f;
+  --att-excused: #5b6ee1;
+  --att-other: #6c7080;
+
+  /* Guardrail tokens (Phase 4) — mirrors base_operation.html so
+     color-mix calls in this shell stylesheet resolve when loaded by
+     standalone classroom-mode pages outside the master cascade. */
+  --brand-secondary: var(--gold, #b7925a);
+  --brand-secondary-soft: color-mix(in srgb, var(--brand-secondary, #b7925a) 18%, transparent);
+  --surface-cream: var(--cream, #faf7f2);
+  --status-pending: var(--gold, #b7925a);
+  --semantic-warning: #c47a00;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0 !important; padding: 0 !important;
+  width: 100% !important; max-width: 100% !important;
+  /* Both ambient radial gradients track --brand-primary via color-mix so
+     the page atmosphere follows the tenant brand. Previously the top-right
+     gradient was hardcoded gold rgba(183,146,90,0.06), leaking gold into
+     every CM page regardless of tenant selection. */
+  background:
+    radial-gradient(ellipse at top right, color-mix(in srgb, var(--brand-primary, #1b4332) 6%, transparent), transparent 40%),
+    radial-gradient(ellipse at bottom left, var(--brand-primary-soft), transparent 45%),
+    var(--cream);
+  color: var(--ink);
+  font-family: var(--body);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+.cm-shell { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 22px 32px 56px; }
+.cm-shell.narrow { max-width: 980px !important; margin: 0 auto !important; padding: 24px 28px 60px; }
+.cm-shell.wide { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 22px 32px 56px; }
+@media (max-width: 720px) { .cm-shell, .cm-shell.narrow, .cm-shell.wide { padding: 18px 16px 40px !important; } }
+
+/* ─── Hero ─────────────────────────────────────── */
+.cm-hero {
+  position: relative;
+  padding: 26px 30px;
+  border-radius: var(--radius);
+  margin-bottom: 22px;
+  overflow: hidden;
+  /* Hero atmosphere tracks --brand-primary on both gradient stops so the
+     CM hero card repaints when the tenant changes the brand color. */
+  background:
+    radial-gradient(ellipse at top right, color-mix(in srgb, var(--brand-primary, #1b4332) 18%, transparent), transparent 55%),
+    radial-gradient(ellipse at bottom left, var(--brand-primary-soft), transparent 55%),
+    var(--paper);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+}
+.cm-hero-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.cm-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 11px; border-radius: 100px;
+  background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.cm-eyebrow .pulse {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--forest);
+  box-shadow: 0 0 0 3px var(--forest-light);
+  animation: cmPulse 1.8s infinite;
+}
+@keyframes cmPulse {
+  0% { box-shadow: 0 0 0 0 var(--brand-primary-soft); }
+  70% { box-shadow: 0 0 0 8px rgba(27, 67, 50, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(27, 67, 50, 0); }
+}
+.cm-title {
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 4px;
+  line-height: 1.15;
+}
+/* Title em accent tracks brand-primary so the page heading repaints
+   with the tenant color. The previous --gold leaked gold into every
+   CM hero regardless of the saved brand. */
+.cm-title em { font-style: italic; color: var(--brand-primary, #1b4332); font-weight: 600; }
+.cm-subtitle { color: var(--ink-dim); font-size: 14px; }
+.cm-hero-actions { display: inline-flex; gap: 10px; flex-wrap: wrap; }
+
+/* ─── Buttons ────────────────────────────────────── */
+.cm-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 16px;
+  border-radius: 100px;
+  font-size: 13px; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: var(--body);
+}
+.cm-btn.primary { background: var(--forest); color: var(--cream); border-color: var(--forest); box-shadow: 0 6px 18px -6px var(--brand-primary-soft); }
+.cm-btn.primary:hover { filter: brightness(1.06); transform: translateY(-1px); color: var(--cream); text-decoration: none; }
+/* `.cm-btn.gold` is the tonal "secondary CTA" variant. The class name
+   is kept for backward compatibility with templates that still use it
+   (import-from-subject, copy-assessments, export-attendance). Visual
+   hierarchy:
+     .cm-btn.primary → solid brand fill        (strongest action)
+     .cm-btn.gold    → soft brand tint + outline (secondary action) ← this
+     .cm-btn.ghost   → paper + ink               (cancel / neutral)
+     .cm-btn.danger  → rose                       (destructive)
+   On hover the tonal button transitions to solid brand, signalling
+   "press intent" without losing the soft resting affordance. */
+.cm-btn.gold {
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary, #1b4332);
+  border-color: color-mix(in srgb, var(--brand-primary, #1b4332) 35%, transparent);
+}
+.cm-btn.gold:hover {
+  background: var(--brand-primary, #1b4332);
+  border-color: var(--brand-primary, #1b4332);
+  color: #fff;
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.cm-btn.ghost { background: var(--paper); color: var(--ink); border-color: var(--border-strong); }
+.cm-btn.ghost:hover { background: var(--cream-2); border-color: var(--ink-dim); color: var(--ink); text-decoration: none; }
+.cm-btn.danger { background: transparent; color: var(--rose); border-color: var(--rose); }
+.cm-btn.danger:hover { background: var(--rose); color: #fff; }
+.cm-btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* Field header row — label on the left, inline actions on the right.
+   Prevents quick-action buttons from overlapping a Select2 widget below. */
+.cm-field-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.cm-field-head label,
+.cm-field-head .form-label { margin-bottom: 0 !important; }
+.cm-field-head-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+
+/* ─── Cards ──────────────────────────────────────── */
+.cm-card { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.cm-card-head {
+  padding: 16px 22px;
+  background: linear-gradient(135deg, var(--cream-2), var(--cream));
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 10px;
+}
+.cm-card-title {
+  margin: 0;
+  font-size: 16px; font-weight: 700; color: var(--forest);
+  letter-spacing: -0.01em;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.cm-card-title .icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332);
+  display: grid; place-items: center;
+  font-size: 12px;
+}
+.cm-card-meta { color: var(--ink-dim); font-size: 12px; }
+.cm-card-body { padding: 20px 22px; }
+
+/* ─── Form card ──────────────────────────────────── */
+.cm-form-card { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.cm-form-head {
+  padding: 18px 24px;
+  background: linear-gradient(135deg, var(--cream-2), var(--cream));
+  border-bottom: 1px solid var(--border);
+}
+.cm-form-head h2 {
+  margin: 0; font-size: 17px; font-weight: 700; color: var(--forest);
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.cm-form-head h2 .icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332);
+  display: grid; place-items: center;
+  font-size: 13px;
+}
+.cm-form-body { padding: 24px; }
+.cm-form-body label,
+.cm-form-body .form-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+.cm-form-body input[type="text"],
+.cm-form-body input[type="number"],
+.cm-form-body input[type="datetime-local"],
+.cm-form-body input[type="date"],
+.cm-form-body input[type="email"],
+.cm-form-body input[type="url"],
+.cm-form-body input[type="search"],
+.cm-form-body input[type="password"],
+.cm-form-body select,
+.cm-form-body textarea,
+.cm-form-body .form-control,
+.cm-form-body .form-select {
+  width: 100%;
+  background: var(--cream);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-size: 14px;
+  font-family: var(--body);
+  padding: 10px 14px;
+  transition: all 0.15s;
+  outline: none;
+}
+.cm-form-body textarea { min-height: 100px; resize: vertical; }
+.cm-form-body input:focus,
+.cm-form-body select:focus,
+.cm-form-body textarea:focus,
+.cm-form-body .form-control:focus {
+  border-color: var(--brand-primary, #1b4332);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+.cm-form-body .form-text,
+.cm-form-body small {
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: normal;
+  display: block;
+}
+.cm-form-body .form-check {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--cream); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.cm-form-body .form-check label,
+.cm-form-body .form-check .form-check-label {
+  margin: 0; text-transform: none; letter-spacing: normal;
+  font-size: 13.5px; font-weight: 600; color: var(--ink);
+}
+.cm-form-body .form-check-input {
+  width: 18px; height: 18px;
+  flex-shrink: 0; margin: 0;
+  accent-color: var(--forest);
+}
+.cm-form-row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; margin-bottom: 16px; }
+.cm-col-12 { grid-column: span 12; }
+.cm-col-8 { grid-column: span 8; }
+.cm-col-6 { grid-column: span 6; }
+.cm-col-4 { grid-column: span 4; }
+.cm-col-3 { grid-column: span 3; }
+.cm-col-2 { grid-column: span 2; }
+@media (max-width: 720px) {
+  .cm-col-2, .cm-col-3, .cm-col-4, .cm-col-6, .cm-col-8 { grid-column: span 12; }
+}
+.cm-form-foot {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 18px 24px;
+  background: var(--cream-2);
+  border-top: 1px solid var(--border);
+}
+
+/* ─── Tables ─────────────────────────────────────── */
+.cm-table-wrap { padding: 4px; overflow-x: auto; }
+.cm-table {
+  width: 100%; margin: 0;
+  color: var(--ink);
+  border-collapse: separate; border-spacing: 0;
+  font-size: 13.5px;
+}
+.cm-table thead th {
+  background: var(--cream-2);
+  color: var(--ink-dim);
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 12px 14px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.cm-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.cm-table tbody tr:hover { background: var(--cream); }
+.cm-table tbody tr:last-child td { border-bottom: none; }
+.cm-table .text-center { text-align: center; }
+
+.cm-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 100px;
+  background: var(--forest-light);
+  color: var(--forest);
+  font-size: 11px;
+  font-weight: 600;
+}
+.cm-pill.muted { background: var(--cream-2); color: var(--ink-muted); }
+/* .gold modifier class — paints brand now so any pill marked
+   `.cm-pill.gold` tracks the tenant brand rather than locked gold. */
+.cm-pill.gold { background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332); }
+.cm-pill.rose { background: var(--rose-soft); color: var(--rose); }
+.cm-pill.present { background: rgba(22, 160, 133, 0.14); color: var(--att-present); }
+.cm-pill.absent { background: rgba(192, 57, 43, 0.14); color: var(--att-absent); }
+.cm-pill.late { background: rgba(224, 169, 63, 0.14); color: var(--att-late); }
+.cm-pill.excused { background: rgba(91, 110, 225, 0.14); color: var(--att-excused); }
+
+.cm-row-icon-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  color: var(--ink-dim);
+  display: inline-grid; place-items: center;
+  cursor: pointer;
+  text-decoration: none;
+  margin: 0 2px;
+  transition: all 0.15s;
+}
+.cm-row-icon-btn:hover { transform: translateY(-1px); }
+.cm-row-icon-btn.view:hover { color: var(--brand-primary, #1b4332); border-color: var(--brand-primary, #1b4332); }
+.cm-row-icon-btn.edit:hover { color: var(--brand-primary, #1b4332); border-color: var(--brand-primary, #1b4332); }
+.cm-row-icon-btn.delete:hover { color: var(--rose); border-color: var(--rose); }
+
+.cm-empty { padding: 48px 16px; text-align: center; color: var(--ink-muted); }
+.cm-empty i { font-size: 32px; color: var(--brand-primary, #1b4332); margin-bottom: 12px; opacity: 0.7; }
+.cm-empty .lead { font-size: 16px; font-weight: 600; color: var(--ink-dim); margin-bottom: 4px; }
+
+/* ─── Toolbar ────────────────────────────────────── */
+.cm-toolbar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 14px; }
+
+/* ─── Stat strip ─────────────────────────────────── */
+.cm-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.cm-stat {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px;
+}
+.cm-stat .icon {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  display: grid; place-items: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.cm-stat .label {
+  font-size: 11px; font-weight: 700;
+  color: var(--ink-muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.cm-stat .value {
+  font-size: 22px; font-weight: 700;
+  color: var(--ink); line-height: 1.1;
+}
+.cm-stat.present .icon { background: rgba(22, 160, 133, 0.14); color: var(--att-present); }
+.cm-stat.absent .icon { background: rgba(192, 57, 43, 0.14); color: var(--att-absent); }
+.cm-stat.late .icon { background: rgba(224, 169, 63, 0.14); color: var(--att-late); }
+.cm-stat.gold .icon { background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332); }
+.cm-stat.forest .icon { background: var(--forest-light); color: var(--forest); }
+.cm-stat.violet .icon { background: rgba(91, 110, 225, 0.14); color: #5b6ee1; }
+
+/* ─── Select2 — comprehensive theming ───────────────
+   Select2's dropdown is appended directly to <body>, so scoped
+   styles inside .cm-form-body don't reach it. Style globally. */
+.select2-container--default .select2-selection--multiple,
+.select2-container--default .select2-selection--single {
+  background: var(--cream) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  min-height: 42px;
+  padding: 4px 8px !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  line-height: 32px; padding-left: 6px; color: var(--ink);
+}
+.select2-container--default.select2-container--focus .select2-selection--multiple,
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--multiple,
+.select2-container--default.select2-container--open .select2-selection--single {
+  border-color: var(--brand-primary, #1b4332) !important;
+  box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+/* Multi-select chip — pill with text on the left, vertical divider, then × on the right */
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+  display: inline-flex !important;
+  align-items: stretch !important;
+  position: relative !important;
+  background: var(--forest) !important;
+  color: var(--cream) !important;
+  border: 1px solid var(--forest) !important;
+  border-radius: 100px !important;
+  padding: 0 !important;
+  padding-right: 0 !important;
+  margin: 4px 6px 4px 0 !important;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  overflow: visible !important;
+  box-shadow: 0 2px 6px -2px var(--brand-primary-soft);
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__display {
+  order: 2 !important;
+  display: inline-flex; align-items: center;
+  padding: 6px 14px 6px 12px !important;
+  color: var(--cream) !important;
+  white-space: nowrap;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+  order: 1 !important;
+  position: relative !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  width: auto !important;
+  min-width: 26px;
+  height: auto !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  float: none !important;
+  margin: 0 !important;
+  padding: 0 8px !important;
+  border: none !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.28) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--cream) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  transition: background 0.15s, color 0.15s;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover,
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:focus {
+  background: var(--rose) !important;
+  color: #fff !important;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove span {
+  font-size: 14px !important; line-height: 1 !important;
+}
+
+/* Dropdown search bar — keep it at the TOP of the panel, full-width and obvious */
+.select2-dropdown .select2-search {
+  position: sticky; top: 0; z-index: 2;
+  padding: 10px 12px !important;
+  background: var(--cream-2) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.select2-dropdown .select2-search--dropdown,
+.select2-container--default .select2-search--dropdown { display: block !important; padding: 10px 12px !important; }
+.select2-dropdown .select2-search__field {
+  width: 100%;
+  background: var(--paper) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 100px !important;
+  padding: 9px 16px !important;
+  font-size: 14px !important;
+  outline: none !important;
+}
+.select2-dropdown .select2-search__field:focus {
+  border-color: var(--brand-primary, #1b4332) !important;
+  box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+.select2-container--default .select2-search--inline .select2-search__field {
+  color: var(--ink) !important;
+  font-family: var(--body) !important;
+  font-size: 14px !important;
+  margin-top: 4px !important;
+  min-width: 150px !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__rendered {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+.select2-dropdown {
+  background: var(--paper) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 12px 32px -12px rgba(45, 49, 66, 0.18);
+  overflow: hidden;
+}
+.select2-dropdown .select2-search__field {
+  background: var(--cream) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 8px 12px !important;
+}
+.select2-results__option {
+  color: var(--ink) !important;
+  padding: 9px 14px !important;
+  font-size: 14px;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected],
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+  background: var(--forest-light) !important;
+  color: var(--forest) !important;
+}
+.select2-container--default .select2-results__option[aria-selected=true] {
+  background: var(--brand-primary-soft) !important;
+  color: var(--brand-primary, #1b4332) !important;
+  font-weight: 600;
+}
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+  color: var(--ink-muted) !important;
+}
+
+/* ─── Bootstrap modal restyle (when used) ───────── */
+body .modal-content { border-radius: var(--radius); border: 1px solid var(--border-strong); }
+body .modal-header { background: linear-gradient(135deg, var(--cream-2), var(--cream)); border-bottom: 1px solid var(--border); }
+body .modal-title { color: var(--forest); font-weight: 700; }
+body .modal-body label { font-size: 11.5px; font-weight: 700; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+body .modal-body .form-control,
+body .modal-body select { background: var(--cream); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); }
+body .modal-body .form-control:focus,
+body .modal-body select:focus { border-color: var(--brand-primary, #1b4332); box-shadow: 0 0 0 3px var(--brand-primary-soft); }
+body .modal-footer { background: var(--cream-2); border-top: 1px solid var(--border); }

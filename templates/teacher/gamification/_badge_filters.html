@@ -1,0 +1,13 @@
+<label for="cl-badge-status" style="margin:0; font-size:12.5px; color:var(--ink-dim);">Status</label>
+<select id="cl-badge-status" name="status" data-cl-filter>
+  <option value="">All</option>
+  <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
+  <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactive</option>
+</select>
+<label for="cl-badge-category" style="margin:0; font-size:12.5px; color:var(--ink-dim);">Category</label>
+<select id="cl-badge-category" name="category" data-cl-filter>
+  <option value="">All</option>
+  <option value="General" {% if category_filter == "General" %}selected{% endif %}>General</option>
+  <option value="Coding" {% if category_filter == "Coding" %}selected{% endif %}>Coding</option>
+  <option value="Side Activity" {% if category_filter == "Side Activity" %}selected{% endif %}>Side Activity</option>
+</select>

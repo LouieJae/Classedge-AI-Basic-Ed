@@ -1,0 +1,300 @@
+  /* ──────────────────────────────────────────────────────────────
+     Subject Analytics Panel — uses the canonical operations
+     chrome (.cl-page + .cl-header from _list_page_theme.html) and
+     adds: KPI tiles with semantic color stripes, brand-tinted
+     card heads, and tokenized risk/score indicators.
+     ────────────────────────────────────────────────────────────── */
+  .sa-page .cl-header { margin-bottom: 18px; }
+
+  /* ─────── KPI tiles ─────── */
+  .sa-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .sa-tile {
+    position: relative;
+    overflow: hidden;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    display: flex; align-items: center; gap: 14px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .sa-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px -12px rgba(45, 49, 66, 0.18);
+  }
+  /* Top-edge semantic stripe — categorical, tracks brand on the
+     headline tile, locked elsewhere. */
+  .sa-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--brand-primary, #b7925a);
+  }
+  .sa-tile.sa-tile-brand::before   { background: linear-gradient(90deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary), transparent 55%)); }
+  .sa-tile.sa-tile-danger::before  { background: var(--danger); }
+  .sa-tile.sa-tile-warning::before { background: var(--warning); }
+  .sa-tile.sa-tile-success::before { background: var(--success); }
+  .sa-tile.sa-tile-info::before    { background: var(--info); }
+
+  .sa-tile-icon {
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    display: grid; place-items: center;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .sa-tile.sa-tile-danger  .sa-tile-icon { background: var(--danger-soft);  color: var(--danger); }
+  .sa-tile.sa-tile-warning .sa-tile-icon { background: var(--warning-soft); color: var(--warning); }
+  .sa-tile.sa-tile-success .sa-tile-icon { background: var(--success-soft); color: var(--success); }
+  .sa-tile.sa-tile-info    .sa-tile-icon { background: var(--info-soft);    color: var(--info); }
+
+  .sa-tile-body { min-width: 0; flex: 1; }
+  .sa-tile-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .sa-tile-value {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.05;
+    display: flex; align-items: baseline; gap: 5px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.015em;
+  }
+  .sa-tile-value .unit {
+    font-size: 13px;
+    color: var(--ink-muted);
+    font-weight: 500;
+  }
+  .sa-tile-help {
+    margin-left: auto;
+    color: var(--ink-muted);
+    cursor: help;
+    font-size: 13px;
+    transition: color 0.15s ease;
+  }
+  .sa-tile-help:hover { color: var(--brand-primary, #b7925a); }
+
+  /* ─────── Chart grid (row 1: 2/1 split) ─────── */
+  .sa-grid-2-1 {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 960px) {
+    .sa-grid-2-1 { grid-template-columns: 1fr; }
+  }
+
+  /* ─────── Cards (shared chrome for charts + table) ─────── */
+  .sa-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .sa-card-head {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--brand-primary-soft) 60%, var(--cream-2)),
+      var(--cream));
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .sa-card-title {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0;
+    display: inline-flex; align-items: center; gap: 8px;
+    letter-spacing: -0.01em;
+  }
+  .sa-card-title em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--brand-primary, #b7925a);
+  }
+  .sa-card-title i {
+    color: var(--brand-primary, #b7925a);
+    font-size: 13px;
+  }
+  .sa-card-meta {
+    font-size: 11px;
+    color: var(--ink-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .sa-card-body { padding: 18px 22px 22px; }
+
+  /* ─────── Chart canvases ─────── */
+  .sa-canvas-wrap {
+    position: relative;
+    height: 260px;
+  }
+  .sa-canvas-wrap.is-donut {
+    height: 240px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sa-canvas-wrap.is-wide { height: 320px; }
+  .sa-canvas-wrap canvas { max-width: 100%; }
+
+  /* ─────── Student table ─────── */
+  .sa-table-wrap { overflow-x: auto; }
+  table.sa-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--body);
+  }
+  table.sa-table thead th {
+    background: var(--cream-2);
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 12px 22px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+  }
+  table.sa-table tbody td {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--ink);
+    font-size: 13.5px;
+  }
+  table.sa-table tbody tr:last-child td { border-bottom: none; }
+  table.sa-table tbody tr:hover td { background: var(--cream-2); }
+  .sa-student-link {
+    color: var(--ink);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .sa-student-link:hover {
+    color: var(--brand-primary, #b7925a);
+    text-decoration: underline;
+  }
+
+  /* Score progress bar — semantic thresholds: <50 danger, 50–74 warning, ≥75 brand */
+  .sa-score-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 160px;
+  }
+  .sa-score-bar {
+    position: relative;
+    flex: 1;
+    height: 8px;
+    background: var(--cream-2);
+    border-radius: 999px;
+    overflow: hidden;
+    min-width: 90px;
+  }
+  .sa-score-bar-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--brand-primary, #1b4332);
+    border-radius: 999px;
+    transition: width 0.4s ease;
+  }
+  .sa-score-bar-fill.is-low { background: var(--danger); }
+  .sa-score-bar-fill.is-mid { background: var(--warning); }
+  .sa-score-val {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 13px;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* Risk badge — high/medium/low map to danger/warning/success */
+  .sa-risk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .sa-risk-badge::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .sa-risk-high   { background: var(--danger-soft);  color: var(--danger); }
+  .sa-risk-high::before   { background: var(--danger); }
+  .sa-risk-medium { background: var(--warning-soft); color: var(--warning); }
+  .sa-risk-medium::before { background: var(--warning); }
+  .sa-risk-low    { background: var(--success-soft); color: var(--success); }
+  .sa-risk-low::before    { background: var(--success); }
+
+  /* ─────── Empty state ─────── */
+  .sa-empty {
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--ink-dim);
+  }
+  .sa-empty .icon {
+    width: 64px; height: 64px;
+    border-radius: 18px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    display: grid; place-items: center;
+    font-size: 24px;
+    margin: 0 auto 14px;
+  }
+  .sa-empty h3 {
+    font-family: var(--display);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .sa-empty p {
+    font-size: 13.5px;
+    color: var(--ink-dim);
+    margin: 0;
+  }
+
+  /* ─────── Responsive ─────── */
+  @media (max-width: 720px) {
+    .sa-tile { padding: 14px 16px; gap: 12px; }
+    .sa-tile-icon { width: 38px; height: 38px; border-radius: 12px; font-size: 15px; }
+    .sa-tile-value { font-size: 23px; }
+    .sa-card-head { padding: 12px 16px; }
+    .sa-card-body { padding: 14px 16px 18px; }
+    .sa-canvas-wrap { height: 220px; }
+    .sa-canvas-wrap.is-donut { height: 220px; }
+    .sa-canvas-wrap.is-wide { height: 280px; }
+    table.sa-table thead th,
+    table.sa-table tbody td { padding: 12px 14px; }
+    .sa-score-cell { min-width: 130px; }
+  }

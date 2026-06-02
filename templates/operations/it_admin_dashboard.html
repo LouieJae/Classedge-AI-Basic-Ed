@@ -1,0 +1,563 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% block title %}IT Admin Dashboard{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <style>
+    .cl-page {
+      --gap-row: 20px;
+      --gap-tile: 14px;
+      --pad-card: 22px 24px;
+    }
+    .cl-page .cl-card { margin-bottom: var(--gap-row); }
+    .cl-page .cl-card .cl-card-body { padding: var(--pad-card); }
+    .cl-page .cl-header { margin-bottom: 24px; }
+
+    .it-role-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+    .it-role-tag i { color: var(--brand-primary, #b7925a); font-size: 11px; }
+    .it-asof {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-dim);
+    }
+    .it-asof::before {
+      content: ""; width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--brand-primary, #1b4332);
+      box-shadow: 0 0 0 4px var(--brand-primary-soft);
+      animation: it-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes it-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+    /* ───── "Needs your attention" highlight ───── */
+    .it-attn {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--brand-primary, #1b4332);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: var(--gap-row);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .it-attn.is-warn { border-top-color: var(--rose, #c08479); }
+    .it-attn::before {
+      content: ""; position: absolute;
+      top: -140px; right: -120px;
+      width: 360px; height: 360px;
+      background: radial-gradient(circle, var(--brand-primary-soft), transparent 65%);
+      pointer-events: none;
+    }
+    .it-attn.is-warn::before {
+      background: radial-gradient(circle, rgba(192,132,121,0.16), transparent 65%);
+    }
+    .it-attn-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      margin-bottom: 14px; position: relative;
+    }
+    .it-attn-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      text-transform: uppercase; letter-spacing: 0.16em;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink);
+    }
+    .it-attn.is-warn .it-attn-eyebrow { color: var(--rose-deep, #b0413e); }
+    .it-attn-title {
+      font-family: var(--display);
+      font-size: 22px; font-weight: 600;
+      color: var(--ink); margin: 6px 0 0;
+      letter-spacing: -0.015em;
+    }
+    .it-attn-title em { font-style: italic; color: var(--brand-primary, #b7925a); font-weight: 500; }
+    .it-attn.is-warn .it-attn-title em { color: var(--rose-deep, #b0413e); }
+    .it-attn-summary {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 8px 14px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12.5px; color: var(--ink-dim);
+      font-family: var(--display);
+    }
+    .it-attn-summary strong { color: var(--ink); font-weight: 600; font-style: normal; }
+    .it-attn-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px; position: relative;
+    }
+    .it-attn-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--rose, #c08479);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+    }
+    .it-attn-ico {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: rgba(192,132,121,0.14);
+      color: var(--rose-deep, #b0413e);
+      display: grid; place-items: center;
+      font-size: 13px; flex-shrink: 0;
+    }
+    .it-attn-body { min-width: 0; flex: 1; line-height: 1.35; }
+    .it-attn-label {
+      font-family: var(--display);
+      font-size: 14px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+      display: block;
+    }
+    .it-attn-detail { font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; }
+    .it-attn-clear {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 20px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--brand-primary, #1b4332);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      font-family: var(--display);
+      font-size: 14.5px;
+    }
+    .it-attn-clear i {
+      width: 36px; height: 36px;
+      border-radius: 11px;
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      display: grid; place-items: center;
+      font-size: 15px; flex-shrink: 0;
+    }
+    .it-attn-clear strong { font-weight: 600; color: var(--ink); }
+    .it-attn-clear .sub { display: block; font-size: 12px; color: var(--ink-dim); margin-top: 2px; font-style: italic; }
+
+    /* ───── KPIs ───── */
+    .it-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--gap-tile);
+      margin-bottom: var(--gap-row);
+    }
+    @media (max-width: 1100px) { .it-kpis { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px)  { .it-kpis { grid-template-columns: 1fr; } }
+    .it-kpi {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 22px 20px;
+      box-shadow: var(--shadow);
+    }
+    .it-kpi-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 18px;
+    }
+    .it-kpi-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    .it-kpi-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--cream-2);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 12px;
+    }
+    .it-kpi.tone-ok     .it-kpi-icon { background: var(--brand-primary-soft); color: var(--ink); }
+    .it-kpi.tone-danger .it-kpi-icon { background: rgba(192,132,121,0.14); color: var(--rose-deep, #b0413e); }
+    .it-kpi-value {
+      font-family: var(--display);
+      font-size: 32px; font-weight: 600;
+      color: var(--ink);
+      line-height: 1;
+      letter-spacing: -0.025em;
+      font-variant-numeric: tabular-nums;
+    }
+    .it-kpi.tone-danger .it-kpi-value { color: var(--rose-deep, #b0413e); }
+    .it-kpi-foot { margin-top: 12px; font-size: 11.5px; color: var(--ink-muted); }
+
+    /* ───── Two-column grids ───── */
+    .it-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 20px;
+      margin-bottom: var(--gap-row);
+    }
+    @media (max-width: 1100px) { .it-grid { grid-template-columns: 1fr; } }
+    .it-grid .cl-card { margin-bottom: 0; }
+
+    .it-meta-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .it-meta-pill .it-pulse {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--brand-primary, #1b4332);
+      box-shadow: 0 0 0 3px var(--brand-primary-soft);
+      animation: it-pulse 2.4s ease-in-out infinite;
+    }
+
+    /* ───── User row ───── */
+    .it-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .it-row:first-child { padding-top: 2px; }
+    .it-row:last-child { padding-bottom: 2px; border-bottom: none; }
+    .it-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ink), var(--brand-primary, #b7925a));
+      color: var(--cream);
+      display: grid; place-items: center;
+      font-family: var(--display);
+      font-size: 12.5px; font-weight: 700;
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+      position: relative;
+    }
+    .it-avatar.online::after {
+      content: "";
+      position: absolute;
+      bottom: -1px; right: -1px;
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      background: #16a34a;
+      border: 2px solid var(--paper);
+    }
+    .it-row-body { min-width: 0; }
+    .it-row-name {
+      font-weight: 600; color: var(--ink);
+      font-size: 13px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .it-row-meta {
+      margin-top: 3px;
+      font-size: 11.5px; color: var(--ink-muted);
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .it-row-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-muted); }
+    .it-row-tail {
+      font-family: 'SFMono-Regular', monospace;
+      font-size: 11.5px;
+      color: var(--ink-dim);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .it-pill {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px;
+      border-radius: 100px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      color: var(--ink);
+      font-size: 10.5px; font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .it-pill.you { background: var(--brand-primary, #1b4332); border-color: var(--brand-primary, #1b4332); color: var(--cream); }
+
+    /* ───── Users by role breakdown ───── */
+    .it-rolebar {
+      display: flex; width: 100%;
+      height: 12px;
+      background: var(--cream-2);
+      border-radius: 100px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .it-rolebar > span { display: block; height: 100%; }
+    .it-rolebar > span:nth-child(1) { background: var(--brand-primary, #1b4332); }
+    .it-rolebar > span:nth-child(2) { background: var(--brand-primary, #b7925a); }
+    .it-rolebar > span:nth-child(3) { background: #5d3a3a; }
+    .it-rolebar > span:nth-child(4) { background: var(--rose, #c08479); }
+    .it-rolebar > span:nth-child(5) { background: var(--ink-dim); }
+    .it-rolebar > span:nth-child(n+6) { background: var(--ink-muted); }
+    .it-role-list { display: flex; flex-direction: column; gap: 8px; }
+    .it-role-row {
+      display: grid;
+      grid-template-columns: 14px 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .it-role-row .swatch {
+      width: 12px; height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .it-role-row:nth-child(1) .swatch { background: var(--brand-primary, #1b4332); }
+    .it-role-row:nth-child(2) .swatch { background: var(--brand-primary, #b7925a); }
+    .it-role-row:nth-child(3) .swatch { background: #5d3a3a; }
+    .it-role-row:nth-child(4) .swatch { background: var(--rose, #c08479); }
+    .it-role-row:nth-child(5) .swatch { background: var(--ink-dim); }
+    .it-role-row:nth-child(n+6) .swatch { background: var(--ink-muted); }
+    .it-role-row .name { text-transform: capitalize; }
+    .it-role-row .num { font-family: var(--display); font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .it-role-row .pct {
+      font-size: 11px; color: var(--ink-muted);
+      font-variant-numeric: tabular-nums;
+      min-width: 42px; text-align: right;
+    }
+    .it-role-foot {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--ink-dim);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .it-role-foot a { color: var(--ink); font-weight: 600; text-decoration: none; }
+    .it-role-foot a:hover { color: var(--brand-primary, #b7925a); }
+
+    .it-empty {
+      text-align: center;
+      padding: 28px 14px;
+      color: var(--ink-muted);
+      font-size: 13px;
+    }
+    .it-empty i {
+      display: block;
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--ink-muted);
+      opacity: 0.6;
+    }
+
+    @media (max-width: 720px) {
+      .it-attn { padding: 20px; }
+      .it-attn-title { font-size: 18px; }
+    }
+  </style>
+
+  <div class="cl-page">
+
+    {# ───── Header ───── #}
+    <div class="cl-header">
+      <div>
+        <span class="it-role-tag"><i class="fas fa-server"></i> {{ role_tag }}</span>
+        <h2>Good {{ time_of_day }}, <em>{{ request.user.first_name|default:request.user.username }}</em></h2>
+        <p>Who's online, what's locked, and the accounts moving through the system.</p>
+      </div>
+      <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="cl-tour-replay" data-cl-tour="it-admin">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <span class="it-asof">{{ as_of }}</span>
+      </div>
+    </div>
+
+    {# ───── HIGHLIGHT: Needs your attention ───── #}
+    <section class="it-attn is-{{ attention_status }}">
+      <div class="it-attn-head">
+        <div>
+          <div class="it-attn-eyebrow">
+            <i class="fas {% if attention_status == 'warn' %}fa-shield-halved{% else %}fa-shield-check{% endif %}"></i>
+            Needs your attention
+          </div>
+          <h2 class="it-attn-title">
+            {% if attention_items %}
+              {{ attention_items|length }} item{{ attention_items|length|pluralize }} <em>to clean up</em>
+            {% else %}
+              Account hygiene <em>looks good</em>
+            {% endif %}
+          </h2>
+        </div>
+        <div class="it-attn-summary">
+          <span>
+            <strong>{{ kpis.1.value }}</strong> online ·
+            <strong>{{ new_today }}</strong> new today
+          </span>
+        </div>
+      </div>
+      {% if attention_items %}
+        <div class="it-attn-grid">
+          {% for item in attention_items %}
+            <div class="it-attn-item">
+              <span class="it-attn-ico"><i class="fas {{ item.icon }}"></i></span>
+              <span class="it-attn-body">
+                <span class="it-attn-label">{{ item.label }}</span>
+                <span class="it-attn-detail">{{ item.detail }}</span>
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="it-attn-clear">
+          <i class="fas fa-circle-check"></i>
+          <div>
+            <strong>No locked, role-less, or dormant accounts.</strong>
+            <span class="sub">Last checked {{ as_of }}.</span>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    {# ───── KPIs ───── #}
+    <div class="it-kpis">
+      {% for k in kpis %}
+        <div class="it-kpi tone-{{ k.tone|default:'' }}">
+          <div class="it-kpi-head">
+            <div class="it-kpi-label">{{ k.label }}</div>
+            <div class="it-kpi-icon"><i class="fas {{ k.icon }}"></i></div>
+          </div>
+          <div class="it-kpi-value">{{ k.value }}</div>
+          {% if k.hint %}<div class="it-kpi-foot">{{ k.hint }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    {# ───── Currently online + Users by role ───── #}
+    <div class="it-grid">
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-bolt me-2"></i> Currently <em>online</em></span>
+          <span class="it-meta-pill"><span class="it-pulse"></span> {{ live_users|length }} session{{ live_users|length|pluralize }}</span>
+        </div>
+        <div class="cl-card-body">
+          {% if live_users %}
+            {% for u in live_users %}
+              <div class="it-row">
+                <span class="it-avatar online" aria-label="online">{{ u.first_name|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</span>
+                <div class="it-row-body">
+                  <div class="it-row-name">
+                    {{ u.get_full_name|default:u.username }}
+                    {% if u.id == request.user.id %}<span class="it-pill you">You</span>{% endif %}
+                  </div>
+                  <div class="it-row-meta">
+                    <span>{{ u.profile.role.name|default:"No role" }}</span>
+                    <span class="dot"></span>
+                    <span>{{ u.email|truncatechars:34 }}</span>
+                  </div>
+                </div>
+                <div class="it-row-tail">{{ u.last_login|date:"H:i" }}</div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="it-empty"><i class="fas fa-bolt"></i>No active sessions right now.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-chart-pie me-2"></i> Users by <em>role</em></span>
+          <span class="it-meta-pill">{{ breakdown_total }} active</span>
+        </div>
+        <div class="cl-card-body">
+          {% if user_breakdown %}
+            <div class="it-rolebar" aria-hidden="true">
+              {% for r in user_breakdown %}<span style="width: {{ r.pct }}%;"></span>{% endfor %}
+            </div>
+            <div class="it-role-list">
+              {% for r in user_breakdown %}
+                <div class="it-role-row">
+                  <span class="swatch"></span>
+                  <span class="name">{{ r.role_name }}</span>
+                  <span class="num">{{ r.count }}</span>
+                  <span class="pct">{{ r.pct }}%</span>
+                </div>
+              {% endfor %}
+            </div>
+            <div class="it-role-foot">
+              <span>{{ breakdown_total }} active accounts</span>
+              <a href="{% url 'role_list' %}">Manage roles →</a>
+            </div>
+          {% else %}
+            <div class="it-empty"><i class="fas fa-chart-pie"></i>No active users with roles yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ───── Recent sign-ups + Latest sign-ins ───── #}
+    <div class="it-grid" id="itAccounts">
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-user-plus me-2"></i> Recent <em>sign-ups</em></span>
+          <a href="{% url 'admin-and-staff-list' %}" class="it-asof" style="text-decoration: none;">Manage accounts →</a>
+        </div>
+        <div class="cl-card-body">
+          {% if recent_signups %}
+            {% for u in recent_signups %}
+              <div class="it-row">
+                <span class="it-avatar">{{ u.first_name|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</span>
+                <div class="it-row-body">
+                  <div class="it-row-name">{{ u.get_full_name|default:u.username }}</div>
+                  <div class="it-row-meta">
+                    <span>{{ u.profile.role.name|default:"No role" }}</span>
+                    <span class="dot"></span>
+                    <span>{{ u.email|truncatechars:30 }}</span>
+                  </div>
+                </div>
+                <span class="it-row-tail">{{ u.date_joined|date:"M j" }}</span>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="it-empty"><i class="fas fa-user-plus"></i>No recent sign-ups.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-clock-rotate-left me-2"></i> Latest <em>sign-ins</em></span>
+          <a href="{% url 'teacher-login-report' %}" class="it-asof" style="text-decoration: none;">Login audit →</a>
+        </div>
+        <div class="cl-card-body">
+          {% if recent_logins %}
+            {% for u in recent_logins %}
+              <div class="it-row">
+                <span class="it-avatar">{{ u.first_name|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</span>
+                <div class="it-row-body">
+                  <div class="it-row-name">{{ u.get_full_name|default:u.username }}</div>
+                  <div class="it-row-meta">
+                    <span>{{ u.profile.role.name|default:"No role" }}</span>
+                  </div>
+                </div>
+                <span class="it-row-tail">{{ u.last_login|date:"M j, H:i" }}</span>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="it-empty"><i class="fas fa-clock-rotate-left"></i>No sign-ins yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="{% static 'js/tours/cl-tour-it-admin.js' %}" defer></script>
+{% endblock %}

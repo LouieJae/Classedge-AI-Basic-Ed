@@ -1,0 +1,8 @@
+<label for="cl-course-filter" style="margin:0; font-size:12.5px; color:var(--ink-dim);">Program</label>
+<select id="cl-course-filter" name="course" data-cl-filter>
+  <option value="">All programs</option>
+  <option value="None" {% if selected_course == "None" %}selected{% endif %}>No program</option>
+  {% for course in courses %}
+    <option value="{{ course }}" {% if selected_course == course %}selected{% endif %}>{{ course }}</option>
+  {% endfor %}
+</select>

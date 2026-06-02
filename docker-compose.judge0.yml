@@ -1,0 +1,46 @@
+# Judge0 — Sandboxed Code Execution
+# Start: docker compose -f docker-compose.judge0.yml up -d
+# Test:  curl http://localhost:2358/system_info
+
+services:
+  judge0-server:
+    image: judge0/judge0:1.13.0
+    ports:
+      - "2358:2358"
+    depends_on:
+      - judge0-redis
+      - judge0-db
+    environment:
+      - REDIS_URL=redis://judge0-redis:6379
+      - POSTGRES_HOST=judge0-db
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0
+
+  judge0-worker:
+    image: judge0/judge0:1.13.0
+    command: ["./scripts/workers"]
+    depends_on:
+      - judge0-server
+    environment:
+      - REDIS_URL=redis://judge0-redis:6379
+      - POSTGRES_HOST=judge0-db
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0
+    privileged: true
+
+  judge0-redis:
+    image: redis:7-alpine
+
+  judge0-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0
+    volumes:
+      - judge0-db-data:/var/lib/postgresql/data
+
+volumes:
+  judge0-db-data:

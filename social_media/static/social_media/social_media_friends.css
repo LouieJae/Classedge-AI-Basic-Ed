@@ -1,0 +1,1010 @@
+  /* ═══════════════════════════════════════════════════════════════
+     Friends page — themed against the operations palette (teacher)
+     or the student palette (student). Both shells expose --paper,
+     --cream-2, --ink, --ink-dim, --forest, --gold etc., so the same
+     stylesheet adapts to both contexts.
+     ═══════════════════════════════════════════════════════════════ */
+
+  .friends-page { max-width: 1180px; margin: 0 auto; padding: 8px 0 32px; }
+  .friends-page, .friends-page * { box-sizing: border-box; }
+
+  /* ─── Header band ──────────────────────────────────────────── */
+  .friends-toolbar {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+    margin-bottom: 22px;
+  }
+  .friends-toolbar .page-title {
+    font-family: var(--display, "Inter", system-ui, sans-serif);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--ink, var(--text));
+    margin: 0 0 4px;
+    letter-spacing: -0.02em;
+  }
+  .friends-toolbar .page-title em {
+    color: var(--ink);
+    font-style: italic;
+    font-weight: 500;
+  }
+  .friends-toolbar .page-sub {
+    color: var(--ink-dim, var(--text-dim));
+    font-size: 13.5px;
+    margin: 0;
+  }
+  .friends-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    background: var(--paper, var(--surface));
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm, 12px);
+    color: var(--ink, var(--text));
+    font-size: 13px; font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(45,49,66,0.04);
+    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+  }
+  .friends-back:hover {
+    background: var(--cream-2, var(--surface-2));
+    color: var(--ink);
+    border-color: var(--brand-primary, #1b4332);
+    text-decoration: none;
+    transform: translateX(2px);
+  }
+  .friends-back i { font-size: 11px; }
+
+  /* ─── KPI stat tiles (3-up) ────────────────────────────────── */
+  .friends-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 720px) { .friends-stats { grid-template-columns: 1fr; } }
+  .friends-stat {
+    background: var(--paper, var(--surface));
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 16px);
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    display: flex; align-items: center; gap: 14px;
+    transition: border-color .18s ease, transform .18s ease;
+  }
+  .friends-stat:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+  .friends-stat-icon {
+    flex-shrink: 0;
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    background: var(--cream-2, var(--surface-2));
+    color: var(--brand-primary, #b7925a);
+    font-size: 16px;
+  }
+  .friends-stat.tone-requests .friends-stat-icon { background: rgba(192, 132, 121, 0.16); color: var(--rose, #c08479); }
+  .friends-stat.tone-discover .friends-stat-icon { background: var(--brand-primary-soft); color: var(--ink); }
+  .friends-stat-body { min-width: 0; flex: 1; }
+  .friends-stat-value {
+    font-family: var(--display, "Inter", sans-serif);
+    font-size: 26px; font-weight: 700;
+    color: var(--ink, var(--text));
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .friends-stat-label {
+    font-size: 11px; font-weight: 700;
+    color: var(--ink-dim, var(--text-dim));
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 6px;
+    line-height: 1.2;
+  }
+
+  /* ─── Section card (the common chrome for Requests / Discover / Friends) ─── */
+  .section-block {
+    background: var(--paper, var(--surface));
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 16px);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+    margin-bottom: 22px;
+  }
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+    margin-bottom: 18px;
+  }
+  .section-head h2 {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--display, "Inter", sans-serif);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink, var(--text));
+    margin: 0;
+    letter-spacing: -0.015em;
+  }
+  .section-head h2 > i {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--cream-2, var(--surface-2));
+    color: var(--brand-primary, #b7925a);
+    display: grid; place-items: center;
+    font-size: 12px;
+  }
+  .head-pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px;
+    padding: 0 8px;
+    background: var(--rose, #c08479);
+    color: var(--paper, #fff);
+    border-radius: 100px;
+    font-size: 11px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .see-all {
+    font-size: 12.5px; font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background .15s ease, color .15s ease;
+  }
+  .see-all:hover { background: var(--cream-2, var(--surface-2)); color: var(--brand-primary, #b7925a); }
+
+  /* ─── Pending requests rows ───────────────────────────────── */
+  .request-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .request-row:last-child { border-bottom: none; }
+  .request-row:first-child { padding-top: 0; }
+  .request-row .avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border);
+  }
+  .req-info { min-width: 0; }
+  .req-name {
+    margin: 0;
+    font-size: 14px; font-weight: 600;
+    color: var(--ink, var(--text));
+    line-height: 1.25;
+  }
+  .req-sub {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--ink-dim, var(--text-dim));
+  }
+  .req-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .pill-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    border-radius: 100px;
+    font-family: var(--body, "Inter", sans-serif);
+    font-size: 12.5px; font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .pill-btn i { font-size: 10.5px; }
+  .pill-btn.confirm {
+    background: var(--brand-primary, #b7925a);
+    color: var(--paper, #fff);
+    border-color: var(--brand-primary, #1b4332);
+  }
+  .pill-btn.confirm:hover { filter: brightness(1.1); }
+  .pill-btn.dismiss {
+    background: var(--paper, var(--surface));
+    color: var(--ink-dim, var(--text-dim));
+    border-color: var(--border-strong);
+  }
+  .pill-btn.dismiss:hover {
+    background: rgba(192,132,121,0.12);
+    color: var(--rose, #c08479);
+    border-color: var(--rose, #c08479);
+  }
+  .pill-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ─── Discover rail (horizontal scroller) ─────────────────── */
+  .discover-rail-wrap { position: relative; }
+  .discover-rail {
+    display: flex; gap: 12px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    padding: 2px 2px 10px;
+    margin: -2px 0 0;
+  }
+  .discover-rail::-webkit-scrollbar { height: 6px; }
+  .discover-rail::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 100px;
+  }
+  .discover-rail::-webkit-scrollbar-track { background: transparent; }
+
+  .rail-arrow {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--paper, var(--surface));
+    border: 1px solid var(--border-strong);
+    color: var(--ink, var(--text));
+    cursor: pointer;
+    display: grid; place-items: center;
+    box-shadow: 0 4px 12px -6px rgba(45,49,66,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease, background .15s ease, color .15s ease;
+    z-index: 2;
+  }
+  .rail-arrow.visible { opacity: 1; pointer-events: auto; }
+  .rail-arrow:hover { background: var(--brand-primary, #b7925a); color: var(--paper, #fff); border-color: var(--brand-primary, #1b4332); }
+  .rail-arrow.left  { left: -10px; }
+  .rail-arrow.right { right: -10px; }
+  @media (max-width: 720px) { .rail-arrow { display: none; } }
+
+  .discover-card {
+    flex: 0 0 200px;
+    width: 200px;
+    background: var(--cream-2, var(--surface-2));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 14px 14px;
+    text-align: center;
+    transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+    display: flex; flex-direction: column;
+  }
+  .discover-card:hover {
+    border-color: var(--brand-primary, #1b4332);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -16px rgba(45,49,66,0.20);
+  }
+  .discover-card .avatar-wrap {
+    position: relative;
+    width: 80px; height: 80px;
+    margin: 0 auto 12px;
+  }
+  .discover-card .discover-avatar {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--paper, var(--surface));
+    box-shadow: 0 2px 6px rgba(45,49,66,0.08);
+  }
+  .discover-card .mutual-pill {
+    position: absolute;
+    bottom: -6px; left: 50%;
+    transform: translateX(-50%);
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px;
+    background: var(--brand-primary, #b7925a);
+    color: var(--paper, #fff);
+    border: 2px solid var(--paper, var(--surface));
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .discover-card .mutual-pill i { font-size: 9px; }
+  .discover-card .body { flex: 1; display: flex; flex-direction: column; }
+  .discover-card .name {
+    margin: 0 0 4px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink, var(--text));
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .discover-card .role {
+    margin: 0 0 12px;
+    font-size: 11.5px;
+    color: var(--ink-dim, var(--text-dim));
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .discover-card .add-btn {
+    margin-top: auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 100px;
+    border: 1px solid transparent;
+    font-family: var(--body, "Inter", sans-serif);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+    white-space: nowrap;
+  }
+  .discover-card .add-btn i { font-size: 10.5px; }
+  .discover-card .add-btn.primary {
+    background: var(--brand-primary, #b7925a);
+    color: var(--paper, #fff);
+    border-color: var(--brand-primary, #1b4332);
+  }
+  .discover-card .add-btn.primary:hover { filter: brightness(1.08); }
+  .discover-card .add-btn.cancel {
+    background: var(--paper, var(--surface));
+    color: var(--rose, #c08479);
+    border-color: rgba(192,132,121,0.32);
+  }
+  .discover-card .add-btn.cancel:hover { background: rgba(192,132,121,0.10); }
+  .discover-card .add-btn.muted {
+    background: var(--paper, var(--surface));
+    color: var(--ink-dim, var(--text-dim));
+    border-color: var(--border-strong);
+    cursor: default;
+  }
+
+  /* ─── Friends grid + search ───────────────────────────────── */
+  .friends-search {
+    position: relative;
+    margin-bottom: 18px;
+  }
+  .friends-search input {
+    width: 100%;
+    padding: 11px 16px 11px 40px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm, 12px);
+    background: var(--cream-2, var(--surface-2));
+    font-family: var(--body, "Inter", sans-serif);
+    font-size: 13.5px;
+    color: var(--ink, var(--text));
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .friends-search input:focus {
+    outline: none;
+    background: var(--paper, var(--surface));
+    border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .friends-search input::placeholder { color: var(--ink-muted, var(--text-muted)); }
+  .friends-search .icon {
+    position: absolute;
+    left: 14px;
+    top: 50%; transform: translateY(-50%);
+    color: var(--ink-muted, var(--text-muted));
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  .friend-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 14px;
+  }
+  .friend-tile {
+    background: var(--cream-2, var(--surface-2));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 12px 14px;
+    text-align: center;
+    transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .friend-tile:hover {
+    border-color: var(--brand-primary, #1b4332);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -16px rgba(45,49,66,0.20);
+  }
+  .friend-tile .avatar {
+    width: 68px; height: 68px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--paper, var(--surface));
+    box-shadow: 0 2px 6px rgba(45,49,66,0.08);
+    margin-bottom: 10px;
+  }
+  .friend-tile .name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink, var(--text));
+    line-height: 1.25;
+    margin-bottom: 4px;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .friend-tile .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 9px;
+    background: var(--brand-primary-soft);
+    color: var(--ink);
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+  .friend-tile .chat-btn {
+    width: 100%;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--paper, var(--surface));
+    color: var(--ink, var(--text));
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    font-family: var(--body, "Inter", sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .friend-tile .chat-btn:hover {
+    background: var(--brand-primary, #b7925a);
+    color: var(--paper, #fff);
+    border-color: var(--brand-primary, #1b4332);
+  }
+  .friend-tile .chat-btn i { font-size: 10.5px; }
+
+  /* Hide friends grid + show search results section */
+  .friends-grid-wrap.hidden { display: none; }
+  .search-results-section { display: none; }
+  .search-results-section.active { display: block; }
+
+  /* ─── Skeletons ───────────────────────────────────────────── */
+  @keyframes shimmer-move {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--cream-2, var(--surface-2)) 0%,
+      var(--border, rgba(0,0,0,0.06)) 50%,
+      var(--cream-2, var(--surface-2)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-move 1.4s linear infinite;
+    border-radius: 6px;
+  }
+  .skel-tile {
+    background: var(--paper, var(--surface));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 12px 14px;
+    text-align: center;
+  }
+  .skel-circle {
+    width: 68px; height: 68px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+  }
+  .skel-line { height: 10px; margin: 6px 0; }
+  .skel-line.short { width: 60%; margin-left: auto; margin-right: auto; }
+
+  .skel-discover-card {
+    flex: 0 0 200px;
+    background: var(--paper, var(--surface));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 14px;
+    text-align: center;
+  }
+  .skel-avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    margin: 0 auto 12px;
+  }
+  .skel-body { display: flex; flex-direction: column; gap: 6px; }
+
+  .skel-request-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .skel-request-row:last-child { border-bottom: none; }
+  .skel-stack { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+  /* ─── Empty state ─────────────────────────────────────────── */
+  .empty-state {
+    grid-column: 1 / -1;
+    padding: 36px 24px;
+    text-align: center;
+    color: var(--ink-dim, var(--text-dim));
+    background: var(--cream-2, var(--surface-2));
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm, 12px);
+    font-size: 13.5px;
+  }
+  .empty-state > i {
+    display: block;
+    width: 52px; height: 52px;
+    margin: 0 auto 12px;
+    background: var(--paper, var(--surface));
+    color: var(--brand-primary, #b7925a);
+    border-radius: 14px;
+    line-height: 52px;
+    font-size: 18px;
+  }
+  .empty-state > div {
+    color: var(--ink, var(--text));
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .empty-state .retry {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 12px;
+    padding: 7px 16px;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--brand-primary, #b7925a);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .empty-state .retry:hover {
+    background: var(--brand-primary, #b7925a);
+    color: var(--paper, #fff);
+  }
+
+  /* ─── See-all full-screen modal ───────────────────────────── */
+  .seeall-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 20, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    z-index: 1080;
+    padding: 28px 16px;
+  }
+  .seeall-overlay.open { display: flex; align-items: center; justify-content: center; }
+  .seeall-modal {
+    width: 100%; max-width: 980px;
+    max-height: 90vh;
+    background: var(--paper, var(--surface));
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 16px);
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.4);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .seeall-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .seeall-head .title {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--display, "Inter", sans-serif);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink, var(--text));
+    margin: 0;
+  }
+  .seeall-head .title > i {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--cream-2, var(--surface-2));
+    color: var(--brand-primary, #b7925a);
+    display: grid; place-items: center;
+    font-size: 12px;
+  }
+  .seeall-head .total {
+    color: var(--ink-muted, var(--text-muted));
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .seeall-close {
+    width: 32px; height: 32px;
+    background: var(--cream-2, var(--surface-2));
+    color: var(--ink-dim, var(--text-dim));
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    display: grid; place-items: center;
+    transition: all .15s ease;
+  }
+  .seeall-close:hover { background: var(--rose, #c08479); color: var(--paper, #fff); border-color: var(--rose, #c08479); }
+  .seeall-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .seeall-search { position: relative; margin-bottom: 16px; }
+  .seeall-search input {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm, 12px);
+    background: var(--cream-2, var(--surface-2));
+    font-size: 13px;
+    color: var(--ink, var(--text));
+  }
+  .seeall-search input:focus {
+    outline: none;
+    background: var(--paper, var(--surface));
+    border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .seeall-search .icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-muted, var(--text-muted));
+    font-size: 12px;
+  }
+  .seeall-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .seeall-grid .discover-card { flex: 1; width: auto; }
+  .seeall-foot {
+    padding: 14px 22px 18px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ─── Narrow viewport tweaks ──────────────────────────────── */
+  @media (max-width: 720px) {
+    .section-block { padding: 18px 16px; }
+    .discover-card { flex: 0 0 170px; width: 170px; padding: 14px 10px 12px; }
+    .discover-card .avatar-wrap { width: 64px; height: 64px; }
+    .friend-tile-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .friend-tile { padding: 14px 8px 10px; }
+    .friend-tile .avatar { width: 56px; height: 56px; }
+    .friends-toolbar .page-title { font-size: 22px; }
+  }
+  /* ─────────────────────────────────────────────────────────────
+     Discover-card leave/enter animations.
+     Triggered by handleSendFriendRequest in social_media_friends.html
+     (and restoreCard inside the Undo toast handler). Kept here so
+     the optimistic "Add friend" UX has the right motion no matter
+     which rail/grid the card lives in.
+     ───────────────────────────────────────────────────────────── */
+  .discover-card {
+    transition:
+      opacity 0.30s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.36s cubic-bezier(0.34, 1.4, 0.64, 1),
+      box-shadow 0.18s ease,
+      border-color 0.18s ease;
+  }
+  .discover-card.is-leaving {
+    opacity: 0;
+    transform: scale(0.86) translateY(-10px);
+    pointer-events: none;
+  }
+  .discover-card.is-entering {
+    opacity: 0;
+    transform: scale(0.9) translateY(14px);
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     cl-undo-toast — bottom-right brand-aware toast with a single
+     primary action (Undo) and a dismiss (×). The progress strip
+     drains over the toast's lifetime so users can see how long
+     they have left. Tracks --brand-primary so it repaints with
+     the tenant brand.
+     ───────────────────────────────────────────────────────────── */
+  /* Stack container — flex column-reverse so newer toasts appear at the
+     bottom while older ones rise above. Container z-index is also set
+     inline (in showUndoToast) for cross-browser safety against the
+     See-all modal's backdrop-filter stacking context. */
+  .cl-undo-toast-stack {
+    position: fixed;
+    bottom: 28px;
+    left: 28px;
+    z-index: 10050;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 10px;
+    align-items: flex-start;
+    pointer-events: none;
+  }
+  .cl-undo-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px 12px 16px;
+    background: var(--paper, var(--surface));
+    border: 1px solid var(--border-strong, var(--border));
+    border-radius: 14px;
+    box-shadow: 0 22px 48px -14px rgba(0, 0, 0, 0.36);
+    min-width: 300px;
+    max-width: 400px;
+    font-family: var(--body, "Inter", sans-serif);
+    opacity: 0;
+    transform: translateX(-28px) scale(0.96);
+    transition:
+      opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .cl-undo-toast.is-visible { opacity: 1; transform: translateX(0) scale(1); }
+  .cl-undo-toast.is-leaving { opacity: 0; transform: translateX(-28px) scale(0.96); }
+
+  .cl-undo-toast__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .cl-undo-toast__body { flex: 1; min-width: 0; }
+  .cl-undo-toast__msg {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink, var(--text));
+    line-height: 1.3;
+  }
+  .cl-undo-toast__user {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--brand-primary, #b7925a);
+    line-height: 1.3;
+    margin-top: 2px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 250px;
+  }
+  /* When the toast has no userName, restore the gap to the progress bar */
+  .cl-undo-toast__msg:last-of-type { margin-bottom: 6px; }
+  .cl-undo-toast__progress {
+    height: 3px;
+    width: 100%;
+    background: var(--brand-primary, #b7925a);
+    border-radius: 999px;
+    transform-origin: left center;
+    transform: scaleX(1);
+  }
+  .cl-undo-toast__action {
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    border: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 30%, transparent);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+  }
+  .cl-undo-toast__action:hover,
+  .cl-undo-toast__action:focus {
+    background: var(--brand-primary, #b7925a);
+    color: var(--paper, #fff);
+    border-color: var(--brand-primary, #b7925a);
+    outline: none;
+  }
+  .cl-undo-toast__close {
+    background: transparent;
+    border: 0;
+    color: var(--ink-muted, var(--text-muted));
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .cl-undo-toast__close:hover,
+  .cl-undo-toast__close:focus {
+    color: var(--rose, #c08479);
+    background: rgba(192, 132, 121, 0.10);
+    outline: none;
+  }
+
+  @media (max-width: 480px) {
+    .cl-undo-toast-stack {
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      align-items: stretch;
+    }
+    .cl-undo-toast {
+      min-width: 0;
+      max-width: none;
+      width: 100%;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     Phone redesign (≤640px) — mobile-friendly relayout.
+
+     Strategy mirrors the inbox redesign: strip verbose page chrome
+     that the operations topbar + bottom tab bar already provide,
+     bleed section cards to the screen edges (no double-card
+     framing), compress the 3-up stats grid into an inline chip row,
+     tighten section padding/typography, make grids 2-column with
+     proper touch targets, and add stickiness where it helps.
+     ═══════════════════════════════════════════════════════════════ */
+  @media (max-width: 640px) {
+
+    /* ── Page wrapper: kill the inner gutter, let sections bleed ── */
+    .friends-page {
+      padding: 4px 0 24px;
+      max-width: none;
+    }
+
+    /* ── Toolbar: hide page-title + subtitle + "Back to chat" ────
+       The mobile topbar already says where you are, and the
+       Messages tab on the bottom bar is faster than the back link.
+       Removing the toolbar saves ~70px of vertical space. */
+    .friends-toolbar { display: none !important; }
+
+    /* ── Stats: 3-up horizontal chip row, not vertical cards ─────
+       The desktop "card with icon + value + label" layout takes
+       ~80px per stat × 3 stacked = 240px of vertical real estate.
+       On phones we compress to a single horizontal row of chips
+       (~52px total). Numbers still get prominence; labels truncate
+       to 2 words. Horizontal scroll if the row overflows. */
+    .friends-stats {
+      grid-template-columns: none;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      margin: 0 -16px 14px;
+      padding: 0 16px 4px;
+      scrollbar-width: none;
+    }
+    .friends-stats::-webkit-scrollbar { display: none; }
+    .friends-stat {
+      flex: 0 0 auto;
+      scroll-snap-align: start;
+      padding: 10px 14px;
+      gap: 10px;
+      border-radius: 100px;
+      box-shadow: none;
+      min-width: 0;
+    }
+    .friends-stat-icon {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      font-size: 13px;
+    }
+    .friends-stat-body { display: inline-flex; align-items: baseline; gap: 6px; }
+    .friends-stat-value { font-size: 17px; }
+    .friends-stat-label {
+      margin: 0;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Section blocks: edge-to-edge, no card frame ─────────────
+       Desktop wraps each section in a bordered, shadowed card with
+       22px padding. On a 360px screen the inner gutter eats
+       readable width, and stacking 3 cards reads as visual clutter.
+       Strip the frame; rely on the surrounding negative space to
+       separate sections. */
+    .section-block {
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      border-radius: 0;
+      padding: 18px 16px 14px;
+      margin: 0 -16px 4px;
+    }
+    .section-head { margin-bottom: 12px; }
+    .section-head h2 {
+      font-size: 14px;
+      gap: 8px;
+      letter-spacing: -0.005em;
+    }
+    .section-head h2 > i {
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      font-size: 10px;
+    }
+    .head-pill { min-width: 18px; height: 18px; font-size: 10px; padding: 0 6px; }
+    .see-all { font-size: 12px; }
+
+    /* ── Pending requests: tap-friendly stacked rows ─────────────
+       Desktop fits avatar | info | [Accept] [Decline] inline. On
+       narrow widths the buttons wrap below the name awkwardly.
+       Move them to their own row, full-width split, so the names
+       can breathe and the actions stay easy to hit. */
+    .request-row {
+      grid-template-columns: 48px 1fr;
+      grid-template-rows: auto auto;
+      row-gap: 8px;
+      column-gap: 12px;
+      padding: 12px 0;
+    }
+    .request-row .avatar { width: 48px; height: 48px; grid-row: 1; }
+    .req-info { grid-row: 1; min-width: 0; }
+    .req-actions {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .req-actions .pill-btn {
+      justify-content: center;
+      padding: 9px 14px;
+      font-size: 13px;
+    }
+
+    /* ── Discover rail: edge-to-edge, snap scrolling ─────────────
+       The rail itself bleeds to screen edges so cards align with
+       the left edge and overflow naturally to the right. Snap-x
+       gives a satisfying card-by-card swipe. */
+    .discover-rail {
+      gap: 10px;
+      margin: 0 -16px;
+      padding: 2px 16px 14px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+    .discover-card {
+      flex: 0 0 158px;
+      width: 158px;
+      scroll-snap-align: start;
+      padding: 14px 12px 12px;
+      border-radius: 14px;
+    }
+    .discover-card .avatar-wrap { width: 60px; height: 60px; margin-bottom: 8px; }
+    .discover-card .mutual-pill { font-size: 9px; padding: 2px 7px; }
+    .discover-card .name { font-size: 13px; }
+    .discover-card .role { font-size: 11px; margin-bottom: 10px; }
+    .discover-card .add-btn {
+      padding: 7px 12px;
+      font-size: 11.5px;
+    }
+
+    /* ── Friends grid: 2 columns, chunkier tiles ─────────────────
+       auto-fill at 140px-min was producing 2-3 columns on phones
+       in an unpredictable way — sometimes squeezing 3 cramped
+       tiles. Lock to exactly 2 columns for predictable thumb
+       targets. Bump the avatar and clean the chat-button. */
+    .friend-tile-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .friend-tile {
+      padding: 14px 10px 12px;
+      border-radius: 14px;
+    }
+    .friend-tile .avatar { width: 60px; height: 60px; margin-bottom: 8px; }
+    .friend-tile .name { font-size: 13px; }
+    .friend-tile .badge { font-size: 9.5px; padding: 2px 8px; margin-bottom: 10px; }
+    .friend-tile .chat-btn { padding: 9px 12px; font-size: 12.5px; }
+
+    /* ── Search bar: sticky to top of the friends section ────────
+       As the user scrolls through their friend grid the search
+       field stays in reach. 16px input font also prevents iOS
+       Safari from auto-zooming on focus. */
+    .friends-search {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      margin: 0 -16px 14px;
+      padding: 10px 16px;
+      background: var(--cream, var(--bg, var(--paper, #fff)));
+    }
+    .friends-search input {
+      font-size: 16px;
+      padding: 11px 14px 11px 38px;
+    }
+    .friends-search .icon { left: 26px; }
+
+    /* ── Empty/error states: tighten so they don't dominate ──── */
+    .empty-state { padding: 28px 16px; }
+
+    /* ── See-all modal: tighten card sizes for narrow grids ──── */
+    .seeall-grid { gap: 10px; }
+    .seeall-search input { font-size: 16px; }
+  }

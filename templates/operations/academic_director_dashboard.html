@@ -1,0 +1,972 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% comment %}[Classedge LMS] Academic Director dashboard — operations design system, executive layout.{% endcomment %}
+
+{% block title %}Academic dashboard{% endblock %}
+
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <style>
+    /* ───────── Spacing scale ─────────
+       Single source of truth so every section uses the same rhythm.
+       --gap-row    : space between major rows (KPI → main → pipeline → ...)
+       --gap-col    : space between columns inside a row (programs · pending)
+       --gap-tile   : space between sibling tiles inside a row (KPI grid)
+       --pad-card   : default internal padding for any cl-card body in this page
+    */
+    .cl-page {
+      --gap-row: 20px;
+      --gap-col: 20px;
+      --gap-tile: 14px;
+      --pad-card: 22px 24px;
+    }
+
+    /* Restore consistent card-body padding (the framework defaults to 0). */
+    .cl-page .cl-card { margin-bottom: var(--gap-row); }
+    .cl-page .cl-card .cl-card-body { padding: var(--pad-card); }
+    .cl-page .cl-card .cl-card-body.flush { padding: 0; }
+    .cl-page .cl-card .cl-card-body.compact { padding: 14px 18px; }
+
+    /* Tighten cl-header so the header → KPI rhythm matches the inter-card rhythm */
+    .cl-page .cl-header { margin-bottom: 24px; }
+
+    /* ───────── Header band ─────────
+       Small role tag chip · h2 greeting · subtitle line + right-aligned timestamp. */
+    .ad-role-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+    .ad-role-tag i { color: var(--brand-primary, #b7925a); font-size: 11px; }
+    .ad-asof {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-dim);
+      letter-spacing: 0.02em;
+    }
+    .ad-asof::before {
+      content: "";
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--brand-primary, #1b4332);
+      box-shadow: 0 0 0 4px var(--brand-primary-soft);
+      animation: ad-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes ad-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+    /* ───────── KPI tiles ───────── */
+    .ad-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--gap-tile);
+      margin-bottom: var(--gap-row);
+    }
+    @media (max-width: 1100px) { .ad-kpis { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px)  { .ad-kpis { grid-template-columns: 1fr; } }
+
+    /* ───────── "Needs your attention" highlight ───────── */
+    .ad-attn {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--brand-primary, #1b4332);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: var(--gap-row);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .ad-attn.is-warn { border-top-color: var(--rose, #c08479); }
+    .ad-attn::before {
+      content: "";
+      position: absolute; top: -140px; right: -120px;
+      width: 360px; height: 360px;
+      background: radial-gradient(circle, var(--brand-primary-soft), transparent 65%);
+      pointer-events: none;
+    }
+    .ad-attn.is-warn::before {
+      background: radial-gradient(circle, rgba(192, 132, 121, 0.16), transparent 65%);
+    }
+    .ad-attn-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      margin-bottom: 14px; position: relative;
+    }
+    .ad-attn-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink);
+    }
+    .ad-attn.is-warn .ad-attn-eyebrow { color: var(--rose-deep, #b0413e); }
+    .ad-attn-eyebrow i { font-size: 11px; }
+    .ad-attn-title {
+      font-family: var(--display);
+      font-size: 22px; font-weight: 600;
+      color: var(--ink);
+      margin: 6px 0 0;
+      letter-spacing: -0.015em;
+    }
+    .ad-attn-title em { font-style: italic; color: var(--brand-primary, #b7925a); font-weight: 500; }
+    .ad-attn.is-warn .ad-attn-title em { color: var(--rose-deep, #b0413e); }
+    .ad-attn-summary {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 8px 14px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12.5px; color: var(--ink-dim);
+      font-family: var(--display);
+    }
+    .ad-attn-summary strong { color: var(--ink); font-weight: 600; font-style: normal; }
+
+    .ad-attn-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      position: relative;
+    }
+    .ad-attn-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--rose, #c08479);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: var(--ink);
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .ad-attn-item.is-static { cursor: default; }
+    a.ad-attn-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); color: var(--ink); }
+    .ad-attn-ico {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: rgba(192, 132, 121, 0.14);
+      color: var(--rose-deep, #b0413e);
+      display: grid; place-items: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .ad-attn-body { min-width: 0; flex: 1; line-height: 1.35; }
+    .ad-attn-label {
+      font-family: var(--display);
+      font-size: 14px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+      display: block;
+    }
+    .ad-attn-detail {
+      font-size: 11.5px;
+      color: var(--ink-dim);
+      margin-top: 3px;
+    }
+
+    /* Expandable tile (native <details>) — used by content-gap rows */
+    .ad-attn-item.has-rows {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 0;
+      gap: 0;
+    }
+    .ad-attn-item.has-rows summary {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      list-style: none;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .ad-attn-item.has-rows summary::-webkit-details-marker { display: none; }
+    .ad-attn-item.has-rows summary:hover { background: rgba(192, 132, 121, 0.06); }
+    .ad-attn-chev {
+      align-self: center;
+      font-size: 10px;
+      color: var(--ink-muted);
+      transition: transform .18s ease;
+    }
+    .ad-attn-item.has-rows[open] .ad-attn-chev { transform: rotate(180deg); color: var(--ink); }
+    .ad-attn-rows {
+      list-style: none;
+      margin: 0;
+      padding: 4px 8px 10px;
+      border-top: 1px dashed var(--border);
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .ad-attn-rows li { list-style: none; }
+    .ad-attn-row {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; padding: 9px 10px;
+      border-radius: 8px;
+      transition: background .15s, transform .15s;
+      text-decoration: none;
+      color: var(--ink);
+    }
+    .ad-attn-row:hover { background: rgba(0, 0, 0, 0.04); color: var(--ink); text-decoration: none; transform: translateX(2px); }
+    .ad-attn-row:hover .ad-attn-row-arrow { color: var(--brand-primary, #b7925a); transform: translateX(2px); }
+    .ad-attn-row-arrow {
+      font-size: 11px; color: var(--ink-muted);
+      transition: transform .15s, color .15s;
+      margin-left: 4px;
+    }
+    body[data-theme="dark"] .ad-attn-row:hover { background: rgba(255, 255, 255, 0.04); }
+    .ad-attn-row-main { min-width: 0; flex: 1; }
+    .ad-attn-row-title {
+      font-family: var(--display); font-size: 13.5px; font-weight: 600;
+      color: var(--ink); line-height: 1.3;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ad-attn-row-title .code {
+      font-family: var(--body); font-size: 10.5px; font-weight: 600;
+      color: var(--ink-muted); letter-spacing: 0.04em;
+      margin-left: 6px;
+    }
+    .ad-attn-row-meta {
+      font-size: 11.5px; color: var(--ink-dim); margin-top: 3px;
+    }
+    .ad-attn-row-meta i { font-size: 10px; margin-right: 4px; color: var(--ink-muted); }
+    .ad-attn-row-counts {
+      display: inline-flex; gap: 8px; flex-shrink: 0;
+      font-size: 11px; color: var(--ink-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .ad-attn-row-counts .cnt {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 8px;
+      background: rgba(0, 0, 0, 0.04);
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    body[data-theme="dark"] .ad-attn-row-counts .cnt { background: rgba(255, 255, 255, 0.06); }
+    .ad-attn-row-counts .cnt i { font-size: 9.5px; color: var(--ink-muted); }
+    .ad-attn-row-counts .cnt.zero {
+      background: rgba(192, 57, 43, 0.10);
+      color: #c0392b;
+    }
+    .ad-attn-row-counts .cnt.zero i { color: #c0392b; }
+    .ad-attn-clear {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 20px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--brand-primary, #1b4332);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      font-family: var(--display);
+      font-size: 14.5px;
+    }
+    .ad-attn-clear i {
+      width: 36px; height: 36px;
+      border-radius: 11px;
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      display: grid; place-items: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .ad-attn-clear strong { font-weight: 600; color: var(--ink); }
+    .ad-attn-clear .sub { display: block; font-size: 12px; color: var(--ink-dim); margin-top: 2px; font-style: italic; }
+    @media (max-width: 720px) {
+      .ad-attn { padding: 20px; }
+      .ad-attn-title { font-size: 18px; }
+    }
+
+    .ad-kpi {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 22px 20px;
+      box-shadow: var(--shadow);
+      position: relative;
+      transition: border-color .18s ease, box-shadow .18s ease;
+      display: flex; flex-direction: column;
+    }
+    .ad-kpi:hover {
+      border-color: var(--border-strong);
+      box-shadow: 0 8px 24px -16px rgba(45,49,66,0.18);
+    }
+
+    .ad-kpi-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .ad-kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      line-height: 1.2;
+    }
+    .ad-kpi-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--cream-2);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .ad-kpi.danger .ad-kpi-icon { background: var(--rose-soft, rgba(196,80,90,0.12)); color: var(--rose-deep, #8a3741); }
+    .ad-kpi.ok      .ad-kpi-icon { background: var(--brand-primary-soft); color: var(--ink); }
+
+    .ad-kpi-value {
+      font-family: var(--display);
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1;
+      letter-spacing: -0.025em;
+    }
+    .ad-kpi.danger .ad-kpi-value { color: var(--rose-deep, #8a3741); }
+    .ad-kpi-foot {
+      margin-top: 12px;
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    .ad-kpi-foot strong { color: var(--ink-dim); font-weight: 600; }
+
+    /* ───────── Two-col grid ───────── */
+    .ad-two {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: var(--gap-col);
+      margin-bottom: var(--gap-row);
+    }
+    @media (max-width: 1100px) { .ad-two { grid-template-columns: 1fr; } }
+    .ad-two .cl-card { margin-bottom: 0; }
+    .ad-two .cl-card .cl-card-body { display: flex; flex-direction: column; }
+
+    /* ───────── Card meta link ───────── */
+    .ad-meta-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-dim);
+      text-decoration: none;
+      transition: color .15s ease;
+    }
+    .ad-meta-link:hover { color: var(--ink); }
+    .ad-meta-link i { font-size: 9px; }
+
+    /* ───────── Pager (program performance) ───────── */
+    .ad-pager {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; flex-wrap: wrap;
+      padding: 12px 12px 0;
+      border-top: 1px solid var(--border);
+      margin-top: 12px;
+    }
+    .ad-pager-info { font-size: 12px; color: var(--ink-dim); }
+    .ad-pager-controls { display: inline-flex; align-items: center; gap: 8px; }
+    .ad-pager-pages { font-size: 12px; color: var(--ink-dim); }
+    .ad-pager-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px;
+      background: var(--paper);
+      border: 1px solid var(--border-strong);
+      border-radius: 100px;
+      color: var(--ink);
+      font-size: 12.5px; font-weight: 600;
+      text-decoration: none;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .ad-pager-btn:hover { background: var(--cream-2); color: var(--ink); border-color: var(--brand-primary, #1b4332); text-decoration: none; }
+    .ad-pager-btn.is-disabled {
+      opacity: 0.45; cursor: not-allowed; color: var(--ink-muted);
+      pointer-events: none;
+    }
+    .ad-pager-btn i { font-size: 10px; }
+
+    .ad-meta-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ───────── Programs ledger ─────────
+       Uses negative margin to bleed against card-body padding so the row hover
+       background extends edge-to-edge while column rhythm stays inside. */
+    .ad-ledger {
+      width: calc(100% + 24px);
+      margin: -2px -12px 0;
+      border-collapse: collapse;
+    }
+    .ad-ledger thead th {
+      text-align: left;
+      padding: 0 12px 14px;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border-bottom: 1px solid var(--border);
+    }
+    .ad-ledger thead th:first-child { padding-left: 12px; }
+    .ad-ledger thead th:last-child  { padding-right: 12px; }
+    .ad-ledger thead th.right { text-align: right; }
+    .ad-ledger tbody td {
+      padding: 16px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13.5px;
+      color: var(--ink);
+      vertical-align: middle;
+    }
+    .ad-ledger tbody tr:last-child td { border-bottom: none; }
+    .ad-ledger tbody tr { transition: background .15s ease; }
+    .ad-ledger tbody tr:hover td { background: var(--cream); }
+
+    .ad-prog-code {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 56px;
+      padding: 3px 9px;
+      background: var(--brand-primary, #1b4332);
+      color: var(--cream);
+      border-radius: 6px;
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .ad-prog-code.muted {
+      background: var(--cream-2);
+      color: var(--ink-dim);
+      border: 1px solid var(--border);
+    }
+    .ad-prog-name { color: var(--ink); font-weight: 500; }
+
+    .ad-meter {
+      width: 100%;
+      max-width: 220px;
+      height: 6px;
+      background: var(--cream-2);
+      border-radius: 100px;
+      overflow: hidden;
+      position: relative;
+    }
+    .ad-meter > span {
+      position: absolute; inset: 0;
+      width: 0;
+      background: linear-gradient(90deg, var(--ink), var(--brand-primary, #b7925a));
+      border-radius: 100px;
+      transition: width .4s ease;
+    }
+    .ad-meter-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .ad-meter-pct {
+      font-family: 'SFMono-Regular', monospace;
+      font-size: 11.5px;
+      color: var(--ink-dim);
+      font-variant-numeric: tabular-nums;
+      min-width: 32px;
+      text-align: right;
+    }
+
+    .ad-num {
+      font-family: 'SFMono-Regular', monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 600;
+      text-align: right;
+    }
+    .ad-num .total {
+      color: var(--ink-muted);
+      font-weight: 400;
+      margin-left: 2px;
+    }
+
+    /* ───────── Pending decisions feed ───────── */
+    .ad-feed { display: flex; flex-direction: column; }
+    .ad-feed-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .ad-feed-row:first-child { padding-top: 2px; }
+    .ad-feed-row:last-child { padding-bottom: 2px; border-bottom: none; }
+
+    .ad-feed-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--brand-primary, #b7925a) 12%, transparent);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .ad-feed-body { min-width: 0; }
+    .ad-feed-title {
+      font-size: 13.5px;
+      color: var(--ink);
+      font-weight: 600;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .ad-feed-meta {
+      margin-top: 4px;
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap;
+    }
+    .ad-feed-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-muted); }
+
+    .ad-age {
+      font-family: 'SFMono-Regular', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 100px;
+      letter-spacing: 0.02em;
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .ad-age.warn { background: color-mix(in srgb, var(--brand-primary, #b7925a) 16%, transparent); color: #8a6a3a; }
+    .ad-age.stale { background: var(--rose-soft, rgba(196,80,90,0.14)); color: var(--rose-deep, #8a3741); }
+
+    /* ───────── Curriculum pipeline ───────── */
+    .ad-pipeline {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 32px;
+      align-items: center;
+      padding: 6px 0;
+    }
+    @media (max-width: 900px) {
+      .ad-pipeline { grid-template-columns: 1fr; gap: 24px; }
+    }
+
+    .ad-pipeline-bar {
+      display: flex;
+      width: 100%;
+      height: 20px;
+      border-radius: 100px;
+      overflow: hidden;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+    }
+    .ad-pipeline-bar > span {
+      display: block;
+      transition: width .4s ease;
+      position: relative;
+    }
+    .ad-pipeline-bar > .seg-approved { background: var(--brand-primary, #1b4332); }
+    .ad-pipeline-bar > .seg-pending { background: var(--brand-primary, #b7925a); }
+    .ad-pipeline-bar > .seg-rejected { background: var(--rose, #c08479); }
+
+    .ad-pipeline-key { display: flex; flex-direction: column; gap: 14px; }
+    .ad-pipeline-row {
+      display: grid;
+      grid-template-columns: 12px 1fr auto;
+      gap: 14px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .ad-pipeline-row .swatch {
+      width: 12px; height: 12px;
+      border-radius: 4px;
+    }
+    .ad-pipeline-row .swatch.approved { background: var(--brand-primary, #1b4332); }
+    .ad-pipeline-row .swatch.pending  { background: var(--brand-primary, #b7925a); }
+    .ad-pipeline-row .swatch.rejected { background: var(--rose, #c08479); }
+    .ad-pipeline-row .lbl {
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .ad-pipeline-row .lbl small {
+      display: block;
+      font-size: 11px;
+      color: var(--ink-muted);
+      font-weight: 400;
+      margin-top: 1px;
+    }
+    .ad-pipeline-row .num {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+
+    /* ───────── Departments grid ───────── */
+    .ad-dept-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .ad-dept {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 18px 16px 22px;
+      text-decoration: none;
+      color: inherit;
+      transition: all .18s ease;
+      display: block;
+      position: relative;
+    }
+    .ad-dept::before {
+      content: "";
+      position: absolute; left: 0; top: 16px; bottom: 16px;
+      width: 3px;
+      background: var(--brand-primary, #b7925a);
+      border-radius: 0 3px 3px 0;
+      transition: background .18s ease;
+    }
+    .ad-dept:hover {
+      border-color: var(--brand-primary, #1b4332);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px -14px rgba(45,49,66,0.18);
+    }
+    .ad-dept:hover::before { background: var(--brand-primary, #1b4332); }
+    .ad-dept-name {
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0 0 12px;
+      letter-spacing: -0.005em;
+      transition: color .15s ease;
+    }
+    .ad-dept:hover .ad-dept-name { color: var(--ink); }
+    .ad-dept-stats {
+      display: flex;
+      gap: 18px;
+      font-size: 11.5px;
+      color: var(--ink-dim);
+      letter-spacing: 0.02em;
+    }
+    .ad-dept-stats div strong {
+      display: block;
+      font-family: 'SFMono-Regular', monospace;
+      font-size: 15px;
+      color: var(--ink);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+      margin-bottom: 2px;
+    }
+
+    /* ───────── Quick jump ───────── */
+    .ad-jump {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 10px;
+    }
+    .ad-jump a {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all .15s ease;
+    }
+    .ad-jump a i {
+      width: 26px; height: 26px;
+      border-radius: 7px;
+      background: var(--cream-2);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 11px;
+      flex-shrink: 0;
+      transition: all .15s ease;
+    }
+    .ad-jump a:hover {
+      border-color: var(--brand-primary, #1b4332);
+      color: var(--ink);
+    }
+    .ad-jump a:hover i { background: var(--brand-primary, #1b4332); color: var(--cream); }
+
+    /* ───────── Empty states ───────── */
+    .ad-empty {
+      text-align: center;
+      padding: 28px 14px;
+      color: var(--ink-muted);
+      font-size: 13px;
+    }
+    .ad-empty i {
+      display: block;
+      font-size: 22px;
+      margin-bottom: 8px;
+      color: var(--ink-muted);
+      opacity: 0.6;
+    }
+  </style>
+
+  <div class="cl-page">
+
+    {# ───────── Header ───────── #}
+    <div class="cl-header">
+      <div>
+        <span class="ad-role-tag"><i class="fas fa-graduation-cap"></i> {{ role_tag }}</span>
+        <h2>Good {{ time_of_day }}, <em>{{ request.user.first_name|default:request.user.username }}</em></h2>
+        <p>Which courses still need content and how the programs are tracking.</p>
+      </div>
+      <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="cl-tour-replay" data-cl-tour="academic-director-dashboard">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <span class="ad-asof">{{ as_of }}</span>
+      </div>
+    </div>
+
+    {# ───────── HIGHLIGHT: Needs your attention ───────── #}
+    <section class="ad-attn is-{{ attention_status }}">
+      <div class="ad-attn-head">
+        <div>
+          <div class="ad-attn-eyebrow">
+            <i class="fas {% if attention_status == 'warn' %}fa-bell{% else %}fa-circle-check{% endif %}"></i>
+            Needs your attention
+          </div>
+          <h2 class="ad-attn-title">
+            {% if attention_items %}
+              {{ attention_items|length }} item{{ attention_items|length|pluralize }} <em>waiting on you</em>
+            {% else %}
+              You're <em>all caught up</em>
+            {% endif %}
+          </h2>
+        </div>
+        <div class="ad-attn-summary">
+          <span>
+            {% if content_gap.items and not content_gap.is_fallback %}
+              <strong>{{ content_gap.items|length }}</strong>
+              empty course{{ content_gap.items|length|pluralize }} ·
+            {% endif %}
+          </span>
+        </div>
+      </div>
+
+      {% if attention_items %}
+        <div class="ad-attn-grid">
+          {% for item in attention_items %}
+            {% if item.rows %}
+              <details class="ad-attn-item is-static has-rows">
+                <summary>
+                  <span class="ad-attn-ico"><i class="fas {{ item.icon }}"></i></span>
+                  <span class="ad-attn-body">
+                    <span class="ad-attn-label">{{ item.label }}</span>
+                    <span class="ad-attn-detail">{{ item.detail }}</span>
+                  </span>
+                  <i class="fas fa-chevron-down ad-attn-chev"></i>
+                </summary>
+                <ul class="ad-attn-rows">
+                  {% for row in item.rows %}
+                    <li>
+                      <a class="ad-attn-row" href="{% url 'material-list' id=row.subject_id %}"
+                         title="Open materials for {{ row.subject_name }}">
+                        <div class="ad-attn-row-main">
+                          <div class="ad-attn-row-title">{{ row.subject_name }}{% if row.subject_code %} <span class="code">{{ row.subject_code }}</span>{% endif %}</div>
+                          <div class="ad-attn-row-meta">
+                            <i class="fas fa-chalkboard-user"></i> {{ row.teacher_name }}
+                          </div>
+                        </div>
+                        <div class="ad-attn-row-counts">
+                          <span class="cnt{% if row.activity_count == 0 %} zero{% endif %}" title="Activities / assessments">
+                            <i class="fas fa-clipboard-list"></i> {{ row.activity_count }}
+                          </span>
+                          <span class="cnt{% if row.module_count == 0 %} zero{% endif %}" title="Materials / modules">
+                            <i class="fas fa-folder"></i> {{ row.module_count }}
+                          </span>
+                          <i class="fas fa-arrow-right ad-attn-row-arrow"></i>
+                        </div>
+                      </a>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </details>
+            {% elif item.url %}
+              <a class="ad-attn-item" href="{{ item.url }}">
+                <span class="ad-attn-ico"><i class="fas {{ item.icon }}"></i></span>
+                <span class="ad-attn-body">
+                  <span class="ad-attn-label">{{ item.label }}</span>
+                  <span class="ad-attn-detail">{{ item.detail }}</span>
+                </span>
+              </a>
+            {% else %}
+              <div class="ad-attn-item is-static">
+                <span class="ad-attn-ico"><i class="fas {{ item.icon }}"></i></span>
+                <span class="ad-attn-body">
+                  <span class="ad-attn-label">{{ item.label }}</span>
+                  <span class="ad-attn-detail">{{ item.detail }}</span>
+                </span>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="ad-attn-clear">
+          <i class="fas fa-circle-check"></i>
+          <div>
+            <strong>Every course is loaded, no at-risk flags.</strong>
+            <span class="sub">Last checked {{ as_of }}.</span>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    {# ───────── KPIs ───────── #}
+    <div class="ad-kpis">
+      {% for k in kpis %}
+        <div class="ad-kpi {{ k.tone }}">
+          <div class="ad-kpi-head">
+            <div class="ad-kpi-label">{{ k.label }}</div>
+            <div class="ad-kpi-icon"><i class="fas {{ k.icon }}"></i></div>
+          </div>
+          <div class="ad-kpi-value">{{ k.value }}</div>
+          {% if k.label == "Active students" and students.total %}
+            <div class="ad-kpi-foot"><strong>{{ students.total }}</strong> enrolled overall</div>
+          {% elif k.label == "At-risk students" %}
+            <div class="ad-kpi-foot">{% if k.value %}Need outreach this week{% else %}All within thresholds{% endif %}</div>
+          {% elif k.label == "Faculty" %}
+            <div class="ad-kpi-foot">Active teaching staff</div>
+          {% elif k.label == "Programs" %}
+            <div class="ad-kpi-foot">Active programs</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    {# ───────── Programs + Pending decisions ───────── #}
+    <div class="ad-two">
+
+      <div class="cl-card" id="program-performance">
+        <div class="cl-card-header">
+          <span><i class="fas fa-book-open me-2"></i> Program performance</span>
+          <a href="{% url 'program-list' %}" class="ad-meta-link">All programs <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="cl-card-body">
+          {% if program_page and program_page.paginator.count %}
+            <table class="ad-ledger">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Program</th>
+                  <th style="min-width: 200px;">Engagement</th>
+                  <th class="right">Active / Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in program_page %}
+                  <tr>
+                    <td><span class="ad-prog-code{% if not p.short %} muted{% endif %}">{{ p.short|default:"—" }}</span></td>
+                    <td><span class="ad-prog-name">{{ p.name }}</span></td>
+                    <td>
+                      <div class="ad-meter-row">
+                        <div class="ad-meter"><span style="width: {{ p.active_pct }}%;"></span></div>
+                        <span class="ad-meter-pct">{{ p.active_pct }}%</span>
+                      </div>
+                    </td>
+                    <td class="ad-num"><strong>{{ p.active }}</strong><span class="total"> / {{ p.students }}</span></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            {% if program_page.paginator.num_pages > 1 %}
+              <div class="ad-pager">
+                <span class="ad-pager-info">
+                  Showing {{ program_page.start_index }}–{{ program_page.end_index }}
+                  of {{ program_page.paginator.count }}
+                </span>
+                <div class="ad-pager-controls">
+                  {% if program_page.has_previous %}
+                    <a class="ad-pager-btn" href="?program_page={{ program_page.previous_page_number }}#program-performance">
+                      <i class="fas fa-chevron-left"></i> Prev
+                    </a>
+                  {% else %}
+                    <span class="ad-pager-btn is-disabled"><i class="fas fa-chevron-left"></i> Prev</span>
+                  {% endif %}
+                  <span class="ad-pager-pages">
+                    Page {{ program_page.number }} / {{ program_page.paginator.num_pages }}
+                  </span>
+                  {% if program_page.has_next %}
+                    <a class="ad-pager-btn" href="?program_page={{ program_page.next_page_number }}#program-performance">
+                      Next <i class="fas fa-chevron-right"></i>
+                    </a>
+                  {% else %}
+                    <span class="ad-pager-btn is-disabled">Next <i class="fas fa-chevron-right"></i></span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+          {% else %}
+            <div class="ad-empty"><i class="fas fa-book-open"></i>No programs configured.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-star me-2"></i> Top-rated teachers</span>
+          <span class="ad-meta-pill">{{ top_teachers|length }} this semester</span>
+        </div>
+        <div class="cl-card-body">
+          {% if top_teachers %}
+            <div class="ad-feed">
+              {% for t in top_teachers %}
+                <div class="ad-feed-row">
+                  <div class="ad-feed-icon"><i class="fas fa-chalkboard-user"></i></div>
+                  <div class="ad-feed-body">
+                    <div class="ad-feed-title">{{ t.name }}</div>
+                    <div class="ad-feed-meta">
+                      <span><i class="fas fa-star" style="font-size: 9px; color: var(--brand-primary, #b7925a);"></i> {{ t.avg_stars }} avg</span>
+                      <span class="dot"></span>
+                      <span>{{ t.rating_count }} rating{{ t.rating_count|pluralize }}</span>
+                    </div>
+                    <div class="ad-meter-row" style="margin-top: 6px;">
+                      <div class="ad-meter"><span style="width: {{ t.avg_pct }}%;"></span></div>
+                      <span class="ad-meter-pct">{{ t.avg_pct }}%</span>
+                    </div>
+                  </div>
+                  <span class="ad-age" style="white-space: nowrap;">{{ t.avg_stars }}★</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="ad-empty"><i class="fas fa-star"></i>No teacher ratings yet this semester.</div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="{% static 'js/tours/cl-tour-academic-director-dashboard.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% block title %}Update staff profile{% endblock %}
+{% block content %}
+  {% url 'admin-and-staff-list' as back_url %}
+  {% include "accounts/admin_update/_profile_page.html" with page_title="Update <em>staff</em>" page_sub="Edit staff or admin profile, contact, and department." back_url=back_url back_label="Back to staff" %}
+{% endblock %}

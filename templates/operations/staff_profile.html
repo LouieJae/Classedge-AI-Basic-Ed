@@ -1,0 +1,909 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}{{ profile.first_name }} {{ profile.last_name }} · Profile{% endblock %}
+
+{% block content %}
+  {% include "includes/_list_page_theme.html" %}
+
+  <style>
+    .cl-page.sp-page {
+      --gap-row: 18px;
+      --gap-col: 22px;
+      --pad-card: 22px 24px;
+    }
+    .cl-page.sp-page .cl-card { margin-bottom: var(--gap-row); }
+    .cl-page.sp-page .cl-header { margin-bottom: 18px; }
+
+    /* Operations-system header pattern: role-tag pill + h2-with-em + as-of pulse. */
+    .sp-role-tag-top {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+    .sp-role-tag-top i { color: var(--brand-primary, #b7925a); font-size: 11px; }
+    .sp-asof {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-dim);
+    }
+    .sp-asof::before {
+      content: ""; width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--brand-primary, #1b4332);
+      box-shadow: 0 0 0 4px var(--brand-primary-soft);
+      animation: sp-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes sp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+    /* ── Page layout: sticky profile card on the left, scrollable content on right ── */
+    .sp-layout {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: var(--gap-col);
+      align-items: start;
+    }
+    @media (max-width: 1100px) { .sp-layout { grid-template-columns: 1fr; } }
+
+    /* ── Sticky profile card (paper + gold top accent, no gradient banner) ── */
+    .sp-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--brand-primary, #b7925a);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 88px;
+      overflow: hidden;
+      animation: spFade 0.45s ease both;
+    }
+    @media (max-width: 1100px) { .sp-card { position: static; } }
+    @keyframes spFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .sp-card::before {
+      content: "";
+      position: absolute;
+      top: -120px; right: -100px;
+      width: 280px; height: 280px;
+      background: radial-gradient(circle, var(--brand-primary-soft), transparent 65%);
+      pointer-events: none;
+      opacity: 0.8;
+    }
+    .sp-card-body {
+      padding: 26px 22px 22px;
+      text-align: center;
+      position: relative;
+    }
+    .sp-photo {
+      width: 104px; height: 104px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      background: var(--cream-2);
+      color: var(--ink);
+      display: grid; place-items: center;
+      font-family: var(--display);
+      font-size: 34px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      overflow: hidden;
+      border: 3px solid var(--paper);
+      box-shadow: 0 0 0 1px var(--border-strong), 0 12px 28px -14px rgba(45, 49, 66, 0.25);
+    }
+    .sp-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .sp-role-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 11px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 10.5px; font-weight: 700;
+      color: var(--ink);
+      text-transform: uppercase; letter-spacing: 0.12em;
+      margin-bottom: 8px;
+    }
+    .sp-role-pill i { color: var(--brand-primary, #b7925a); font-size: 10px; }
+    .sp-name {
+      font-family: var(--display);
+      font-size: 22px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      margin: 0 0 4px;
+      line-height: 1.2;
+    }
+    .sp-sub {
+      color: var(--ink-dim);
+      font-size: 12.5px;
+      margin: 0;
+    }
+    .sp-quick {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 18px 0 4px;
+      margin-top: 18px;
+      border-top: 1px solid var(--border);
+      text-align: left;
+    }
+    .sp-quick-row {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12.5px;
+      color: var(--ink);
+    }
+    .sp-quick-row i {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--cream-2);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 11.5px;
+      flex-shrink: 0;
+    }
+    .sp-quick-row .label {
+      display: block;
+      font-size: 10.5px; font-weight: 700;
+      color: var(--ink-muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    .sp-quick-row .value {
+      font-size: 12.5px;
+      color: var(--ink);
+      font-weight: 500;
+      word-break: break-word;
+    }
+    .sp-quick-row .value.muted { color: var(--ink-muted); font-style: italic; }
+    .sp-quick-row .value a { color: var(--ink); text-decoration: none; }
+    .sp-quick-row .value a:hover { text-decoration: underline; }
+    .sp-quick-row .col { min-width: 0; flex: 1; }
+
+    .sp-card-actions {
+      display: flex; gap: 8px;
+      padding: 14px 0 4px;
+      border-top: 1px solid var(--border);
+      margin-top: 14px;
+    }
+    .sp-btn {
+      flex: 1;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-family: var(--body); font-size: 12.5px; font-weight: 600;
+      border: 1px solid var(--border-strong);
+      background: var(--paper);
+      color: var(--ink);
+      cursor: pointer; text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .sp-btn:hover { background: var(--cream-2); border-color: var(--brand-primary, #b7925a); color: var(--ink); transform: translateY(-1px); }
+    .sp-btn.primary { background: var(--brand-primary, #1b4332); border-color: var(--brand-primary, #1b4332); color: var(--cream); }
+    .sp-btn.primary:hover { background: var(--brand-primary, #1b4332); border-color: var(--brand-primary, #1b4332); color: var(--cream); }
+
+    /* ── Main content cards ─────────────────────────────── */
+    .sp-main { display: flex; flex-direction: column; gap: var(--gap-row); min-width: 0; }
+
+    .sp-section {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      animation: spFade 0.45s 0.04s ease both;
+    }
+    .sp-section-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 14px; flex-wrap: wrap;
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      background: var(--cream-2);
+    }
+    .sp-section-title {
+      font-family: var(--display);
+      font-size: 16px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      margin: 0;
+      display: inline-flex; align-items: center; gap: 9px;
+    }
+    .sp-section-title em { color: var(--brand-primary, #b7925a); font-style: italic; font-weight: 500; }
+    .sp-section-title .ico {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--brand-primary, #b7925a);
+      border: 1px solid var(--border);
+      display: grid; place-items: center;
+      font-size: 12px;
+    }
+    .sp-section-sub { font-size: 12px; color: var(--ink-dim); margin-top: 2px; margin-left: 37px; }
+    .sp-section-sub.no-icon { margin-left: 0; }
+
+    /* Info rows */
+    .sp-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    @media (max-width: 720px) { .sp-info-grid { grid-template-columns: 1fr; } }
+
+    .sp-info-row {
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .sp-info-grid .sp-info-row:nth-child(2n+1) { border-right: 1px solid var(--border); }
+    @media (max-width: 720px) {
+      .sp-info-grid .sp-info-row:nth-child(2n+1) { border-right: none; }
+    }
+    .sp-info-grid .sp-info-row:nth-last-child(-n+2) { border-bottom: none; }
+    @media (max-width: 720px) {
+      .sp-info-grid .sp-info-row:nth-last-child(-n+2) { border-bottom: 1px solid var(--border); }
+      .sp-info-grid .sp-info-row:last-child { border-bottom: none; }
+    }
+    .sp-info-label {
+      font-size: 10.5px; font-weight: 700;
+      color: var(--ink-muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    .sp-info-value {
+      font-size: 14px;
+      color: var(--ink);
+      font-family: var(--body);
+      font-weight: 500;
+      word-break: break-word;
+    }
+    .sp-info-value.muted { color: var(--ink-muted); font-style: italic; font-weight: 400; }
+    .sp-info-value a { color: var(--ink); text-decoration: none; }
+    .sp-info-value a:hover { text-decoration: underline; }
+    .sp-info-value .status-dot {
+      display: inline-flex; align-items: center; gap: 7px;
+    }
+    .sp-info-value .status-dot::before {
+      content: ""; width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--brand-primary, #1b4332);
+      box-shadow: 0 0 0 3px var(--brand-primary-soft);
+    }
+    .sp-info-value .status-dot.inactive::before {
+      background: var(--ink-muted);
+      box-shadow: 0 0 0 3px rgba(160, 164, 184, 0.18);
+    }
+
+    /* Certificates */
+    .sp-section-body { padding: 22px 24px; }
+    .sp-cert-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .sp-cert-card {
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      text-decoration: none;
+      color: var(--ink);
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .sp-cert-card:hover { transform: translateY(-2px); border-color: var(--brand-primary, #b7925a); box-shadow: 0 12px 28px -16px rgba(45,49,66,0.20); }
+    .sp-cert-img { aspect-ratio: 4 / 3; background: var(--cream-2); overflow: hidden; display: block; }
+    .sp-cert-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .sp-cert-body { padding: 12px 14px; }
+    .sp-cert-title {
+      font-family: var(--display);
+      font-size: 13.5px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sp-cert-date { font-size: 11.5px; color: var(--ink-muted); margin-top: 3px; }
+
+    .sp-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--ink-dim);
+      font-family: var(--display);
+      font-style: italic;
+      font-size: 13px;
+    }
+    .sp-empty i {
+      display: block; font-size: 24px; color: var(--brand-primary, #b7925a);
+      margin-bottom: 8px; font-style: normal;
+    }
+
+    /* ── Custom modal (vanilla, no Bootstrap dep) ─────────── */
+    .sp-modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 18, 0.55);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 24px;
+      z-index: 1080;
+      animation: spOverlayFade 0.18s ease;
+    }
+    @keyframes spOverlayFade { from { opacity: 0; } to { opacity: 1; } }
+    .sp-modal-backdrop.is-open { display: flex; }
+    .sp-modal {
+      width: min(640px, 100%);
+      max-height: calc(100vh - 48px);
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 32px 64px -16px rgba(15, 23, 18, 0.50);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      animation: spModalRise 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes spModalRise {
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to   { opacity: 1; transform: none; }
+    }
+    .sp-modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px;
+      padding: 18px 22px;
+      background: var(--cream-2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .sp-modal-title {
+      font-family: var(--display);
+      font-size: 18px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+    .sp-modal-close {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      color: var(--ink-dim);
+      cursor: pointer;
+      display: inline-grid; place-items: center;
+      transition: all 0.15s ease;
+      font-size: 14px;
+    }
+    .sp-modal-close:hover { background: var(--cream); color: var(--ink); border-color: var(--brand-primary, #1b4332); }
+
+    .sp-modal-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 22px;
+    }
+    .sp-modal-foot {
+      display: flex; gap: 10px; justify-content: flex-end;
+      padding: 14px 22px;
+      background: var(--cream);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .sp-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .sp-form-row.single { grid-template-columns: 1fr; }
+    @media (max-width: 560px) { .sp-form-row { grid-template-columns: 1fr; } }
+    .sp-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .sp-field label {
+      font-size: 10.5px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase; letter-spacing: 0.12em;
+    }
+    .sp-field input,
+    .sp-field select,
+    .sp-field textarea {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--cream);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 13.5px;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+      color-scheme: light;
+    }
+    body[data-theme="dark"] .sp-field input,
+    body[data-theme="dark"] .sp-field select,
+    body[data-theme="dark"] .sp-field textarea { color-scheme: dark; }
+    .sp-field input:focus,
+    .sp-field select:focus,
+    .sp-field textarea:focus {
+      outline: none;
+      background: var(--paper);
+      border-color: var(--brand-primary, #b7925a);
+      box-shadow: 0 0 0 3px var(--brand-primary-soft);
+    }
+    .sp-field input:disabled,
+    .sp-field select:disabled {
+      background: var(--cream-2);
+      color: var(--ink-muted);
+      cursor: not-allowed;
+    }
+    .sp-field-hint { font-size: 11px; color: var(--ink-muted); margin-top: 4px; font-style: italic; }
+    .sp-field-error {
+      font-size: 11.5px;
+      color: var(--rose, #c08479);
+      margin-top: 4px;
+      display: none;
+    }
+    .sp-field-error.show { display: block; }
+
+    .sp-photo-row {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 16px;
+      padding: 14px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .sp-photo-preview {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border-strong);
+      flex-shrink: 0;
+      background: var(--cream-2);
+    }
+    .sp-photo-row .pick { flex: 1; min-width: 0; }
+    .sp-photo-row label.label {
+      display: block;
+      font-size: 10.5px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase; letter-spacing: 0.12em;
+      margin-bottom: 6px;
+    }
+
+    .sp-divider {
+      border: 0;
+      border-top: 1px solid var(--border);
+      margin: 18px 0;
+    }
+    .sp-divider-label {
+      display: flex; align-items: center; gap: 12px;
+      margin: 16px 0 12px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-muted);
+      text-transform: uppercase; letter-spacing: 0.12em;
+    }
+    .sp-divider-label::before,
+    .sp-divider-label::after {
+      content: ""; flex: 1;
+      border-top: 1px solid var(--border);
+    }
+
+    .sp-form-error-global {
+      padding: 10px 14px;
+      background: rgba(192, 132, 121, 0.10);
+      border: 1px solid rgba(192, 132, 121, 0.30);
+      color: var(--rose-deep, #b0413e);
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .sp-form-error-global.show { display: block; }
+
+    @media (max-width: 480px) {
+      .sp-card-banner { height: 72px; }
+      .sp-photo { width: 92px; height: 92px; font-size: 30px; margin-top: -46px; }
+      .sp-name { font-size: 20px; }
+      .sp-section-head { padding: 14px 18px; }
+      .sp-section-body { padding: 18px 20px; }
+      .sp-info-row { padding: 12px 18px; }
+      .sp-modal { width: 100%; max-height: 100dvh; border-radius: 0; }
+      .sp-modal-backdrop { padding: 0; }
+    }
+  </style>
+
+  <div class="cl-page sp-page">
+
+    {# ───── Header ───── #}
+    <div class="cl-header">
+      <div>
+        <span class="sp-role-tag-top"><i class="fas fa-id-card"></i> Profile</span>
+        <h2>Your <em>profile</em></h2>
+        <p>Identity, contact, and account information.</p>
+      </div>
+      <span class="sp-asof">{{ profile.user.last_login|date:"M j · g:i A"|default:"Never signed in" }}</span>
+    </div>
+
+    <div class="sp-layout">
+
+      <!-- ── Sticky profile card (left) ────────────────────────── -->
+      <aside class="sp-card">
+        <div class="sp-card-body">
+          <div class="sp-photo">
+            {% if profile.student_photo %}
+              <img src="{{ profile.student_photo.url }}" alt="{{ profile.first_name }} {{ profile.last_name }}">
+            {% else %}
+              {{ profile.first_name|slice:":1"|upper }}{{ profile.last_name|slice:":1"|upper }}
+            {% endif %}
+          </div>
+          {% if profile.role %}
+            <span class="sp-role-pill"><i class="fas fa-shield-halved"></i> {{ profile.role.name }}</span>
+          {% endif %}
+          <h1 class="sp-name">{{ profile.first_name }} {{ profile.last_name }}</h1>
+          {% if profile.id_number %}
+            <p class="sp-sub">ID · {{ profile.id_number }}</p>
+          {% elif profile.user.username %}
+            <p class="sp-sub">@{{ profile.user.username }}</p>
+          {% endif %}
+
+          <div class="sp-quick">
+            <div class="sp-quick-row">
+              <i class="fas fa-envelope"></i>
+              <div class="col">
+                <span class="label">Email</span>
+                <span class="value{% if not profile.user.email %} muted{% endif %}">
+                  {% if profile.user.email %}<a href="mailto:{{ profile.user.email }}">{{ profile.user.email }}</a>{% else %}Not set{% endif %}
+                </span>
+              </div>
+            </div>
+            <div class="sp-quick-row">
+              <i class="fas fa-phone"></i>
+              <div class="col">
+                <span class="label">Phone</span>
+                <span class="value{% if not profile.phone_number %} muted{% endif %}">
+                  {{ profile.phone_number|default:"Not set" }}
+                </span>
+              </div>
+            </div>
+            {% if profile.department_fields %}
+              <div class="sp-quick-row">
+                <i class="fas fa-building"></i>
+                <div class="col">
+                  <span class="label">Department</span>
+                  <span class="value">{{ profile.department_fields }}</span>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="sp-card-actions">
+            {% if is_own_profile %}
+              <button type="button" class="sp-btn primary" id="spOpenEdit">
+                <i class="fas fa-pen"></i> Edit
+              </button>
+            {% endif %}
+            <a href="{% url 'sign_out' %}" class="sp-btn" data-confirm-signout>
+              <i class="fas fa-right-from-bracket"></i> Sign out
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ── Main content (right) ─────────────────────────────── -->
+      <div class="sp-main">
+
+        <!-- Personal info -->
+        <section class="sp-section">
+          <div class="sp-section-head">
+            <div>
+              <h2 class="sp-section-title"><span class="ico"><i class="fas fa-user"></i></span> Personal <em>details</em></h2>
+              <div class="sp-section-sub">Things you've set on your profile.</div>
+            </div>
+          </div>
+          <div class="sp-info-grid">
+            <div class="sp-info-row">
+              <div class="sp-info-label">Full name</div>
+              <div class="sp-info-value">{{ profile.first_name }} {{ profile.last_name }}</div>
+            </div>
+            <div class="sp-info-row">
+              <div class="sp-info-label">Gender</div>
+              <div class="sp-info-value {% if not profile.gender %}muted{% endif %}">{{ profile.gender|default:"Not set" }}</div>
+            </div>
+            <div class="sp-info-row">
+              <div class="sp-info-label">Date of birth</div>
+              <div class="sp-info-value {% if not profile.date_of_birth %}muted{% endif %}">{{ profile.date_of_birth|date:"F j, Y"|default:"Not set" }}</div>
+            </div>
+            <div class="sp-info-row">
+              <div class="sp-info-label">Nationality</div>
+              <div class="sp-info-value {% if not profile.nationality %}muted{% endif %}">{{ profile.nationality|default:"Not set" }}</div>
+            </div>
+            <div class="sp-info-row" style="grid-column: 1 / -1;">
+              <div class="sp-info-label">Address</div>
+              <div class="sp-info-value {% if not profile.address %}muted{% endif %}">{{ profile.address|default:"Not set" }}</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Account info -->
+        <section class="sp-section">
+          <div class="sp-section-head">
+            <div>
+              <h2 class="sp-section-title"><span class="ico"><i class="fas fa-shield-halved"></i></span> Account <em>info</em></h2>
+              <div class="sp-section-sub">System-managed identifiers and status.</div>
+            </div>
+          </div>
+          <div class="sp-info-grid">
+            <div class="sp-info-row">
+              <div class="sp-info-label">ID number</div>
+              <div class="sp-info-value {% if not profile.id_number %}muted{% endif %}">{{ profile.id_number|default:"—" }}</div>
+            </div>
+            <div class="sp-info-row">
+              <div class="sp-info-label">Role</div>
+              <div class="sp-info-value">{{ profile.role.name|default:"—" }}</div>
+            </div>
+            <div class="sp-info-row">
+              <div class="sp-info-label">Department</div>
+              <div class="sp-info-value {% if not profile.department_fields %}muted{% endif %}">{{ profile.department_fields|default:"—" }}</div>
+            </div>
+            <div class="sp-info-row">
+              <div class="sp-info-label">Account status</div>
+              <div class="sp-info-value">
+                <span class="status-dot{% if not profile.status %} inactive{% endif %}">
+                  {% if profile.status %}Active{% else %}Inactive{% endif %}
+                </span>
+              </div>
+            </div>
+            <div class="sp-info-row">
+              <div class="sp-info-label">Member since</div>
+              <div class="sp-info-value">{{ profile.user.date_joined|date:"M j, Y"|default:"—" }}</div>
+            </div>
+            <div class="sp-info-row">
+              <div class="sp-info-label">Last sign-in</div>
+              <div class="sp-info-value">{{ profile.user.last_login|date:"M j, Y · g:i A"|default:"—" }}</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Certificates -->
+        {% if certificates %}
+          <section class="sp-section">
+            <div class="sp-section-head">
+              <div>
+                <h2 class="sp-section-title"><span class="ico"><i class="fas fa-certificate"></i></span> Accolades &amp; <em>certificates</em></h2>
+                <div class="sp-section-sub">{{ certificates|length }} on file</div>
+              </div>
+            </div>
+            <div class="sp-section-body">
+              <div class="sp-cert-grid">
+                {% for cert in certificates %}
+                  <a href="{{ cert.file.url }}" target="_blank" rel="noopener" class="sp-cert-card">
+                    <div class="sp-cert-img"><img src="{{ cert.file.url }}" alt="{{ cert.title }}"></div>
+                    <div class="sp-cert-body">
+                      <div class="sp-cert-title">{{ cert.title }}</div>
+                      <div class="sp-cert-date">{{ cert.issued_date|date:"M j, Y" }}</div>
+                    </div>
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+          </section>
+        {% endif %}
+
+      </div>
+    </div>
+
+  </div>
+
+  {% if is_own_profile %}
+    <!-- Custom modal — doesn't depend on Bootstrap. -->
+    <div class="sp-modal-backdrop" id="spEditBackdrop" role="dialog" aria-modal="true" aria-labelledby="spEditTitle">
+      <div class="sp-modal">
+        <form id="spEditForm" enctype="multipart/form-data" method="post"
+              action="{% url 'update-profile' user_id=profile.user.id %}">
+          {% csrf_token %}
+          <div class="sp-modal-head">
+            <h3 class="sp-modal-title" id="spEditTitle">Edit your <em style="font-style: italic; color: var(--brand-primary, #b7925a); font-weight: 500;">profile</em></h3>
+            <button type="button" class="sp-modal-close" data-sp-modal-close aria-label="Close">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="sp-modal-body">
+            <div class="sp-form-error-global" id="spFormError"></div>
+
+            <div class="sp-photo-row">
+              <img src="{% if profile.student_photo %}{{ profile.student_photo.url }}{% else %}{% static 'assets/img/def_user.jpg' %}{% endif %}"
+                   id="spPhotoPreview" class="sp-photo-preview" alt="">
+              <div class="pick">
+                <label class="label" for="id_student_photo">Profile photo</label>
+                <input type="file" name="student_photo" id="id_student_photo" accept="image/*">
+                <div class="sp-field-error" data-error-for="student_photo"></div>
+              </div>
+            </div>
+
+            <div class="sp-divider-label">Contact</div>
+
+            <div class="sp-form-row">
+              <div class="sp-field">
+                <label for="id_phone_number">Phone number</label>
+                <input type="text" name="phone_number" id="id_phone_number" value="{{ profile.phone_number|default:'+63' }}">
+                <div class="sp-field-error" data-error-for="phone_number"></div>
+              </div>
+              <div class="sp-field">
+                <label for="id_nationality">Nationality</label>
+                <input type="text" name="nationality" id="id_nationality" value="{{ profile.nationality|default:'' }}">
+                <div class="sp-field-error" data-error-for="nationality"></div>
+              </div>
+            </div>
+
+            <div class="sp-form-row single">
+              <div class="sp-field">
+                <label for="id_address">Address</label>
+                <textarea name="address" id="id_address" rows="2">{{ profile.address|default:'' }}</textarea>
+                <div class="sp-field-error" data-error-for="address"></div>
+              </div>
+            </div>
+
+            <div class="sp-divider-label">Personal</div>
+
+            <div class="sp-form-row">
+              <div class="sp-field">
+                <label for="id_gender">Gender</label>
+                <select name="gender" id="id_gender">
+                  <option value="">—</option>
+                  <option value="Male"   {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
+                  <option value="Female" {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
+                  <option value="Other"  {% if profile.gender == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+                <div class="sp-field-error" data-error-for="gender"></div>
+              </div>
+              <div class="sp-field">
+                <label for="id_date_of_birth">Date of birth</label>
+                <input type="date" name="date_of_birth" id="id_date_of_birth" value="{{ profile.date_of_birth|date:'Y-m-d' }}">
+                <div class="sp-field-error" data-error-for="date_of_birth"></div>
+              </div>
+            </div>
+
+            <div class="sp-divider-label">Managed by registrar</div>
+
+            <div class="sp-form-row">
+              <div class="sp-field">
+                <label>ID number</label>
+                <input type="text" value="{{ profile.id_number|default:'—' }}" disabled>
+                <div class="sp-field-hint">Contact the registrar to change.</div>
+              </div>
+              <div class="sp-field">
+                <label>Department</label>
+                <input type="text" value="{{ profile.department_fields|default:'—' }}" disabled>
+                <div class="sp-field-hint">Contact the registrar to change.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sp-modal-foot">
+            <button type="button" class="sp-btn" data-sp-modal-close style="flex: 0 0 auto;">Cancel</button>
+            <button type="submit" class="sp-btn primary" id="spEditSubmit" style="flex: 0 0 auto;">
+              <i class="fas fa-check"></i> Save changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
+  <script>
+    (function () {
+      const backdrop = document.getElementById('spEditBackdrop');
+      const openBtn = document.getElementById('spOpenEdit');
+      const form = document.getElementById('spEditForm');
+      const photoInput = document.getElementById('id_student_photo');
+      const photoPreview = document.getElementById('spPhotoPreview');
+      const submitBtn = document.getElementById('spEditSubmit');
+      const formError = document.getElementById('spFormError');
+
+      if (!backdrop) return;
+
+      // Move the modal to <body> so it escapes any clipping ancestor
+      // (sticky parent, transformed grid, etc.) and overlays the whole
+      // viewport correctly.
+      if (backdrop.parentNode !== document.body) document.body.appendChild(backdrop);
+
+      function openModal() {
+        backdrop.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        // Focus the first input for keyboard users.
+        setTimeout(() => {
+          const first = backdrop.querySelector('input:not([disabled]), select, textarea');
+          if (first) first.focus();
+        }, 50);
+      }
+      function closeModal() {
+        backdrop.classList.remove('is-open');
+        document.body.style.overflow = '';
+        clearErrors();
+      }
+      function clearErrors() {
+        if (formError) { formError.textContent = ''; formError.classList.remove('show'); }
+        backdrop.querySelectorAll('.sp-field-error').forEach((el) => {
+          el.textContent = '';
+          el.classList.remove('show');
+        });
+      }
+      function applyErrors(errors) {
+        Object.entries(errors || {}).forEach(([field, msgs]) => {
+          const target = backdrop.querySelector(`[data-error-for="${field}"]`);
+          const text = Array.isArray(msgs) ? msgs.join(' ') : String(msgs);
+          if (target) { target.textContent = text; target.classList.add('show'); }
+        });
+      }
+      function getCSRF() {
+        const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+
+      if (openBtn) openBtn.addEventListener('click', openModal);
+
+      // Close on backdrop click + close button + Esc.
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop || e.target.closest('[data-sp-modal-close]')) {
+          closeModal();
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && backdrop.classList.contains('is-open')) closeModal();
+      });
+
+      // Photo preview.
+      if (photoInput && photoPreview) {
+        photoInput.addEventListener('change', () => {
+          const f = photoInput.files && photoInput.files[0];
+          if (!f) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => { photoPreview.src = ev.target.result; };
+          reader.readAsDataURL(f);
+        });
+      }
+
+      // AJAX submit so the page doesn't reload mid-edit.
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          clearErrors();
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Saving…';
+          }
+          try {
+            const res = await fetch(form.action, {
+              method: 'POST',
+              body: new FormData(form),
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCSRF(),
+              },
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok) {
+              window.location.href = data.redirect || window.location.href;
+              return;
+            }
+            if (data && data.errors) {
+              applyErrors(data.errors);
+              if (formError) {
+                formError.textContent = 'Please fix the errors above.';
+                formError.classList.add('show');
+              }
+            } else {
+              if (formError) {
+                formError.textContent = 'Could not save. Try again.';
+                formError.classList.add('show');
+              }
+            }
+          } catch (err) {
+            if (formError) {
+              formError.textContent = 'Network error. Please try again.';
+              formError.classList.add('show');
+            }
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<i class="fas fa-check"></i> Save changes';
+            }
+          }
+        });
+      }
+    })();
+  </script>
+{% endblock %}

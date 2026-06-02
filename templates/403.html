@@ -1,0 +1,192 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>403 · Access denied · {{ SCHOOL_NAME|default:"ClassEdge" }}</title>
+  <link rel="icon" type="image/png" href="{{ MEDIA_URL }}logos/HCCCI-logo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    :root {
+      --brand-primary: {{ SCHOOL_BRAND_COLOR|default:'#b7925a' }};
+      --brand-primary-soft: color-mix(in srgb, var(--brand-primary) 16%, transparent);
+      --paper: #ffffff;
+      --bg: #f6f4ef;
+      --ink: #1f2530;
+      --ink-dim: #5e6473;
+      --ink-muted: #9aa0ad;
+      --border: rgba(31, 37, 48, 0.08);
+      --danger: #c0392b;
+      --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      min-height: 100%;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at top right, var(--brand-primary-soft) 0%, transparent 55%),
+        radial-gradient(ellipse at bottom left, var(--danger-soft) 0%, transparent 50%),
+        var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    .err-page {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 24px;
+    }
+    .err-card {
+      width: 100%; max-width: 880px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 32px 80px -28px rgba(31, 37, 48, 0.22);
+      overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 760px) {
+      .err-card { grid-template-columns: 1fr; max-width: 480px; }
+      .err-illus { padding: 32px 24px 0; }
+      .err-content { padding: 32px 28px 40px; }
+      .err-code { font-size: 72px; }
+    }
+    .err-content {
+      padding: 56px 48px;
+      display: flex; flex-direction: column; justify-content: center;
+      gap: 14px;
+    }
+    .err-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--danger);
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: var(--danger-soft);
+      align-self: flex-start;
+    }
+    .err-code {
+      font-size: 96px; font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: var(--ink);
+      margin: 0;
+    }
+    .err-code em {
+      font-style: italic;
+      font-weight: 500;
+      color: var(--brand-primary);
+    }
+    .err-title {
+      font-size: 22px; font-weight: 700; margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .err-sub {
+      font-size: 15px; color: var(--ink-dim); margin: 0;
+      line-height: 1.55; max-width: 36ch;
+    }
+    .err-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+    .err-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 22px;
+      border-radius: 100px;
+      font-size: 14px; font-weight: 600;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+      cursor: pointer;
+    }
+    .err-btn-primary {
+      background: var(--brand-primary);
+      color: #ffffff;
+      box-shadow: 0 8px 24px -10px var(--brand-primary-soft);
+    }
+    .err-btn-primary:hover {
+      transform: translateY(-1px);
+      background: color-mix(in srgb, var(--brand-primary), black 12%);
+    }
+    .err-btn-ghost {
+      background: transparent;
+      color: var(--ink-dim);
+      border-color: var(--border);
+    }
+    .err-btn-ghost:hover {
+      color: var(--ink);
+      border-color: var(--brand-primary);
+    }
+    .err-illus {
+      padding: 56px 32px;
+      background: linear-gradient(135deg, var(--brand-primary-soft) 0%, transparent 70%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .err-illus svg { width: 100%; max-width: 320px; height: auto; }
+    .err-meta {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--ink-muted);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="err-page">
+    <div class="err-card">
+      <div class="err-content">
+        <span class="err-eyebrow"><i class="fas fa-shield-halved"></i> Access denied</span>
+        <h1 class="err-code">4<em>0</em>3</h1>
+        <p class="err-title">You can't see this page.</p>
+        <p class="err-sub">
+          Your account doesn't have permission to view this resource. If you think this is
+          a mistake, check with your administrator or sign in with a different account.
+        </p>
+        <div class="err-actions">
+          <a class="err-btn err-btn-primary" href="/">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Take me home
+          </a>
+          <a class="err-btn err-btn-ghost" href="/login/">
+            <i class="fas fa-right-to-bracket" aria-hidden="true"></i> Sign in
+          </a>
+        </div>
+        <span class="err-meta">
+          <i class="fas fa-fingerprint" aria-hidden="true"></i>
+          Error code · 403 Forbidden
+        </span>
+      </div>
+
+      <div class="err-illus" aria-hidden="true">
+        <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="brandShield403" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--brand-primary)" stop-opacity="0.95"/>
+              <stop offset="100%" stop-color="var(--brand-primary)" stop-opacity="0.65"/>
+            </linearGradient>
+            <linearGradient id="dangerLock403" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--danger)" stop-opacity="0.92"/>
+              <stop offset="100%" stop-color="var(--danger)" stop-opacity="0.72"/>
+            </linearGradient>
+          </defs>
+          <ellipse cx="160" cy="285" rx="120" ry="14" fill="var(--brand-primary)" opacity="0.10"/>
+          <path d="M160 40 L260 80 Q260 200 160 280 Q60 200 60 80 Z"
+                fill="url(#brandShield403)"/>
+          <path d="M160 60 L240 92 Q240 192 160 258 Q80 192 80 92 Z"
+                fill="none" stroke="#ffffff" stroke-width="2" opacity="0.4"/>
+          <rect x="118" y="146" width="84" height="78" rx="14"
+                fill="url(#dangerLock403)"/>
+          <path d="M134 146 v-22 a26 26 0 0 1 52 0 v22"
+                fill="none" stroke="var(--danger)" stroke-width="12"
+                stroke-linecap="round" opacity="0.9"/>
+          <circle cx="160" cy="178" r="7" fill="#ffffff"/>
+          <rect x="156" y="178" width="8" height="22" rx="2" fill="#ffffff"/>
+          <g transform="translate(232 60)">
+            <circle cx="0" cy="0" r="22" fill="var(--danger)"/>
+            <path d="M-9 -9 L9 9 M-9 9 L9 -9"
+                  stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,245 @@
+{% comment %}
+[Classedge LMS] Truly reusable list-table shell. The view supplies a
+`columns` list whose entries declare both the header AND how each cell
+is rendered — no per-entity row template needed.
+
+All dict-key reads on `col` and `a` go through the cl_get filter so
+optional keys can be omitted from the Python config without raising
+VariableDoesNotExist in DEBUG mode.
+{% endcomment %}
+{% load cl_list %}
+
+<div class="cl-toolbar">
+  {% if not hide_search %}
+    <div class="cl-search">
+      <i class="fas fa-search"></i>
+      <input type="text" name="search" id="cl-search-input"
+             placeholder="{{ search_placeholder|default:'Search...' }}"
+             value="{{ search_query }}" autocomplete="off">
+      {% if search_query %}
+        <button type="button" class="cl-search-clear" id="cl-search-clear" aria-label="Clear">
+          <i class="fas fa-times"></i>
+        </button>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="cl-filter-group">
+    {% if extra_filters_template %}{% include extra_filters_template %}{% endif %}
+    {% if not hide_per_page %}
+      <label class="cl-perpage">
+        <span>Show</span>
+        <select id="cl-per-page">
+          <option value="10" {% if items_per_page == 10 %}selected{% endif %}>10</option>
+          <option value="25" {% if items_per_page == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if items_per_page == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if items_per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+        <span>per page</span>
+      </label>
+    {% endif %}
+  </div>
+</div>
+
+<div class="cl-card">
+  <div class="cl-card-header">
+    <span><i class="fas {{ icon|default:'fa-list' }} me-2"></i>{{ title }}</span>
+    {% if page_obj %}
+      <span class="cl-badge">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</span>
+    {% endif %}
+  </div>
+  <div class="cl-card-body">
+    <div class="table-responsive">
+      <table class="cl-table" data-cl-mobile-collapse>
+        <thead>
+          <tr>
+            {% for col in columns %}
+              {% with col_align=col|cl_get:"align" col_width=col|cl_get:"width" col_keep=col|cl_get:"mobile_keep" %}
+                <th{% if col_align == "right" %} style="text-align:right;{% if col_width %}width:{{ col_width }};{% endif %}"{% elif col_width %} style="width:{{ col_width }};"{% endif %}{% if col_keep %} data-cl-mobile-keep{% endif %}>{{ col.label }}</th>
+              {% endwith %}
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in page_obj %}
+            <tr>
+              {% for col in columns %}
+                {% with ctype=col|cl_get:"type" cattr=col|cl_get:"attr" cdefault=col|cl_get:"default" %}
+
+                  {% if ctype == "index" %}
+                    <td>{{ forloop.parentloop.counter|add:page_obj.start_index|add:"-1" }}</td>
+
+                  {% elif ctype == "name" %}
+                    {% with first_attr=col|cl_get:"first_attr"|default:"first_name" last_attr=col|cl_get:"last_attr"|default:"last_name" name_attr=col|cl_get:"name_attr" icon_attr=col|cl_get:"icon_attr" photo_attr=col|cl_get:"photo_attr" desc_attr=col|cl_get:"desc_attr" editable=col|cl_get:"editable" edit_url_arg=col|cl_get:"edit_url_arg_attr"|default:"id" edit_endpoint=col|cl_get:"edit_endpoint_name" edit_field=col|cl_get:"edit_field" edit_first_field=col|cl_get:"edit_first_field" edit_last_field=col|cl_get:"edit_last_field" edit_min=col|cl_get:"edit_min"|default:1 edit_max=col|cl_get:"edit_max"|default:255 edit_label=col|cl_get:"edit_label" %}
+                      {% with icon_val=item|cl_get:icon_attr photo_val=item|cl_get:photo_attr edit_arg_val=item|cl_get:edit_url_arg %}
+                        <td>
+                          <div class="cl-name-cell">
+                            {% if photo_attr and photo_val %}
+                              <span class="cl-avatar cl-photo-avatar"><img src="{{ photo_val.url }}" alt="" loading="lazy"></span>
+                            {% elif icon_attr and icon_val %}
+                              <span class="cl-avatar cl-emoji-avatar">{{ icon_val }}</span>
+                            {% else %}
+                              <span class="cl-avatar">{% cl_initials item first_attr last_attr name_attr=name_attr %}</span>
+                            {% endif %}
+                            <div class="cl-name-stack">
+                              <div class="cl-name">
+                                {% if editable and edit_endpoint and edit_arg_val %}
+                                  {% if name_attr %}
+                                    <span class="cl-edit"
+                                          data-endpoint="{% url edit_endpoint edit_arg_val %}"
+                                          data-field="{{ edit_field|default:name_attr }}"
+                                          data-label="{{ edit_label|default:'Name' }}"
+                                          data-min="{{ edit_min }}"
+                                          data-max="{{ edit_max }}">{{ item|cl_get:name_attr }}</span>
+                                  {% else %}
+                                    <span class="cl-edit"
+                                          data-endpoint="{% url edit_endpoint edit_arg_val %}"
+                                          data-field="{{ edit_first_field|default:first_attr }}"
+                                          data-label="First name"
+                                          data-min="{{ edit_min }}"
+                                          data-max="{{ edit_max }}">{{ item|cl_get:first_attr }}</span>
+                                    <span class="cl-edit"
+                                          data-endpoint="{% url edit_endpoint edit_arg_val %}"
+                                          data-field="{{ edit_last_field|default:last_attr }}"
+                                          data-label="Last name"
+                                          data-min="{{ edit_min }}"
+                                          data-max="{{ edit_max }}">{{ item|cl_get:last_attr }}</span>
+                                  {% endif %}
+                                {% else %}
+                                  {% if name_attr %}{{ item|cl_get:name_attr }}{% else %}{{ item|cl_get:first_attr }} {{ item|cl_get:last_attr }}{% endif %}
+                                {% endif %}
+                              </div>
+                              {% if desc_attr %}<div class="cl-name-desc">{{ item|cl_get:desc_attr|truncatechars:80 }}</div>{% endif %}
+                            </div>
+                          </div>
+                        </td>
+                      {% endwith %}
+                    {% endwith %}
+
+                  {% elif ctype == "text" %}
+                    {% with val=item|cl_get:cattr %}
+                      <td>{% if val %}{{ val }}{% else %}{{ cdefault|default:"—" }}{% endif %}</td>
+                    {% endwith %}
+
+                  {% elif ctype == "meta" %}
+                    {% with val=item|cl_get:cattr %}
+                      <td><span class="cl-row-meta">{% if val or val == 0 %}{{ val }}{% else %}{{ cdefault|default:"—" }}{% endif %}</span></td>
+                    {% endwith %}
+
+                  {% elif ctype == "truncate" %}
+                    {% with val=item|cl_get:cattr cmax=col|cl_get:"max"|default:200 %}
+                      <td><span class="cl-row-meta text-truncate d-inline-block" style="max-width: {{ cmax }}px;">{% if val %}{{ val }}{% else %}{{ cdefault|default:"—" }}{% endif %}</span></td>
+                    {% endwith %}
+
+                  {% elif ctype == "pill" %}
+                    {% with val=item|cl_get:cattr cmuted=col|cl_get:"muted" %}
+                      <td>
+                        {% if val %}
+                          <span class="cl-pill{% if cmuted %} muted{% endif %}">{{ val }}</span>
+                        {% else %}
+                          <span class="cl-pill muted">{{ cdefault|default:"—" }}</span>
+                        {% endif %}
+                      </td>
+                    {% endwith %}
+
+                  {% elif ctype == "status" %}
+                    {# colored status pill — `map` is a dict {value: "class_suffix"} (success/warning/danger/info/muted) #}
+                    {% with val=item|cl_get:cattr smap=col|cl_get:"map" %}
+                      <td>
+                        {% if val %}
+                          <span class="cl-status cl-status-{{ smap|cl_get:val|default:'muted' }}">{{ val }}</span>
+                        {% else %}
+                          <span class="cl-status cl-status-muted">—</span>
+                        {% endif %}
+                      </td>
+                    {% endwith %}
+
+                  {% elif ctype == "progress" %}
+                    {% with val=item|cl_get:cattr %}
+                      <td>
+                        <div class="cl-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ val|default:0 }}">
+                          <div class="cl-progress-bar" style="width: {{ val|default:0 }}%"></div>
+                          <span class="cl-progress-label">{{ val|default:0 }}%</span>
+                        </div>
+                      </td>
+                    {% endwith %}
+
+                  {% elif ctype == "date" %}
+                    {% with fmt=col|cl_get:"format"|default:"M d, Y" val=item|cl_get:cattr %}
+                      <td><span class="cl-row-meta">{% if val %}{{ val|date:fmt }}{% else %}—{% endif %}</span></td>
+                    {% endwith %}
+
+                  {% elif ctype == "actions" %}
+                    <td style="text-align:right;">
+                      <div class="font-sans-serif position-static d-inline-block">
+                        <button class="cl-action-btn dropdown-toggle" type="button"
+                                id="cl-row-action-{{ item.id }}"
+                                data-bs-toggle="dropdown" data-boundary="window"
+                                aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"
+                                aria-label="Open actions menu">
+                          <i class="fas fa-ellipsis-vertical"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cl-row-action-{{ item.id }}">
+                          {% for a in col|cl_get:"items" %}
+                            {% with a_div=a|cl_get:"divider" a_post=a|cl_get:"form_post" a_onclick=a|cl_get:"onclick_template" a_danger=a|cl_get:"danger" a_icon=a|cl_get:"icon" a_label_static=a|cl_get:"label" a_label_attr=a|cl_get:"label_attr" a_show_attr=a|cl_get:"show_attr" a_confirm=a|cl_get:"confirm" %}
+                              {% with a_label_resolved=item|cl_get:a_label_attr a_show_resolved=item|cl_get:a_show_attr %}
+                                {% with a_label=a_label_resolved|default:a_label_static %}
+                                  {% if a_show_attr and not a_show_resolved %}
+                                    {# action hidden for this row by show_attr predicate #}
+                                  {% elif a_div %}
+                                    <div class="dropdown-divider"></div>
+                                  {% elif a_post %}
+                                    <form method="post" action="{% cl_action_url a item %}"{% if a_confirm %} data-cl-confirm="{{ a_confirm }}"{% if a_danger %} data-cl-confirm-danger="1"{% endif %}{% endif %} class="m-0">
+                                      {% csrf_token %}
+                                      <button type="submit" class="dropdown-item{% if a_danger %} text-danger{% endif %}">
+                                        {% if a_icon %}<i class="fas {{ a_icon }} me-2"></i>{% endif %}{{ a_label }}
+                                      </button>
+                                    </form>
+                                  {% elif a_onclick %}
+                                    <a href="javascript:void(0);" class="dropdown-item{% if a_danger %} text-danger{% endif %}"
+                                       onclick="{{ a_onclick|cl_format:item }}">
+                                      {% if a_icon %}<i class="fas {{ a_icon }} me-2"></i>{% endif %}{{ a_label }}
+                                    </a>
+                                  {% else %}
+                                    <a href="{% cl_action_url a item %}" class="dropdown-item{% if a_danger %} text-danger{% endif %}">
+                                      {% if a_icon %}<i class="fas {{ a_icon }} me-2"></i>{% endif %}{{ a_label }}
+                                    </a>
+                                  {% endif %}
+                                {% endwith %}
+                              {% endwith %}
+                            {% endwith %}
+                          {% endfor %}
+                        </div>
+                      </div>
+                    </td>
+
+                  {% else %}
+                    <td>{{ item|cl_get:cattr }}</td>
+                  {% endif %}
+
+                {% endwith %}
+              {% endfor %}
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="{{ columns|length }}">
+                <div class="cl-empty">
+                  <i class="fas {{ empty_icon|default:'fa-inbox' }}"></i>
+                  <h6>{% if search_query %}No matches found{% else %}No {{ empty_label|default:'records' }} yet{% endif %}</h6>
+                  <small>
+                    {% if search_query %}
+                      Nothing matched “{{ search_query }}”.
+                    {% else %}
+                      {{ empty_label|default:'Records'|capfirst }} will appear here once added.
+                    {% endif %}
+                  </small>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div style="padding: 0 22px 18px;">{% include "includes/_pagination.html" %}</div>
+  </div>
+</div>

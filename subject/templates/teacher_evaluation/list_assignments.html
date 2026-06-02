@@ -1,0 +1,33 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Teacher Evaluations{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <div class="cl-page">
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-clipboard-question me-2"></i>Teacher Evaluation <em>Assignments</em></h2>
+        <p>Assign evaluations of teachers per subject and semester. Students see open assignments on their evaluation dashboard.</p>
+      </div>
+      <div class="cl-actions">
+        <a href="{% url 'create_teacher_evaluation' %}" class="cl-btn cl-btn-primary">
+          <i class="fas fa-plus"></i> New Assignment
+        </a>
+        <a href="{% url 'list_questions' %}" class="cl-btn">
+          <i class="fas fa-list-ul"></i> Question Bank
+        </a>
+      </div>
+    </div>
+
+    <div id="cl-eval-wrapper" class="cl-table-wrapper" data-cl-async-table data-base-url="{% url 'list_evaluation_assignments' %}">
+      {% include "includes/_list_table.html" %}
+    </div>
+  </div>
+
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script src="{% static 'subject/list_assignments.js' %}"></script>
+{% endblock %}

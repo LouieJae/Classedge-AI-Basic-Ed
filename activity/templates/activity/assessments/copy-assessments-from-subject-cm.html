@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "includes/_cm_head.html" with title="Classroom Mode — Import from Subject" %}
+  <style>
+    .act-pool { display: grid; gap: 14px; }
+    .pool-loading, .pool-empty { padding: 32px 16px; text-align: center; color: var(--ink-dim); background: var(--cream-2); border-radius: var(--radius-sm); }
+    .pool-loading i { margin-right: 8px; color: var(--forest); }
+    .semester-group { margin-top: 14px; }
+    .semester-label { font-size: 13px; font-weight: 800; color: var(--forest); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .term-group { margin-left: 4px; margin-bottom: 14px; }
+    .term-label { font-size: 12px; font-weight: 700; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .activity-card { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: border-color 0.15s, background 0.15s; margin-bottom: 8px; }
+    .activity-card:hover { border-color: var(--forest); }
+    .activity-card.is-selected { border-color: var(--forest); background: var(--forest-light); }
+    .activity-card input[type="checkbox"] { margin-top: 4px; accent-color: var(--forest); width: 18px; height: 18px; }
+    .activity-card .body { flex: 1; min-width: 0; }
+    .activity-card .name { font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .chip { display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+    .chip-type { background: var(--brand-primary-soft); color: var(--brand-primary, #1b4332); }
+    .chip-term { background: var(--forest-light); color: var(--forest); }
+    .pool-counter { font-size: 12px; color: var(--ink-dim); font-weight: 600; }
+    .pool-counter strong { color: var(--forest); font-size: 14px; font-weight: 800; }
+    .modules-multiselect { min-height: 130px; padding: 8px; }
+  </style>
+</head>
+<body>
+  <div class="cm-shell">
+    <section class="cm-hero">
+      <div class="cm-hero-row">
+        <div>
+          <span class="cm-eyebrow"><span class="pulse"></span> Classroom Mode</span>
+          <h1 class="cm-title">Import from <em>another subject</em></h1>
+          <div class="cm-subtitle">Importing into {{ target_subject.subject_name }}{% if target_subject.subject_code %} · {{ target_subject.subject_code }}{% endif %}</div>
+        </div>
+        <div class="cm-hero-actions">
+          <a href="{% url 'assessment-list-cm' target_subject.id %}" class="cm-btn ghost"><i class="fas fa-arrow-left"></i> Back to assessments</a>
+          <a href="{% url 'classroom_mode' target_subject.id %}" class="cm-btn ghost"><i class="fas fa-chalkboard"></i> Classroom</a>
+          <a href="{% url 'course-list' %}" class="cm-btn danger"><i class="fas fa-sign-out-alt"></i> Exit</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cm-form-card">
+      <div class="cm-form-head">
+        <h2><span class="icon"><i class="fas fa-copy"></i></span> Pick assessments to import</h2>
+      </div>
+      <form method="post" id="copyActivitySubjectForm" data-cl-loading data-cl-loading-label="Copying…">
+        {% csrf_token %}
+        <div class="cm-form-body">
+
+          <div class="cm-form-row">
+            <div class="cm-col-12">
+              <label for="id_source_subject">Source subject</label>
+              {{ form.source_subject.errors }}
+              <select name="source_subject" id="id_source_subject" required>
+                <option value="">Select a subject…</option>
+                {% for subj in form.source_subject.field.queryset %}
+                  <option value="{{ subj.id }}">{{ subj.subject_name }}</option>
+                {% endfor %}
+              </select>
+              <small>Pick which subject's assessments to copy from.</small>
+            </div>
+          </div>
+
+          <div class="cm-form-row" id="dateConfig" style="display: none;">
+            <div class="cm-col-12">
+              <h3 style="font-size: 13px; font-weight: 700; color: var(--ink-dim); margin: 6px 0 10px; text-transform: uppercase; letter-spacing: 0.08em;">Schedule for the copies</h3>
+              <div class="cm-form-row">
+                <div class="cm-col-6">
+                  <label for="start_time">Opens at</label>
+                  <input type="datetime-local" id="start_time" name="start_time" value="{{ default_start_time|date:'Y-m-d\TH:i' }}" />
+                </div>
+                <div class="cm-col-6">
+                  <label for="end_time">Closes at</label>
+                  <input type="datetime-local" id="end_time" name="end_time" value="{{ default_end_time|date:'Y-m-d\TH:i' }}" />
+                </div>
+              </div>
+              <div class="cm-form-row">
+                <div class="cm-col-6">
+                  <label for="term">Term</label>
+                  <select id="term" name="term">
+                    {% for term in available_terms %}
+                      <option value="{{ term.id }}" {% if term.id == current_term.id %}selected{% endif %}>{{ term.term_name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="cm-col-6">
+                  <label for="modules">Anchor to lessons (optional)</label>
+                  <select id="modules" name="modules" multiple class="modules-multiselect">
+                    {% for module in available_modules %}
+                      <option value="{{ module.id }}">{{ module.file_name }}{% if module.term %} ({{ module.term.term_name }}){% endif %}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cm-form-row" id="activityListContainer" style="display: none;">
+            <div class="cm-col-12">
+              <div class="cm-field-head">
+                <h3 style="font-size: 13px; font-weight: 700; color: var(--ink-dim); margin: 0; text-transform: uppercase; letter-spacing: 0.08em;">Available assessments</h3>
+                <span class="pool-counter"><strong id="selectedCount">0</strong> selected</span>
+              </div>
+              <div id="assessment-list" class="act-pool">
+                {% include "includes/_skel_card_list.html" with count=4 label="Loading assessments" %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="cm-form-foot">
+          <a href="{% url 'assessment-list-cm' target_subject.id %}" class="cm-btn ghost">Cancel</a>
+          <button type="submit" class="cm-btn primary" id="copyBtn" disabled>
+            <i class="fas fa-file-import"></i> Import assessments
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% include "includes/_cm_scripts.html" %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var sourceSelect = document.getElementById('id_source_subject');
+      var listContainer = document.getElementById('activityListContainer');
+      var dateConfig = document.getElementById('dateConfig');
+      var listEl = document.getElementById('assessment-list');
+      var copyBtn = document.getElementById('copyBtn');
+      var counter = document.getElementById('selectedCount');
+
+      function refreshSelected() {
+        var checked = document.querySelectorAll('.activity-checkbox:checked');
+        counter.textContent = checked.length;
+        copyBtn.disabled = checked.length === 0;
+        dateConfig.style.display = checked.length ? 'flex' : 'none';
+      }
+
+      function bindCardCheckboxes() {
+        document.querySelectorAll('.activity-checkbox').forEach(function (cb) {
+          cb.addEventListener('change', function () {
+            var card = cb.closest('.activity-card');
+            if (card) card.classList.toggle('is-selected', cb.checked);
+            refreshSelected();
+          });
+        });
+      }
+
+      sourceSelect.addEventListener('change', function () {
+        var sourceId = this.value;
+        if (!sourceId) {
+          listContainer.style.display = 'none';
+          listEl.innerHTML = '';
+          counter.textContent = '0';
+          copyBtn.disabled = true;
+          return;
+        }
+        listContainer.style.display = 'flex';
+        listEl.innerHTML = (window.ClSkeleton ? window.ClSkeleton.cardList(4, 'Loading assessments') : '');
+
+        fetch('/get_subject_assessments/' + sourceId + '/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var assessments = data.assessments || [];
+            if (!assessments.length) {
+              listEl.innerHTML = '<div class="pool-empty">No assessments found in this subject.</div>';
+              return;
+            }
+            var html = '';
+            assessments.forEach(function (a) {
+              var typeChip = a.activity_type ? '<span class="chip chip-type">' + a.activity_type + '</span>' : '';
+              var termChip = a.term ? '<span class="chip chip-term">' + a.term + '</span>' : '';
+              html += '<label class="activity-card" id="activity-item-' + a.id + '" for="activity_' + a.id + '">'
+                + '<input type="checkbox" class="activity-checkbox" id="activity_' + a.id + '" name="selected_activities" value="' + a.id + '">'
+                + '<div class="body"><div class="name">' + a.activity_name + typeChip + termChip + '</div></div>'
+                + '</label>';
+            });
+            listEl.innerHTML = html;
+            bindCardCheckboxes();
+            refreshSelected();
+          })
+          .catch(function () {
+            listEl.innerHTML = '<div class="pool-empty" style="color: var(--rose);">Could not load assessments. Please try again.</div>';
+          });
+      });
+
+      var form = document.getElementById('copyActivitySubjectForm');
+      if (form) form.addEventListener('submit', function (e) {
+        var checked = document.querySelectorAll('.activity-checkbox:checked');
+        if (checked.length === 0) {
+          e.preventDefault();
+          if (window.Swal) {
+            Swal.fire({ title: 'No assessments selected', text: 'Please select at least one assessment to import.', icon: 'info', confirmButtonColor: '#1F4D3A' });
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

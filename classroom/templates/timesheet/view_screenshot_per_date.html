@@ -1,0 +1,59 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Screenshots · {{ selected_date }}{% endblock %}
+
+{% block extra_css %}
+  {% include "teacher/_legacy_stack.html" %}
+<link rel="stylesheet" href="{% static 'classroom/view_screenshot_per_date.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="ss-page">
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Screenshots <em>· {{ selected_date }}</em></h1>
+      <p class="page-sub">Captures recorded during the teacher's class session on this date.</p>
+    </div>
+    <div class="ss-actions">
+      <a href="{% url 'teacher_attendance_calendar_page' subject_id %}" class="ss-btn">
+        <i class="fas fa-arrow-left"></i> Back to calendar
+      </a>
+      <a href="{% url 'export_screenshots_pdf' subject_id selected_date %}" class="ss-btn primary">
+        <i class="fas fa-file-pdf"></i> Export to PDF
+      </a>
+    </div>
+  </div>
+
+  <div class="ss-summary">
+    <div>
+      <div class="label">Date</div>
+      <div class="value">{{ selected_date }}</div>
+    </div>
+    <span class="count">{{ screenshots|length }} screenshot{{ screenshots|length|pluralize }}</span>
+  </div>
+
+  {% if screenshots %}
+    <div class="ss-grid">
+      {% for screenshot in screenshots %}
+        <a href="{{ screenshot.image.url }}" target="_blank" rel="noopener" class="ss-card" title="Open full image">
+          <div class="ss-thumb-wrap">
+            <img src="{{ screenshot.image.url }}" alt="Screenshot taken on {{ screenshot.timestamp }}" loading="lazy">
+          </div>
+          <div class="ss-meta">
+            <i class="far fa-clock"></i>
+            <span>{{ screenshot.timestamp|date:"g:i A" }}</span>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="ss-empty">
+      <i class="fas fa-image"></i>
+      <div class="lead">No screenshots for this date</div>
+      <div class="sub">Nothing was captured during this class session.</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% load static %}
+{% comment %}Drag-to-match pairs — JS-driven, included by side_activity_play.html{% endcomment %}
+
+<div id="match-pair-container">
+  <p style="font-size:.9rem;color:var(--muted);margin-bottom:1rem;">Drag items from the left to their matching target on the right.</p>
+
+  <div style="display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;">
+    <div id="mp-left" style="display:flex;flex-direction:column;gap:.6rem;min-width:200px;"></div>
+    <div id="mp-right" style="display:flex;flex-direction:column;gap:.6rem;min-width:200px;"></div>
+  </div>
+
+  <div style="margin-top:1.5rem;text-align:center;">
+    <button type="button" id="mp-submit-btn"
+            style="padding:.75rem 2rem;font-size:1rem;border:none;border-radius:8px;background:var(--primary);color:#fff;cursor:pointer;">Submit Matches</button>
+  </div>
+</div>
+
+<script src="{% static 'js/side_activities/drag.js' %}"></script>
+<script src="{% static 'js/side_activities/submit.js' %}"></script>
+<script>
+(function() {
+  var sa = window.SIDE_ACTIVITY;
+  var content = sa.content;
+  var pairs = content.pairs || {};
+  var startTime = Date.now();
+
+  var leftContainer = document.getElementById('mp-left');
+  var rightContainer = document.getElementById('mp-right');
+
+  var keys = Object.keys(pairs);
+  var values = keys.map(function(k) { return pairs[k]; });
+
+  // Shuffle values for display
+  var shuffledValues = values.slice();
+  for (var i = shuffledValues.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = shuffledValues[i];
+    shuffledValues[i] = shuffledValues[j];
+    shuffledValues[j] = tmp;
+  }
+
+  keys.forEach(function(key) {
+    var el = document.createElement('div');
+    el.setAttribute('data-match-left', key);
+    el.textContent = key;
+    el.style.cssText = 'padding:.75rem 1rem;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:var(--text);cursor:grab;';
+    leftContainer.appendChild(el);
+  });
+
+  shuffledValues.forEach(function(val) {
+    var el = document.createElement('div');
+    el.setAttribute('data-match-right', val);
+    el.textContent = val;
+    el.style.cssText = 'padding:.75rem 1rem;border:2px dashed var(--border);border-radius:8px;background:var(--surface);color:var(--text);min-height:2.5rem;';
+    rightContainer.appendChild(el);
+  });
+
+  var matcher = initDragMatch(leftContainer, rightContainer);
+
+  document.getElementById('mp-submit-btn').addEventListener('click', function() {
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+    var matches = matcher.getMatches();
+    var correctCount = 0;
+    keys.forEach(function(key) {
+      if (matches[key] === pairs[key]) correctCount++;
+    });
+    var score = keys.length > 0 ? correctCount / keys.length : 0;
+    submitAttempt(sa.id, score, elapsed, {correct: correctCount, total: keys.length, matches: matches});
+  });
+})();
+</script>

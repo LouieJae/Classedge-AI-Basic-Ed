@@ -1,0 +1,140 @@
+{% comment %}
+[Classedge LMS] Centre-modal theme — paper card with cream-2→paper gradient
+header, rose-soft close, sticky footer outside the scroll area.
+
+Use for create / edit / view dialogs that should appear in the middle of the
+viewport (not the side-drawer `.custom-modal` pattern).
+
+Markup pattern:
+
+    <div id="..." class="rl-modal">
+      <div class="rl-modal-head">
+        <h5><i class="fas fa-X"></i> Title <em>accent</em></h5>
+        <button class="rl-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="rl-modal-content">
+        <form class="rl-form">
+          <div class="rl-form-body">  ...fields...  </div>
+          <div class="rl-form-foot">  ...buttons...  </div>
+        </form>
+      </div>
+    </div>
+    <div id="...Backdrop" class="rl-modal-backdrop"></div>
+
+For read-only dialogs, swap `.rl-form` for `.rl-view-body` (no footer).
+
+Reparent each modal + backdrop to `<body>` after page load so position:fixed
+anchors to the viewport regardless of any ancestor transform/filter.
+{% endcomment %}
+<style>
+  .rl-modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(45, 49, 66, 0.55);
+    backdrop-filter: blur(3px);
+    z-index: 9998; opacity: 0;
+    transition: opacity .2s ease;
+  }
+  .rl-modal-backdrop.show { display: block; opacity: 1; }
+
+  .rl-modal {
+    display: none;
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -45%) scale(.96);
+    width: min(820px, 94vw);
+    max-height: 88vh;
+    background: var(--paper);
+    border: 1px solid var(--cream-2);
+    border-radius: 16px;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.35);
+    z-index: 9999; opacity: 0;
+    transition: all .22s cubic-bezier(.25,.8,.25,1);
+    overflow: hidden;
+    flex-direction: column;
+  }
+  .rl-modal.show {
+    display: flex;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  /* Compact variant for tiny one-field dialogs (e.g. add department) */
+  .rl-modal.rl-modal--compact { width: min(480px, 92vw); }
+  /* Wider variant if needed (kept for future use) */
+  .rl-modal.rl-modal--wide { width: min(960px, 94vw); }
+
+  .rl-modal-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--cream-2);
+    background: linear-gradient(135deg, var(--cream-2), var(--paper));
+    flex-shrink: 0;
+  }
+  .rl-modal-head h5 {
+    font-family: var(--display); font-size: 17px; font-weight: 500;
+    color: var(--ink); margin: 0;
+    display: flex; align-items: center; gap: 10px; letter-spacing: -0.01em;
+  }
+  .rl-modal-head h5 em { color: var(--brand-primary, #b7925a); font-style: italic; font-weight: 400; }
+  .rl-modal-head h5 i { color: var(--brand-primary, #b7925a); }
+
+  .rl-modal-close {
+    background: transparent; border: 1px solid var(--cream-2);
+    color: var(--ink-dim); width: 30px; height: 30px;
+    border-radius: 8px; cursor: pointer;
+    display: grid; place-items: center;
+    font-size: 16px; line-height: 1;
+    transition: all .15s ease;
+    padding: 0;
+  }
+  .rl-modal-close:hover {
+    background: var(--rose-soft, rgba(196,80,90,0.12));
+    color: var(--rose-deep, #8a3741);
+    border-color: var(--rose, rgba(196,80,90,0.5));
+  }
+
+  /* Content slot: holds the inner form (body+foot) or read-only view body.
+     Children handle their own scrolling so the footer never scrolls away. */
+  .rl-modal-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .rl-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .rl-form-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 22px 24px;
+    background: var(--cream);
+  }
+  .rl-form-body::-webkit-scrollbar { width: 8px; }
+  .rl-form-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+  .rl-form-body::-webkit-scrollbar-track { background: transparent; }
+
+  .rl-form-foot {
+    flex-shrink: 0;
+    padding: 14px 22px;
+    background: var(--paper);
+    border-top: 1px solid var(--cream-2);
+    display: flex; justify-content: flex-end; gap: 10px;
+    box-shadow: 0 -4px 12px -8px rgba(45,49,66,0.12);
+  }
+
+  /* Read-only view body */
+  .rl-view-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 22px 24px;
+    background: var(--cream);
+  }
+  .rl-view-body::-webkit-scrollbar { width: 8px; }
+  .rl-view-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+  .rl-view-body::-webkit-scrollbar-track { background: transparent; }
+</style>

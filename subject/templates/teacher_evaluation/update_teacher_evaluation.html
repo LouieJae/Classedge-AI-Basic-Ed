@@ -1,0 +1,62 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Edit Evaluation Assignment{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+  {% include "includes/_form_card.html" %}
+
+  <div class="cl-page">
+        <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-edit me-2"></i>Edit Evaluation Assignment</h2>
+        <p>Adjust the subject, questions, or visibility of this evaluation.</p>
+      </div>
+    </div>
+
+    <div class="cl-form-card">
+      <form method="post" action="{% url 'update_teacher_evaluation' assignment.id %}">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="cl-form-alert error">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
+
+        <div class="cl-form-section">
+          <h6><i class="fas fa-book"></i> Subject &amp; Visibility</h6>
+          <div class="cl-form-grid">
+            <div class="cl-field">
+              <label for="{{ form.subject.id_for_label }}">Subject <span class="req">*</span></label>
+              {{ form.subject }}
+              {% if form.subject.errors %}<div class="err">{{ form.subject.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field">
+              <label class="d-inline-flex align-items-center" style="gap:8px;">{{ form.is_visible }} {{ form.is_visible.label }}</label>
+              {% if form.is_visible.errors %}<div class="err">{{ form.is_visible.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="cl-form-section">
+          <h6><i class="fas fa-list-ul"></i> Questions</h6>
+          <div class="cl-form-grid">
+            <div class="cl-field full">
+              <label for="{{ form.questions.id_for_label }}">Questions to Include <span class="req">*</span></label>
+              {{ form.questions }}
+              {% if form.questions.errors %}<div class="err">{{ form.questions.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="cl-form-actions">
+          <button type="submit" class="cl-btn cl-btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+          <a href="{% url 'list_evaluation_assignments' %}" class="cl-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% include "subject/_evaluation_question_picker_js.html" %}
+{% endblock %}

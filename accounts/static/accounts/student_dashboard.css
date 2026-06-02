@@ -1,0 +1,109 @@
+  .ranking-scroll {
+    max-height: 350px;
+    overflow-y: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .ranking-scroll::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .ranking-scroll:hover {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+  }
+
+  .ranking-scroll:hover::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .ranking-scroll:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.25);
+    border-radius: 999px;
+  }
+
+  .ranking-scroll:hover::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .todo-panel {
+    padding: 0.25rem;
+  }
+
+  .todo-section {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 14px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .todo-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .todo-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .todo-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .todo-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.65rem;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .todo-item + .todo-item {
+    margin-top: 0.5rem;
+  }
+
+  .todo-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+  }
+
+  .todo-item-title {
+    font-weight: 600;
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.2;
+  }
+
+  .todo-item-subtitle {
+    display: block;
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-top: 0.15rem;
+  }
+
+  .todo-empty {
+    padding: 0.75rem;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px dashed rgba(0, 0, 0, 0.12);
+    color: #6c757d;
+    text-align: center;
+    font-size: 0.9rem;
+  }

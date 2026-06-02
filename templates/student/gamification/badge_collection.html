@@ -1,0 +1,148 @@
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}Badge Collection{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gamification/student/badge_collection.css' %}" />
+{% endblock %}
+
+{% block content %}
+{% with locked_count=total_count|add:"-"|add:earned_count %}{% endwith %}
+<div class="bc-shell">
+
+  <div class="bc-header">
+    <div>
+      <div class="bc-eyebrow">Achievements</div>
+      <h1 class="bc-title">Badge <em>collection</em></h1>
+      <p class="bc-sub">Track every milestone you've unlocked on your learning journey.</p>
+    </div>
+    <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="cl-tour-replay" data-cl-tour="badge-collection">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      <a href="{% url 'student_dashboard' %}" class="bc-back">
+        <i class="fas fa-arrow-left"></i> Back to dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats strip -->
+  <div class="bc-stats">
+    <div class="bc-stat">
+      <div class="bc-stat-label"><i class="fas fa-medal"></i> Unlocked</div>
+      <div class="bc-stat-value">{{ earned_count }}<span class="unit"> badges</span></div>
+    </div>
+    <div class="bc-stat">
+      <div class="bc-stat-label"><i class="fas fa-bullseye"></i> Total available</div>
+      <div class="bc-stat-value">{{ total_count }}</div>
+    </div>
+    <div class="bc-stat">
+      <div class="bc-stat-label"><i class="fas fa-chart-line"></i> Completion</div>
+      {% if total_count %}
+        <div class="bc-stat-value" id="bcCompletionValue">0<span class="unit">%</span></div>
+        <div class="bc-progress-bar"><div class="bc-progress-fill" id="bcCompletionFill" style="width: 0%;"></div></div>
+      {% else %}
+        <div class="bc-stat-value">—</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="bc-filters" id="bcFilters" role="tablist" aria-label="Filter badges">
+    <button type="button" class="bc-chip is-active" data-filter="all" role="tab" aria-selected="true">
+      All <span class="num">{{ total_count }}</span>
+    </button>
+    <button type="button" class="bc-chip" data-filter="earned" role="tab" aria-selected="false">
+      Earned <span class="num">{{ earned_count }}</span>
+    </button>
+    <button type="button" class="bc-chip" data-filter="locked" role="tab" aria-selected="false">
+      Locked <span class="num" id="bcLockedCount">0</span>
+    </button>
+  </div>
+
+  <!-- Grid -->
+  <div class="bc-grid" id="bcGrid">
+    {% for b in badges %}
+      <div class="bc-card{% if not b.earned %} is-locked{% endif %}"
+           data-state="{% if b.earned %}earned{% else %}locked{% endif %}">
+        <span class="bc-card-ribbon" aria-hidden="true">
+          {% if b.earned %}
+            <i class="fas fa-check"></i>
+          {% else %}
+            <i class="fas fa-lock"></i>
+          {% endif %}
+        </span>
+        <div class="bc-card-icon">{{ b.definition.icon }}</div>
+        <h3 class="bc-card-name">{{ b.definition.name }}</h3>
+        <p class="bc-card-desc">{{ b.definition.description|truncatechars:90 }}</p>
+        {% if b.definition.tier %}
+          <span class="bc-card-tier">{{ b.definition.tier }}</span>
+        {% endif %}
+
+        {% if b.earned and b.share_token %}
+          <a href="{% url 'shared_badge' token=b.share_token %}" target="_blank" rel="noopener" class="bc-share">
+            <i class="fas fa-share-nodes"></i> Share
+          </a>
+        {% elif not b.earned and b.progress %}
+          <div class="bc-card-progress">
+            <div class="bc-card-progress-track"><div class="bc-card-progress-fill" style="width: {{ b.progress }}%;"></div></div>
+            <div class="bc-card-progress-text">{{ b.progress }}% complete</div>
+          </div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="bc-empty">
+        <div class="ico"><i class="fas fa-trophy"></i></div>
+        <h3>No badges yet</h3>
+        <p>Badges will appear here as soon as they're defined.</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  (function () {
+    // Animate the completion stat from 0 to its true value on load.
+    var total = {{ total_count|default:"0" }};
+    var earned = {{ earned_count|default:"0" }};
+    var pct = total ? Math.round((earned / total) * 100) : 0;
+    var fill = document.getElementById('bcCompletionFill');
+    var val = document.getElementById('bcCompletionValue');
+    if (fill) requestAnimationFrame(function () { fill.style.width = pct + '%'; });
+    if (val) {
+      var current = 0;
+      var step = Math.max(1, Math.round(pct / 22));
+      var timer = setInterval(function () {
+        current = Math.min(pct, current + step);
+        val.firstChild.nodeValue = current;
+        if (current >= pct) clearInterval(timer);
+      }, 32);
+    }
+
+    // Filter chips: All / Earned / Locked.
+    var chips = document.querySelectorAll('#bcFilters .bc-chip');
+    var grid = document.getElementById('bcGrid');
+    if (!grid) return;
+    var cards = Array.prototype.slice.call(grid.querySelectorAll('.bc-card'));
+    var lockedCount = cards.filter(function (c) { return c.dataset.state === 'locked'; }).length;
+    var lockedLabel = document.getElementById('bcLockedCount');
+    if (lockedLabel) lockedLabel.textContent = lockedCount;
+
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        chips.forEach(function (c) { c.classList.remove('is-active'); c.setAttribute('aria-selected', 'false'); });
+        chip.classList.add('is-active');
+        chip.setAttribute('aria-selected', 'true');
+        var filter = chip.dataset.filter;
+        cards.forEach(function (card) {
+          var show = filter === 'all' || card.dataset.state === filter;
+          card.style.display = show ? '' : 'none';
+        });
+      });
+    });
+  })();
+</script>
+
+<script src="{% static 'js/tours/cl-tour-badge-collection.js' %}" defer></script>
+{% endblock %}

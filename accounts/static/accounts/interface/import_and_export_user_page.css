@@ -1,0 +1,19 @@
+    @media (max-width: 768px) {
+      .custom-modal {
+        width: 90%;
+        max-width: none;
+      }
+    
+      .table-responsive {
+        overflow-x: auto;
+      }
+    
+      .btn {
+        font-size: 14px;
+      }
+    
+      input.form-control {
+        font-size: 14px;
+      }
+    }
+  

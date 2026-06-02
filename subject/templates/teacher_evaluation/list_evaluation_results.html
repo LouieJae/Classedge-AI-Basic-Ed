@@ -1,0 +1,57 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block content %}
+  <!-- Page Header -->
+
+  <div class="row mb-2">
+    <div class="col-sm-6">
+      <h3 class="m-0">Evaluation Results</h3>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="row">
+    {% if evaluation_results %}
+      {% for result in evaluation_results %}
+        <div class="col-lg-3 col-md-3 mb-4">
+          <div class="card shadow-sm border-0">
+            <div class="card-body">
+              <!-- If the user is a teacher, show only subject, room, and button -->
+              {% if user_role == "teacher" %}
+                <h5 class="card-title text-primary font-weight-bold mb-2">{{ result.subject_name }}</h5>
+                <p class="card-text text-muted mb-3">
+                  <strong>Room:</strong> {{ result.room_number }}
+                </p>
+              {% else %}
+                <!-- If the user is NOT a teacher, show everything -->
+                <h5 class="card-title text-primary font-weight-bold mb-2">{{ result.subject_name }}</h5>
+                <p class="card-text text-muted mb-1">
+                  <strong>Teacher:</strong> {{ result.teacher_name }}
+                </p>
+                <p class="card-text text-muted mb-3">
+                  <strong>Room:</strong> {{ result.room_number }}
+                </p>
+              {% endif %}
+              
+              <a href="{{ result.result_url }}" class="btn btn-primary btn-sm">View Evaluation</a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <!-- Empty State -->
+      <div class="col-12">
+        <div class="text-center py-5">
+          <img src="{% static 'assets/img/illustrations/Webinar-rafiki.svg' %}" alt="No evaluation results" class="img-fluid mb-3 w-100 w-md-100 empty-state-img">
+          <h4 class="text-muted mb-2">No Evaluation Results</h4>
+          <p class="text-muted">There are no evaluation results available at this time.</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- CSS for enhancing the card styling -->
+  <link rel="stylesheet" href="{% static 'subject/list_evaluation_results.css' %}" />
+{% endblock %}

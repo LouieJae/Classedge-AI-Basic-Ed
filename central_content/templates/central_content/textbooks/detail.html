@@ -1,0 +1,86 @@
+{% extends "central_content/base.html" %}
+{% block title %}{{ textbook.title }}{% endblock %}
+{% block content %}
+<div class="flex justify-between items-start mb-4">
+    <div>
+        <h1 class="text-2xl font-semibold">{{ textbook.title }}</h1>
+        <p class="text-gray-600">{{ subject.subject_name }}</p>
+    </div>
+    {% include "central_content/textbooks/status_badge.html" %}
+</div>
+
+<div class="mb-6 bg-white p-4 rounded shadow">
+    <h2 class="font-semibold mb-2">Details</h2>
+    <p class="text-sm text-gray-500">Uploaded by {{ textbook.uploaded_by.full_name }} · {{ textbook.created_at|date:"M d, Y H:i" }}</p>
+    {% if textbook.toc_data %}
+    <p class="text-sm text-gray-500 mt-1">{{ textbook.toc_data.total_pages }} pages · {{ textbook.chapters.count }} chapters</p>
+    {% endif %}
+</div>
+
+{% if textbook.status == "toc_ready" %}
+<div class="bg-white p-4 rounded shadow">
+    <h2 class="font-semibold mb-2">Chapters</h2>
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="text-left text-gray-500 border-b">
+                <th class="py-2 w-12">#</th>
+                <th class="py-2">Title</th>
+                <th class="py-2 w-24">Pages</th>
+                <th class="py-2 w-24">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for ch in chapters %}
+            <tr class="border-t">
+                <td class="py-2">{{ ch.chapter_number }}</td>
+                <td class="py-2">{{ ch.title }}</td>
+                <td class="py-2 text-gray-500">{{ ch.start_page }}–{{ ch.end_page }}</td>
+                <td class="py-2">
+                    {% if ch.status == "complete" %}
+                    <span class="text-green-700">Complete</span>
+                    {% elif ch.status == "parsing" %}
+                    <span class="text-amber-700">Parsing...</span>
+                    {% elif ch.status == "failed" %}
+                    <span class="text-red-700" title="{{ ch.error_message }}">Failed</span>
+                    {% else %}
+                    <span class="text-gray-500">Pending</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="bg-white p-4 rounded shadow mt-6">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="font-semibold">Curriculum Plans</h2>
+        <a href="/subjects/{{ subject.id }}/textbooks/{{ textbook.id }}/plans/generate" class="text-blue-700">+ Generate plan</a>
+    </div>
+    <ul>
+    {% for p in plans %}
+        <li class="border-t py-2 flex justify-between items-center">
+            <a href="/subjects/{{ subject.id }}/textbooks/{{ textbook.id }}/plans/{{ p.id }}/" class="text-blue-700">
+                {{ p.model_key }} · {{ p.created_at|date:"M d, Y H:i" }}
+            </a>
+            <span class="text-xs px-2 py-0.5 rounded {% if p.status == 'approved' %}bg-green-100 text-green-800{% elif p.status == 'rejected' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                {{ p.get_status_display }}
+            </span>
+        </li>
+    {% empty %}
+        <li class="text-gray-500 py-2">No plans yet.</li>
+    {% endfor %}
+    </ul>
+</div>
+
+{% elif textbook.status == "failed" %}
+<div class="bg-red-50 border border-red-200 p-4 rounded">
+    <p class="text-red-800 font-medium">Parsing failed</p>
+    <p class="text-red-700 text-sm mt-1">{{ textbook.error_message }}</p>
+</div>
+{% endif %}
+
+<div class="mt-4">
+    <a href="/subjects/{{ subject.id }}/" class="text-blue-700">&larr; Back to subject</a>
+</div>
+{% endblock %}

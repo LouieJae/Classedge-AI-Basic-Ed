@@ -1,0 +1,181 @@
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}Calendar — {{ month_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gamification/student/student_calendar.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="sc-shell">
+
+  <div class="sc-header">
+    <div>
+      <div class="sc-eyebrow">Schedule</div>
+      <h1 class="page-title">{{ month_name }}</h1>
+      <p class="page-sub">All your deadlines, events, holidays, and announcements at a glance.</p>
+    </div>
+
+    <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="cl-tour-replay" data-cl-tour="student-calendar">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+      <nav class="sc-nav" aria-label="Month navigation">
+        <a href="?year={{ prev_year }}&month={{ prev_month }}" aria-label="Previous month" title="Previous month">
+          <i class="fas fa-chevron-left" aria-hidden="true"></i>
+        </a>
+        <a href="?" class="sc-nav-today" title="Jump to current month">Today</a>
+        <a href="?year={{ next_year }}&month={{ next_month }}" aria-label="Next month" title="Next month">
+          <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="sc-card">
+    <div class="sc-grid" role="grid">
+      <div class="sc-head" role="columnheader"><span class="sc-head-full">Sun</span><span class="sc-head-tiny" aria-hidden="true">S</span></div>
+      <div class="sc-head" role="columnheader"><span class="sc-head-full">Mon</span><span class="sc-head-tiny" aria-hidden="true">M</span></div>
+      <div class="sc-head" role="columnheader"><span class="sc-head-full">Tue</span><span class="sc-head-tiny" aria-hidden="true">T</span></div>
+      <div class="sc-head" role="columnheader"><span class="sc-head-full">Wed</span><span class="sc-head-tiny" aria-hidden="true">W</span></div>
+      <div class="sc-head" role="columnheader"><span class="sc-head-full">Thu</span><span class="sc-head-tiny" aria-hidden="true">T</span></div>
+      <div class="sc-head" role="columnheader"><span class="sc-head-full">Fri</span><span class="sc-head-tiny" aria-hidden="true">F</span></div>
+      <div class="sc-head" role="columnheader"><span class="sc-head-full">Sat</span><span class="sc-head-tiny" aria-hidden="true">S</span></div>
+
+      {% for week in weeks %}
+        {% for cell in week %}
+          {% if cell.day == 0 %}
+            <div class="sc-day empty" role="gridcell" aria-hidden="true"></div>
+          {% else %}
+            <div class="sc-day{% if cell.day == today.day and month == today.month and year == today.year %} today{% endif %}{% if cell.events %} has-events{% endif %}"
+                 role="gridcell"
+                 tabindex="{% if cell.events %}0{% else %}-1{% endif %}"
+                 aria-label="{{ cell.day }} {{ month_name }}{% if cell.events %} — {{ cell.events|length }} event{{ cell.events|length|pluralize }}{% endif %}">
+              <div class="sc-day-num">{{ cell.day }}</div>
+              <div class="sc-dots">
+                {% for item in cell.events %}
+                  <span class="sc-dot {{ item.type }}" data-type="{{ item.type }}" data-title="{{ item.title }}"></span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="sc-legend" role="list">
+    <span class="sc-legend-chip" role="listitem"><span class="sc-dot deadline"></span> Deadline</span>
+    <span class="sc-legend-chip" role="listitem"><span class="sc-dot holiday"></span> Holiday</span>
+    <span class="sc-legend-chip" role="listitem"><span class="sc-dot event"></span> Event</span>
+    <span class="sc-legend-chip" role="listitem"><span class="sc-dot announcement"></span> Announcement</span>
+  </div>
+</div>
+
+<div id="sc-popover" class="sc-popover" role="tooltip" aria-hidden="true"></div>
+
+<script src="{% static 'js/tours/cl-tour-student-calendar.js' %}" defer></script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var popover = document.getElementById('sc-popover');
+  if (!popover) return;
+
+  var TYPE_LABELS = {
+    deadline: 'Assessment',
+    holiday: 'Holiday',
+    event: 'Event',
+    announcement: 'Announcement'
+  };
+  var MONTH_NAME = "{{ month_name|escapejs }}";
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function buildContent(cell) {
+    var dots = cell.querySelectorAll('.sc-dot');
+    if (!dots.length) return '';
+    var dayNum = cell.querySelector('.sc-day-num');
+    var dayLabel = dayNum ? dayNum.textContent.trim() : '';
+    var header = dayLabel ? (MONTH_NAME.split(' ')[0] + ' ' + dayLabel) : 'Details';
+
+    var items = '';
+    Array.prototype.forEach.call(dots, function (d) {
+      var type = d.getAttribute('data-type') || 'event';
+      var title = d.getAttribute('data-title') || '(untitled)';
+      items += '<div class="sc-popover-item">'
+            + '<span class="sc-dot ' + escapeHtml(type) + '"></span>'
+            + '<div>'
+            + '<div class="sc-popover-item-title">' + escapeHtml(title) + '</div>'
+            + '<div class="sc-popover-item-type">' + escapeHtml(TYPE_LABELS[type] || type) + '</div>'
+            + '</div></div>';
+    });
+
+    return '<div class="sc-popover-header">' + escapeHtml(header) + '</div>'
+         + '<div class="sc-popover-list">' + items + '</div>';
+  }
+
+  function position(cell) {
+    var rect = cell.getBoundingClientRect();
+    var pop = popover.getBoundingClientRect();
+    var margin = 8;
+
+    var top = rect.top - pop.height - margin;
+    if (top < margin) top = rect.bottom + margin;
+
+    var left = rect.left + rect.width / 2 - pop.width / 2;
+    left = Math.max(margin, Math.min(left, window.innerWidth - pop.width - margin));
+
+    popover.style.top = top + 'px';
+    popover.style.left = left + 'px';
+  }
+
+  function show(cell) {
+    var html = buildContent(cell);
+    if (!html) return;
+    popover.innerHTML = html;
+    popover.classList.add('show');
+    popover.setAttribute('aria-hidden', 'false');
+    position(cell);
+  }
+
+  function hide() {
+    popover.classList.remove('show');
+    popover.setAttribute('aria-hidden', 'true');
+  }
+
+  var cells = document.querySelectorAll('.sc-day.has-events');
+  Array.prototype.forEach.call(cells, function (cell) {
+    cell.addEventListener('mouseenter', function () { show(cell); });
+    cell.addEventListener('mouseleave', hide);
+    cell.addEventListener('focus', function () { show(cell); });
+    cell.addEventListener('blur', hide);
+    // Tap-to-toggle on touch devices (where mouseenter/leave don't fire).
+    cell.addEventListener('click', function () {
+      if (popover.classList.contains('show') && popover.dataset.cellId === cell.id) {
+        hide();
+      } else {
+        show(cell);
+        popover.dataset.cellId = cell.id;
+      }
+    });
+  });
+
+  // Tap outside / scroll / resize dismisses the popover on touch.
+  document.addEventListener('click', function (e) {
+    if (!popover.classList.contains('show')) return;
+    if (e.target.closest('.sc-day.has-events') || e.target.closest('#sc-popover')) return;
+    hide();
+  });
+  window.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" style="max-width:640px;padding:24px;">
+  <h2>Upload quests for {{ module.file_name }}</h2>
+  <p>Accepted: .csv or .json (max 1 MB, 200 quests).</p>
+  {% if messages %}{% for m in messages %}<div class="alert">{{ m }}</div>{% endfor %}{% endif %}
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    <input type="file" name="file" accept=".csv,.json" required>
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
+  <p style="margin-top:24px;"><a href="{% url 'quest_mode_select' module.id %}">← Back</a></p>
+</div>
+{% endblock %}

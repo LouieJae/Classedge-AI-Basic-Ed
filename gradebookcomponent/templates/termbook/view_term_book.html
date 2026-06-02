@@ -1,0 +1,69 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}{% if termbook %}{{ termbook.term.term_name }} · Termbook{% else %}Termbook{% endif %}{% endblock %}
+
+{% block content %}
+{% include "termbook/_form_styles.html" %}
+
+<div class="gbf-page">
+   
+  <a href="{% url 'grade-book' %}" class="ll-back">
+    <i class="fas fa-arrow-left"></i> Back to gradebook
+  </a>
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Termbook <em>details</em></h1>
+      <p class="page-sub">Read-only view for this termbook configuration.</p>
+    </div>
+  </div>
+
+  <div class="gbf-card">
+    {% if termbook %}
+      <h2 style="font-family: var(--display); font-size: 26px; font-weight: 500; color: var(--ink); letter-spacing: -0.02em; margin: 0 0 20px;">
+        {{ termbook.term.term_name }}
+      </h2>
+
+      <div class="gbf-summary">
+        <div>
+          <div class="gbf-summary-label">Teacher</div>
+          <div class="gbf-summary-value" style="font-size: 17px;">{{ termbook.teacher.get_full_name|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="gbf-summary-label">Percentage</div>
+          <div class="gbf-summary-value">{{ termbook.percentage }}%</div>
+          <div class="gbf-summary-sub">weight in final grade</div>
+        </div>
+        {% if termbook.base_grade is not None %}
+          <div>
+            <div class="gbf-summary-label">Base grade</div>
+            <div class="gbf-summary-value">{{ termbook.base_grade }}</div>
+          </div>
+        {% endif %}
+        {% if termbook.passing_grade is not None %}
+          <div>
+            <div class="gbf-summary-label">Passing grade</div>
+            <div class="gbf-summary-value">{{ termbook.passing_grade }}</div>
+          </div>
+        {% endif %}
+      </div>
+
+      <div>
+        <div class="gbf-summary-label" style="margin-bottom: 10px;">Assigned subjects</div>
+        {% if termbook.subjects.exists %}
+          <ul class="gbf-list">
+            {% for subject in termbook.subjects.all %}
+              <li class="gbf-pill">{{ subject.subject_name }}{% if subject.subject_type %} · {{ subject.subject_type }}{% endif %}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="gbf-help">No subjects assigned.</div>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="gbf-help">No termbook selected.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

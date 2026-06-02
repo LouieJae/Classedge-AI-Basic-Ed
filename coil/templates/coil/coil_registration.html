@@ -1,0 +1,96 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}Invite partner school{% endblock %}
+
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <link rel="stylesheet" href="{% static 'coil/coil_registration.css' %}" />
+
+  <div class="cl-page">
+
+    <a href="{% url 'coil_school_list' %}" class="cl-back-btn">
+      <i class="fas fa-arrow-left"></i> Back to partner schools
+    </a>
+
+    <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-paper-plane me-2"></i>Invite a <em>partner school</em></h2>
+        <p>Send an invitation email so a school can join your COIL program. They'll complete their own registration via a secure invite link.</p>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for m in messages %}
+        <div class="cr-alert {% if m.tags == 'error' %}error{% elif m.tags == 'success' %}success{% endif %}">
+          <i class="fas fa-info-circle"></i><span>{{ m }}</span>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="cr-layout">
+
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-school me-2"></i>School <em>details</em></span>
+          <span style="font-size: 11px; font-weight: 700; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em;">Step 1 of 1</span>
+        </div>
+        <div class="cl-card-body">
+          <h6 class="cr-section-title"><i class="fas fa-circle-info"></i> Contact</h6>
+          <p class="cr-section-sub">Tell us where to send the invitation. The school's admin will fill in the rest themselves.</p>
+
+          <form method="POST" id="coilRegForm">
+            {% csrf_token %}
+
+            <div class="cr-grid">
+              <div class="cr-field full">
+                <label for="{{ form.school_name.id_for_label }}">School name <span class="req">*</span></label>
+                {{ form.school_name }}
+                {% if form.school_name.errors %}<div class="errors">{{ form.school_name.errors|striptags }}</div>{% endif %}
+                <span class="hint">Official institution name (e.g. "Holy Cross of Davao College").</span>
+              </div>
+
+              <div class="cr-field">
+                <label for="{{ form.contact_person.id_for_label }}">Contact person</label>
+                {{ form.contact_person }}
+                {% if form.contact_person.errors %}<div class="errors">{{ form.contact_person.errors|striptags }}</div>{% endif %}
+                <span class="hint">Optional — name addressed in the invite email.</span>
+              </div>
+
+              <div class="cr-field">
+                <label for="{{ form.school_email.id_for_label }}">School email <span class="req">*</span></label>
+                {{ form.school_email }}
+                {% if form.school_email.errors %}<div class="errors">{{ form.school_email.errors|striptags }}</div>{% endif %}
+                <span class="hint">A token-secured invite link will be sent here.</span>
+              </div>
+            </div>
+
+            <div class="cr-foot">
+              <a href="{% url 'coil_school_list' %}" class="cr-btn">Cancel</a>
+              <button type="submit" class="cr-btn cr-btn-primary">
+                <i class="fas fa-paper-plane"></i> Send invite
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <aside class="cr-side">
+        <h6><i class="fas fa-circle-info" style="color: var(--brand-primary, #b7925a);"></i> What happens next</h6>
+        <ul>
+          <li><i class="fas fa-1"></i><span>You enter the school name &amp; email.</span></li>
+          <li><i class="fas fa-2"></i><span>An invite email goes to that address with a unique link.</span></li>
+          <li><i class="fas fa-3"></i><span>The school accepts and fills in their domain &amp; student count.</span></li>
+          <li><i class="fas fa-4"></i><span>They appear as <strong>Partner</strong> in your school list once accepted.</span></li>
+        </ul>
+        <div style="height: 1px; background: var(--border); margin: 16px 0;"></div>
+        <p style="margin: 0; font-size: 12px; color: var(--ink-muted); line-height: 1.5;">
+          The invite link expires after <strong style="color: var(--ink-dim); font-weight: 700;">72 hours</strong>. You can send another from the partner schools list if needed.
+        </p>
+      </aside>
+
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Add Status Points{% endblock %}
+
+{% block content %}
+{% include "termbook/_form_styles.html" %}
+
+<div class="gbf-page">
+
+  <a href="{% url 'status-list' %}" class="ll-back">
+    <i class="fas fa-arrow-left"></i> Back to status list
+  </a>
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Add <em>status points</em></h1>
+      <p class="page-sub">Assign attendance status weights for your gradebook calculations.</p>
+    </div>
+  </div>
+
+  <div class="gbf-card">
+    <form id="add-points" method="post" action="{% url 'add-points' %}" class="gbf-form" novalidate>
+      {% csrf_token %}
+
+      {% for field in form %}
+        <div class="form-group">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="gbf-help">{{ field.help_text }}</div>{% endif %}
+          {% if field.errors %}
+            {% for error in field.errors %}<div class="gbf-help" style="color: var(--rose);">{{ error }}</div>{% endfor %}
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <div class="gbf-help" style="margin-top: -8px;">Points cannot exceed 10 per status.</div>
+
+      <div class="gbf-actions">
+        <button type="submit" class="gbf-btn gbf-btn--primary">
+          <i class="fas fa-check"></i> Save
+        </button>
+        <a href="{% url 'status-list' %}" class="gbf-btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="{% static 'course/status/add-points.js' %}"></script>
+{% endblock %}

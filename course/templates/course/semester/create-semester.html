@@ -1,0 +1,65 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+{% load static %}
+{% block title %}New Semester{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+  {% include "includes/_form_card.html" %}
+
+  <div class="cl-page">
+        <div class="cl-header">
+      <div>
+        <h2><i class="fas fa-calendar-days me-2"></i>New Semester</h2>
+        <p>Add an academic semester. Its start/end dates anchor every term and enrollment that lives within it.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="semester-form">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+      </div>
+    </div>
+
+    <div class="cl-form-card">
+      <form method="post" action="{% url 'create-semester' %}" data-cl-autosave="create-semester" data-cl-loading data-cl-loading-label="Creating…">
+        {% csrf_token %}
+        <div class="cl-form-section">
+          <h6><i class="fas fa-calendar-alt"></i> Semester Details</h6>
+          <div class="cl-form-grid">
+            <div class="cl-field">
+              <label for="{{ form.semester_name.id_for_label }}">Semester Name <span class="req">*</span></label>
+              {{ form.semester_name }}
+              {% if form.semester_name.errors %}<div class="err">{{ form.semester_name.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field">
+              <label for="{{ form.passing_grade.id_for_label }}">Passing Grade</label>
+              {{ form.passing_grade }}
+              {% if form.passing_grade.errors %}<div class="err">{{ form.passing_grade.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field full">
+              <label for="{{ form.grade_calculation_method.id_for_label }}">Grade Calculation Method</label>
+              {{ form.grade_calculation_method }}
+              {% if form.grade_calculation_method.errors %}<div class="err">{{ form.grade_calculation_method.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field">
+              <label for="{{ form.start_date.id_for_label }}">Start Date <span class="req">*</span></label>
+              {{ form.start_date }}
+              {% if form.start_date.errors %}<div class="err">{{ form.start_date.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="cl-field">
+              <label for="{{ form.end_date.id_for_label }}">End Date <span class="req">*</span></label>
+              {{ form.end_date }}
+              {% if form.end_date.errors %}<div class="err">{{ form.end_date.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="cl-form-actions">
+          <button type="submit" class="cl-btn cl-btn-primary"><i class="fas fa-save"></i> Create Semester</button>
+          <a href="{% url 'semester-list' %}" class="cl-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'js/tours/cl-tour-semester-form.js' %}" defer></script>
+{% endblock %}

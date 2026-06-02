@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width: 640px;">
+  <h1 class="h3">Delete Legal Document</h1>
+  <p>Are you sure you want to delete <strong>{{ doc.doc_type }} v{{ doc.version }} &mdash; {{ doc.title }}</strong>?</p>
+  {% if doc.acceptances.exists %}
+    <div class="alert alert-warning">
+      This document has {{ doc.acceptances.count }} recorded user consent(s). Deletion is blocked while consents exist
+      (FK on_delete=PROTECT). Remove the consents first or keep this document as historical record.
+    </div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger" {% if doc.acceptances.exists %}disabled{% endif %}>Delete</button>
+    <a href="{% url 'legal-document-list' %}" class="btn btn-outline-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

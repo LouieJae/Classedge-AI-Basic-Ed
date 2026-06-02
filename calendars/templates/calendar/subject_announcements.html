@@ -1,0 +1,109 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+
+{% block title %}Course Announcements{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'calendar/subject_announcements.css' %}" />
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="sa-shell container-fluid">
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Course <em>Announcements</em></h1>
+      <p class="page-sub">Post updates to a class. Visible on <em>Campus News</em> for the course's enrolled students this semester.</p>
+    </div>
+  </div>
+
+  {% if not has_subjects %}
+    <div class="sa-empty">
+      <div class="sa-empty-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+      <div class="sa-empty-title">No courses assigned</div>
+      <div>You don't currently teach any courses, so there's nothing to announce here.</div>
+    </div>
+  {% else %}
+    {% for s in subjects %}
+      <div class="sa-subject-card" data-subject-id="{{ s.id }}">
+        <div class="sa-subject-head">
+          <div class="sa-subject-id">
+            <div class="sa-subject-icon"><i class="fas fa-book"></i></div>
+            <div>
+              <h2 class="sa-subject-name">{{ s.name }}</h2>
+              {% if s.code %}<div class="sa-subject-code">{{ s.code }}</div>{% endif %}
+            </div>
+          </div>
+          <button class="sa-new-btn sa-open-create" data-subject-id="{{ s.id }}" data-subject-name="{{ s.name }}">
+            <i class="fas fa-plus"></i> New announcement
+          </button>
+        </div>
+        <div class="sa-list" id="sa-list-{{ s.id }}">
+          {% if s.announcements %}
+            {% for ann in s.announcements %}
+              <div class="sa-row" data-id="{{ ann.id }}">
+                <div class="sa-row-icon"><i class="fas fa-bullhorn"></i></div>
+                <div class="sa-row-main">
+                  <p class="sa-row-title">{{ ann.title }}</p>
+                  <div class="sa-row-meta">
+                    <i class="fas fa-calendar"></i>{{ ann.date|date:"M j, Y" }}
+                    <span class="by">&middot; by {{ ann.created_by.get_full_name|default:ann.created_by.username }}</span>
+                  </div>
+                  {% if ann.description %}<div class="sa-row-body">{{ ann.description }}</div>{% endif %}
+                </div>
+                <div class="sa-row-actions">
+                  <button class="sa-icon-btn sa-open-edit" title="Edit"
+                          data-id="{{ ann.id }}"
+                          data-title="{{ ann.title }}"
+                          data-description="{{ ann.description|default:'' }}"
+                          data-date="{{ ann.date|date:'Y-m-d' }}"
+                          data-subject-id="{{ s.id }}">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                  <button class="sa-icon-btn danger sa-delete" title="Delete" data-id="{{ ann.id }}">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="sa-empty-list"><i class="fas fa-circle-info"></i> No announcements yet for this course.</div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
+<div class="sa-modal" id="sa-modal">
+  <div class="sa-modal-card">
+    <div class="sa-modal-eyebrow" id="sa-modal-eyebrow">New post</div>
+    <h3 class="sa-modal-title" id="sa-modal-title">New announcement</h3>
+    <form id="sa-form" onsubmit="event.preventDefault(); subjectAnnouncementsSubmit();">
+      <input type="hidden" id="sa-id" />
+      <input type="hidden" id="sa-subject-id" />
+      <div class="sa-field">
+        <label>Subject</label>
+        <input type="text" id="sa-subject-name" disabled />
+      </div>
+      <div class="sa-field">
+        <label>Title</label>
+        <input type="text" id="sa-title" required maxlength="200" />
+      </div>
+      <div class="sa-field">
+        <label>Date</label>
+        <input type="date" id="sa-date" />
+      </div>
+      <div class="sa-field">
+        <label>Message</label>
+        <textarea id="sa-description" placeholder="What do you want your class to know?"></textarea>
+      </div>
+      <div class="sa-modal-actions">
+        <button type="button" class="sa-btn" onclick="subjectAnnouncementsClose()">Cancel</button>
+        <button type="submit" class="sa-btn primary" id="sa-submit-btn">Post</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script src="{% static 'calendar/subject_announcements.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block title %}Gradebook{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gradebookcomponent/gradebook_home.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="courses-shell">
+  <div class="courses-header">
+    <div class="courses-title-block">
+      <h1 class="page-title">Gradebook</h1>
+      <div class="page-sub">Subjects you teach &middot; tap a card to open its gradebook</div>
+    </div>
+  </div>
+
+  <div class="courses-grid">
+    {% for tile in tiles %}
+      <div class="t-course">
+        <div class="t-course-head">
+          <div class="t-course-head-text">
+            <h3 class="t-course-name">{{ tile.subject.subject_name }}</h3>
+            {% if tile.subject.subject_code %}
+              <div class="t-course-code">{{ tile.subject.subject_code }}</div>
+            {% endif %}
+          </div>
+          {% if tile.pending %}
+            <span class="t-badge t-badge--gold">{{ tile.pending }} pending</span>
+          {% else %}
+            <span class="t-badge t-badge--forest">All graded</span>
+          {% endif %}
+        </div>
+
+        <div class="t-course-meta">
+          <div>
+            <div class="t-course-meta-label">Needs grading</div>
+            <div class="t-course-meta-value">{{ tile.pending }}</div>
+          </div>
+          <div>
+            <div class="t-course-meta-label">Status</div>
+            <div class="t-course-meta-value">
+              {% if tile.pending %}{{ tile.pending }} pending{% else %}Up to date{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="t-course-actions">
+          <a class="primary" href="{% url 'gradebook_subject' tile.subject.id %}">
+            <i class="fas fa-table" aria-hidden="true"></i> Open gradebook
+          </a>
+        </div>
+      </div>
+    {% empty %}
+      <div class="t-empty">
+        <div class="ico"><i class="fas fa-book-open" aria-hidden="true"></i></div>
+        <div class="lead">No subjects assigned yet</div>
+        <div class="sub">You aren't teaching any subjects this term.</div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

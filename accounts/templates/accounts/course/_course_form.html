@@ -1,0 +1,77 @@
+{% comment %}[Classedge LMS] Shared course form — used by create + edit centre modals.{% endcomment %}
+<style>
+  .cf-form .field { margin-bottom: 16px; }
+  .cf-form .field:last-child { margin-bottom: 0; }
+  .cf-form label {
+    display: block; font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-dim); margin-bottom: 8px;
+  }
+  .cf-form input[type="text"], .cf-form input[type="number"],
+  .cf-form select, .cf-form textarea {
+    width: 100%;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    font-family: var(--body); font-size: 13.5px;
+    background: var(--paper); color: var(--ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .cf-form select { cursor: pointer; }
+  .cf-form textarea { min-height: 88px; resize: vertical; line-height: 1.5; }
+  .cf-form input:focus, .cf-form select:focus, .cf-form textarea:focus {
+    outline: none; border-color: var(--brand-primary, #1b4332);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  }
+  .cf-form .err { color: #b02a37; font-size: 12px; margin-top: 5px; font-weight: 500; }
+  .cf-form .hint { color: var(--ink-muted); font-size: 12px; margin-top: 6px; }
+
+  .cf-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-family: var(--body); font-size: 12.5px; font-weight: 600;
+    border: 1px solid var(--border-strong);
+    background: var(--paper); color: var(--ink);
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .cf-btn:hover { background: var(--cream-2); color: var(--ink); border-color: var(--brand-primary, #1b4332); }
+  .cf-btn-primary { background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332); }
+  .cf-btn-primary:hover { background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332); }
+</style>
+
+<form method="post"
+      action="{% if course %}{% url 'program-update' course.id %}{% else %}{% url 'program-create' %}{% endif %}"
+      class="cf-form rl-form" id="courseForm">
+  {% csrf_token %}
+
+  <div class="rl-form-body">
+    <div class="field">
+      <label for="{{ form.name.id_for_label }}">Program name</label>
+      {{ form.name }}
+      {% if form.name.errors %}<div class="err">{{ form.name.errors|striptags }}</div>{% endif %}
+      <div class="hint">Full official program name (e.g. "BS Information Technology").</div>
+    </div>
+    <div class="field">
+      <label for="{{ form.short_name.id_for_label }}">Short name</label>
+      {{ form.short_name }}
+      {% if form.short_name.errors %}<div class="err">{{ form.short_name.errors|striptags }}</div>{% endif %}
+      <div class="hint">Acronym shown in compact UI (e.g. "BSIT").</div>
+    </div>
+    <div class="field">
+      <label for="{{ form.department.id_for_label }}">Department</label>
+      {{ form.department }}
+      {% if form.department.errors %}<div class="err">{{ form.department.errors|striptags }}</div>{% endif %}
+      <div class="hint">Optional. Department that owns this program.</div>
+    </div>
+  </div>
+
+  <div class="rl-form-foot">
+    <button type="button" class="cf-btn"
+      onclick="document.getElementById('courseModal')?.classList.remove('show'); document.getElementById('courseModalBackdrop')?.classList.remove('show'); document.getElementById('editCourseModal')?.classList.remove('show'); document.getElementById('editCourseModalBackdrop')?.classList.remove('show');">Cancel</button>
+    <button type="submit" class="cf-btn cf-btn-primary">
+      <i class="fas fa-save"></i> {% if course %}Save changes{% else %}Create program{% endif %}
+    </button>
+  </div>
+</form>

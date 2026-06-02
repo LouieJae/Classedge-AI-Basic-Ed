@@ -1,0 +1,274 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block title %}Faculty Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gamification/teacher/teacher_dashboard.css' %}" />
+{% endblock %}
+
+{% block content %}
+
+<!-- ─── Topbar: greeting + today pill + Show me how ─── -->
+<div class="dash-topbar">
+  <div>
+    <h1 class="page-title">{{ greeting }}, <em>{{ user_name }}</em></h1>
+    <div class="page-sub">Here's what your day looks like.</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <button type="button" class="cl-tour-replay" data-cl-tour="teacher-dashboard">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+    <div class="dash-today-pill">
+      <i class="far fa-calendar"></i>
+      <span><span class="day">{% now "l" %}</span> · {% now "F j, Y" %}</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── HIGHLIGHT: Today's Schedule (theme-friendly) ─── -->
+<section class="today-card" aria-label="Today's schedule">
+  <div class="today-head">
+    <div>
+      <div class="today-eyebrow"><i class="fas fa-bolt"></i> Today</div>
+      <h2 class="today-title">
+        {% if schedule_today %}
+          {% if schedule_today|length == 1 %}
+            One class on your <em>plate today</em>
+          {% else %}
+            {{ schedule_today|length }} classes <em>scheduled today</em>
+          {% endif %}
+        {% else %}
+          No classes <em>scheduled today</em>
+        {% endif %}
+      </h2>
+    </div>
+    <div class="today-clock">
+      <i class="far fa-clock"></i>
+      <span>Now · <strong>{{ now_dt|date:"g:i A" }}</strong></span>
+    </div>
+  </div>
+
+  {% if schedule_today %}
+    <div class="schedule-list cl-carousel">
+      {% for s in schedule_today %}
+        <a class="schedule-item is-{{ s.status }}"
+           href="{% url 'classroom_mode' s.subject.id %}"
+           aria-label="Open classroom for {{ s.subject.subject_name }}">
+          <span class="schedule-status">
+            {% if s.status == 'now' %}<i class="fas fa-circle" style="font-size:7px;"></i>{% endif %}
+            {% if s.status == 'now' %}In session
+            {% elif s.status == 'upcoming' %}Upcoming
+            {% else %}Done
+            {% endif %}
+          </span>
+          <div class="schedule-time">
+            {{ s.start_time|time:"g:i A" }}
+            <span class="dash">–</span>
+            {{ s.end_time|time:"g:i A" }}
+          </div>
+          <div class="schedule-subject">
+            {{ s.subject.subject_name }}
+            <span class="code">{{ s.subject.subject_code|default:"" }}</span>
+          </div>
+          <div class="schedule-meta">
+            {% if s.room %}<span><i class="fas fa-location-dot"></i>{{ s.room }}</span>{% endif %}
+            <span><i class="fas fa-user-group"></i>{{ s.students }} student{{ s.students|pluralize }}</span>
+          </div>
+          <span class="schedule-cta">
+            {% if s.status == 'now' %}Open classroom{% else %}View class{% endif %}
+            <i class="fas fa-arrow-right"></i>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="schedule-empty">
+      <i class="fas fa-mug-hot"></i>
+      No classes today — a good day for grading and planning ahead.
+    </div>
+  {% endif %}
+</section>
+
+<!-- ─── Quick stats (4 numbers a teacher checks daily) ── -->
+<section class="quick-stats">
+  <div class="qs-card">
+    <div class="qs-icon"><i class="fas fa-user-group"></i></div>
+    <div class="qs-body">
+      <div class="qs-label">Students</div>
+      <div class="qs-value">{{ total_students }}</div>
+      <div class="qs-sub">across {{ active_subjects }} subject{{ active_subjects|pluralize }}</div>
+    </div>
+  </div>
+  <div class="qs-card{% if needs_grading_count > 0 %} warn{% endif %}">
+    <div class="qs-icon"><i class="fas fa-clipboard-check"></i></div>
+    <div class="qs-body">
+      <div class="qs-label">Needs grading</div>
+      <div class="qs-value">{{ needs_grading_count }}</div>
+      <div class="qs-sub">submissions waiting</div>
+    </div>
+  </div>
+  <div class="qs-card">
+    <div class="qs-icon"><i class="fas fa-chart-line"></i></div>
+    <div class="qs-body">
+      <div class="qs-label">Class average</div>
+      <div class="qs-value">{{ overall_avg }}%</div>
+      <div class="qs-sub">all graded work</div>
+    </div>
+  </div>
+  {% with at_risk_metric=metrics|slice:"1:2" %}
+    {% for m in at_risk_metric %}
+      <div class="qs-card{% if m.caption_class == 'warn' %} warn{% endif %}">
+        <div class="qs-icon"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="qs-body">
+          <div class="qs-label">At-risk students</div>
+          <div class="qs-value">{{ m.value }}</div>
+          <div class="qs-sub">{{ m.caption }}</div>
+        </div>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</section>
+
+<!-- ─── Two-column work row: Needs grading + Closing soon ── -->
+<section class="work-grid">
+  <div class="work-card">
+    <div class="wc-head">
+      <h2 class="wc-title">Needs grading</h2>
+      {% if needs_grading_count > 0 %}
+        <span class="wc-count warn">{{ needs_grading_count }} waiting</span>
+      {% endif %}
+    </div>
+    {% if needs_grading_items %}
+      <ul class="ng-list">
+        {% for sa in needs_grading_items %}
+          <li>
+            <a class="ng-row" href="{% url 'assessment-details' sa.activity.id %}">
+              <span class="ng-dot"></span>
+              <span class="ng-body">
+                <span class="ng-title">{{ sa.activity.activity_name }}</span>
+                <span class="ng-meta">
+                  {{ sa.student.get_full_name|default:sa.student.username }}
+                  {% if sa.activity.activity_type %} · {{ sa.activity.activity_type }}{% endif %}
+                  {% if sa.subject %} · {{ sa.subject.subject_code|default:sa.subject.subject_name }}{% endif %}
+                  {% if sa.end_time %} · submitted {{ sa.end_time|date:"M j" }}{% endif %}
+                </span>
+              </span>
+              <i class="fas fa-chevron-right ng-chev"></i>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-quiet">
+        <i class="fas fa-circle-check"></i>
+        You're all caught up — no submissions waiting.
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="work-card">
+    <div class="wc-head">
+      <h2 class="wc-title">Closing soon</h2>
+      <span class="wc-count">next 7 days</span>
+    </div>
+    {% if closing_soon %}
+      <ul class="cs-list">
+        {% for a in closing_soon %}
+          <li>
+            <a class="cs-row" href="{% url 'assessment-details' a.id %}">
+              <span class="cs-date">
+                <span class="day">{{ a.end_time|date:"j" }}</span>
+                <span class="mon">{{ a.end_time|date:"M" }}</span>
+              </span>
+              <span class="cs-body">
+                <span class="cs-title">{{ a.activity_name }}</span>
+                <span class="cs-meta">
+                  {% if a.activity_type %}{{ a.activity_type }} · {% endif %}{{ a.subject.subject_code|default:a.subject.subject_name }}
+                </span>
+              </span>
+              <span class="cs-time">
+                <strong>{{ a.end_time|time:"g:i A" }}</strong>
+                Due
+              </span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-quiet">
+        <i class="far fa-calendar"></i>
+        Nothing closing this week.
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ─── Quick actions ────────────────────────────────── -->
+<div class="qa-strip">
+  <a class="qa-link" href="{% url 'assessment-list' %}">
+    <i class="fas fa-clipboard-check"></i>
+    <span>All assessments</span>
+  </a>
+  <a class="qa-link" href="{% url 'course-list' %}">
+    <i class="fas fa-book-open"></i>
+    <span>My courses</span>
+  </a>
+  <a class="qa-link" href="{% url 'attendance-report' %}">
+    <i class="fas fa-user-check"></i>
+    <span>Attendance</span>
+  </a>
+  <a class="qa-link" href="{% url 'grade-book' %}">
+    <i class="fas fa-table"></i>
+    <span>Gradebook</span>
+  </a>
+</div>
+
+<!-- ─── My Classes ───────────────────────────────────── -->
+<section class="classes">
+  <div class="classes-header section-heading">
+    <h2 class="section-title">My <em>Classes</em></h2>
+    {% if semester %}
+      <div class="section-meta">
+        {{ semester.semester_name }} · {{ subjects|length }} active section{{ subjects|length|pluralize }}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="classes-list cl-carousel">
+    {% for s in subjects %}
+      <div class="class-card {{ s.card_class }}" style="position: relative; cursor: pointer;">
+        <a href="{% url 'subject_analytics_panel' s.subject.id %}"
+           class="class-card-stretched-link"
+           aria-label="Open {{ s.subject.subject_name }} analytics"
+           style="position: absolute; inset: 0; z-index: 1;"></a>
+        <div class="class-name">{{ s.subject.subject_name }}</div>
+        <div class="class-section">{{ s.subject.subject_code }}</div>
+        <div class="class-metrics">
+          <div>
+            <div class="class-metric-label">Class Average</div>
+            <div class="class-metric-value">{{ s.avg }}%</div>
+          </div>
+          <div>
+            <div class="class-metric-label">Ungraded</div>
+            <div class="class-metric-value{% if s.ungraded > 5 %} warn{% elif s.ungraded == 0 %} done{% endif %}">
+              {{ s.ungraded }}{% if s.ungraded == 0 %} <i class="fas fa-check" style="font-size:12px;"></i>{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="class-progress-label">
+          <span>Material progress</span>
+          <span>{{ s.module_pct }}%</span>
+        </div>
+        <div class="class-progress-track">
+          <div class="class-progress-fill" style="width: {{ s.module_pct }}%;"></div>
+        </div>
+        <div class="class-analytics-hint">View analytics →</div>
+      </div>
+    {% empty %}
+      <div class="classes-empty">No courses assigned this semester.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<script src="{% static 'js/tours/cl-tour-teacher-dashboard.js' %}" defer></script>
+{% endblock %}

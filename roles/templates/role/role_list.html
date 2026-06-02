@@ -1,0 +1,67 @@
+{% extends 'base_operation.html' %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% include "includes/_edit-inline.html" %}{% endblock %}
+{% load static %}
+{% load permissions %}
+{% block title %}Roles & Permissions{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+  {% include "includes/_centre_modal_theme.html" %}
+
+  <link rel="stylesheet" href="{% static 'roles/role_list.css' %}" />
+
+  <div class="cl-page">
+    <div class="cl-header">
+      <div>
+        <h2>Roles &amp; <em>permissions</em></h2>
+        <p>Define roles and control what each role can access across modules.</p>
+      </div>
+      <div class="cl-actions">
+        <button type="button" class="cl-tour-replay" data-cl-tour="role-list">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <button class="cl-btn cl-btn-primary" id="openRoleModal" data-url="{% url 'create_role' %}">
+          <i class="fas fa-plus"></i> Add Role
+        </button>
+        <a href="{% url 'import_roles_csv' %}" class="cl-btn cl-btn-gold">
+          <i class="fas fa-upload"></i> Import
+        </a>
+        <a href="{% url 'export_roles_csv' %}" class="cl-btn">
+          <i class="fas fa-download"></i> Export
+        </a>
+      </div>
+    </div>
+
+    <div id="cl-role-wrapper" class="cl-table-wrapper" data-cl-async-table data-base-url="{% url 'role_list' %}">
+      {% include "includes/_list_table.html" %}
+    </div>
+  </div>
+
+  {# Create-role modal lives in add_role.html and uses .rl-modal class #}
+  {% include 'role/add_role.html' %}
+
+  <!-- Edit Role centre modal -->
+  <div id="editRoleModal" class="rl-modal" role="dialog" aria-labelledby="rlEditTitle" aria-modal="true">
+    <div class="rl-modal-head">
+      <h5 id="rlEditTitle"><i class="fas fa-edit"></i> Edit <em>role</em></h5>
+      <button type="button" class="rl-modal-close" id="closeEditRoleModalBtn" aria-label="Close">&times;</button>
+    </div>
+    <div class="rl-modal-content" id="editRoleModalBody"></div>
+  </div>
+  <div id="editRoleModalBackdrop" class="rl-modal-backdrop"></div>
+
+  <!-- View Role centre modal -->
+  <div id="viewRoleModal" class="rl-modal" role="dialog" aria-labelledby="rlViewTitle" aria-modal="true">
+    <div class="rl-modal-head">
+      <h5 id="rlViewTitle"><i class="fas fa-eye"></i> View <em>role</em></h5>
+      <button type="button" class="rl-modal-close" id="closeViewRoleModalBtn" aria-label="Close">&times;</button>
+    </div>
+    <div class="rl-modal-content" id="viewRoleModalBody"></div>
+  </div>
+  <div id="viewRoleModalBackdrop" class="rl-modal-backdrop"></div>
+
+
+  <script src="{% static 'roles/role_list.js' %}"></script>
+  <script src="{% static 'js/cl-async-table.js' %}"></script>
+  <script src="{% static 'js/tours/cl-tour-role-list.js' %}" defer></script>
+  {% endblock %}

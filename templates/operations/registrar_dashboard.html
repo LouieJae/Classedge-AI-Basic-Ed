@@ -1,0 +1,661 @@
+{% extends 'base_operation.html' %}
+{% load static %}
+{% block title %}Registrar dashboard{% endblock %}
+{% block content %}
+
+  {% include "includes/_list_page_theme.html" %}
+
+  <style>
+    .cl-page {
+      --gap-row: 20px;
+      --gap-tile: 14px;
+      --pad-card: 22px 24px;
+    }
+    .cl-page .cl-card { margin-bottom: var(--gap-row); }
+    .cl-page .cl-card .cl-card-body { padding: var(--pad-card); }
+    .cl-page .cl-header { margin-bottom: 24px; }
+
+    .rg-role-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+    .rg-role-tag i { color: var(--brand-primary, #b7925a); font-size: 11px; }
+    .rg-asof {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-dim);
+    }
+    .rg-asof::before {
+      content: ""; width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--brand-primary, #1b4332);
+      box-shadow: 0 0 0 4px var(--brand-primary-soft);
+      animation: rg-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes rg-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+    /* ───── "Needs your attention" highlight ───── */
+    .rg-attn {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--brand-primary, #1b4332);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: var(--gap-row);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .rg-attn.is-warn { border-top-color: var(--rose, #c08479); }
+    .rg-attn::before {
+      content: ""; position: absolute;
+      top: -140px; right: -120px;
+      width: 360px; height: 360px;
+      background: radial-gradient(circle, var(--brand-primary-soft), transparent 65%);
+      pointer-events: none;
+    }
+    .rg-attn.is-warn::before {
+      background: radial-gradient(circle, rgba(192,132,121,0.16), transparent 65%);
+    }
+    .rg-attn-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      margin-bottom: 14px; position: relative;
+    }
+    .rg-attn-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      text-transform: uppercase; letter-spacing: 0.16em;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink);
+    }
+    .rg-attn.is-warn .rg-attn-eyebrow { color: var(--rose-deep, #b0413e); }
+    .rg-attn-title {
+      font-family: var(--display);
+      font-size: 22px; font-weight: 600;
+      color: var(--ink); margin: 6px 0 0;
+      letter-spacing: -0.015em;
+    }
+    .rg-attn-title em { font-style: italic; color: var(--brand-primary, #b7925a); font-weight: 500; }
+    .rg-attn.is-warn .rg-attn-title em { color: var(--rose-deep, #b0413e); }
+    .rg-attn-summary {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 8px 14px;
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12.5px; color: var(--ink-dim);
+      font-family: var(--display);
+    }
+    .rg-attn-summary strong { color: var(--ink); font-weight: 600; font-style: normal; }
+    .rg-attn-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px; position: relative;
+    }
+    .rg-attn-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--rose, #c08479);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+    }
+    .rg-attn-ico {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: rgba(192,132,121,0.14);
+      color: var(--rose-deep, #b0413e);
+      display: grid; place-items: center;
+      font-size: 13px; flex-shrink: 0;
+    }
+    .rg-attn-body { min-width: 0; flex: 1; line-height: 1.35; }
+    .rg-attn-label {
+      font-family: var(--display);
+      font-size: 14px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+      display: block;
+    }
+    .rg-attn-detail { font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; }
+    .rg-attn-clear {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 20px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--brand-primary, #1b4332);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      font-family: var(--display);
+      font-size: 14.5px;
+    }
+    .rg-attn-clear i {
+      width: 36px; height: 36px;
+      border-radius: 11px;
+      background: var(--brand-primary-soft);
+      color: var(--ink);
+      display: grid; place-items: center;
+      font-size: 15px; flex-shrink: 0;
+    }
+    .rg-attn-clear strong { font-weight: 600; color: var(--ink); }
+    .rg-attn-clear .sub { display: block; font-size: 12px; color: var(--ink-dim); margin-top: 2px; font-style: italic; }
+
+    /* ───── Term progress strip ───── */
+    .rg-term {
+      display: flex; align-items: center; gap: 18px;
+      padding: 14px 20px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--gap-row);
+      flex-wrap: wrap;
+    }
+    .rg-term .label {
+      font-family: var(--display);
+      font-size: 13px; font-weight: 600; color: var(--ink);
+    }
+    .rg-term .label .name { color: var(--ink); margin-right: 6px; }
+    .rg-term .label .week {
+      font-size: 11px; font-weight: 700;
+      color: var(--brand-primary, #b7925a);
+      background: var(--brand-primary-soft);
+      padding: 2px 8px;
+      border-radius: 100px;
+      margin-left: 6px;
+      font-family: var(--body);
+      letter-spacing: 0.04em;
+    }
+    .rg-term .bar {
+      flex: 1; min-width: 180px;
+      height: 7px;
+      background: var(--cream-2);
+      border-radius: 100px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .rg-term .bar > span {
+      display: block; height: 100%;
+      background: linear-gradient(90deg, var(--ink), var(--brand-primary, #b7925a));
+      border-radius: 100px;
+    }
+    .rg-term .right {
+      font-size: 12px;
+      color: var(--ink-dim);
+      font-variant-numeric: tabular-nums;
+      font-family: var(--display);
+      font-style: italic;
+    }
+    .rg-term .right strong { color: var(--ink); font-weight: 600; font-style: normal; }
+
+    /* ───── KPI tiles ───── */
+    .rg-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--gap-tile);
+      margin-bottom: var(--gap-row);
+    }
+    @media (max-width: 1100px) { .rg-kpis { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px)  { .rg-kpis { grid-template-columns: 1fr; } }
+    .rg-kpi {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 22px 20px;
+      box-shadow: var(--shadow);
+    }
+    .rg-kpi-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 18px;
+    }
+    .rg-kpi-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    .rg-kpi-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--cream-2);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 12px;
+    }
+    .rg-kpi.tone-ok     .rg-kpi-icon { background: var(--brand-primary-soft); color: var(--ink); }
+    .rg-kpi.tone-danger .rg-kpi-icon { background: rgba(192,132,121,0.14); color: var(--rose-deep, #b0413e); }
+    .rg-kpi-value {
+      font-family: var(--display);
+      font-size: 32px; font-weight: 600;
+      color: var(--ink);
+      line-height: 1;
+      letter-spacing: -0.025em;
+      font-variant-numeric: tabular-nums;
+    }
+    .rg-kpi.tone-danger .rg-kpi-value { color: var(--rose-deep, #b0413e); }
+    .rg-kpi-foot {
+      margin-top: 12px;
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      font-weight: 500;
+    }
+
+    /* ───── Two-column grids ───── */
+    .rg-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 20px;
+      margin-bottom: var(--gap-row);
+    }
+    @media (max-width: 1100px) { .rg-grid { grid-template-columns: 1fr; } }
+    .rg-grid .cl-card { margin-bottom: 0; }
+
+    .rg-meta-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* ───── Capacity ledger ───── */
+    .rg-cap-list { display: flex; flex-direction: column; gap: 10px; }
+    .rg-cap-row {
+      display: grid;
+      grid-template-columns: minmax(70px, auto) 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .rg-cap-row .code {
+      font-family: 'SFMono-Regular', monospace;
+      font-size: 11.5px; font-weight: 700;
+      color: var(--ink);
+      background: var(--cream-2);
+      border: 1px solid var(--border);
+      padding: 4px 9px;
+      border-radius: 6px;
+      letter-spacing: 0.04em;
+    }
+    .rg-cap-row .name {
+      font-family: var(--display);
+      font-size: 13px; font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+      min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .rg-cap-row .bar {
+      width: 100px; height: 7px;
+      background: var(--cream-2);
+      border-radius: 100px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .rg-cap-row .bar > span {
+      display: block; height: 100%;
+      background: var(--brand-primary, #1b4332);
+      border-radius: 100px;
+    }
+    .rg-cap-row.tone-warn  .bar > span { background: var(--brand-primary, #b7925a); }
+    .rg-cap-row.tone-danger .bar > span { background: var(--rose, #c08479); }
+    .rg-cap-row .pct {
+      font-family: var(--display);
+      font-size: 13.5px; font-weight: 700;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      min-width: 48px; text-align: right;
+    }
+    .rg-cap-row.tone-warn  .pct { color: var(--brand-primary, #b7925a); }
+    .rg-cap-row.tone-danger .pct { color: var(--rose-deep, #b0413e); }
+
+    .rg-cap-summary {
+      display: flex; align-items: center; gap: 18px;
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .rg-cap-donut {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background:
+        conic-gradient(var(--ink) calc(var(--pct) * 1%), var(--cream-2) 0);
+      display: grid; place-items: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .rg-cap-donut::after {
+      content: ""; position: absolute;
+      inset: 8px;
+      background: var(--paper);
+      border-radius: 50%;
+    }
+    .rg-cap-donut-num {
+      position: relative; z-index: 1;
+      font-family: var(--display);
+      font-size: 18px; font-weight: 700;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+    .rg-cap-totals {
+      display: flex; gap: 14px; flex-wrap: wrap;
+    }
+    .rg-cap-totals > div {
+      min-width: 80px;
+    }
+    .rg-cap-totals .num {
+      font-family: var(--display);
+      font-size: 20px; font-weight: 700;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+    }
+    .rg-cap-totals .lbl {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-muted);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    /* ───── Status mix ───── */
+    .rg-mix {
+      display: flex; flex-direction: column;
+      gap: 8px;
+    }
+    .rg-mix-bar {
+      display: flex; width: 100%;
+      height: 10px;
+      background: var(--cream-2);
+      border-radius: 100px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .rg-mix-bar > span:nth-child(1) { background: var(--brand-primary, #1b4332); }
+    .rg-mix-bar > span:nth-child(2) { background: var(--rose, #c08479); }
+    .rg-mix-bar > span:nth-child(3) { background: var(--brand-primary, #b7925a); }
+    .rg-mix-row {
+      display: grid;
+      grid-template-columns: 14px 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .rg-mix-row .swatch {
+      width: 12px; height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .rg-mix-row:nth-child(1) .swatch { background: var(--brand-primary, #1b4332); }
+    .rg-mix-row:nth-child(2) .swatch { background: var(--rose, #c08479); }
+    .rg-mix-row:nth-child(3) .swatch { background: var(--brand-primary, #b7925a); }
+    .rg-mix-row .num {
+      font-family: var(--display); font-weight: 700;
+      color: var(--ink); font-variant-numeric: tabular-nums;
+    }
+    .rg-mix-row .pct {
+      font-size: 11px; color: var(--ink-muted);
+      font-variant-numeric: tabular-nums;
+      min-width: 42px; text-align: right;
+    }
+
+    /* ───── Recent transactions feed ───── */
+    .rg-tx-list { display: flex; flex-direction: column; gap: 8px; }
+    .rg-tx-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .rg-tx-icon {
+      width: 32px; height: 32px;
+      border-radius: 9px;
+      background: var(--brand-primary-soft);
+      color: var(--brand-primary, #b7925a);
+      display: grid; place-items: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .rg-tx-row.is-dropped .rg-tx-icon { background: rgba(192,132,121,0.14); color: var(--rose-deep, #b0413e); }
+    .rg-tx-row.is-completed .rg-tx-icon { background: var(--brand-primary-soft); color: var(--ink); }
+    .rg-tx-body { flex: 1; min-width: 0; line-height: 1.3; }
+    .rg-tx-name {
+      font-family: var(--display);
+      font-size: 13px; font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+    }
+    .rg-tx-meta {
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      margin-top: 2px;
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    }
+    .rg-tx-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-muted); }
+    .rg-tx-meta .status {
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 10px;
+      color: var(--ink);
+    }
+    .rg-tx-row.is-dropped .rg-tx-meta .status { color: var(--rose-deep, #b0413e); }
+    .rg-tx-row.is-completed .rg-tx-meta .status { color: var(--ink); }
+    .rg-tx-tail {
+      font-family: var(--display);
+      font-size: 11.5px; font-weight: 600;
+      color: var(--ink-dim);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+      text-align: right;
+    }
+    .rg-tx-tail small { display: block; font-size: 10px; color: var(--ink-muted); margin-top: 2px; }
+
+    /* Empty states */
+    .rg-empty {
+      text-align: center;
+      padding: 28px 14px;
+      color: var(--ink-muted);
+      font-size: 13px;
+    }
+    .rg-empty i {
+      display: block;
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--ink-muted);
+      opacity: 0.6;
+    }
+
+    @media (max-width: 720px) {
+      .rg-attn { padding: 20px; }
+      .rg-attn-title { font-size: 18px; }
+    }
+  </style>
+
+  <div class="cl-page">
+
+    {# ───────── Header ───────── #}
+    <div class="cl-header">
+      <div>
+        <span class="rg-role-tag"><i class="fas fa-clipboard-list"></i> {{ role_tag }}</span>
+        <h2>Good {{ time_of_day }}, <em>{{ request.user.first_name|default:request.user.username }}</em></h2>
+        <p>Capacity, enrollments moving today, and the term-end clock.</p>
+      </div>
+      <div style="display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="cl-tour-replay" data-cl-tour="registrar">
+          <i class="fas fa-circle-question"></i> Show me how
+        </button>
+        <span class="rg-asof">As of {{ as_of }}</span>
+      </div>
+    </div>
+
+    {# ───────── HIGHLIGHT: Needs your attention ───────── #}
+    <section class="rg-attn is-{{ attention_status }}">
+      <div class="rg-attn-head">
+        <div>
+          <div class="rg-attn-eyebrow">
+            <i class="fas {% if attention_status == 'warn' %}fa-bell{% else %}fa-circle-check{% endif %}"></i>
+            Needs your attention
+          </div>
+          <h2 class="rg-attn-title">
+            {% if attention_items %}
+              {{ attention_items|length }} item{{ attention_items|length|pluralize }} <em>to handle</em>
+            {% else %}
+              Records desk is <em>clear</em>
+            {% endif %}
+          </h2>
+        </div>
+        <div class="rg-attn-summary">
+          <span>
+            <strong>{{ overall_capacity.over }}</strong> over ·
+            <strong>{{ overall_capacity.near }}</strong> near capacity
+          </span>
+        </div>
+      </div>
+      {% if attention_items %}
+        <div class="rg-attn-grid">
+          {% for item in attention_items %}
+            <div class="rg-attn-item">
+              <span class="rg-attn-ico"><i class="fas {{ item.icon }}"></i></span>
+              <span class="rg-attn-body">
+                <span class="rg-attn-label">{{ item.label }}</span>
+                <span class="rg-attn-detail">{{ item.detail }}</span>
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="rg-attn-clear">
+          <i class="fas fa-circle-check"></i>
+          <div>
+            <strong>No capacity flags, no urgent drops.</strong>
+            <span class="sub">Last checked {{ as_of }}.</span>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    {# ───────── Term progress ───────── #}
+    {% if term_progress %}
+    <div class="rg-term">
+      <div class="label">
+        <span class="name">{{ term_progress.name }}</span>
+        <span class="week">Week {{ term_progress.current_week }} of {{ term_progress.total_weeks }}</span>
+      </div>
+      <div class="bar"><span style="width: {{ term_progress.pct }}%;"></span></div>
+      <div class="right">
+        {{ term_progress.start_date|date:"M j" }} — {{ term_progress.end_date|date:"M j, Y" }}
+        · <strong>{{ term_progress.days_left }}</strong> day{{ term_progress.days_left|pluralize }} left
+      </div>
+    </div>
+    {% endif %}
+
+    {# ───────── KPIs ───────── #}
+    <div class="rg-kpis">
+      {% for k in kpis %}
+        <div class="rg-kpi tone-{{ k.tone|default:'' }}">
+          <div class="rg-kpi-head">
+            <div class="rg-kpi-label">{{ k.label }}</div>
+            <div class="rg-kpi-icon">
+              {% if 'Active' in k.label %}<i class="fas fa-users"></i>
+              {% elif 'New' in k.label %}<i class="fas fa-bolt"></i>
+              {% elif 'Past' in k.label %}<i class="fas fa-arrow-trend-up"></i>
+              {% elif 'Drop' in k.label %}<i class="fas fa-user-minus"></i>
+              {% else %}<i class="fas fa-clipboard"></i>{% endif %}
+            </div>
+          </div>
+          <div class="rg-kpi-value">{{ k.value }}</div>
+          {% if k.hint %}<div class="rg-kpi-foot">{{ k.hint }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    {# ───────── Enrollment mix + Recent transactions ───────── #}
+    <div class="rg-grid">
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-chart-pie me-2"></i> Enrollment <em>mix</em></span>
+          <span class="rg-meta-pill">this semester</span>
+        </div>
+        <div class="cl-card-body">
+          {% if status_mix %}
+            <div class="rg-mix-bar" aria-hidden="true">
+              {% for m in status_mix %}<span style="width: {{ m.pct }}%;"></span>{% endfor %}
+            </div>
+            <div class="rg-mix">
+              {% for m in status_mix %}
+                <div class="rg-mix-row">
+                  <span class="swatch"></span>
+                  <span>{{ m.label }}</span>
+                  <span class="num">{{ m.value }}</span>
+                  <span class="pct">{{ m.pct }}%</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="rg-empty">
+              <i class="fas fa-chart-pie"></i>No enrollment activity yet.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="cl-card">
+        <div class="cl-card-header">
+          <span><i class="fas fa-clock-rotate-left me-2"></i> Recent <em>transactions</em></span>
+          <span class="rg-meta-pill">last 7 days</span>
+        </div>
+        <div class="cl-card-body">
+          {% if recent_rows %}
+            <div class="rg-tx-list">
+              {% for r in recent_rows %}
+                <div class="rg-tx-row is-{{ r.status }}">
+                  <span class="rg-tx-icon">
+                    {% if r.status == 'enrolled' %}<i class="fas fa-user-plus"></i>
+                    {% elif r.status == 'completed' %}<i class="fas fa-circle-check"></i>
+                    {% else %}<i class="fas fa-user-minus"></i>{% endif %}
+                  </span>
+                  <div class="rg-tx-body">
+                    <div class="rg-tx-name">{{ r.student }}</div>
+                    <div class="rg-tx-meta">
+                      <span class="status">{{ r.status }}</span>
+                      <span class="dot"></span>
+                      <span>{{ r.subject_name }}{% if r.subject_code %} · {{ r.subject_code }}{% endif %}</span>
+                    </div>
+                  </div>
+                  <div class="rg-tx-tail">
+                    {{ r.date|date:"M j" }}
+                    <small>{{ r.age }}d ago</small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="rg-empty">
+              <i class="fas fa-clock-rotate-left"></i>No transactions in the last 7 days.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="{% static 'js/tours/cl-tour-registrar.js' %}" defer></script>
+{% endblock %}

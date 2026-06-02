@@ -1,0 +1,236 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>500 · Something broke · {{ SCHOOL_NAME|default:"ClassEdge" }}</title>
+  <link rel="icon" type="image/png" href="{{ MEDIA_URL }}logos/HCCCI-logo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    :root {
+      --brand-primary: {{ SCHOOL_BRAND_COLOR|default:'#b7925a' }};
+      --brand-primary-soft: color-mix(in srgb, var(--brand-primary) 16%, transparent);
+      --paper: #ffffff;
+      --bg: #f6f4ef;
+      --ink: #1f2530;
+      --ink-dim: #5e6473;
+      --ink-muted: #9aa0ad;
+      --border: rgba(31, 37, 48, 0.08);
+      --danger: #c0392b;
+      --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
+      --warning: #c47a00;
+      --warning-soft: color-mix(in srgb, var(--warning) 14%, transparent);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      min-height: 100%;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at top right, var(--brand-primary-soft) 0%, transparent 55%),
+        radial-gradient(ellipse at bottom left, var(--warning-soft) 0%, transparent 50%),
+        var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    .err-page {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 24px;
+    }
+    .err-card {
+      width: 100%; max-width: 880px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 32px 80px -28px rgba(31, 37, 48, 0.22);
+      overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 760px) {
+      .err-card { grid-template-columns: 1fr; max-width: 480px; }
+      .err-illus { padding: 32px 24px 0; }
+      .err-content { padding: 32px 28px 40px; }
+      .err-code { font-size: 72px; }
+    }
+    .err-content {
+      padding: 56px 48px;
+      display: flex; flex-direction: column; justify-content: center;
+      gap: 14px;
+    }
+    .err-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--warning);
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: var(--warning-soft);
+      align-self: flex-start;
+    }
+    .err-code {
+      font-size: 96px; font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: var(--ink);
+      margin: 0;
+    }
+    .err-code em {
+      font-style: italic;
+      font-weight: 500;
+      color: var(--brand-primary);
+    }
+    .err-title {
+      font-size: 22px; font-weight: 700; margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .err-sub {
+      font-size: 15px; color: var(--ink-dim); margin: 0;
+      line-height: 1.55; max-width: 36ch;
+    }
+    .err-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+    .err-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 22px;
+      border-radius: 100px;
+      font-size: 14px; font-weight: 600;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+      cursor: pointer;
+    }
+    .err-btn-primary {
+      background: var(--brand-primary);
+      color: #ffffff;
+      box-shadow: 0 8px 24px -10px var(--brand-primary-soft);
+    }
+    .err-btn-primary:hover {
+      transform: translateY(-1px);
+      background: color-mix(in srgb, var(--brand-primary), black 12%);
+    }
+    .err-btn-ghost {
+      background: transparent;
+      color: var(--ink-dim);
+      border-color: var(--border);
+    }
+    .err-btn-ghost:hover {
+      color: var(--ink);
+      border-color: var(--brand-primary);
+    }
+    .err-illus {
+      padding: 56px 32px;
+      background: linear-gradient(135deg, var(--brand-primary-soft) 0%, transparent 70%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .err-illus svg { width: 100%; max-width: 320px; height: auto; }
+    .err-meta {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--ink-muted);
+      margin-top: 4px;
+    }
+    /* Gears slowly turning — visual cue that the server is "working on it" */
+    .gear-lg { transform-origin: 105px 165px; animation: spinL 9s linear infinite; }
+    .gear-sm { transform-origin: 215px 110px; animation: spinR 6s linear infinite; }
+    @keyframes spinL { to { transform: rotate(-360deg); } }
+    @keyframes spinR { to { transform: rotate(360deg); } }
+    /* Spark flicker */
+    .spark { animation: flicker 1.6s steps(2, end) infinite; }
+    @keyframes flicker {
+      0%, 30%, 60%, 100% { opacity: 0.95; }
+      40%, 80% { opacity: 0.25; }
+    }
+  </style>
+</head>
+<body>
+  <div class="err-page">
+    <div class="err-card">
+      <div class="err-content">
+        <span class="err-eyebrow"><i class="fas fa-screwdriver-wrench"></i> Something broke</span>
+        <h1 class="err-code">5<em>0</em>0</h1>
+        <p class="err-title">We're patching it now.</p>
+        <p class="err-sub">
+          Our servers hit an unexpected error while handling your request. The team has been
+          notified — try again in a moment, or head back to the dashboard.
+        </p>
+        <div class="err-actions">
+          <a class="err-btn err-btn-primary" href="javascript:location.reload()">
+            <i class="fas fa-rotate-right" aria-hidden="true"></i> Try again
+          </a>
+          <a class="err-btn err-btn-ghost" href="/">
+            <i class="fas fa-house" aria-hidden="true"></i> Back to dashboard
+          </a>
+        </div>
+        <span class="err-meta">
+          <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+          Error code · 500 Internal Server Error
+        </span>
+      </div>
+
+      <div class="err-illus" aria-hidden="true">
+        <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="brandGear500" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--brand-primary)" stop-opacity="0.95"/>
+              <stop offset="100%" stop-color="var(--brand-primary)" stop-opacity="0.65"/>
+            </linearGradient>
+            <linearGradient id="warningGear500" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--warning)" stop-opacity="0.95"/>
+              <stop offset="100%" stop-color="var(--warning)" stop-opacity="0.7"/>
+            </linearGradient>
+          </defs>
+          <ellipse cx="160" cy="285" rx="120" ry="14" fill="var(--brand-primary)" opacity="0.10"/>
+
+          <!-- Large gear (brand) -->
+          <g class="gear-lg">
+            <g transform="translate(105 165)">
+              <!-- 10 teeth -->
+              <g fill="url(#brandGear500)">
+                <rect x="-10" y="-78" width="20" height="22" rx="3"/>
+                <rect x="-10" y="-78" width="20" height="22" rx="3" transform="rotate(36)"/>
+                <rect x="-10" y="-78" width="20" height="22" rx="3" transform="rotate(72)"/>
+                <rect x="-10" y="-78" width="20" height="22" rx="3" transform="rotate(108)"/>
+                <rect x="-10" y="-78" width="20" height="22" rx="3" transform="rotate(144)"/>
+                <rect x="-10" y="-78" width="20" height="22" rx="3" transform="rotate(180)"/>
+                <rect x="-10" y="-78" width="20" height="22" rx="3" transform="rotate(216)"/>
+                <rect x="-10" y="-78" width="20" height="22" rx="3" transform="rotate(252)"/>
+                <rect x="-10" y="-78" width="20" height="22" rx="3" transform="rotate(288)"/>
+                <rect x="-10" y="-78" width="20" height="22" rx="3" transform="rotate(324)"/>
+              </g>
+              <circle cx="0" cy="0" r="62" fill="url(#brandGear500)"/>
+              <circle cx="0" cy="0" r="46" fill="#ffffff" opacity="0.92"/>
+              <circle cx="0" cy="0" r="14" fill="url(#brandGear500)"/>
+            </g>
+          </g>
+
+          <!-- Small gear (warning amber, in the upper right) -->
+          <g class="gear-sm">
+            <g transform="translate(215 110)">
+              <g fill="url(#warningGear500)">
+                <rect x="-7" y="-50" width="14" height="14" rx="2"/>
+                <rect x="-7" y="-50" width="14" height="14" rx="2" transform="rotate(45)"/>
+                <rect x="-7" y="-50" width="14" height="14" rx="2" transform="rotate(90)"/>
+                <rect x="-7" y="-50" width="14" height="14" rx="2" transform="rotate(135)"/>
+                <rect x="-7" y="-50" width="14" height="14" rx="2" transform="rotate(180)"/>
+                <rect x="-7" y="-50" width="14" height="14" rx="2" transform="rotate(225)"/>
+                <rect x="-7" y="-50" width="14" height="14" rx="2" transform="rotate(270)"/>
+                <rect x="-7" y="-50" width="14" height="14" rx="2" transform="rotate(315)"/>
+              </g>
+              <circle cx="0" cy="0" r="40" fill="url(#warningGear500)"/>
+              <circle cx="0" cy="0" r="28" fill="#ffffff" opacity="0.92"/>
+              <circle cx="0" cy="0" r="9" fill="url(#warningGear500)"/>
+            </g>
+          </g>
+
+          <!-- Warning spark on big gear (flickers) -->
+          <g class="spark" transform="translate(74 110)">
+            <polygon points="0,-14 4,-2 16,-2 6,4 10,16 0,8 -10,16 -6,4 -16,-2 -4,-2"
+                     fill="var(--danger)"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

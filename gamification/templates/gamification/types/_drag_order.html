@@ -1,0 +1,58 @@
+{% load static %}
+{% comment %}Drag-to-sort ordering — JS-driven, included by side_activity_play.html{% endcomment %}
+
+<div id="drag-order-container">
+  <p style="font-size:.9rem;color:var(--muted);margin-bottom:1rem;">Drag the items into the correct order.</p>
+
+  <div id="do-list" style="display:flex;flex-direction:column;gap:.5rem;max-width:500px;margin:0 auto;"></div>
+
+  <div style="margin-top:1.5rem;text-align:center;">
+    <button type="button" id="do-submit-btn"
+            style="padding:.75rem 2rem;font-size:1rem;border:none;border-radius:8px;background:var(--primary);color:#fff;cursor:pointer;">Submit Order</button>
+  </div>
+</div>
+
+<script src="{% static 'js/side_activities/drag.js' %}"></script>
+<script src="{% static 'js/side_activities/submit.js' %}"></script>
+<script>
+(function() {
+  var sa = window.SIDE_ACTIVITY;
+  var content = sa.content;
+  var items = content.items || [];
+  var correctOrder = content.correct_order || [];
+  var startTime = Date.now();
+
+  var listEl = document.getElementById('do-list');
+
+  // Shuffle items for display
+  var shuffled = items.map(function(item, idx) { return {text: item, origIdx: idx}; });
+  for (var i = shuffled.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = tmp;
+  }
+
+  shuffled.forEach(function(item) {
+    var el = document.createElement('div');
+    el.setAttribute('data-drag-item', '');
+    el.setAttribute('data-original-index', item.origIdx);
+    el.textContent = item.text;
+    el.style.cssText = 'padding:.85rem 1rem;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:var(--text);cursor:grab;user-select:none;';
+    listEl.appendChild(el);
+  });
+
+  var sorter = initDragSort(listEl);
+
+  document.getElementById('do-submit-btn').addEventListener('click', function() {
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+    var userOrder = sorter.getOrder();
+    var correctCount = 0;
+    for (var i = 0; i < correctOrder.length; i++) {
+      if (userOrder[i] === correctOrder[i]) correctCount++;
+    }
+    var score = correctOrder.length > 0 ? correctCount / correctOrder.length : 0;
+    submitAttempt(sa.id, score, elapsed, {user_order: userOrder, correct_order: correctOrder});
+  });
+})();
+</script>

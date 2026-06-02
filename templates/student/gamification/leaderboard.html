@@ -1,0 +1,155 @@
+{% extends is_student_role|yesno:'student_base.html,base_operation.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}
+  Leaderboard
+{% endblock %}
+
+{% block content %}
+  <link rel="stylesheet" href="{% static 'gamification/student/leaderboard.css' %}" />
+
+  <div class="lb-shell">
+    <div class="lb-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div>
+        <h1 class="page-title">Leaderboard</h1>
+        <div class="page-sub">Ranked by total XP this semester</div>
+      </div>
+      <button type="button" class="cl-tour-replay" data-cl-tour="leaderboard">
+        <i class="fas fa-circle-question"></i> Show me how
+      </button>
+    </div>
+
+    {% if rows %}
+      {# Podium for top 3 #}
+      {% if rows|length >= 1 %}
+        <div class="lb-podium">
+          {# Silver — rank 2 #}
+          {% if rows|length >= 2 %}
+            {% with row=rows|slice:'1:2'|first %}
+              <div class="lb-podium-card silver-rank{% if row.is_you %} is-you{% endif %}">
+                <div class="crown">2</div>
+                <div class="lb-podium-avatar">{{ row.initial }}</div>
+                <h3 class="lb-podium-name">
+                  {% if row.is_you %}
+                    You
+                  {% else %}
+                    {{ row.name }}
+                  {% endif %}
+                </h3>
+                <div class="lb-podium-meta">2nd place</div>
+                <div class="lb-podium-xp">
+                  {{ row.xp|intcomma }}<span class="unit">XP</span>
+                </div>
+                <div class="lb-podium-stats">
+                  <span><i class="fas fa-bolt"></i> Lv {{ row.level }}</span>
+                  <span><i class="fas fa-medal"></i> {{ row.badges }}</span>
+                </div>
+              </div>
+            {% endwith %}
+          {% else %}
+            <div></div>
+          {% endif %}
+
+          {# Gold — rank 1 #}
+          {% with row=rows|slice:':1'|first %}
+            <div class="lb-podium-card gold-rank{% if row.is_you %} is-you{% endif %}">
+              <div class="crown">
+                <i class="fas fa-crown"></i>
+              </div>
+              <div class="lb-podium-avatar">{{ row.initial }}</div>
+              <h3 class="lb-podium-name">
+                {% if row.is_you %}
+                  You
+                {% else %}
+                  {{ row.name }}
+                {% endif %}
+              </h3>
+              <div class="lb-podium-meta">1st place</div>
+              <div class="lb-podium-xp">
+                {{ row.xp|intcomma }}<span class="unit">XP</span>
+              </div>
+              <div class="lb-podium-stats">
+                <span><i class="fas fa-bolt"></i> Lv {{ row.level }}</span>
+                <span><i class="fas fa-medal"></i> {{ row.badges }}</span>
+              </div>
+            </div>
+          {% endwith %}
+
+          {# Bronze — rank 3 #}
+          {% if rows|length >= 3 %}
+            {% with row=rows|slice:'2:3'|first %}
+              <div class="lb-podium-card bronze-rank{% if row.is_you %} is-you{% endif %}">
+                <div class="crown">3</div>
+                <div class="lb-podium-avatar">{{ row.initial }}</div>
+                <h3 class="lb-podium-name">
+                  {% if row.is_you %}
+                    You
+                  {% else %}
+                    {{ row.name }}
+                  {% endif %}
+                </h3>
+                <div class="lb-podium-meta">3rd place</div>
+                <div class="lb-podium-xp">
+                  {{ row.xp|intcomma }}<span class="unit">XP</span>
+                </div>
+                <div class="lb-podium-stats">
+                  <span><i class="fas fa-bolt"></i> Lv {{ row.level }}</span>
+                  <span><i class="fas fa-medal"></i> {{ row.badges }}</span>
+                </div>
+              </div>
+            {% endwith %}
+          {% else %}
+            <div></div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# Rest of the rankings (4 onward, or all if fewer than 3) #}
+      {% if rows|length > 3 %}
+        <div class="lb-list-panel">
+          <div class="lb-list-header">
+            <h3 class="lb-list-title">Full standings</h3>
+            <span class="lb-list-meta">{{ rows|length }} ranked</span>
+          </div>
+          {% for row in rows %}
+            {% if forloop.counter > 3 %}
+              <div class="lb-row{% if row.is_you %} is-you{% endif %}">
+                <div class="lb-row-rank">#{{ row.rank }}</div>
+                <div class="lb-row-avatar">{{ row.initial }}</div>
+                <div class="lb-row-name">
+                  {% if row.is_you %}
+                    You
+                  {% else %}
+                    {{ row.name }}
+                  {% endif %}
+                </div>
+                <div class="lb-row-level">
+                  <i class="fas fa-bolt"></i> Lv {{ row.level }}
+                </div>
+                <div class="lb-row-badges">
+                  <i class="fas fa-medal"></i> {{ row.badges }}
+                </div>
+                <div class="lb-row-xp">
+                  {{ row.xp|intcomma }}<span class="unit">XP</span>
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="lb-list-panel">
+        <div class="lb-empty">
+          <div class="icon">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <h3>No leaderboard yet</h3>
+          <p>Rankings will appear as soon as activity gets logged this semester.</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <script src="{% static 'js/tours/cl-tour-leaderboard.js' %}" defer></script>
+{% endblock %}

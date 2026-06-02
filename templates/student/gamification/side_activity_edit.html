@@ -1,0 +1,45 @@
+{% extends "student_base.html" %}
+
+{% block title %}Edit — {{ activity.title }}{% endblock %}
+
+{% block content %}
+<section class="hero" style="padding-bottom:1rem;">
+  <h1>Edit &mdash; {{ activity.title }}</h1>
+</section>
+
+<div style="max-width:640px;padding:0 1rem 2rem;">
+  <form method="post">
+    {% csrf_token %}
+
+    {% for field in form %}
+    <div style="margin-bottom:1rem;">
+      <label for="{{ field.id_for_label }}" style="display:block;font-weight:600;margin-bottom:.25rem;color:var(--text);">
+        {{ field.label }}
+      </label>
+      {{ field }}
+      {% if field.help_text %}
+      <small style="color:var(--muted);">{{ field.help_text }}</small>
+      {% endif %}
+      {% for error in field.errors %}
+      <div style="color:#e74c3c;font-size:.85rem;margin-top:.25rem;">{{ error }}</div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <div style="display:flex;gap:1rem;align-items:center;margin-top:1.5rem;">
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="{% url 'side_activity_list' subject.pk %}" style="color:var(--primary);">Cancel</a>
+    </div>
+  </form>
+
+  <hr style="border-color:var(--border);margin:2rem 0;">
+
+  <form method="post" action="{% url 'side_activity_delete' activity.pk %}"
+        onsubmit="return confirm('Delete this activity? This cannot be undone.');">
+    {% csrf_token %}
+    <button type="submit" class="btn" style="background:#e74c3c;color:#fff;border:none;padding:.5rem 1.25rem;border-radius:6px;cursor:pointer;">
+      Delete Activity
+    </button>
+  </form>
+</div>
+{% endblock %}

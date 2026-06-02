@@ -1,0 +1,594 @@
+{% extends is_student_role|yesno:"student_base.html,base.html" %}
+{% load static %}
+
+{% block title %}
+  {{ activity.activity_name }} - Questions
+{% endblock %}
+
+{% block content %}
+    <!-- Content Header -->
+<h3 class="mb-4">{{ activity.activity_name }}</h3>
+
+<!-- Main Content -->
+  {% if is_teacher or is_time_keeper %}
+    <div class="card shadow-sm p-3 mb-4">
+      <h5 class="text-secondary">Teacher View - Question and Answer Key</h5>
+      {% for question in questions %}
+        <div class="border rounded p-3 mb-3">
+          <label class="fw-bold">{{ forloop.counter }}. {{ question.question_text|safe }}
+            <span class="text-muted">(Max Score: {{ question.score }})</span>
+          </label>
+          <div class="mt-2">
+            {% if question.quiz_type.name == 'Multiple Choice' %}
+              <p class="text-success mb-1">
+                Correct Answer:
+                {% if question.correct_answer_display %}{{ question.correct_answer_display }}{% elif not question.correct_answer_image %}{{ question.correct_answer }}{% endif %}
+              </p>
+              {% if question.correct_answer_image %}
+                <img src="{{ question.correct_answer_image.url }}" alt="Correct answer image" style="max-height: 120px; border-radius: 6px;" class="mb-2">
+              {% endif %}
+            {% elif question.quiz_type.name == 'True/False' %}
+              <p class="text-success">Correct Answer: {{ question.correct_answer }}</p>
+            {% elif question.quiz_type.name == 'Essay' %}
+              <p class="text-muted">Essay Question (No specific answer)</p>
+
+              <h6>Question Instructions:</h6>
+                {% if question.question_instruction %}
+                  <a href="{{ question.question_instruction.url }}" target="_blank" class="btn btn-primary">
+                    Open Instructions
+                  </a>
+                {% else %}
+                  <p>No instructions provided.</p>
+                {% endif %}
+              <!-- Display rubric items for Essay questions -->
+              {% if question.rubric_items %}
+                <div class="mt-3">
+                  <h6>Rubric Criteria:</h6>
+                  <table class="table table-sm table-bordered">
+                    <thead>
+                      <tr>
+                        <th>Rubric</th>
+                        <th>Points</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for rubric_item in question.rubric_items %}
+                        <tr>
+                          <td>{{ rubric_item.rubric.rubric_name }}</td>
+                          <td>{{ rubric_item.point|floatformat:0 }}%</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% endif %}
+            {% elif question.quiz_type.name == 'Matching Type' %}
+              <ul class="list-group">
+                {% for pair in question.pairs %}
+                  <li class="list-group-item">{{ pair.left }} → {{ pair.right }}</li>
+                {% endfor %}
+              </ul>
+            {% elif question.quiz_type.name == 'Calculated Numeric' %}
+              <p class="text-success">Correct Answer: \( {{ question.correct_answer|safe }} \)</p>
+            {% elif question.quiz_type.name == 'Document' %}
+              <p>No Document uploaded</p>
+              <!-- Display rubric items for Document questions -->
+              {% if question.rubric_items %}
+                <div class="mt-3">
+                  <h6>Rubric Criteria:</h6>
+                  <table class="table table-sm table-bordered">
+                    <thead>
+                      <tr>
+                        <th>Rubric</th>
+                        <th>Points</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for rubric_item in question.rubric_items %}
+                        <tr>
+                          <td>{{ rubric_item.rubric.rubric_name }}</td>
+                          <td>{{ rubric_item.point|floatformat:0 }}%</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% endif %}
+            {% else %}
+              <p class="text-success">Correct Answer: {{ question.correct_answer }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
+  {% elif is_student %}
+    {% if not can_retake %}
+      <div class="alert alert-danger">You have reached the maximum number of retakes for this assessment.</div>
+      <a href="{% url 'studentActivityView' activity.id %}" class="btn btn-info">View Assessment Summary</a>
+    {% else %}
+      {% if not has_answered %}
+        <link rel="stylesheet" href="{% static 'activity/question/display_question.css' %}" />
+
+        <div class="dq-shell">
+          <div class="dq-topbar">
+            <div class="dq-timer" id="dqTimer">
+              <i class="fas fa-clock"></i>
+              <span id="timer">--:--</span>
+            </div>
+            <div class="dq-progress-wrap">
+              <div class="dq-progress-meta">
+                <span>Progress</span>
+                <span><strong id="dqAnswered">0</strong> of {{ questions|length }} answered</span>
+              </div>
+              <div class="dq-progress-bar"><div class="dq-progress-fill" id="dqProgress"></div></div>
+            </div>
+          </div>
+
+          <div class="dq-dots" id="dqDots">
+            {% for question in questions %}
+              <button type="button" class="dq-dot" data-idx="{{ forloop.counter0 }}" data-qid="{{ question.id }}">{{ forloop.counter }}</button>
+            {% endfor %}
+          </div>
+
+          <!-- Student Answer Form -->
+          <form method="post" action="{% url 'submit_answers' activity.id %}" enctype="multipart/form-data" id="activity-form"
+                data-cl-loading data-cl-loading-label="Submitting…">
+            {% csrf_token %}
+            {% for question in questions %}
+              <div class="dq-question{% if forloop.first %} is-active{% endif %}" data-idx="{{ forloop.counter0 }}" data-qid="{{ question.id }}" data-qtype="{{ question.quiz_type.name }}">
+                <div class="dq-card">
+                  <div class="dq-q-meta">
+                    <span class="dq-q-num">Q{{ forloop.counter }}</span>
+                    {% if question.quiz_type.name %}<span class="dq-q-pill">{{ question.quiz_type.name }}</span>{% endif %}
+                    <span class="dq-q-pts">{{ question.score }} pts</span>
+                  </div>
+
+                  <div class="dq-q-text">{{ question.question_text|safe }}</div>
+
+                  {% if question.quiz_type.name == 'Multiple Choice' %}
+                    {% with display_choices=question.ordered_choices|default:question.choices.all %}
+                    <div class="dq-choices">
+                      {% for choice in display_choices %}
+                        {% with cval=choice.id|stringformat:"s" %}{% with cidval="cid:"|add:cval %}
+                        <label class="dq-choice {% if question.prior_answer == cidval %}is-selected{% endif %}" for="choice_{{ choice.id }}">
+                          <input class="dq-choice-input" type="radio" name="question_{{ question.id }}" id="choice_{{ choice.id }}" value="{{ cidval }}" {% if question.prior_answer == cidval %}checked{% endif %} {% if not can_retake %}disabled{% endif %} />
+                          <span class="dq-choice-letter">{{ forloop.counter|stringformat:"d" }}</span>
+                          <div class="dq-choice-body">
+                            {% if choice.choice_image %}
+                              <img src="{{ choice.choice_image.url }}" alt="Choice {{ forloop.counter }} image" onclick="event.preventDefault(); window.open('{{ choice.choice_image.url }}','_blank')">
+                            {% endif %}
+                            {% if choice.choice_text %}<span>{{ choice.choice_text }}</span>{% elif not choice.choice_image %}<span class="text-muted">(empty)</span>{% endif %}
+                          </div>
+                        </label>
+                        {% endwith %}{% endwith %}
+                      {% endfor %}
+                    </div>
+                    {% endwith %}
+                  {% elif question.quiz_type.name == 'True/False' %}
+                    <div class="dq-tf">
+                      <label class="dq-choice {% if question.prior_answer == 'True' %}is-selected{% endif %}">
+                        <input class="dq-choice-input" type="radio" name="question_{{ question.id }}" id="true_{{ question.id }}" value="True" {% if question.prior_answer == 'True' %}checked{% endif %} {% if not can_retake %}disabled{% endif %} />
+                        <span class="dq-choice-letter"><i class="fas fa-check"></i></span>
+                        <div class="dq-choice-body"><span>True</span></div>
+                      </label>
+                      <label class="dq-choice {% if question.prior_answer == 'False' %}is-selected{% endif %}">
+                        <input class="dq-choice-input" type="radio" name="question_{{ question.id }}" id="false_{{ question.id }}" value="False" {% if question.prior_answer == 'False' %}checked{% endif %} {% if not can_retake %}disabled{% endif %} />
+                        <span class="dq-choice-letter"><i class="fas fa-times"></i></span>
+                        <div class="dq-choice-body"><span>False</span></div>
+                      </label>
+                    </div>
+                  {% elif question.quiz_type.name == 'Essay' %}
+                    {% if question.rubric_items %}
+                      <div>
+                        <div class="dq-rubric-title">Rubric criteria</div>
+                        <table class="dq-rubric-table">
+                          <thead><tr><th>Rubric</th><th style="width:90px;">Points</th></tr></thead>
+                          <tbody>
+                            {% for rubric_item in question.rubric_items %}
+                              <tr><td>{{ rubric_item.rubric.rubric_name }}</td><td>{{ rubric_item.point|floatformat:0 }}%</td></tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    {% endif %}
+                    <textarea name="question_{{ question.id }}" class="dq-input dq-text-input" placeholder="Write your answer here..." {% if not can_retake %}disabled{% endif %}>{{ question.prior_answer|default:'' }}</textarea>
+                  {% elif question.quiz_type.name == 'Matching Type' %}
+                    {% for pair in question.pairs %}
+                      <div class="dq-match-row">
+                        <input type="text" class="dq-input" value="{{ pair.left }}" readonly />
+                        <span class="dq-match-arrow"><i class="fas fa-arrow-right"></i></span>
+                        <select name="matching_right_{{ question.id }}_{{ forloop.counter0 }}" class="dq-input dq-match-select" required>
+                          <option value="" disabled selected>Select a match</option>
+                          {% for right_term in question.shuffled_right_terms %}
+                            <option value="{{ right_term }}">{{ right_term }}</option>
+                          {% endfor %}
+                        </select>
+                        <input type="hidden" name="matching_left_{{ question.id }}_{{ forloop.counter0 }}" value="{{ pair.left }}" />
+                      </div>
+                    {% endfor %}
+                  {% elif question.quiz_type.name == 'Calculated Numeric' %}
+                    <input type="text" name="question_{{ question.id }}" class="dq-input dq-text-input" placeholder="Enter your answer" value="{{ question.prior_answer|default:'' }}" {% if not can_retake %}disabled{% endif %} />
+                  {% elif question.quiz_type.name == 'Document' %}
+                    {% if question.rubric_items %}
+                      <div>
+                        <div class="dq-rubric-title">Rubric criteria</div>
+                        <table class="dq-rubric-table">
+                          <thead><tr><th>Rubric</th><th style="width:90px;">Points</th></tr></thead>
+                          <tbody>
+                            {% for rubric_item in question.rubric_items %}
+                              <tr><td>{{ rubric_item.rubric.rubric_name }}</td><td>{{ rubric_item.point|floatformat:0 }}%</td></tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    {% endif %}
+                    <input type="file" name="question_{{ question.id }}" class="dq-input dq-file-input" {% if not can_retake %}disabled{% endif %} />
+                  {% else %}
+                    <input type="text" name="question_{{ question.id }}" class="dq-input dq-text-input" placeholder="Enter your answer" value="{{ question.prior_answer|default:'' }}" {% if not can_retake %}disabled{% endif %} />
+                  {% endif %}
+
+                  <div class="dq-nav">
+                    <button type="button" class="dq-btn dq-prev"><i class="fas fa-arrow-left"></i> Previous</button>
+                    <span class="dq-spacer"></span>
+                    {% if forloop.last %}
+                      {% if can_retake %}
+                        <button type="submit" class="dq-btn dq-btn--submit"><i class="fas fa-paper-plane"></i> Submit answers</button>
+                      {% endif %}
+                    {% else %}
+                      <button type="button" class="dq-btn dq-btn--primary dq-next">Next <i class="fas fa-arrow-right"></i></button>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </form>
+        </div>
+      {% else %}
+        
+        <div class="da-shell">
+          <div class="da-card">
+            <div class="da-status-icon"><i class="fas fa-circle-check"></i></div>
+            <h1 class="da-title">You've already submitted this assessment</h1>
+            <p class="da-sub">
+              Nice work — your answers have been recorded.
+              {% if can_retake %}You still have retakes available below.{% endif %}
+            </p>
+
+            {% if attempt_count %}
+              <div class="da-attempt-count">
+                <strong>{{ attempt_count }}</strong> attempt{{ attempt_count|pluralize }} on record
+                · max {{ activity.max_retake|default:1 }}
+              </div>
+            {% endif %}
+
+            <div class="da-attempts">
+              {% if first_attempt %}
+                <div class="da-attempt">
+                  <div class="da-attempt-label"><i class="fas fa-flag-checkered"></i> First attempt</div>
+                  <div class="da-attempt-score">
+                    {{ first_attempt.score|floatformat:0 }}<span class="max">/ {{ activity.max_score|default:0 }}</span>
+                  </div>
+                  {% if activity.max_score %}
+                    {% widthratio first_attempt.score activity.max_score 100 as first_pct %}
+                    <span class="da-attempt-pct{% if first_pct|add:0 < 50 %} fail{% endif %}">
+                      <i class="fas fa-percentage"></i> {{ first_pct }}%
+                    </span>
+                  {% endif %}
+                  {% if first_attempt.submitted_at %}
+                    <div class="da-attempt-meta">{{ first_attempt.submitted_at|date:"M j, Y · g:i A" }}</div>
+                  {% endif %}
+                </div>
+              {% endif %}
+
+              {% if latest_attempt and attempt_count > 1 %}
+                <div class="da-attempt">
+                  <div class="da-attempt-label"><i class="fas fa-clock-rotate-left"></i> Latest attempt</div>
+                  <div class="da-attempt-score">
+                    {{ latest_attempt.score|floatformat:0 }}<span class="max">/ {{ activity.max_score|default:0 }}</span>
+                  </div>
+                  {% if activity.max_score %}
+                    {% widthratio latest_attempt.score activity.max_score 100 as latest_pct %}
+                    <span class="da-attempt-pct{% if latest_pct|add:0 < 50 %} fail{% endif %}">
+                      <i class="fas fa-percentage"></i> {{ latest_pct }}%
+                    </span>
+                  {% endif %}
+                  {% if latest_attempt.submitted_at %}
+                    <div class="da-attempt-meta">{{ latest_attempt.submitted_at|date:"M j, Y · g:i A" }}</div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="da-actions">
+              <a href="{% url 'my-assessment-score' activity.id %}" class="da-btn da-btn--primary">
+                <i class="fas fa-chart-bar"></i> View detailed results
+              </a>
+              {% if is_student and can_retake %}
+                <form method="post" action="{% url 'retake-assessment' activity.id %}" onsubmit="return disableRetakeButton(this);" style="margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" class="da-btn da-btn--retake">
+                    <i class="fas fa-redo"></i> Retake assessment
+                  </button>
+                </form>
+              {% endif %}
+              {% if activity.subject %}
+                <a href="{% url 'material-list' activity.subject.id %}?view=assessments" class="da-btn">
+                  <i class="fas fa-arrow-left"></i> Back to assessments
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <script src="{% static 'activity/question/display_question.js' %}"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    
+    <script>
+      // ── One-question-at-a-time navigation ──
+      (function () {
+        var questions = Array.prototype.slice.call(document.querySelectorAll('.dq-question'));
+        if (!questions.length) return;
+        var dots = Array.prototype.slice.call(document.querySelectorAll('#dqDots .dq-dot'));
+        var progressFill = document.getElementById('dqProgress');
+        var answeredEl = document.getElementById('dqAnswered');
+        var current = 0;
+
+        function isAnswered(qEl) {
+          var type = qEl.getAttribute('data-qtype');
+          if (type === 'Multiple Choice' || type === 'True/False') {
+            return !!qEl.querySelector('input[type="radio"]:checked');
+          }
+          if (type === 'Matching Type') {
+            var selects = qEl.querySelectorAll('.dq-match-select');
+            if (!selects.length) return false;
+            return Array.prototype.every.call(selects, function (s) { return s.value && s.value.trim(); });
+          }
+          if (type === 'Document') {
+            var f = qEl.querySelector('input[type="file"]');
+            return !!(f && f.files && f.files.length);
+          }
+          // Essay / Calculated Numeric / Fill in the Blank / fallback
+          var text = qEl.querySelector('textarea, input[type="text"]');
+          return !!(text && text.value && text.value.trim());
+        }
+
+        function refreshState() {
+          var answered = 0;
+          questions.forEach(function (q, i) {
+            var ok = isAnswered(q);
+            if (ok) answered++;
+            if (dots[i]) {
+              dots[i].classList.toggle('is-answered', ok);
+              dots[i].classList.toggle('is-active', i === current);
+            }
+          });
+          if (answeredEl) answeredEl.textContent = answered;
+          if (progressFill) {
+            var pct = (answered / questions.length) * 100;
+            progressFill.style.width = pct + '%';
+          }
+        }
+
+        function show(idx) {
+          if (idx < 0) idx = 0;
+          if (idx >= questions.length) idx = questions.length - 1;
+          current = idx;
+          questions.forEach(function (q, i) {
+            q.classList.toggle('is-active', i === idx);
+          });
+          refreshState();
+          // Re-render MathJax on the visible card.
+          if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+            MathJax.typesetPromise([questions[idx]]).catch(function () {});
+          }
+          questions[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Wire prev/next inside each card.
+        questions.forEach(function (q, i) {
+          var prev = q.querySelector('.dq-prev');
+          var next = q.querySelector('.dq-next');
+          if (prev) {
+            if (i === 0) prev.disabled = true;
+            prev.addEventListener('click', function () { show(i - 1); });
+          }
+          if (next) next.addEventListener('click', function () { show(i + 1); });
+        });
+
+        // Dot navigator clicks.
+        dots.forEach(function (dot, i) {
+          dot.addEventListener('click', function () { show(i); });
+        });
+
+        // Keep progress fresh as the student answers.
+        document.querySelectorAll('.dq-question input, .dq-question select, .dq-question textarea').forEach(function (el) {
+          el.addEventListener('input', refreshState);
+          el.addEventListener('change', refreshState);
+        });
+
+        // Highlight currently selected MC/TF choices.
+        document.querySelectorAll('.dq-question').forEach(function (q) {
+          var radios = q.querySelectorAll('input[type="radio"]');
+          radios.forEach(function (r) {
+            r.addEventListener('change', function () {
+              q.querySelectorAll('.dq-choice').forEach(function (c) { c.classList.remove('is-selected'); });
+              var label = r.closest('.dq-choice');
+              if (label) label.classList.add('is-selected');
+            });
+            if (r.checked) {
+              var label = r.closest('.dq-choice');
+              if (label) label.classList.add('is-selected');
+            }
+          });
+        });
+
+        refreshState();
+
+        /* ── Server-side autosave so refresh / browser close preserves answers ── */
+        var SAVE_URL = "{% url 'save_partial_answer' activity.id %}";
+        var CSRF = '{{ csrf_token }}';
+        var saveTimer = null;
+        var pending = {};   // question_id -> latest answer
+
+        function snapshotQuestion(qEl) {
+          var qid = qEl.getAttribute('data-qid');
+          if (!qid) return null;
+          var type = qEl.getAttribute('data-qtype');
+          if (type === 'Multiple Choice' || type === 'True/False') {
+            var checked = qEl.querySelector('input[type="radio"]:checked');
+            return checked ? { question_id: qid, answer: checked.value } : null;
+          }
+          if (type === 'Document') {
+            return null; // file uploads only on full submit
+          }
+          if (type === 'Matching Type') {
+            return null; // saved on full submit
+          }
+          var input = qEl.querySelector('textarea, input[type="text"]');
+          return input ? { question_id: qid, answer: input.value } : null;
+        }
+
+        function flushSave(useBeacon) {
+          var entries = Object.keys(pending).map(function (k) { return pending[k]; });
+          if (!entries.length) return;
+          var body = JSON.stringify({ answers: entries });
+          pending = {};
+          if (useBeacon && navigator.sendBeacon) {
+            // sendBeacon ignores CSRF cookie path — fall back to keepalive fetch.
+            try {
+              fetch(SAVE_URL, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: body,
+                keepalive: true,
+              });
+            } catch (e) {}
+            return;
+          }
+          fetch(SAVE_URL, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: body,
+          }).catch(function () { /* best-effort */ });
+        }
+
+        function queueQuestionSave(qEl) {
+          var snap = snapshotQuestion(qEl);
+          if (!snap) return;
+          pending[snap.question_id] = snap;
+        }
+
+        function snapshotAndQueue() {
+          questions.forEach(queueQuestionSave);
+        }
+
+        // Debounced autosave on input/change.
+        document.querySelectorAll('.dq-question input, .dq-question textarea, .dq-question select').forEach(function (el) {
+          var handler = function () {
+            var qEl = el.closest('.dq-question');
+            if (qEl) queueQuestionSave(qEl);
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = setTimeout(function () { flushSave(false); }, 1500);
+          };
+          el.addEventListener('input', handler);
+          el.addEventListener('change', handler);
+        });
+
+        // Save on Next / Previous click (immediate, before navigating in-page).
+        questions.forEach(function (q, i) {
+          var nextBtn = q.querySelector('.dq-next');
+          var prevBtn = q.querySelector('.dq-prev');
+          var handler = function () {
+            queueQuestionSave(q);
+            flushSave(false);
+          };
+          if (nextBtn) nextBtn.addEventListener('click', handler);
+          if (prevBtn) prevBtn.addEventListener('click', handler);
+        });
+
+        // Flush on browser close / refresh.
+        window.addEventListener('pagehide', function () {
+          snapshotAndQueue();
+          flushSave(true);
+        });
+      })();
+    </script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        let isSubmitting = false;
+        let isUploadingFile = false;
+        const form = document.getElementById('activity-form');
+
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+          input.addEventListener('click', () => isUploadingFile = true);
+          input.addEventListener('change', () => isUploadingFile = false);
+        });
+
+        form.addEventListener('submit', () => isSubmitting = true);
+
+        function autoSubmitForm() {
+          if (!isSubmitting) {
+            isSubmitting = true;
+
+            const formData = new FormData(form);
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+            fetch("{% url 'auto_submit_answers' activity.id %}", {
+              method: "POST",
+              body: formData,
+              headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": csrfToken
+              }
+            })
+              .then(response => response.json())
+              .then(data => {
+                alert(data.message);
+                window.location.href = "/material/list/{{ activity.subject.id }}/";
+              })
+              .catch(error => console.error("Error:", error));
+          }
+        }
+
+
+        let timeRemaining = Math.floor({{ time_remaining|default:0 }});
+        const timerElement = document.getElementById('timer');
+
+        const timerWrap = document.getElementById('dqTimer');
+
+        function updateTimer() {
+          if (timeRemaining <= 0) {
+            timerElement.textContent = "00:00";
+            autoSubmitForm();
+            return;
+          }
+
+          let minutes = Math.floor(timeRemaining / 60);
+          let seconds = timeRemaining % 60;
+          let formattedSeconds = seconds < 10 ? '0' + seconds : seconds;
+
+          timerElement.textContent = `${minutes}:${formattedSeconds}`;
+          if (timerWrap) {
+            timerWrap.classList.toggle('is-low', timeRemaining <= 60);
+          }
+          timeRemaining--;
+        }
+
+        if (timeRemaining > 0) {
+          updateTimer();
+          setInterval(updateTimer, 1000);
+        }
+
+      });
+    </script>
+        
+  {% endif %}
+{% endblock %}

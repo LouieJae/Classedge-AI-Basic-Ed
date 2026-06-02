@@ -1,0 +1,67 @@
+{% extends is_student_role|yesno:"student_base.html,base_operation.html" %}
+{% load static %}
+
+{% block title %}{{ announcement.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'calendar/announcement_details.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="ann-page">
+
+  <!-- Header bar -->
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Announcement <em>details</em></h1>
+      <p class="page-sub">Posted to the school community.</p>
+    </div>
+    <a href="{% url 'news' %}" class="ann-back">
+      <i class="fas fa-arrow-left"></i> Back to announcements
+    </a>
+  </div>
+
+  <article class="ann-card">
+    <div class="ann-head">
+      <span class="ann-eyebrow"><i class="fas fa-bullhorn"></i> Announcement</span>
+      <h2 class="ann-title">{{ announcement.title }}</h2>
+      <div class="ann-meta">
+        <span><i class="far fa-calendar"></i> {{ announcement.date|date:"F d, Y" }}</span>
+        {% if announcement.created_by %}
+          <span><i class="far fa-user"></i> {{ announcement.created_by }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="ann-body">
+      <div class="formatted-text">{{ announcement.description|safe }}</div>
+    </div>
+
+    {% if announcement.events.exists %}
+      <div class="ann-body" style="padding-top: 0;">
+        <div class="ann-events">
+          <div class="ann-events-label">
+            <i class="far fa-calendar-alt"></i> Linked event{{ announcement.events.count|pluralize }}
+          </div>
+          <div class="ann-events-list">
+            {% for ev in announcement.events.all %}
+              <a href="{% url 'event_details' ev.id %}" class="ann-event-chip">
+                <i class="fas fa-calendar-day"></i>
+                <span class="ann-event-name">{{ ev.title }}</span>
+                {% if ev.start_date %}<span class="ann-event-date">· {{ ev.start_date|date:"M d, Y" }}</span>{% endif %}
+                <i class="fas fa-arrow-right ann-event-arrow"></i>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="ann-foot">
+      <span>Posted by <strong>{{ announcement.created_by|default:"—" }}</strong></span>
+      <span class="ann-foot-divider"></span>
+      <span>{{ announcement.created_at|date:"F d, Y · h:i A" }}</span>
+    </div>
+  </article>
+</div>
+{% endblock %}

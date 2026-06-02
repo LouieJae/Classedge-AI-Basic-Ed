@@ -1,0 +1,317 @@
+{% extends is_student_role|yesno:"student_base.html,base_operation.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ activity.activity_name }} · Scores{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'gradebookcomponent/activityGrade/my-assessment-score.css' %}" />
+
+<div class="sga-page">
+
+  {# ── Header ───────────────────────────────────── #}
+  <div class="sga-topbar">
+    <div>
+      <h1 class="page-title sga-title">{{ activity.activity_name }}</h1>
+      <p class="page-sub">
+        {% if is_teacher_view %}Class <em>scoreboard</em> for this activity.
+        {% else %}Your <em>score</em> and per-question breakdown.
+        {% endif %}
+      </p>
+    </div>
+    <a href="javascript:window.history.back()" class="sga-back">
+      <i class="fas fa-arrow-left"></i> Back
+    </a>
+  </div>
+
+  {% if is_teacher_view %}
+    {# ── ROSTER MODE (teacher) ───────────────────── #}
+
+    {# Summary card #}
+    <section class="sga-activity-card">
+      <h2 class="sga-activity-name">{{ activity.activity_name }}</h2>
+      <div class="sga-activity-meta">
+        {% if subject %}<span><i class="fas fa-book"></i> {{ subject.subject_name|default:subject }}</span>{% endif %}
+        {% if activity.max_score %}<span><i class="fas fa-star"></i> Max score: {{ activity.max_score|floatformat:'-2' }}</span>{% endif %}
+        {% if activity.passing_score %}<span><i class="fas fa-flag"></i> Passing: {{ activity.passing_score|floatformat:'-2' }}{% if activity.passing_score_type == 'percentage' %}%{% endif %}</span>{% endif %}
+        {% if activity.due_date %}<span><i class="far fa-clock"></i> Due {{ activity.due_date|date:"M d, Y" }}</span>{% endif %}
+      </div>
+
+      {% with total_count=detailed_scores|length %}
+        {% if total_count %}
+          <div class="sga-stats">
+            <div>
+              <div class="sga-stat-label">Submissions</div>
+              <div class="sga-stat-value" data-stat="count">{{ total_count }}</div>
+              <div class="sga-stat-sub">student{{ total_count|pluralize }} submitted</div>
+            </div>
+            <div>
+              <div class="sga-stat-label">Class average</div>
+              <div class="sga-stat-value" data-stat="avg">—</div>
+              <div class="sga-stat-sub">across all submissions</div>
+            </div>
+            <div>
+              <div class="sga-stat-label">Passing rate</div>
+              <div class="sga-stat-value pass" data-stat="passrate">—</div>
+              <div class="sga-stat-sub" data-stat="passrate-sub">—</div>
+            </div>
+            <div>
+              <div class="sga-stat-label">Top score</div>
+              <div class="sga-stat-value warn" data-stat="top">—</div>
+              <div class="sga-stat-sub">highest in class</div>
+            </div>
+          </div>
+        {% endif %}
+      {% endwith %}
+    </section>
+
+    {# Roster #}
+    {% if detailed_scores %}
+      <div class="sga-roster">
+        <div class="sga-roster-head">
+          <h3 class="sga-roster-title">Per-student <em>scores</em></h3>
+          <div class="sga-search">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="text" id="sgaSearch" placeholder="Search student name…" autocomplete="off" />
+          </div>
+        </div>
+
+        <table class="sga-table" id="sgaTable">
+          <thead>
+            <tr>
+              <th data-sort-key="name">Student <span class="sort">▲▼</span></th>
+              <th data-sort-key="score">Score <span class="sort">▲▼</span></th>
+              <th>Progress</th>
+              <th data-sort-key="result">Result <span class="sort">▲▼</span></th>
+              <th data-sort-key="time">Submitted <span class="sort">▲▼</span></th>
+              <th style="width: 50px;"></th>
+            </tr>
+          </thead>
+          <tbody id="sgaTbody">
+            {% for entry in detailed_scores %}
+              {% if entry.max_score %}{% widthratio entry.total_score entry.max_score 100 as score_pct %}{% endif %}
+              {% with first_initial=entry.student.first_name|slice:":1" last_initial=entry.student.last_name|slice:":1" %}
+                <tr class="sga-row"
+                    data-row-id="{{ forloop.counter }}"
+                    data-name="{{ entry.student.last_name }}, {{ entry.student.first_name }}"
+                    data-score="{{ entry.total_score }}"
+                    data-max="{{ entry.max_score }}"
+                    data-passing="{{ entry.passing_score_value }}"
+                    data-time="{{ entry.submission_time|date:'U'|default:'0' }}">
+                  <td>
+                    <div class="sga-student">
+                      <div class="sga-avatar">{{ first_initial|upper }}{{ last_initial|upper }}</div>
+                      <div>
+                        <div class="sga-student-name">{{ entry.student.last_name }}, {{ entry.student.first_name }}</div>
+                        <div class="sga-student-sub">{{ entry.student.username }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="sga-score-cell">{{ entry.total_score|floatformat:'0' }}{% if entry.max_score %}<span class="denom">/{{ entry.max_score|floatformat:'0' }}</span>{% endif %}</span>
+                  </td>
+                  <td>
+                    {% if entry.max_score %}
+                      <div class="sga-score-track">
+                        <div class="sga-score-fill {% if entry.passing_score_value > 0 and entry.total_score < entry.passing_score_value %}fail{% endif %}"
+                             style="width: {{ score_pct }}%;"></div>
+                      </div>
+                      <div class="sga-pct">{{ score_pct }}%</div>
+                    {% else %}
+                      <span class="sga-time">No max set</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if entry.passing_score_value > 0 %}
+                      {% if entry.total_score >= entry.passing_score_value %}
+                        <span class="sga-result-pill pass" data-result="pass"><i class="fas fa-check"></i> Pass</span>
+                      {% else %}
+                        <span class="sga-result-pill fail" data-result="fail"><i class="fas fa-redo"></i> Fail</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="sga-result-pill pending" data-result="pending"><i class="fas fa-flag-checkered"></i> Submitted</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="sga-time">
+                      {% if entry.submission_time %}{{ entry.submission_time|naturaltime }}{% else %}—{% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    <button class="sga-expand-btn" type="button" aria-label="Toggle details"><i class="fas fa-chevron-down"></i></button>
+                  </td>
+                </tr>
+                <tr class="sga-detail-row" data-detail-for="{{ forloop.counter }}">
+                  <td colspan="6">
+                    <div class="sga-detail-wrap">
+                      {% if entry.questions %}
+                        <div class="sga-q-list">
+                          {% for q in entry.questions %}
+                            {% with q_score=q.score|default:0 %}
+                              <div class="sga-q
+                                {% if q.correct_answer == 'Answer hidden' %}
+                                {% elif q_score == 0 %}wrong
+                                {% else %}correct{% endif %}">
+                                <div class="sga-q-row">
+                                  <div class="sga-q-num">Question {{ q.number }}</div>
+                                  <div class="sga-q-score
+                                    {% if q.correct_answer == 'Answer hidden' or q.score == 'Score hidden' %}
+                                    {% elif q_score == 0 %}wrong
+                                    {% else %}correct{% endif %}">
+                                    <i class="fas fa-star"></i>
+                                    {% if q.score == 'Score hidden' %}—{% else %}{{ q.score }}{% endif %}
+                                  </div>
+                                </div>
+                                <div class="sga-q-text">{{ q.question_text|safe }}</div>
+                                <div class="sga-q-answer your">
+                                  <div class="label"><i class="fas fa-user-edit"></i> Student answer</div>
+                                  <div class="body">{{ q.student_answer|safe }}</div>
+                                </div>
+                                {% if q.correct_answer != 'Answer hidden' %}
+                                  <div class="sga-q-answer correct">
+                                    <div class="label"><i class="fas fa-check-circle"></i> Correct answer</div>
+                                    <div class="body">{{ q.correct_answer|safe }}</div>
+                                  </div>
+                                {% endif %}
+                              </div>
+                            {% endwith %}
+                          {% endfor %}
+                        </div>
+                      {% else %}
+                        <div class="sga-time">No question-level data recorded for this student.</div>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="sga-empty">
+        <i class="fas fa-clipboard-list"></i>
+        <div class="lead">No submissions yet</div>
+        <div>Once students submit, their scores will appear here.</div>
+      </div>
+    {% endif %}
+
+  {% else %}
+    {# ── SINGLE-STUDENT MODE (student) ───────────── #}
+    {% for entry in detailed_scores %}
+      {% if entry.max_score %}{% widthratio entry.total_score entry.max_score 100 as score_pct %}{% endif %}
+
+      <section class="sga-hero-single
+        {% if entry.passing_score_value > 0 and entry.total_score >= entry.passing_score_value %}passed
+        {% elif entry.passing_score_value > 0 %}failed
+        {% endif %}">
+
+        {% if entry.max_score %}
+          <div class="sga-score-circle"
+               data-score="{{ entry.total_score }}"
+               data-max="{{ entry.max_score }}"
+               data-passing="{{ entry.passing_score_value }}">
+            <div class="sga-score-inner">
+              <div class="sga-score-num">{{ entry.total_score|floatformat:'0' }}<span class="denom">/{{ entry.max_score|floatformat:'0' }}</span></div>
+              <div class="sga-score-pct">{{ score_pct }}%</div>
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="sga-hero-info">
+          {% if entry.passing_score_value > 0 %}
+            {% if entry.total_score >= entry.passing_score_value %}
+              <span class="sga-result-pill pass"><i class="fas fa-trophy"></i> Passed</span>
+            {% else %}
+              <span class="sga-result-pill fail"><i class="fas fa-redo"></i> Try again</span>
+            {% endif %}
+          {% else %}
+            <span class="sga-result-pill pending"><i class="fas fa-flag-checkered"></i> Submitted</span>
+          {% endif %}
+          <h2 class="sga-activity-name" style="margin-top: 12px;">{{ activity.activity_name }}</h2>
+          <div class="sga-activity-meta">
+            {% if entry.submission_time %}<span><i class="far fa-clock"></i> Submitted {{ entry.submission_time|naturaltime }}</span>{% endif %}
+            {% if entry.passing_score_value > 0 %}<span><i class="fas fa-flag"></i> Pass: {{ entry.passing_score_value|floatformat:'-2' }}</span>{% endif %}
+          </div>
+
+          {% if entry.failed and not activity.classroom_mode %}
+            <div class="sga-study-callout">
+              <div class="sga-study-text">
+                <strong><i class="fas fa-lightbulb"></i> Don't worry — you can improve!</strong>
+                {% if entry.related_lessons %}
+                  Review the lesson{{ entry.related_lessons|length|pluralize }} below and try again to boost your score.
+                {% elif activity.subject %}
+                  Head back to your lessons, review the material, and try again to boost your score.
+                {% else %}
+                  Study the lesson to get a higher score next time!
+                {% endif %}
+              </div>
+              <div class="sga-study-actions">
+                {% if entry.related_lessons %}
+                  {% for lesson in entry.related_lessons %}
+                    <a href="{% url 'view-material' lesson.pk %}" class="sga-study-btn">
+                      <i class="fas fa-book-open"></i> Study: {{ lesson.file_name }}
+                    </a>
+                  {% endfor %}
+                {% elif activity.subject %}
+                  <a href="{% url 'material-list' activity.subject.id %}" class="sga-study-btn">
+                    <i class="fas fa-book-open"></i> Go to lessons
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+
+      {% if entry.questions %}
+        <div class="sga-roster" style="padding: 22px 28px;">
+          <h3 class="sga-roster-title" style="margin-bottom: 14px;">Question <em>breakdown</em></h3>
+          <div class="sga-q-list">
+            {% for q in entry.questions %}
+              {% with q_score=q.score|default:0 %}
+                <div class="sga-q
+                  {% if q.correct_answer == 'Answer hidden' %}
+                  {% elif q_score == 0 %}wrong
+                  {% else %}correct{% endif %}">
+                  <div class="sga-q-row">
+                    <div class="sga-q-num">Question {{ q.number }}</div>
+                    <div class="sga-q-score
+                      {% if q.correct_answer == 'Answer hidden' or q.score == 'Score hidden' %}
+                      {% elif q_score == 0 %}wrong
+                      {% else %}correct{% endif %}">
+                      <i class="fas fa-star"></i>
+                      {% if q.score == 'Score hidden' %}—{% else %}{{ q.score }}{% endif %}
+                    </div>
+                  </div>
+                  <div class="sga-q-text">{{ q.question_text|safe }}</div>
+                  <div class="sga-q-answer your">
+                    <div class="label"><i class="fas fa-user-edit"></i> Your answer</div>
+                    <div class="body">{{ q.student_answer|safe }}</div>
+                  </div>
+                  {% if q.correct_answer != 'Answer hidden' %}
+                    <div class="sga-q-answer correct">
+                      <div class="label"><i class="fas fa-check-circle"></i> Correct answer</div>
+                      <div class="body">{{ q.correct_answer|safe }}</div>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endwith %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% empty %}
+      <div class="sga-empty">
+        <i class="fas fa-clipboard-list"></i>
+        <div class="lead">No submission yet</div>
+        <div>Once you submit this activity, your score will appear here.</div>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
+<script src="{% static 'gradebookcomponent/activityGrade/my-assessment-score.js' %}"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+{% endblock %}

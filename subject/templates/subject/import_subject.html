@@ -1,0 +1,80 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Import Subjects{% endblock %}
+
+{% block content %}
+{% include "termbook/_form_styles.html" %}
+
+<link rel="stylesheet" href="{% static 'subject/import_subject.css' %}" />
+
+<div class="gbf-page">
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Import <em>subjects</em></h1>
+      <p class="page-sub">Upload a CSV to bulk-create subjects (and their schedules).</p>
+    </div>
+    <a href="{% url 'course-list' %}" class="gbf-btn">
+      <i class="fas fa-arrow-left"></i> Back to subjects
+    </a>
+  </div>
+
+  {% if messages %}
+    <div style="margin-bottom: 16px;">
+      {% for message in messages %}
+        <div style="padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 8px;
+          background: {% if 'error' in message.tags %}rgba(192,132,121,0.10){% else %}var(--brand-primary-soft){% endif %};
+          border: 1px solid {% if 'error' in message.tags %}rgba(192,132,121,0.3){% else %}rgba(45,90,71,0.25){% endif %};
+          color: {% if 'error' in message.tags %}var(--rose){% else %}var(--ink){% endif %};
+          font-family: var(--body); font-size: 13.5px;">
+          <i class="fas {% if 'error' in message.tags %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}" style="margin-right: 8px;"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="imp-grid">
+    <div class="gbf-card" style="max-width: none;">
+      <form method="post" enctype="multipart/form-data" action="{% url 'import_subjects_and_schedules' %}" class="gbf-form" id="importForm"
+            data-cl-loading data-cl-loading-label="Importing…">
+        {% csrf_token %}
+
+        <label class="imp-drop" for="importFile" id="impDrop">
+          <i class="fas fa-cloud-arrow-up"></i>
+          <div class="imp-drop-title">Drop your CSV here</div>
+          <div class="imp-drop-sub">or click to browse · UTF-8 encoded · use the template on the right</div>
+          <input type="file" name="import_file" id="importFile" accept=".csv" required />
+          <div class="imp-file-name" id="impFileName"><i class="fas fa-file-csv"></i><span></span></div>
+        </label>
+
+        <div class="gbf-actions">
+          <button type="submit" class="gbf-btn gbf-btn--primary">
+            <i class="fas fa-upload"></i> Upload &amp; import
+          </button>
+          <a href="{% url 'course-list' %}" class="gbf-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <div>
+      <div class="imp-side">
+        <h3><i class="fas fa-info-circle"></i> Before you upload</h3>
+        <ul>
+          <li><i class="fas fa-check-circle"></i> File must be a UTF-8 encoded CSV.</li>
+          <li><i class="fas fa-check-circle"></i> The first row must contain column headers.</li>
+          <li><i class="fas fa-check-circle"></i> Subjects with existing names + same teacher are skipped.</li>
+          <li><i class="fas fa-check-circle"></i> Schedule columns are optional — rows missing them still import the subject.</li>
+        </ul>
+        <a href="{{ MEDIA_URL|add:'template/subjectImport.csv' }}" class="imp-template-link" download>
+          <i class="fas fa-download"></i> Download CSV template
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'subject/import_subject.js' %}"></script>
+{% endblock %}

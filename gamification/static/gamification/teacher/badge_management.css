@@ -1,0 +1,297 @@
+  /* Stat strip */
+  .bm-stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px; margin-bottom: 18px;
+  }
+  .bm-stat {
+    background: var(--paper); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: var(--shadow);
+  }
+  .bm-stat-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    display: grid; place-items: center; font-size: 18px; flex-shrink: 0;
+  }
+  .bm-stat-icon.active { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); }
+  .bm-stat-icon.gold { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); }
+  .bm-stat-label { font-size: 11px; font-weight: 700; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+  .bm-stat-value { font-size: 22px; font-weight: 800; color: var(--ink); line-height: 1.1; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .bm-stat-link a { font-size: 13px; color: var(--brand-primary, #b7925a); font-weight: 700; text-decoration: none; }
+  .bm-stat-link a:hover { color: var(--ink); text-decoration: underline; }
+
+  /* Toolbar */
+  .bm-toolbar {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .bm-search-row {
+    display: inline-flex; align-items: stretch; gap: 8px;
+    flex: 1 1 360px; min-width: 0;
+  }
+  .bm-search-row .cl-search { flex: 1 1 auto; max-width: none; min-width: 0; }
+  .bm-search-btn { white-space: nowrap; flex-shrink: 0; }
+  .bm-search-clear { white-space: nowrap; flex-shrink: 0; }
+  .bm-filters { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .bm-filters label { margin: 0; font-size: 12.5px; color: var(--ink-dim); font-weight: 600; }
+
+  /* Card grid */
+  .bm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 16px; margin-bottom: 22px;
+  }
+  .bm-card {
+    background: var(--paper); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .bm-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px -10px rgba(45,49,66,0.15);
+    border-color: var(--border-strong);
+  }
+  .bm-card.is-inactive { opacity: 0.65; }
+  .bm-card.is-inactive .bm-icon { filter: grayscale(0.5); }
+
+  /* Card head — brand-cohesive atmosphere.
+     The base gradient bakes a stronger brand-primary wash into the head
+     (color-mix at 22% → 10%, on white) so every badge card reads as
+     visibly brand-toned, not just "cream with a hint of tint". Categorical
+     tiers (bronze/silver/platinum) keep their LOCKED hue per the design
+     doctrine — those signal achievement level and must not be repainted by
+     the tenant picker. Gold tier IS the brand tier and tracks
+     --brand-primary, so it stays consistent with the gold-tier icon/pill. */
+  .bm-card-head {
+    padding: 22px 18px 14px;
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--brand-primary, #b7925a) 22%, var(--paper, #fff)),
+      color-mix(in srgb, var(--brand-primary, #b7925a) 8%, var(--paper, #fff)));
+    border-bottom: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 18%, transparent);
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 12px;
+  }
+  /* Medal-tier palette — LOCKED categoricals (tenant picker must not
+     repaint these; the tier IS the data). Each hex is chosen to read
+     unambiguously as that metal even in low-light/print:
+       bronze   #b87333  warm copper-orange
+       silver   #b0b0b0  neutral gray
+       gold     #d4af37  classic medal gold (distinct from --gold/#b7925a
+                         which is brass-toned and reads too close to bronze;
+                         #d4af37 sits at 46° hue, well clear of bronze's 25°)
+       platinum #5b6ee1  cool blue-violet */
+  .bm-card.tier-bronze .bm-card-head   { background: linear-gradient(135deg, rgba(184,115,51,0.22), rgba(184,115,51,0.06)); border-bottom-color: rgba(184,115,51,0.25); }
+  .bm-card.tier-silver .bm-card-head   { background: linear-gradient(135deg, rgba(176,176,176,0.26), rgba(176,176,176,0.08)); border-bottom-color: rgba(110,110,110,0.25); }
+  .bm-card.tier-gold .bm-card-head     { background: linear-gradient(135deg, rgba(212,175,55,0.26), rgba(212,175,55,0.08)); border-bottom-color: rgba(212,175,55,0.32); }
+  .bm-card.tier-platinum .bm-card-head { background: linear-gradient(135deg, rgba(91,110,225,0.22), rgba(91,110,225,0.06)); border-bottom-color: rgba(91,110,225,0.25); }
+
+  .bm-icon {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 30px;
+    background: var(--paper);
+    /* Default ring tracks brand so untagged badges feel brand-cohesive.
+       Tier overrides below pin bronze/silver/platinum to their locked
+       categorical hues. */
+    border: 3px solid var(--brand-primary, #b7925a);
+    color: var(--brand-primary, #b7925a);
+    box-shadow:
+      0 6px 18px -6px color-mix(in srgb, var(--brand-primary, #b7925a) 28%, transparent),
+      inset 0 0 0 2px var(--paper, #fff);
+  }
+  .bm-icon.tier-bronze   { border-color: #b87333; color: #8a5320; box-shadow: 0 6px 18px -6px rgba(184,115,51,0.28), inset 0 0 0 2px var(--paper, #fff); }
+  .bm-icon.tier-silver   { border-color: #b0b0b0; color: #666;    box-shadow: 0 6px 18px -6px rgba(110,110,110,0.28), inset 0 0 0 2px var(--paper, #fff); }
+  .bm-icon.tier-gold     { border-color: #d4af37; color: #8a6d10; box-shadow: 0 6px 18px -6px rgba(212,175,55,0.32), inset 0 0 0 2px var(--paper, #fff); }
+  .bm-icon.tier-platinum { border-color: #5b6ee1; color: #5b6ee1; box-shadow: 0 6px 18px -6px rgba(91,110,225,0.28), inset 0 0 0 2px var(--paper, #fff); }
+
+  .bm-tier-pill {
+    padding: 4px 10px; border-radius: 100px;
+    font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em;
+    background: var(--paper); border: 1px solid var(--border-strong);
+    color: var(--ink-dim);
+  }
+  .bm-tier-pill.tier-bronze   { background: rgba(184,115,51,0.10); color: #8a5320; border-color: rgba(184,115,51,0.4); }
+  .bm-tier-pill.tier-silver   { background: rgba(176,176,176,0.18); color: #555;    border-color: rgba(110,110,110,0.4); }
+  .bm-tier-pill.tier-gold     { background: rgba(212,175,55,0.18); color: #8a6d10; border-color: rgba(212,175,55,0.45); }
+  .bm-tier-pill.tier-platinum { background: rgba(91,110,225,0.12); color: #5b6ee1; border-color: rgba(91,110,225,0.4); }
+
+  /* Card body */
+  .bm-card-body { padding: 18px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .bm-name {
+    margin: 0;
+    font-family: var(--display);
+    font-size: 17px; font-weight: 700;
+    color: var(--ink); letter-spacing: -0.01em;
+  }
+  .bm-desc {
+    margin: 0; font-size: 13px; line-height: 1.5;
+    color: var(--ink-dim);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 1;
+  }
+  .bm-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+  .bm-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 100px;
+    font-size: 11px; font-weight: 700;
+    background: color-mix(in srgb, var(--brand-primary, #b7925a) 8%, var(--paper, #fff));
+    color: var(--ink-dim);
+  }
+  .bm-chip i { font-size: 10px; }
+  .bm-chip.earned { background: var(--brand-primary-soft); color: var(--ink); }
+  .bm-chip.manual { background: var(--brand-primary-soft); color: var(--brand-primary, #b7925a); }
+  .bm-chip.cat-coding { background: rgba(91,110,225,0.12); color: #5b6ee1; }
+  .bm-chip.cat-sideactivity { background: rgba(224,122,95,0.14); color: #b46a4a; }
+  .bm-chip.cat-general {
+    background: color-mix(in srgb, var(--brand-primary, #b7925a) 8%, var(--paper, #fff));
+    color: var(--ink-dim);
+  }
+
+  /* Card foot — brand-tinted band so the bottom of every card carries
+     visible tenant brand. Was previously --cream-2 (only 5% brand wash
+     from _brand_cohesive.html → read as warm-gray, not brand-toned). */
+  .bm-card-foot {
+    padding: 12px 18px;
+    background: color-mix(in srgb, var(--brand-primary, #b7925a) 10%, var(--paper, #fff));
+    border-top: 1px solid color-mix(in srgb, var(--brand-primary, #b7925a) 16%, transparent);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .bm-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; }
+  .bm-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-muted); }
+  .bm-status.active { color: var(--ink); }
+  .bm-status.active .bm-status-dot { background: var(--brand-primary, #1b4332); box-shadow: 0 0 0 3px var(--brand-primary-soft); }
+  .bm-status.inactive { color: var(--ink-muted); }
+
+  .bm-actions { display: inline-flex; gap: 6px; }
+  .bm-action-form { margin: 0; }
+  .bm-action-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--paper); border: 1px solid var(--border);
+    color: var(--ink-dim);
+    display: inline-grid; place-items: center;
+    cursor: pointer; transition: all 0.15s ease;
+    text-decoration: none; font-size: 12px;
+  }
+  .bm-action-btn:hover { background: var(--cream); color: var(--ink); border-color: var(--brand-primary, #1b4332); transform: translateY(-1px); }
+  .bm-action-btn.gold:hover { color: var(--brand-primary, #b7925a); border-color: var(--brand-primary, #b7925a); background: var(--brand-primary-soft); }
+  .bm-action-btn.forest:hover { color: var(--ink); border-color: var(--brand-primary, #1b4332); }
+  .bm-action-btn.danger:hover { color: var(--rose); border-color: var(--rose); background: rgba(192,132,121,0.08); }
+
+  /* Pager */
+  .bm-pager {
+    display: flex; justify-content: center; align-items: center;
+    gap: 4px; flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .bm-pager-btn {
+    min-width: 36px; height: 36px;
+    padding: 0 12px;
+    border-radius: 100px;
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    color: var(--ink);
+    display: inline-grid; place-items: center;
+    font-size: 13px; font-weight: 600; text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .bm-pager-btn:hover { background: var(--cream-2); color: var(--ink); border-color: var(--brand-primary, #1b4332); transform: translateY(-1px); }
+  .bm-pager-btn.active, .bm-pager-btn.active:hover {
+    background: var(--brand-primary, #1b4332); color: var(--cream); border-color: var(--brand-primary, #1b4332);
+  }
+  .bm-pager-btn.disabled {
+    background: var(--cream-2); color: var(--ink-muted);
+    cursor: not-allowed; opacity: 0.55; transform: none;
+  }
+
+  /* Empty state */
+  .bm-empty {
+    background: var(--paper);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    padding: 64px 24px; text-align: center;
+    color: var(--ink-dim);
+  }
+  .bm-empty-icon {
+    width: 88px; height: 88px;
+    margin: 0 auto 16px;
+    border-radius: 22px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary, #b7925a);
+    display: grid; place-items: center; font-size: 38px;
+  }
+  .bm-empty h3 {
+    margin: 0 0 6px;
+    font-family: var(--display);
+    font-size: 22px; font-weight: 700;
+    color: var(--ink); letter-spacing: -0.01em;
+  }
+  .bm-empty p { margin: 0 0 18px; font-size: 14px; color: var(--ink-dim); }
+  .bm-empty > div { display: inline-flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+  /* ── Responsive ─────────────────────────────────────────────── */
+  /* Tablet — denser stat strip + 2-col card grid. */
+  @media (max-width: 900px) {
+    .bm-stat-strip { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+    .bm-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .bm-search-row { flex: 1 1 100%; }
+  }
+
+  /* Large phone — toolbar stacks; filters wrap; cards condense. */
+  @media (max-width: 720px) {
+    .bm-stat-strip { grid-template-columns: 1fr 1fr; }
+    .bm-stat { padding: 12px 14px; gap: 10px; }
+    .bm-stat-icon { width: 36px; height: 36px; font-size: 15px; border-radius: 10px; }
+    .bm-stat-value { font-size: 19px; }
+    .bm-stat-label { font-size: 10.5px; }
+    .bm-toolbar { gap: 10px; }
+    .bm-filters { width: 100%; }
+    .bm-filters select { flex: 1 1 0; min-width: 0; }
+    .bm-grid { grid-template-columns: 1fr; }
+    .bm-card-head { padding: 18px 16px 12px; }
+    .bm-icon { width: 56px; height: 56px; font-size: 26px; border-width: 2px; }
+    .bm-tier-pill { font-size: 10px; padding: 3px 9px; }
+    .bm-card-body { padding: 14px 16px; }
+    .bm-name { font-size: 16px; }
+    .bm-desc { font-size: 12.5px; }
+    .bm-card-foot { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+    .bm-action-btn { width: 30px; height: 30px; }
+    .bm-empty { padding: 48px 18px; }
+    .bm-empty-icon { width: 72px; height: 72px; font-size: 30px; border-radius: 18px; }
+    .bm-empty h3 { font-size: 19px; }
+  }
+
+  /* Phone — header text smaller, search button shows icon only. */
+  @media (max-width: 480px) {
+    .cl-page.bm-page > .cl-header h2 { font-size: 22px; }
+    .cl-page.bm-page > .cl-header p { font-size: 13px; }
+    .bm-stat-strip { grid-template-columns: 1fr; }
+    .bm-search-row { gap: 6px; }
+    .bm-search-btn span,
+    .bm-search-clear span { display: none; }
+    .bm-search-btn,
+    .bm-search-clear { padding: 9px 12px; }
+    .bm-filters { gap: 6px; }
+    .bm-filters label { width: 100%; }
+    .bm-pager-btn { min-width: 32px; height: 32px; padding: 0 9px; font-size: 12.5px; }
+  }
+
+  /* Tiny phone */
+  @media (max-width: 360px) {
+    .bm-icon { width: 50px; height: 50px; font-size: 22px; }
+    .bm-name { font-size: 15px; }
+    .bm-actions { gap: 4px; }
+    .bm-meta { gap: 4px; }
+    .bm-chip { font-size: 10.5px; padding: 3px 8px; }
+  }

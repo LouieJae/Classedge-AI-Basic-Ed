@@ -1,0 +1,99 @@
+  .cgb-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 18px; }
+  @media (max-width: 1024px) { .cgb-grid { grid-template-columns: 1fr; } }
+
+  .cgb-section-title {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--display);
+    font-size: 17px; font-weight: 500; color: var(--ink);
+    letter-spacing: -0.01em;
+    margin: 24px 0 14px;
+  }
+  .cgb-section-title .hint { color: var(--ink-muted); font-style: italic; font-size: 12.5px; font-weight: 400; }
+
+  .cgb-tips-card {
+    background: var(--paper); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    overflow: hidden; margin-bottom: 18px;
+  }
+  .cgb-tips-head {
+    padding: 14px 20px; background: var(--cream-2);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--display); font-size: 14px; font-weight: 500; color: var(--ink);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cgb-tips-head i { color: var(--brand-primary, #b7925a); }
+  .cgb-tips-body { padding: 18px 20px; }
+  .cgb-tips-body ul { list-style: none; padding: 0; margin: 0; }
+  .cgb-tips-body li {
+    display: flex; gap: 10px; align-items: flex-start;
+    color: var(--ink); font-family: var(--body); font-size: 13px; line-height: 1.5;
+    padding: 6px 0;
+  }
+  .cgb-tips-body li i { color: var(--ink); margin-top: 2px; flex-shrink: 0; }
+  .cgb-tips-body li.warn i { color: var(--brand-primary, #b7925a); }
+
+  .cgb-error { color: var(--rose); font-size: 12px; margin-top: 4px; font-family: var(--body); }
+  .cgb-add-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px; border: 1px dashed var(--border-strong);
+    background: transparent; border-radius: var(--radius-sm);
+    color: var(--ink-dim); font-family: var(--body); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.18s ease;
+    margin-top: 18px;
+  }
+  .cgb-add-btn:hover { background: var(--cream-2); border-color: var(--brand-primary, #b7925a); color: var(--ink); }
+
+  .activity-row {
+    background: var(--cream); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 14px 16px;
+  }
+  .activity-row + .activity-row { margin-top: 12px; }
+
+  /* ─── Responsive ──────────────────────────────────────── */
+  @media (max-width: 720px) {
+    .cgb-grid { gap: 14px; }
+    .cgb-section-title { font-size: 15px; margin: 18px 0 10px; flex-wrap: wrap; }
+    .cgb-section-title .hint { font-size: 11.5px; }
+    .cgb-tips-head { padding: 12px 16px; font-size: 13px; }
+    .cgb-tips-body { padding: 14px 16px; }
+    .cgb-tips-body li { font-size: 12.5px; }
+    .activity-row { padding: 12px 14px; }
+    .cgb-add-btn { width: 100%; justify-content: center; }
+    /* Header card padding tighter on phones. */
+    .gbf-card { padding: 18px 16px !important; }
+    .topbar h1 { font-size: clamp(20px, 5vw, 26px); }
+    .topbar .page-sub { font-size: 13px; }
+
+    /* The 4-field grid (Subject/Term/Category/Main %) and the
+       sub-activity row grids are written as inline `display: grid`
+       styles in the markup. Inline styles win the cascade, so the
+       overrides below need `!important` to actually take effect. */
+    .gbf-form > form > div[style*="grid-template-columns: 1fr 1fr"],
+    .gbf-form div[style*="grid-template-columns: 1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+      gap: 12px !important;
+    }
+    /* Sub-activity rows: stack the two field columns; keep the delete
+       button on its own line, full-width, with a clear label. */
+    .activity-row > div[style*="grid-template-columns: minmax(0, 1.4fr)"] {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+    .activity-row [data-remove-row] {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* Action bar — save / cancel stack on phones. */
+    .gbf-actions {
+      flex-direction: column-reverse;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .gbf-actions .gbf-btn { width: 100%; justify-content: center; }
+  }
+  @media (max-width: 420px) {
+    .gbf-card { padding: 16px 14px !important; }
+    .activity-row { padding: 10px 12px; }
+    .topbar h1 { font-size: 19px; }
+  }

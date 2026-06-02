@@ -1,0 +1,127 @@
+{% extends "base_operation.html" %}
+{% load static %}
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}Create Termbook{% endblock %}
+
+{% block content %}
+{% include "includes/_list_page_theme.html" %}
+{% include "termbook/_form_styles.html" %}
+
+<div class="gbf-page">
+
+  <a href="{% url 'grade-book' %}" class="cl-back-btn">
+    <i class="fas fa-arrow-left"></i> Back to gradebook
+  </a>
+
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Create <em>Termbook</em></h1>
+      <p class="page-sub">Define a term-level grading bucket and assign it to courses.</p>
+    </div>
+    <button type="button" class="cl-tour-replay" data-cl-tour="termbook-form">
+      <i class="fas fa-circle-question"></i> Show me how
+    </button>
+  </div>
+
+  <style>
+    .gbf-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; width: 100%; }
+    .gbf-layout > .gbf-card { max-width: none; width: 100%; }
+    @media (max-width: 900px) { .gbf-layout { grid-template-columns: 1fr; } }
+    .gbf-guide-card { padding: 22px 24px; max-width: none; }
+    .gbf-guide-card .cgb-tips-head {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--body); font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--ink); margin-bottom: 12px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    }
+    .gbf-guide-card .cgb-tips-head i { color: var(--brand-primary, #b7925a); }
+    .gbf-guide-card .cgb-tips-body ul { list-style: none; padding: 0; margin: 0; }
+    .gbf-guide-card .cgb-tips-body li {
+      display: flex; gap: 10px; align-items: flex-start;
+      font-family: var(--body); font-size: 13px; line-height: 1.5;
+      color: var(--ink); margin-bottom: 10px;
+    }
+    .gbf-guide-card .cgb-tips-body li i { margin-top: 3px; color: #2e7d32; flex-shrink: 0; }
+    .gbf-guide-card .cgb-tips-body li.warn i { color: #c77700; }
+  </style>
+
+  <div class="gbf-layout">
+
+  <div class="gbf-card">
+    <form method="post" action="{% url 'create-term-book' %}" class="gbf-form" novalidate
+          data-cl-loading data-cl-loading-label="Creating…">
+      {% csrf_token %}
+
+      <div class="form-group">
+        {{ form.term.label_tag }}
+        {{ form.term }}
+        <div class="gbf-help">Choose the term this termbook applies to (e.g. Midterm, Final).</div>
+      </div>
+
+      <div class="form-group">
+        {{ form.subjects.label_tag }}
+        {{ form.subjects }}
+        <div class="gbf-help">Pick one or more courses to assign this term weighting to. Use the search box to filter.</div>
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.base_grade.id_for_label }}">
+          Base Grade
+          <i class="fas fa-info-circle" style="color: var(--brand-primary, #1b4332);" data-bs-toggle="tooltip" title="Minimum grade that will be used for calculating the final grade"></i>
+        </label>
+        {{ form.base_grade }}
+        <div class="gbf-help">Used as the floor when computing the final grade (e.g. 50 means no student can score below 50).</div>
+      </div>
+
+      <div class="form-group">
+        {{ form.passing_grade.label_tag }}
+        {{ form.passing_grade }}
+        <div class="gbf-help">Minimum grade a student must reach to pass this term (typically 75).</div>
+      </div>
+
+      <div class="form-group">
+        {{ form.percentage.label_tag }}
+        {{ form.percentage }}
+        <div class="gbf-help">Weight of this term toward the semester grade. All term percentages for a course must total 100%.</div>
+      </div>
+
+      <div class="gbf-actions">
+        <button type="submit" class="gbf-btn gbf-btn--primary">
+          <i class="fas fa-check"></i> Create termbook
+        </button>
+        <a href="{% url 'grade-book' %}" class="gbf-btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+    <aside class="gbf-card gbf-guide-card">
+      <div class="cgb-tips">
+        <div class="cgb-tips-head"><i class="fas fa-info-circle"></i> Creation tips</div>
+        <div class="cgb-tips-body">
+          <ul>
+            <li><i class="fas fa-check-circle"></i> Select the correct term before picking courses.</li>
+            <li><i class="fas fa-check-circle"></i> You can assign the same term to multiple courses at once.</li>
+            <li class="warn"><i class="fas fa-exclamation-triangle"></i> The combined percentage across all terms for one course cannot exceed 100%.</li>
+            <li class="warn"><i class="fas fa-exclamation-triangle"></i> A course can only be added once per term — edit the existing termbook to change its weight.</li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const baseGradeField = document.getElementById('{{ form.base_grade.id_for_label }}');
+    if (baseGradeField && baseGradeField.value === '0') {
+      baseGradeField.value = '';
+      baseGradeField.placeholder = 'Enter base grade';
+    }
+    if (window.$ && $.fn.selectpicker) { $('.selectpicker').selectpicker(); }
+  });
+</script>
+<script src="{% static 'js/tours/cl-tour-termbook-form.js' %}" defer></script>
+{% endblock %}

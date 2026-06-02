@@ -1,0 +1,184 @@
+{% extends "base_operation.html" %}
+{% load static %}
+
+{% block extra_css %}{% include "teacher/_legacy_stack.html" %}{% endblock %}
+
+{% block title %}
+  Enrolled Students by Subject
+{% endblock %}
+
+{% block content %}
+  <link rel="stylesheet" href="{% static 'course/subjectEnrollment/import_and_export_enrollement_page.css' %}" />
+
+  <div class="row mb-2">
+    <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+          <li class="breadcrumb-item">Import & Export</li>
+          <li class="breadcrumb-item active" aria-current="page">Import & Export Enrollment</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <div class="row mb-2">
+    <div class="col-md-6">
+      <h3>Enrolled Students</h3>
+    </div>
+    <div class="col-md-6 d-flex justify-content-end">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <a class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#importModal">
+            <i class="fas fa-file-import me-2"></i>Import Enrolled Students
+        </a> 
+          <a class="btn btn-primary me-2" href="{% url 'export_all_students_with_subjects_csv' %}">
+          <i class="fas fa-file-export me-2"></i> Export Enrolled Students
+        </a>
+        </div>   
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col-12 col-md-6 mb-3 mb-md-0">
+      <form method="get">
+        <div class="input-group">
+          <input type="text" name="search" class="form-control" placeholder="Search by student, subject, teacher, semester..." value="{{ search_query }}" />
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search"></i> Search
+          </button>
+          {% if search_query %}
+            <a href="{% url 'import_and_export_enrollment_page' %}" class="btn btn-secondary">
+              <i class="fas fa-times"></i> Clear
+            </a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+    <div class="col-12 col-md-6 text-md-end">
+      <form method="get" class="d-inline-flex align-items-center gap-2">
+        <label class="mb-0">Items per page:</label>
+        <select name="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+          <option value="5" {% if items_per_page == 5 %}selected{% endif %}>5</option>
+          <option value="10" {% if items_per_page == 10 %}selected{% endif %}>10</option>
+          <option value="25" {% if items_per_page == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if items_per_page == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if items_per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+        {% if search_query %}
+          <input type="hidden" name="search" value="{{ search_query }}" />
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+      <div class="card shadow mb-4">
+        <div class="card-header bg-success text-white">
+        </div>
+      <div class="card-body">
+        <div class="table-responsive scrollbar">
+          <table class="table mb-0 table-hover table-bordered fs-10 enrollment-import-table">
+            <thead class="bg-primary">
+              <tr>
+                <th>Student</th>
+                <th>Subject</th>
+                <th>Teacher Name</th>
+                <th>Enrollment Date</th>
+                <th>Semester</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for enrollment in page_obj %}
+                <tr>
+                  <td>{{ enrollment.student.get_full_name }}</td>
+                  <td>{{ enrollment.subject.subject_name }}</td>
+                  <td>{{ enrollment.subject.assign_teacher.first_name }} {{ enrollment.subject.assign_teacher.last_name }}</td>
+                  <td>{{ enrollment.enrollment_date }}</td>
+                  <td>{{ enrollment.semester.semester_name }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-4">No enrollments found.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <nav aria-label="Page navigation" class="mt-3">
+          <ul class="pagination justify-content-start mb-0 flex-wrap">
+            {% if show_first and page_obj.paginator.num_pages > 1 %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1{% if query_string %}&{{ query_string }}{% endif %}">
+                  <span class="d-none d-sm-inline">First</span>
+                  <i class="fas fa-angle-double-left d-inline d-sm-none"></i>
+                </a>
+              </li>
+            {% endif %}
+
+            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+              {% if page_obj.has_previous %}
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">
+                  <i class="fas fa-chevron-left"></i>
+                </a>
+              {% else %}
+                <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+              {% endif %}
+            </li>
+
+            {% for page_num in page_range %}
+              {% if page_num == page_obj.number %}
+                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+              {% else %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ page_num }}</a>
+                </li>
+              {% endif %}
+            {% endfor %}
+
+            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+              {% if page_obj.has_next %}
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              {% else %}
+                <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+              {% endif %}
+            </li>
+
+            {% if show_last and page_obj.paginator.num_pages > 1 %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}">
+                  <span class="d-none d-sm-inline">Last</span>
+                  <i class="fas fa-angle-double-right d-inline d-sm-none"></i>
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+
+    <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Import Student to be Enrolled</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form method="post" enctype="multipart/form-data" action="{% url 'import_students_and_enroll' %}"
+                  data-cl-loading data-cl-loading-label="Importing…">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label for="importFile" class="form-label">Choose CSV File</label>
+                <input type="file" name="import_file" id="importFile" class="form-control" required>
+              </div>
+              <button type="submit" class="btn btn-primary">Upload</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+{% endblock %}
